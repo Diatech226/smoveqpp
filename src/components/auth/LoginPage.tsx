@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, LogIn, AlertCircle, Sparkles } from 'lucide-react';
+import { getSocialAuthUrl } from '../../utils/authApi';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginPage() {
@@ -9,6 +10,12 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, registrationEnabled, cmsEnabled } = useAuth();
+
+  const socialProviders = [
+    { key: 'google', label: 'Google' },
+    { key: 'github', label: 'GitHub' },
+    { key: 'facebook', label: 'Facebook' },
+  ] as const;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,6 +267,30 @@ export default function LoginPage() {
               )}
             </motion.button>
           </form>
+
+          {cmsEnabled && (
+            <motion.div
+              className="mt-6"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.75 }}
+            >
+              <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-[#9ba1a4] text-center mb-3">
+                Ou continuer avec
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {socialProviders.map((provider) => (
+                  <a
+                    key={provider.key}
+                    href={getSocialAuthUrl(provider.key)}
+                    className="text-center border-2 border-[#eef3f5] hover:border-[#00b3e8] text-[#273a41] rounded-[10px] px-3 py-2 font-['Abhaya_Libre:Bold',sans-serif] text-[13px] transition-colors"
+                  >
+                    {provider.label}
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Footer Links */}
           <motion.div

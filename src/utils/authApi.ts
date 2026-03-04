@@ -10,6 +10,8 @@ export interface AuthResult {
   csrfToken: string | null;
 }
 
+export type SocialProvider = 'google' | 'github' | 'facebook';
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '');
 const AUTH_BASE_URL = `${API_BASE_URL}/auth`;
 const REQUEST_TIMEOUT_MS = 10000;
@@ -97,4 +99,8 @@ export async function registerWithApi(
 
 export async function logoutWithApi(csrfToken?: string | null): Promise<void> {
   await requestAuth('/logout', { method: 'POST' }, csrfToken);
+}
+
+export function getSocialAuthUrl(provider: SocialProvider): string {
+  return `${AUTH_BASE_URL}/${provider}`;
 }
