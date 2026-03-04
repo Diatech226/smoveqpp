@@ -239,3 +239,13 @@ npm run build       # Build production front
 npm run test:security
 ```
 
+
+## 10) Roadmap CMS professionnel (site + blog + assets de marque)
+
+Une feuille de route détaillée est disponible ici : **`ROADMAP_CMS_PRO.md`**.
+
+Elle couvre notamment :
+- la médiathèque (stock d’images),
+- les formats d’images et variantes automatiques,
+- un espace de gestion des assets de marque (couleurs, tokens, logos),
+- le plan d’exécution complet vers un CMS professionnel d’agence.
