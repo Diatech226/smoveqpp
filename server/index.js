@@ -34,6 +34,24 @@ const userSchema = new mongoose.Schema(
 
 const User = mongoose.model('User', userSchema);
 
+const cmsStatusValues = ['draft', 'review', 'scheduled', 'published', 'archived'];
+
+const postSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true, minlength: 3, maxlength: 180 },
+    slug: { type: String, required: true, trim: true, lowercase: true, unique: true, minlength: 3, maxlength: 200 },
+    excerpt: { type: String, trim: true, maxlength: 320, default: '' },
+    content: { type: String, required: true, trim: true, minlength: 10 },
+    status: { type: String, enum: cmsStatusValues, default: 'draft' },
+    tags: { type: [String], default: [] },
+    publishedAt: { type: Date, default: null },
+    authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  },
+  { timestamps: true },
+);
+
+const Post = mongoose.model('Post', postSchema);
+
 function ensureCsrfToken(req) {
   if (!req.session.csrfToken) {
     req.session.csrfToken = crypto.randomBytes(32).toString('hex');
@@ -60,6 +78,104 @@ function enforceCsrf(req, res, next) {
     return res.status(403).json({ error: 'Invalid CSRF token' });
   }
   return next();
+}
+
+function requireAuthenticated(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+  return next();
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Admin role required' });
+  return next();
+}
+
+function normalizeSlug(input = '') {
+  return input
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 200);
+}
+
+function toPostResponse(post) {
+  return {
+    id: String(post._id),
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    content: post.content,
+    status: post.status,
+    tags: post.tags,
+    publishedAt: post.publishedAt,
+    authorId: String(post.authorId),
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+  };
+}
+
+function parsePostPayload(payload = {}, { isUpdate = false } = {}) {
+  const errors = [];
+  const hasValue = (key) => Object.prototype.hasOwnProperty.call(payload, key);
+  const parsed = {};
+
+  if (!isUpdate || hasValue('title')) {
+    if (typeof payload.title !== 'string' || payload.title.trim().length < 3) {
+      errors.push('title must be a string with at least 3 characters');
+    } else {
+      parsed.title = payload.title.trim();
+    }
+  }
+
+  if (!isUpdate || hasValue('content')) {
+    if (typeof payload.content !== 'string' || payload.content.trim().length < 10) {
+      errors.push('content must be a string with at least 10 characters');
+    } else {
+      parsed.content = payload.content.trim();
+    }
+  }
+
+  if (hasValue('excerpt')) {
+    if (typeof payload.excerpt !== 'string') {
+      errors.push('excerpt must be a string');
+    } else {
+      parsed.excerpt = payload.excerpt.trim();
+    }
+  }
+
+  if (hasValue('status')) {
+    if (!cmsStatusValues.includes(payload.status)) {
+      errors.push(`status must be one of ${cmsStatusValues.join(', ')}`);
+    } else {
+      parsed.status = payload.status;
+    }
+  }
+
+  if (hasValue('tags')) {
+    if (!Array.isArray(payload.tags) || payload.tags.some((tag) => typeof tag !== 'string')) {
+      errors.push('tags must be an array of strings');
+    } else {
+      parsed.tags = payload.tags.map((tag) => tag.trim()).filter(Boolean);
+    }
+  }
+
+  if (!isUpdate || hasValue('slug') || hasValue('title')) {
+    const rawSlug = typeof payload.slug === 'string' && payload.slug.trim().length > 0
+      ? payload.slug
+      : payload.title;
+    const slug = normalizeSlug(rawSlug);
+    if (!slug || slug.length < 3) {
+      errors.push('slug is required and must contain at least 3 valid characters');
+    } else {
+      parsed.slug = slug;
+    }
+  }
+
+  return { parsed, errors };
 }
 
 passport.use(
@@ -220,6 +336,53 @@ app.post('/api/auth/logout', enforceCsrf, (req, res) => {
   req.logout(() => {
     req.session.destroy(() => res.status(204).end());
   });
+});
+
+app.get('/api/cms/posts', requireAuthenticated, requireAdmin, async (_req, res) => {
+  const posts = await Post.find().sort({ updatedAt: -1 }).lean();
+  res.json({ items: posts.map((post) => toPostResponse(post)) });
+});
+
+app.post('/api/cms/posts', requireAuthenticated, requireAdmin, enforceCsrf, async (req, res) => {
+  const { parsed, errors } = parsePostPayload(req.body);
+  if (errors.length > 0) return res.status(400).json({ error: 'Validation failed', details: errors });
+
+  if (await Post.exists({ slug: parsed.slug })) {
+    return res.status(409).json({ error: 'Slug already exists' });
+  }
+
+  const post = await Post.create({
+    ...parsed,
+    authorId: req.user._id,
+    publishedAt: parsed.status === 'published' ? new Date() : null,
+  });
+
+  return res.status(201).json({ item: toPostResponse(post) });
+});
+
+app.put('/api/cms/posts/:id', requireAuthenticated, requireAdmin, enforceCsrf, async (req, res) => {
+  const post = await Post.findById(req.params.id);
+  if (!post) return res.status(404).json({ error: 'Post not found' });
+
+  const { parsed, errors } = parsePostPayload(req.body, { isUpdate: true });
+  if (errors.length > 0) return res.status(400).json({ error: 'Validation failed', details: errors });
+
+  if (parsed.slug && parsed.slug !== post.slug && await Post.exists({ slug: parsed.slug })) {
+    return res.status(409).json({ error: 'Slug already exists' });
+  }
+
+  Object.assign(post, parsed);
+  if (parsed.status) {
+    post.publishedAt = parsed.status === 'published' ? (post.publishedAt ?? new Date()) : null;
+  }
+  await post.save();
+  return res.json({ item: toPostResponse(post) });
+});
+
+app.delete('/api/cms/posts/:id', requireAuthenticated, requireAdmin, enforceCsrf, async (req, res) => {
+  const deleted = await Post.findByIdAndDelete(req.params.id);
+  if (!deleted) return res.status(404).json({ error: 'Post not found' });
+  return res.status(204).end();
 });
 
 for (const provider of ['google', 'github', 'facebook']) {
