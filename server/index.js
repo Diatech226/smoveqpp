@@ -338,6 +338,23 @@ app.post('/api/auth/logout', enforceCsrf, (req, res) => {
   });
 });
 
+
+app.get('/api/public/brand', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=60');
+  res.json({
+    data: {
+      colors: {
+        primary: process.env.BRAND_COLOR_PRIMARY ?? '#00b3e8',
+        secondary: process.env.BRAND_COLOR_SECONDARY ?? '#34c759',
+      },
+      typography: {
+        heading: process.env.BRAND_FONT_HEADING ?? 'ABeeZee',
+        body: process.env.BRAND_FONT_BODY ?? 'Abhaya Libre',
+      },
+    },
+  });
+});
+
 app.get('/api/cms/posts', requireAuthenticated, requireAdmin, async (_req, res) => {
   const posts = await Post.find().sort({ updatedAt: -1 }).lean();
   res.json({ items: posts.map((post) => toPostResponse(post)) });

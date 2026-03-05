@@ -1,8 +1,16 @@
 import { projects } from './projects';
 import { getBlogPosts } from './blog';
+import { generateUniqueSlug, slugify } from '../utils/slug';
 
 export type ContentType = 'services' | 'projects' | 'posts' | 'events';
-export type ContentStatus = 'draft' | 'review' | 'published' | 'archived';
+export type ContentStatus = 'draft' | 'review' | 'scheduled' | 'published' | 'archived' | 'removed';
+
+export type PostBlockType = 'heading' | 'subheading' | 'paragraph' | 'image' | 'gallery' | 'video' | 'quote' | 'cta';
+export interface PostBlock {
+  id: string;
+  type: PostBlockType;
+  data: Record<string, string | string[] | undefined>;
+}
 
 export interface CMSContentItem {
   id: string;
@@ -13,24 +21,19 @@ export interface CMSContentItem {
   content: string;
   status: ContentStatus;
   coverId: string;
+  coverAltText?: string;
   galleryIds: string[];
   videoUrl?: string;
   category: string;
+  publishedAt?: string | null;
+  viewsCount?: number;
+  commentsCount?: number;
+  contentBlocks?: PostBlock[];
   createdAt: string;
   updatedAt: string;
 }
 
-const STORAGE_KEY = 'smove_cms_content_v1';
-
-function slugify(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
+const STORAGE_KEY = 'smove_cms_content_v2';
 
 function toSeedItems(): CMSContentItem[] {
   const projectItems: CMSContentItem[] = projects.slice(0, 8).map((project, index) => ({
@@ -42,10 +45,14 @@ function toSeedItems(): CMSContentItem[] {
     content: `${project.challenge}\n\n${project.solution}`,
     status: index % 4 === 0 ? 'draft' : 'published',
     coverId: '',
+    coverAltText: '',
     galleryIds: [],
     category: project.category,
+    viewsCount: 0,
+    commentsCount: 0,
     createdAt: new Date(Date.now() - index * 86400000).toISOString(),
     updatedAt: new Date(Date.now() - index * 86400000).toISOString(),
+    publishedAt: index % 4 === 0 ? null : new Date(Date.now() - index * 86400000).toISOString(),
   }));
 
   const postItems: CMSContentItem[] = getBlogPosts().map((post, index) => ({
@@ -57,20 +64,31 @@ function toSeedItems(): CMSContentItem[] {
     content: post.content,
     status: post.status === 'published' ? 'published' : 'draft',
     coverId: '',
+    coverAltText: '',
     galleryIds: [],
     videoUrl: '',
     category: post.category,
+    viewsCount: Math.max(0, 100 - (index * 9)),
+    commentsCount: Math.max(0, 24 - (index * 2)),
+    contentBlocks: [
+      { id: `b-${index}-1`, type: 'heading', data: { text: post.title } },
+      { id: `b-${index}-2`, type: 'paragraph', data: { text: post.excerpt } },
+      { id: `b-${index}-3`, type: 'paragraph', data: { text: post.content.slice(0, 220) } },
+    ],
     createdAt: new Date(Date.now() - index * 3600000).toISOString(),
     updatedAt: new Date(Date.now() - index * 3600000).toISOString(),
+    publishedAt: post.status === 'published' ? new Date(Date.now() - index * 3600000).toISOString() : null,
   }));
 
+  const now = new Date().toISOString();
+
   const serviceItems: CMSContentItem[] = [
-    { id: 'service-branding', type: 'services', title: 'Design & Branding', slug: 'design-branding', excerpt: 'Identité visuelle et supports de marque.', content: 'Service de branding complet.', status: 'published', coverId: '', galleryIds: [], category: 'Branding', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-    { id: 'service-web', type: 'services', title: 'Développement Web', slug: 'developpement-web', excerpt: 'Sites et apps performants.', content: 'Développement sur mesure.', status: 'published', coverId: '', galleryIds: [], category: 'Tech', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'service-branding', type: 'services', title: 'Design & Branding', slug: 'design-branding', excerpt: 'Identité visuelle et supports de marque.', content: 'Service de branding complet.', status: 'published', coverId: '', coverAltText: '', galleryIds: [], category: 'Branding', viewsCount: 0, commentsCount: 0, createdAt: now, updatedAt: now, publishedAt: now },
+    { id: 'service-web', type: 'services', title: 'Développement Web', slug: 'developpement-web', excerpt: 'Sites et apps performants.', content: 'Développement sur mesure.', status: 'published', coverId: '', coverAltText: '', galleryIds: [], category: 'Tech', viewsCount: 0, commentsCount: 0, createdAt: now, updatedAt: now, publishedAt: now },
   ];
 
   const eventItems: CMSContentItem[] = [
-    { id: 'event-launch', type: 'events', title: 'Lancement nouvelle offre', slug: 'lancement-offre', excerpt: 'Présentation de la nouvelle offre SMOVE.', content: 'Évènement de lancement client.', status: 'draft', coverId: '', galleryIds: [], category: 'Corporate', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    { id: 'event-launch', type: 'events', title: 'Lancement nouvelle offre', slug: 'lancement-offre', excerpt: 'Présentation de la nouvelle offre SMOVE.', content: 'Évènement de lancement client.', status: 'scheduled', coverId: '', coverAltText: '', galleryIds: [], category: 'Corporate', viewsCount: 0, commentsCount: 0, createdAt: now, updatedAt: now, publishedAt: new Date(Date.now() + 86400000).toISOString() },
   ];
 
   return [...serviceItems, ...projectItems, ...postItems, ...eventItems];
@@ -78,10 +96,21 @@ function toSeedItems(): CMSContentItem[] {
 
 export function getCMSContent(): CMSContentItem[] {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) return JSON.parse(stored);
+  if (stored) return JSON.parse(stored).map(resolveScheduledPublication);
   const seeds = toSeedItems();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(seeds));
   return seeds;
+}
+
+function resolveScheduledPublication(item: CMSContentItem): CMSContentItem {
+  if (item.status === 'scheduled' && item.publishedAt && Date.now() >= new Date(item.publishedAt).getTime()) {
+    return { ...item, status: 'published' };
+  }
+  return item;
+}
+
+export function getPublicPublishedContent(type: ContentType) {
+  return getCMSContent().filter((item) => item.type === type && item.status === 'published');
 }
 
 export function saveCMSContent(items: CMSContentItem[]) {
@@ -91,11 +120,8 @@ export function saveCMSContent(items: CMSContentItem[]) {
 export function upsertCMSContent(item: CMSContentItem) {
   const items = getCMSContent();
   const index = items.findIndex((existing) => existing.id === item.id);
-  if (index >= 0) {
-    items[index] = item;
-  } else {
-    items.unshift(item);
-  }
+  if (index >= 0) items[index] = item;
+  else items.unshift(item);
   saveCMSContent(items);
 }
 
@@ -108,8 +134,6 @@ export function getCMSCategories(items: CMSContentItem[]) {
   return Array.from(new Set(items.map((item) => item.category).filter(Boolean))).sort((a, b) => a.localeCompare(b));
 }
 
-export function ensureUniqueSlug(items: CMSContentItem[], slug: string, currentId?: string) {
-  const clean = slugify(slug);
-  const exists = items.some((item) => item.slug === clean && item.id !== currentId);
-  return exists ? `${clean}-${Math.random().toString(36).slice(2, 6)}` : clean;
+export function ensureUniqueSlug(items: CMSContentItem[], slug: string, currentId?: string, lockSlug = false) {
+  return generateUniqueSlug(items, slug, { excludeId: currentId, lockSlug });
 }
