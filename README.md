@@ -296,3 +296,45 @@ Limites actuelles:
 - Les schémas Prisma ne sont pas présents dans ce repository; la couche de données CMS V1 reste côté client.
 - Les compteurs utilisateurs reflètent l’état de session disponible côté client, pas un annuaire complet.
 - La médiathèque est locale et dépend du navigateur courant (stockage local non partagé entre machines).
+
+## 8) V2 CMS Pro livré dans ce repo
+
+### Fonctionnalités V2 implémentées
+- **Médiathèque Pro (front)** : modèle média enrichi (type/folder/status/variants/alt/tags/metadata), upload local, filtres/recherche/pagination/copy URL, sélection réutilisable via `MediaPicker`.
+- **Workflow éditorial** : statuts unifiés `draft|review|scheduled|published|archived|removed`, actions rapides dans les listes, publication planifiée via `publishedAt`.
+- **Blog bloc par bloc** : `contentBlocks` (heading/paragraph/image/quote…), rendu côté page blog, sidebar “plus commentés” + “même rubrique”.
+- **Taxonomies V2** : seeds front pour catégories service/projet/post + dropdown obligatoire dans les formulaires CMS.
+- **Brand Center** : tokens de marque JSON, liens sociaux, logo/OG/fav via IDs média, application des CSS variables à `:root` au boot.
+
+### Variables d’env (média) — V2
+Dans ce repo, la médiathèque V2 est front-first (localStorage). Pour préparer V3 back-end/S3, prévoyez :
+
+```env
+# futur provider media
+MEDIA_PROVIDER=local # local|s3
+MEDIA_LOCAL_DIR=public/uploads
+MEDIA_PUBLIC_BASE_URL=http://localhost:5173/uploads
+
+# futur provider objet (V3)
+S3_ENDPOINT=
+S3_REGION=
+S3_BUCKET=
+S3_ACCESS_KEY=
+S3_SECRET_KEY=
+S3_PUBLIC_URL=
+```
+
+### Migration notes (V2)
+- Clé storage contenu: `smove_cms_content_v2`.
+- Nouvelles propriétés contenu: `publishedAt`, `coverAltText`, `viewsCount`, `commentsCount`, `contentBlocks`.
+- Statuts enrichis avec `scheduled` et `removed`.
+- Clé storage média: `smove_media_files_v2` avec schéma DAM simplifié.
+
+### Seed V2 taxonomies
+Les taxonomies de base sont seedées automatiquement au premier accès via la clé `smove_taxonomies_v2`.
+
+### Roadmap V3 (prochaine étape)
+- Passage storage CMS/média du front localStorage vers API persistante (Mongo).
+- Endpoint public brand (`/api/public/brand`) avec cache HTTP et invalidation.
+- Upload multipart serveur + génération variantes réelles (sharp/webp/avif/og).
+- RBAC fin + audit trail + review workflow multi-utilisateurs.
