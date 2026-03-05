@@ -1,367 +1,287 @@
 import { motion } from 'motion/react';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  FolderOpen, 
-  Image as ImageIcon, 
+import {
+  LayoutDashboard,
+  FileText,
+  FolderOpen,
+  Image as ImageIcon,
   Users,
-  TrendingUp,
-  Eye,
-  MessageSquare,
   LogOut,
   Menu,
   X,
   Settings,
-  Plus
+  Plus,
+  Briefcase,
+  Calendar,
+  Tags,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { projects } from '../../data/projects';
-import { getBlogPosts } from '../../data/blog';
-import { getMediaFiles } from '../../data/media';
+import { getMediaFileById, getMediaFiles } from '../../data/media';
+import {
+  deleteCMSContent,
+  ensureUniqueSlug,
+  getCMSCategories,
+  getCMSContent,
+  type CMSContentItem,
+  type ContentStatus,
+  type ContentType,
+  upsertCMSContent,
+} from '../../data/cmsContent';
 
 interface CMSDashboardProps {
   currentSection: string;
   onSectionChange: (section: string) => void;
 }
 
+type FormState = Pick<CMSContentItem, 'title' | 'slug' | 'excerpt' | 'content' | 'status' | 'coverId' | 'videoUrl' | 'category'> & { galleryIds: string[] };
+
+const typeMap: { key: ContentType; label: string }[] = [
+  { key: 'services', label: 'Services' },
+  { key: 'projects', label: 'Projets' },
+  { key: 'posts', label: 'Articles' },
+  { key: 'events', label: 'Évènements' },
+];
+
+const statusOptions: ContentStatus[] = ['draft', 'review', 'published', 'archived'];
+
+const emptyForm: FormState = {
+  title: '', slug: '', excerpt: '', content: '', status: 'draft', coverId: '', galleryIds: [], videoUrl: '', category: '',
+};
+
+function slugify(value: string) {
+  return value.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function validate(form: FormState, type: ContentType) {
+  const errors: string[] = [];
+  if (form.title.trim().length < 3) errors.push('Le titre doit contenir au moins 3 caractères.');
+  if (form.excerpt.trim().length < 10) errors.push('Le résumé doit contenir au moins 10 caractères.');
+  if (form.content.trim().length < 20) errors.push('Le contenu doit contenir au moins 20 caractères.');
+  if (!form.category.trim()) errors.push('La catégorie est obligatoire.');
+  if (!slugify(form.slug || form.title)) errors.push('Le slug est invalide.');
+  if (form.status === 'published' && !form.coverId) errors.push('Une cover est obligatoire pour publier.');
+  if (type !== 'posts' && form.videoUrl?.trim()) errors.push('La vidéo est réservée aux articles.');
+  if (form.videoUrl && !/^https?:\/\//.test(form.videoUrl)) errors.push('URL vidéo invalide (http/https).');
+  return errors;
+}
+
+function ContentSection({ type, items, onRefresh }: { type: ContentType; items: CMSContentItem[]; onRefresh: () => void }) {
+  const [editing, setEditing] = useState<CMSContentItem | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<string>('');
+  const [errors, setErrors] = useState<string[]>([]);
+  const media = getMediaFiles();
+
+  const reset = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setErrors([]);
+  };
+
+  const openCreate = () => {
+    reset();
+    setFeedback('');
+  };
+
+  const openEdit = (item: CMSContentItem) => {
+    setEditing(item);
+    setForm({
+      title: item.title,
+      slug: item.slug,
+      excerpt: item.excerpt,
+      content: item.content,
+      status: item.status,
+      coverId: item.coverId,
+      galleryIds: item.galleryIds,
+      videoUrl: item.videoUrl || '',
+      category: item.category,
+    });
+    setFeedback('');
+    setErrors([]);
+  };
+
+  const save = () => {
+    const all = getCMSContent();
+    const payload: FormState = { ...form, slug: ensureUniqueSlug(all, form.slug || form.title, editing?.id) };
+    const nextErrors = validate(payload, type);
+    if (nextErrors.length) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    setSaving(true);
+    const now = new Date().toISOString();
+    upsertCMSContent({
+      id: editing?.id || `${type}-${Date.now()}`,
+      type,
+      title: payload.title.trim(),
+      slug: payload.slug,
+      excerpt: payload.excerpt.trim(),
+      content: payload.content.trim(),
+      status: payload.status,
+      coverId: payload.coverId,
+      galleryIds: payload.galleryIds,
+      videoUrl: type === 'posts' ? payload.videoUrl?.trim() : '',
+      category: payload.category.trim(),
+      createdAt: editing?.createdAt || now,
+      updatedAt: now,
+    });
+    setSaving(false);
+    setFeedback(editing ? 'Contenu mis à jour.' : 'Contenu créé.');
+    reset();
+    onRefresh();
+  };
+
+  const quickStatus = (item: CMSContentItem, status: ContentStatus) => {
+    upsertCMSContent({ ...item, status, updatedAt: new Date().toISOString() });
+    onRefresh();
+  };
+
+  const remove = (id: string) => {
+    deleteCMSContent(id);
+    onRefresh();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl text-[#273a41] font-semibold">{typeMap.find((t) => t.key === type)?.label}</h2>
+        <button onClick={openCreate} className="bg-[#00b3e8] text-white px-4 py-2 rounded-lg inline-flex items-center gap-2"><Plus size={16} />Créer</button>
+      </div>
+
+      <div className="bg-white rounded-xl border p-4 space-y-3">
+        <div className="grid md:grid-cols-2 gap-3">
+          <input className="border rounded-md p-2" placeholder="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value, slug: slugify(e.target.value) })} />
+          <input className="border rounded-md p-2" placeholder="Slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+          <input className="border rounded-md p-2" placeholder="Catégorie" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+          <select className="border rounded-md p-2" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as ContentStatus })}>
+            {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </div>
+        <textarea className="border rounded-md p-2 w-full" rows={2} placeholder="Résumé" value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} />
+        <textarea className="border rounded-md p-2 w-full" rows={4} placeholder="Contenu" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
+
+        <div className="grid md:grid-cols-2 gap-3">
+          <select className="border rounded-md p-2" value={form.coverId} onChange={(e) => setForm({ ...form, coverId: e.target.value })}>
+            <option value="">Sélectionner une cover</option>
+            {media.filter((f) => f.type === 'image').map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+          {type === 'posts' && (
+            <input className="border rounded-md p-2" placeholder="https://video... (optionnel)" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} />
+          )}
+        </div>
+
+        {form.coverId && (
+          <img src={getMediaFileById(form.coverId)?.thumbnailUrl || getMediaFileById(form.coverId)?.url} alt="Aperçu cover" className="w-40 h-24 object-cover rounded-md border" />
+        )}
+
+        {errors.length > 0 && <ul className="text-sm text-red-600 list-disc pl-5">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
+        {feedback && <p className="text-sm text-green-600">{feedback}</p>}
+        <div className="flex gap-2 justify-end">
+          <button onClick={reset} className="px-4 py-2 rounded-lg border">Annuler / Reset</button>
+          <button disabled={saving} onClick={save} className="px-4 py-2 rounded-lg bg-[#273a41] text-white">{saving ? 'Enregistrement...' : editing ? 'Mettre à jour' : 'Enregistrer'}</button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-[#f5f9fa]"><tr><th className="text-left p-3">Titre</th><th className="text-left p-3">Statut</th><th className="text-left p-3">Cover</th><th className="text-right p-3">Actions</th></tr></thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.id} className="border-t">
+                <td className="p-3"><p className="font-medium">{item.title}</p><p className="text-xs text-gray-500">/{item.slug}</p></td>
+                <td className="p-3">
+                  <select className="border rounded-md p-1" value={item.status} onChange={(e) => quickStatus(item, e.target.value as ContentStatus)}>
+                    {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                </td>
+                <td className="p-3">{item.coverId ? '✅' : 'Fallback'}</td>
+                <td className="p-3 text-right space-x-2">
+                  <button onClick={() => openEdit(item)} className="inline-flex items-center gap-1 px-2 py-1 border rounded"><Pencil size={14} />Edit</button>
+                  <button onClick={() => remove(item.id)} className="inline-flex items-center gap-1 px-2 py-1 border rounded text-red-600"><Trash2 size={14} />Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
   const { user, logout, canAccessCMS } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const allContent = useMemo(() => getCMSContent(), [refreshKey]);
+  const mediaFiles = getMediaFiles();
+  const categories = getCMSCategories(allContent);
 
   const stats = [
-    {
-      label: 'Total Projets',
-      value: projects.length,
-      icon: FolderOpen,
-      color: 'from-[#00b3e8] to-[#00c0e8]',
-      change: '+12%',
-    },
-    {
-      label: 'Articles Blog',
-      value: getBlogPosts().length,
-      icon: FileText,
-      color: 'from-[#a855f7] to-[#9333ea]',
-      change: '+8%',
-    },
-    {
-      label: 'Fichiers Média',
-      value: getMediaFiles().length,
-      icon: ImageIcon,
-      color: 'from-[#ffc247] to-[#ff9f47]',
-      change: '+15%',
-    },
-    {
-      label: 'Vues Totales',
-      value: '12.5k',
-      icon: Eye,
-      color: 'from-[#34c759] to-[#2da84a]',
-      change: '+23%',
-    },
+    { label: 'Services', value: allContent.filter((i) => i.type === 'services').length, icon: Briefcase, color: 'from-[#00b3e8] to-[#00c0e8]' },
+    { label: 'Projets', value: allContent.filter((i) => i.type === 'projects').length, icon: FolderOpen, color: 'from-[#34c759] to-[#2da84a]' },
+    { label: 'Articles', value: allContent.filter((i) => i.type === 'posts').length, icon: FileText, color: 'from-[#a855f7] to-[#9333ea]' },
+    { label: 'Médias', value: mediaFiles.length, icon: ImageIcon, color: 'from-[#ffc247] to-[#ff9f47]' },
+    { label: 'Utilisateurs', value: user ? 1 : 0, icon: Users, color: 'from-[#273a41] to-[#38484e]' },
   ];
 
-  const menuItems = [
-    { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutDashboard },
-    { id: 'projects', label: 'Projets', icon: FolderOpen },
-    { id: 'blog', label: 'Blog', icon: FileText },
-    { id: 'media', label: 'Médiathèque', icon: ImageIcon },
-    { id: 'settings', label: 'Paramètres', icon: Settings },
-  ];
-
-  const recentActivity = [
-    { action: 'Nouveau projet ajouté', item: 'SMOVE Platform', time: 'Il y a 2h', type: 'project' },
-    { action: 'Article publié', item: 'Création site web', time: 'Il y a 5h', type: 'blog' },
-    { action: 'Image uploadée', item: 'hero-banner.jpg', time: 'Il y a 1j', type: 'media' },
-    { action: 'Projet modifié', item: 'ECLA BTP', time: 'Il y a 2j', type: 'project' },
-  ];
+  const recent = [...allContent].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)).slice(0, 6);
 
   const handleLogout = async () => {
     await logout();
     window.location.hash = 'login';
   };
 
-  if (!canAccessCMS) {
-    return (
-      <div className="min-h-screen bg-[#f5f9fa] flex items-center justify-center px-6">
-        <div className="max-w-xl w-full bg-white rounded-[20px] shadow-sm border border-[#eef3f5] p-8 text-center">
-          <h1 className="font-['Medula_One:Regular',sans-serif] text-[32px] tracking-[2px] uppercase text-[#273a41] mb-4">
-            Accès refusé
-          </h1>
-          <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#38484e] mb-6">
-            Seuls les comptes administrateurs peuvent accéder au CMS.
-          </p>
-          <a
-            href="#home"
-            className="inline-flex items-center justify-center bg-[#00b3e8] text-white px-6 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif]"
-          >
-            Retour au site
-          </a>
-        </div>
-      </div>
-    );
-  }
+  if (!canAccessCMS) return null;
+
+  const menuItems = [
+    { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutDashboard },
+    { id: 'services', label: 'Services', icon: Briefcase },
+    { id: 'projects', label: 'Projets', icon: FolderOpen },
+    { id: 'posts', label: 'Articles', icon: FileText },
+    { id: 'events', label: 'Évènements', icon: Calendar },
+    { id: 'media', label: 'Médiathèque', icon: ImageIcon },
+    { id: 'users', label: 'Users', icon: Users },
+    { id: 'taxonomies', label: 'Catégories', icon: Tags },
+    { id: 'settings', label: 'Paramètres', icon: Settings },
+  ];
 
   return (
     <div className="min-h-screen bg-[#f5f9fa] flex">
-      {/* Sidebar */}
-      <motion.aside
-        className={`fixed left-0 top-0 h-full bg-white shadow-xl z-50 ${
-          sidebarOpen ? 'w-64' : 'w-20'
-        } transition-all duration-300`}
-        initial={{ x: -100 }}
-        animate={{ x: 0 }}
-      >
-        {/* Logo */}
-        <div className="p-6 border-b border-[#eef3f5] flex items-center justify-between">
-          {sidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center gap-2"
-            >
-              <div className="w-10 h-10 bg-gradient-to-r from-[#00b3e8] to-[#34c759] rounded-[10px] flex items-center justify-center">
-                <span className="text-white font-['ABeeZee:Regular',sans-serif] text-[20px]">S</span>
-              </div>
-              <div>
-                <h2 className="font-['ABeeZee:Regular',sans-serif] text-[18px] text-[#273a41]">
-                  SMOVE
-                </h2>
-                <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">
-                  CMS Admin
-                </p>
-              </div>
-            </motion.div>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-[#f5f9fa] rounded-[8px] transition-colors"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-
-        {/* User Info */}
-        <div className="p-6 border-b border-[#eef3f5]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-[#00b3e8] to-[#34c759] rounded-full flex items-center justify-center">
-              <span className="text-white font-['Abhaya_Libre:Bold',sans-serif] text-[16px]">
-                {user?.name?.charAt(0) ?? 'A'}
-              </span>
-            </div>
-            {sidebarOpen && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex-1 min-w-0"
-              >
-                <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-[#273a41] truncate">
-                  {user?.name}
-                </p>
-                <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4] truncate">
-                  {user?.email}
-                </p>
-              </motion.div>
-            )}
-          </div>
-        </div>
-
-        {/* Menu Items */}
-        <nav className="p-4 space-y-2">
-          {menuItems.map((item) => (
-            <motion.button
-              key={item.id}
-              onClick={() => onSectionChange(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all ${
-                currentSection === item.id
-                  ? 'bg-[#00b3e8] text-white'
-                  : 'text-[#273a41] hover:bg-[#f5f9fa]'
-              }`}
-              whileHover={{ x: 5 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <item.icon size={20} />
-              {sidebarOpen && (
-                <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px]">
-                  {item.label}
-                </span>
-              )}
-            </motion.button>
-          ))}
+      <motion.aside className={`fixed left-0 top-0 h-full bg-white shadow-xl z-50 ${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300`}>
+        <div className="p-4 border-b flex justify-between"><strong>SMOVE CMS</strong><button onClick={() => setSidebarOpen(!sidebarOpen)}>{sidebarOpen ? <X size={18} /> : <Menu size={18} />}</button></div>
+        <nav className="p-3 space-y-1">
+          {menuItems.map((item) => <button key={item.id} onClick={() => onSectionChange(item.id)} className={`w-full flex items-center gap-2 p-2 rounded ${currentSection === item.id ? 'bg-[#00b3e8] text-white' : 'hover:bg-[#f5f9fa]'}`}><item.icon size={16} />{sidebarOpen && item.label}</button>)}
         </nav>
-
-        {/* Logout Button */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#eef3f5]">
-          <motion.button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] text-red-500 hover:bg-red-50 transition-colors"
-            whileHover={{ x: 5 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <LogOut size={20} />
-            {sidebarOpen && (
-              <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px]">
-                Déconnexion
-              </span>
-            )}
-          </motion.button>
-        </div>
+        <div className="absolute bottom-0 w-full p-3 border-t"><button onClick={handleLogout} className="w-full flex items-center gap-2 text-red-600"><LogOut size={16} />{sidebarOpen && 'Déconnexion'}</button></div>
       </motion.aside>
-
-      {/* Main Content */}
-      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
-        {/* Header */}
-        <header className="bg-white border-b border-[#eef3f5] px-8 py-6 sticky top-0 z-40">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-['Medula_One:Regular',sans-serif] text-[28px] tracking-[2.8px] uppercase text-[#273a41]">
-                {menuItems.find(m => m.id === currentSection)?.label || 'Dashboard'}
-              </h1>
-              <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4] mt-1">
-                Bienvenue, {user?.name}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <a
-                href="#home"
-                className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4] hover:text-[#273a41]"
-              >
-                Voir le site →
-              </a>
-            </div>
-          </div>
-        </header>
-
-        {/* Dashboard Content */}
+      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} p-6 space-y-6`}>
         {currentSection === 'overview' && (
-          <div className="p-8">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={index}
-                  className="bg-white rounded-[20px] p-6 shadow-sm"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ y: -5, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-[12px] bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
-                      <stat.icon className="text-white" size={24} />
-                    </div>
-                    <span className="text-[#34c759] font-['Abhaya_Libre:Bold',sans-serif] text-[14px]">
-                      {stat.change}
-                    </span>
-                  </div>
-                  <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[32px] text-[#273a41] mb-1">
-                    {stat.value}
-                  </h3>
-                  <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
-                    {stat.label}
-                  </p>
-                </motion.div>
-              ))}
+          <>
+            <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4">{stats.map((stat) => <div key={stat.label} className="bg-white p-4 rounded-xl border"><p className="text-sm text-gray-500">{stat.label}</p><p className="text-2xl font-semibold">{stat.value}</p></div>)}</div>
+            <div className="grid lg:grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl border p-4 lg:col-span-2"><h3 className="font-semibold mb-3">Derniers contenus créés</h3><ul className="space-y-2">{recent.map((item) => <li key={item.id} className="text-sm flex justify-between"><span>{item.title}</span><span className="text-gray-500">{item.status}</span></li>)}</ul></div>
+              <div className="bg-white rounded-xl border p-4"><h3 className="font-semibold mb-3">Publication</h3><p className="text-sm">Brouillons: {allContent.filter((i) => i.status === 'draft').length}</p><p className="text-sm">Publiés récemment (7j): {allContent.filter((i) => i.status === 'published' && Date.now() - +new Date(i.updatedAt) < 7 * 86400000).length}</p></div>
             </div>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              <motion.button
-                onClick={() => onSectionChange('projects')}
-                className="bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] text-white p-6 rounded-[20px] flex items-center justify-between group"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="text-left">
-                  <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">
-                    Nouveau Projet
-                  </p>
-                  <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">
-                    Ajouter un projet
-                  </p>
-                </div>
-                <Plus className="group-hover:rotate-90 transition-transform" size={32} />
-              </motion.button>
-
-              <motion.button
-                onClick={() => onSectionChange('blog')}
-                className="bg-gradient-to-r from-[#a855f7] to-[#9333ea] text-white p-6 rounded-[20px] flex items-center justify-between group"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="text-left">
-                  <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">
-                    Nouvel Article
-                  </p>
-                  <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">
-                    Rédiger un article
-                  </p>
-                </div>
-                <Plus className="group-hover:rotate-90 transition-transform" size={32} />
-              </motion.button>
-
-              <motion.button
-                onClick={() => onSectionChange('media')}
-                className="bg-gradient-to-r from-[#ffc247] to-[#ff9f47] text-white p-6 rounded-[20px] flex items-center justify-between group"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="text-left">
-                  <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">
-                    Upload Média
-                  </p>
-                  <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">
-                    Ajouter des fichiers
-                  </p>
-                </div>
-                <Plus className="group-hover:rotate-90 transition-transform" size={32} />
-              </motion.button>
-            </div>
-
-            {/* Recent Activity */}
-            <motion.div
-              className="bg-white rounded-[20px] p-6 shadow-sm"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-6">
-                Activité Récente
-              </h3>
-              <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <motion.div
-                    key={index}
-                    className="flex items-center gap-4 p-4 rounded-[12px] hover:bg-[#f5f9fa] transition-colors"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
-                  >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      activity.type === 'project' ? 'bg-[#00b3e8]/10 text-[#00b3e8]' :
-                      activity.type === 'blog' ? 'bg-[#a855f7]/10 text-[#a855f7]' :
-                      'bg-[#ffc247]/10 text-[#ffc247]'
-                    }`}>
-                      {activity.type === 'project' ? <FolderOpen size={20} /> :
-                       activity.type === 'blog' ? <FileText size={20} /> :
-                       <ImageIcon size={20} />}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-[#273a41]">
-                        {activity.action}
-                      </p>
-                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">
-                        {activity.item}
-                      </p>
-                    </div>
-                    <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">
-                      {activity.time}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
+          </>
         )}
+
+        {(['services', 'projects', 'posts', 'events'] as ContentType[]).includes(currentSection as ContentType) && (
+          <ContentSection
+            type={currentSection as ContentType}
+            items={allContent.filter((item) => item.type === currentSection)}
+            onRefresh={() => setRefreshKey((k) => k + 1)}
+          />
+        )}
+
+        {currentSection === 'media' && <div className="bg-white rounded-xl border p-4">Médiathèque disponible ({mediaFiles.length} éléments). Sélection cover active dans tous les formulaires CRUD.</div>}
+        {currentSection === 'users' && <div className="bg-white rounded-xl border p-4">Utilisateurs connectés: {user?.email}</div>}
+        {currentSection === 'taxonomies' && <div className="bg-white rounded-xl border p-4"><h3 className="font-semibold">Catégories détectées</h3><ul className="list-disc pl-5">{categories.map((cat) => <li key={cat}>{cat}</li>)}</ul></div>}
+        {currentSection === 'settings' && <div className="bg-white rounded-xl border p-4">Paramètres V1 stabilisés: statuts standardisés, slugs auto, cover obligatoire à la publication.</div>}
       </main>
     </div>
   );
