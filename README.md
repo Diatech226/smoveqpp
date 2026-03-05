@@ -374,3 +374,14 @@ npm run db:migrate:v3
 - `docs/release-checklist-v3.md`
 - `docs/runbook.md`
 - `docs/deployment.md`
+
+## 9) V4 enterprise baseline
+
+Une première base V4 multi-tenant est en place côté API:
+- modèle `Tenant` et tenant par défaut,
+- scoping tenant sur posts + logs d’audit,
+- endpoint `GET /api/v1/brand` (feature flaggable),
+- compatibilité maintenue sur `GET /api/public/brand`.
+
+Documentation V4 détaillée:
+- `docs/v4-enterprise-plan.md`
