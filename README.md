@@ -249,3 +249,50 @@ Elle couvre notamment :
 - les formats d’images et variantes automatiques,
 - un espace de gestion des assets de marque (couleurs, tokens, logos),
 - le plan d’exécution complet vers un CMS professionnel d’agence.
+
+---
+
+## V1 livré
+
+- Dashboard CMS consolidé avec compteurs fiables pour services, projets, articles, médias et utilisateurs connectés.
+- Uniformisation du CRUD V1 pour **services / projets / articles / évènements** avec:
+  - création, édition, suppression,
+  - mise à jour rapide de statut,
+  - gestion du slug,
+  - sélection de cover via médiathèque,
+  - feedback de sauvegarde et reset/annulation.
+- Règle de publication renforcée: statut `published` interdit sans cover.
+- Bloc taxonomies (catégories détectées automatiquement).
+- Vue dashboard enrichie: derniers contenus, brouillons, publiés récents.
+- Stabilisation UI admin (cards, tableaux, actions alignées, spacing homogène).
+
+Modules opérationnels en V1:
+- Auth + contrôle d’accès admin CMS.
+- Dashboard d’administration consolidé.
+- CRUD localStorage V1 pour services/projets/posts/events.
+- Médiathèque locale et sélection de cover.
+
+Limites actuelles:
+- Persistance CMS côté front (`localStorage`) et non base centralisée.
+- Gestion utilisateurs limitée au contexte de session courant.
+- Galerie simple stockée, mais sans UX dédiée d’upload multi-image avancé.
+
+## Futures itérations V2 / V3
+
+### V2
+- Migration des contenus CMS vers API persistante (MongoDB), suppression de la logique locale.
+- Upload média serveur + variantes d’images servies de manière centralisée.
+- Gestion utilisateurs admin complète (listing, rôles, activation/désactivation).
+- Filtres avancés, pagination et recherche serveur.
+
+### V3
+- Workflow éditorial complet (review, planification, audit trail).
+- SEO avancé, preview, autosave et révisions.
+- Monitoring, observabilité et tests E2E des parcours CMS critiques.
+
+## Known current technical constraints
+
+- Le projet frontend actuel est un SPA **React + Vite** (pas Next.js App Router).
+- Les schémas Prisma ne sont pas présents dans ce repository; la couche de données CMS V1 reste côté client.
+- Les compteurs utilisateurs reflètent l’état de session disponible côté client, pas un annuaire complet.
+- La médiathèque est locale et dépend du navigateur courant (stockage local non partagé entre machines).
