@@ -21,6 +21,9 @@ const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? 'http://localhost:3000';
 const MONGO_URI = process.env.MONGO_URI ?? 'mongodb://127.0.0.1:27017/smove';
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'change-me';
 const APP_VERSION = process.env.APP_VERSION ?? 'v3';
+const DEFAULT_TENANT_SLUG = process.env.DEFAULT_TENANT_SLUG ?? 'default';
+const MULTI_TENANT_ENABLED = (process.env.FEATURE_MULTI_TENANT ?? 'true').toLowerCase() !== 'false';
+const BRAND_API_V1_ENABLED = (process.env.FEATURE_BRAND_API_V1 ?? 'true').toLowerCase() !== 'false';
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
   .split(',')
   .map((email) => email.trim().toLowerCase())
@@ -40,6 +43,7 @@ const ACTIONS = {
 
 const userSchema = new mongoose.Schema(
   {
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     name: { type: String, required: true, trim: true },
     passwordHash: { type: String },
@@ -52,6 +56,7 @@ const userSchema = new mongoose.Schema(
 
 const postSchema = new mongoose.Schema(
   {
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true },
     title: { type: String, required: true, trim: true, minlength: 3, maxlength: 180 },
     slug: { type: String, required: true, trim: true, lowercase: true, unique: true, minlength: 3, maxlength: 200 },
     excerpt: { type: String, trim: true, maxlength: 320, default: '' },
@@ -65,9 +70,36 @@ const postSchema = new mongoose.Schema(
   { timestamps: true },
 );
 postSchema.index({ slug: 1 }, { unique: true });
+postSchema.index({ tenantId: 1, status: 1, updatedAt: -1 });
+
+const tenantSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    slug: { type: String, required: true, trim: true, lowercase: true, unique: true, index: true },
+    domains: { type: [String], default: [] },
+    status: { type: String, enum: ['active', 'inactive', 'archived'], default: 'active', index: true },
+    branding: {
+      logoUrl: { type: String, default: '' },
+      faviconUrl: { type: String, default: '' },
+      metadataBase: { type: String, default: '' },
+      socialLinks: { type: mongoose.Schema.Types.Mixed, default: {} },
+      palette: {
+        primary: { type: String, default: '#00b3e8' },
+        secondary: { type: String, default: '#34c759' },
+      },
+      tokens: { type: mongoose.Schema.Types.Mixed, default: {} },
+      typography: {
+        heading: { type: String, default: 'ABeeZee' },
+        body: { type: String, default: 'Abhaya Libre' },
+      },
+    },
+  },
+  { timestamps: true },
+);
 
 const auditLogSchema = new mongoose.Schema(
   {
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true },
     actorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     action: { type: String, required: true, index: true },
     entityType: { type: String, required: true, index: true },
@@ -81,7 +113,54 @@ const auditLogSchema = new mongoose.Schema(
 
 const User = mongoose.model('User', userSchema);
 const Post = mongoose.model('Post', postSchema);
+const Tenant = mongoose.model('Tenant', tenantSchema);
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+
+function normalizeHost(host = '') {
+  return host.replace(/:\d+$/, '').trim().toLowerCase();
+}
+
+async function ensureDefaultTenant() {
+  return Tenant.findOneAndUpdate(
+    { slug: DEFAULT_TENANT_SLUG },
+    {
+      $setOnInsert: {
+        name: 'SMOVE Default',
+        slug: DEFAULT_TENANT_SLUG,
+        domains: [],
+        status: 'active',
+      },
+    },
+    { upsert: true, new: true },
+  );
+}
+
+async function resolveTenant(req) {
+  const fallback = await ensureDefaultTenant();
+  if (!MULTI_TENANT_ENABLED) return fallback;
+
+  const querySlug = typeof req.query?.tenant === 'string' ? normalizeSlug(req.query.tenant) : '';
+  const headerValue = req.get('X-Tenant-Slug');
+  const headerSlug = typeof headerValue === 'string' ? normalizeSlug(headerValue) : '';
+  const resolvedHost = normalizeHost(req.get('host') ?? '');
+
+  if (querySlug) {
+    const byQuery = await Tenant.findOne({ slug: querySlug, status: 'active' });
+    if (byQuery) return byQuery;
+  }
+
+  if (headerSlug) {
+    const byHeader = await Tenant.findOne({ slug: headerSlug, status: 'active' });
+    if (byHeader) return byHeader;
+  }
+
+  if (resolvedHost) {
+    const byHost = await Tenant.findOne({ domains: resolvedHost, status: 'active' });
+    if (byHost) return byHost;
+  }
+
+  return fallback;
+}
 
 function ensureCsrfToken(req) {
   if (!req.session.csrfToken) {
@@ -115,6 +194,7 @@ function requireAction(action) {
 async function logAudit(req, action, entityType, entityId, diff = undefined) {
   try {
     await AuditLog.create({
+      tenantId: req.tenant?._id,
       actorId: req.user?._id,
       action,
       entityType,
@@ -332,6 +412,14 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(async (req, _res, next) => {
+  try {
+    req.tenant = await resolveTenant(req);
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+});
 
 app.get('/api/health', async (_req, res) => {
   try {
@@ -352,7 +440,7 @@ app.post('/api/auth/register', limiterAuth, async (req, res) => {
     if (!email || !password || !name) return res.status(400).json({ error: 'Missing required fields' });
     if (await User.exists({ email: email.toLowerCase() })) return res.status(409).json({ error: 'Email exists' });
 
-    const user = await User.create({ email: email.toLowerCase(), name, role: resolveRole(email), passwordHash: await bcrypt.hash(password, 10), provider: 'local' });
+    const user = await User.create({ tenantId: req.tenant?._id, email: email.toLowerCase(), name, role: resolveRole(email), passwordHash: await bcrypt.hash(password, 10), provider: 'local' });
 
     return req.login(user, async (error) => {
       if (error) return res.status(500).json({ error: 'Unable to start session' });
@@ -389,22 +477,56 @@ app.post('/api/auth/logout', enforceCsrf, async (req, res) => {
   });
 });
 
-app.get('/api/public/brand', (_req, res) => {
+app.get('/api/public/brand', (req, res) => {
+  const tenant = req.tenant;
+  const branding = tenant?.branding ?? {};
   res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
   res.json({
     data: {
-      colors: { primary: process.env.BRAND_COLOR_PRIMARY ?? '#00b3e8', secondary: process.env.BRAND_COLOR_SECONDARY ?? '#34c759' },
-      typography: { heading: process.env.BRAND_FONT_HEADING ?? 'ABeeZee', body: process.env.BRAND_FONT_BODY ?? 'Abhaya Libre' },
+      tenant: tenant ? { id: String(tenant._id), name: tenant.name, slug: tenant.slug } : null,
+      colors: {
+        primary: branding.palette?.primary ?? process.env.BRAND_COLOR_PRIMARY ?? '#00b3e8',
+        secondary: branding.palette?.secondary ?? process.env.BRAND_COLOR_SECONDARY ?? '#34c759',
+      },
+      typography: {
+        heading: branding.typography?.heading ?? process.env.BRAND_FONT_HEADING ?? 'ABeeZee',
+        body: branding.typography?.body ?? process.env.BRAND_FONT_BODY ?? 'Abhaya Libre',
+      },
+      logoUrl: branding.logoUrl ?? '',
+      faviconUrl: branding.faviconUrl ?? '',
+      metadataBase: branding.metadataBase ?? '',
+      socialLinks: branding.socialLinks ?? {},
+      tokens: branding.tokens ?? {},
     },
   });
 });
 
-app.get('/api/cms/summary', requireAction('postRead'), async (_req, res) => {
+app.get('/api/v1/brand', (req, res) => {
+  if (!BRAND_API_V1_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const tenant = req.tenant;
+  if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+  return res.json({
+    data: {
+      tenant: {
+        id: String(tenant._id),
+        name: tenant.name,
+        slug: tenant.slug,
+        domains: tenant.domains,
+        status: tenant.status,
+      },
+      branding: tenant.branding,
+      updatedAt: tenant.updatedAt,
+    },
+  });
+});
+
+app.get('/api/cms/summary', requireAction('postRead'), async (req, res) => {
+  const tenantFilter = req.tenant ? { tenantId: req.tenant._id } : {};
   const [totalPosts, drafts, published, archived] = await Promise.all([
-    Post.countDocuments({ status: { $ne: 'removed' } }),
-    Post.countDocuments({ status: 'draft' }),
-    Post.countDocuments({ status: 'published' }),
-    Post.countDocuments({ status: 'archived' }),
+    Post.countDocuments({ ...tenantFilter, status: { $ne: 'removed' } }),
+    Post.countDocuments({ ...tenantFilter, status: 'draft' }),
+    Post.countDocuments({ ...tenantFilter, status: 'published' }),
+    Post.countDocuments({ ...tenantFilter, status: 'archived' }),
   ]);
   res.json({ totalPosts, drafts, published, archived });
 });
@@ -414,6 +536,7 @@ app.get('/api/cms/posts', requireAction('postRead'), limiterSensitive, async (re
   const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit ?? '20'), 10), 1), 100);
   const status = typeof req.query.status === 'string' ? req.query.status : undefined;
   const query = { status: status || { $ne: 'removed' } };
+  if (req.tenant) query.tenantId = req.tenant._id;
 
   const [posts, total] = await Promise.all([
     Post.find(query).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
@@ -429,13 +552,13 @@ app.post('/api/cms/posts', requireAction('postCreate'), enforceCsrf, limiterSens
 
   if (await Post.exists({ slug: parsed.slug })) return res.status(409).json({ error: 'Slug already exists' });
 
-  const post = await Post.create({ ...parsed, authorId: req.user._id, publishedAt: parsed.status === 'published' ? new Date() : null });
+  const post = await Post.create({ ...parsed, tenantId: req.tenant?._id, authorId: req.user._id, publishedAt: parsed.status === 'published' ? new Date() : null });
   await logAudit(req, 'post.create', 'post', String(post._id), { status: post.status });
   return res.status(201).json({ item: toPostResponse(post) });
 });
 
 app.put('/api/cms/posts/:id', requireAction('postUpdate'), enforceCsrf, limiterSensitive, async (req, res) => {
-  const post = await Post.findById(req.params.id);
+  const post = await Post.findOne({ _id: req.params.id, ...(req.tenant ? { tenantId: req.tenant._id } : {}) });
   if (!post) return res.status(404).json({ error: 'Post not found' });
 
   const { parsed, errors } = parsePostPayload(req.body, { isUpdate: true });
@@ -455,7 +578,7 @@ app.put('/api/cms/posts/:id', requireAction('postUpdate'), enforceCsrf, limiterS
 });
 
 app.delete('/api/cms/posts/:id', requireAction('postDelete'), enforceCsrf, limiterSensitive, async (req, res) => {
-  const post = await Post.findById(req.params.id);
+  const post = await Post.findOne({ _id: req.params.id, ...(req.tenant ? { tenantId: req.tenant._id } : {}) });
   if (!post) return res.status(404).json({ error: 'Post not found' });
   post.status = 'removed';
   await post.save();
