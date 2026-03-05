@@ -338,3 +338,39 @@ Les taxonomies de base sont seedées automatiquement au premier accès via la cl
 - Endpoint public brand (`/api/public/brand`) avec cache HTTP et invalidation.
 - Upload multipart serveur + génération variantes réelles (sharp/webp/avif/og).
 - RBAC fin + audit trail + review workflow multi-utilisateurs.
+## 8) V3 production-grade (ajouts)
+
+### Sécurité
+- RBAC action-based (`admin` / `editor` / `author` / `viewer`) côté API.
+- Rate limit sur auth et endpoints sensibles.
+- CSRF appliqué sur routes mutables CMS.
+- Soft-delete posts (`status=removed`) à la place des suppressions physiques.
+- Audit log Mongo (`AuditLog`) pour login/logout et mutations CMS.
+
+### Observabilité
+- Logging structuré avec `pino`.
+- Endpoint de santé : `GET /api/health` (db, version, uptime).
+
+### Performance CMS
+- Pagination native de `GET /api/cms/posts?page=&limit=`.
+- Endpoint `GET /api/cms/summary` pour agrégats dashboard.
+
+### Qualité / CI
+- Unit tests supplémentaires : validation Zod + mapping variantes media.
+- Pipeline CI GitHub Actions : lint, typecheck, tests, build.
+
+### Commandes utiles
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run db:migrate:v3
+```
+
+### Documentation de prod
+- `docs/v3-audit.md`
+- `docs/migration-v3.md`
+- `docs/release-checklist-v3.md`
+- `docs/runbook.md`
+- `docs/deployment.md`

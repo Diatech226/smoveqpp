@@ -68,6 +68,10 @@
     "dev": "vite",
     "build": "vite build",
     "test:security": "vitest run src/utils/securityPolicy.test.ts",
-    "dev:api": "node server/index.js"
+    "dev:api": "node server/index.js",
+    "lint": "npm run test:security",
+    "typecheck": "npm run build",
+    "test": "vitest run",
+    "db:migrate:v3": "node server/migrate-v3.js"
   }
 }

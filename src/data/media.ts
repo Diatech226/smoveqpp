@@ -1,3 +1,5 @@
+import { buildImageVariants } from '../utils/mediaVariants';
+
 export type MediaType = 'image' | 'video' | 'doc';
 export type MediaFolder = 'Brand' | 'Blog' | 'Projects' | 'Social' | 'Archive';
 export type MediaStatus = 'draft' | 'approved' | 'archived';
@@ -70,13 +72,7 @@ export function uploadMediaFile(fileData: {
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target?.result as string;
-      const variants = {
-        thumb: { url: base64, width: 320 },
-        sm: { url: base64, width: 640 },
-        md: { url: base64, width: 1024 },
-        lg: { url: base64, width: 1600 },
-        og: { url: base64, width: 1200, height: 630 },
-      };
+      const variants = buildImageVariants(base64);
 
       const mediaFile: MediaFile = {
         id: `${Date.now()}`,
