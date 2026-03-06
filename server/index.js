@@ -24,6 +24,11 @@ const APP_VERSION = process.env.APP_VERSION ?? 'v3';
 const DEFAULT_TENANT_SLUG = process.env.DEFAULT_TENANT_SLUG ?? 'default';
 const MULTI_TENANT_ENABLED = (process.env.FEATURE_MULTI_TENANT ?? 'true').toLowerCase() !== 'false';
 const BRAND_API_V1_ENABLED = (process.env.FEATURE_BRAND_API_V1 ?? 'true').toLowerCase() !== 'false';
+const V5_PERSONALIZATION_ENABLED = (process.env.FEATURE_V5_PERSONALIZATION ?? 'true').toLowerCase() !== 'false';
+const V5_GLOBAL_SEARCH_ENABLED = (process.env.FEATURE_V5_GLOBAL_SEARCH ?? 'true').toLowerCase() !== 'false';
+const V5_LEADS_ENABLED = (process.env.FEATURE_V5_LEADS ?? 'true').toLowerCase() !== 'false';
+const V5_JOBS_ENABLED = (process.env.FEATURE_V5_JOBS ?? 'true').toLowerCase() !== 'false';
+const JOB_RUNNER_TOKEN = process.env.JOB_RUNNER_TOKEN ?? 'local-dev-job-token';
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
   .split(',')
   .map((email) => email.trim().toLowerCase())
@@ -111,10 +116,129 @@ const auditLogSchema = new mongoose.Schema(
   { timestamps: { createdAt: true, updatedAt: false } },
 );
 
+const audienceSegmentSchema = new mongoose.Schema(
+  {
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true },
+    name: { type: String, required: true, trim: true },
+    description: { type: String, default: '' },
+    criteria: { type: mongoose.Schema.Types.Mixed, default: {} },
+    isActive: { type: Boolean, default: true, index: true },
+  },
+  { timestamps: true },
+);
+
+const contentVariantSchema = new mongoose.Schema(
+  {
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true },
+    entityType: { type: String, enum: ['hero', 'cta', 'page_block'], required: true, index: true },
+    entityKey: { type: String, required: true, trim: true, index: true },
+    title: { type: String, required: true, trim: true },
+    content: { type: mongoose.Schema.Types.Mixed, default: {} },
+    metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
+    isDefault: { type: Boolean, default: false },
+  },
+  { timestamps: true },
+);
+contentVariantSchema.index({ tenantId: 1, entityType: 1, entityKey: 1, updatedAt: -1 });
+
+const personalizationRuleSchema = new mongoose.Schema(
+  {
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true },
+    name: { type: String, required: true, trim: true },
+    priority: { type: Number, default: 100, index: true },
+    isActive: { type: Boolean, default: true, index: true },
+    conditions: { type: mongoose.Schema.Types.Mixed, default: {} },
+    segmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'AudienceSegment', default: null },
+    variantId: { type: mongoose.Schema.Types.ObjectId, ref: 'ContentVariant', required: true },
+  },
+  { timestamps: true },
+);
+
+const leadSchema = new mongoose.Schema(
+  {
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true },
+    type: { type: String, enum: ['contact', 'quote', 'audit', 'brochure'], required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, trim: true, lowercase: true, index: true },
+    company: { type: String, default: '' },
+    message: { type: String, default: '' },
+    source: { type: String, default: 'direct', index: true },
+    campaign: { type: String, default: '', index: true },
+    score: { type: Number, default: 0, index: true },
+    status: { type: String, enum: ['new', 'qualified', 'hot', 'disqualified'], default: 'new', index: true },
+    routing: {
+      team: { type: String, default: 'default' },
+      owner: { type: String, default: '' },
+      pipeline: { type: String, default: 'main' },
+    },
+    context: { type: mongoose.Schema.Types.Mixed, default: {} },
+  },
+  { timestamps: true },
+);
+
+const jobSchema = new mongoose.Schema(
+  {
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', index: true },
+    type: { type: String, required: true, index: true },
+    payload: { type: mongoose.Schema.Types.Mixed, default: {} },
+    status: { type: String, enum: ['queued', 'running', 'succeeded', 'failed'], default: 'queued', index: true },
+    runAt: { type: Date, default: Date.now, index: true },
+    attempts: { type: Number, default: 0 },
+    lastError: { type: String, default: '' },
+  },
+  { timestamps: true },
+);
+jobSchema.index({ status: 1, runAt: 1 });
+
 const User = mongoose.model('User', userSchema);
 const Post = mongoose.model('Post', postSchema);
 const Tenant = mongoose.model('Tenant', tenantSchema);
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+const AudienceSegment = mongoose.model('AudienceSegment', audienceSegmentSchema);
+const ContentVariant = mongoose.model('ContentVariant', contentVariantSchema);
+const PersonalizationRule = mongoose.model('PersonalizationRule', personalizationRuleSchema);
+const Lead = mongoose.model('Lead', leadSchema);
+const Job = mongoose.model('Job', jobSchema);
+
+function isPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function matchesRuleContext(conditions = {}, context = {}) {
+  if (!isPlainObject(conditions)) return false;
+  return Object.entries(conditions).every(([key, expected]) => {
+    const current = context[key];
+    if (Array.isArray(expected)) return expected.includes(current);
+    if (isPlainObject(expected) && Array.isArray(expected.anyOf)) return expected.anyOf.includes(current);
+    return current === expected;
+  });
+}
+
+async function enqueueJob({ tenantId, type, payload, runAt = new Date() }) {
+  if (!V5_JOBS_ENABLED) return null;
+  return Job.create({ tenantId, type, payload, runAt, status: 'queued' });
+}
+
+function computeLeadScore(payload = {}) {
+  let score = 0;
+  if (payload.type === 'quote' || payload.type === 'audit') score += 40;
+  if (typeof payload.company === 'string' && payload.company.trim().length > 1) score += 20;
+  if (typeof payload.message === 'string' && payload.message.trim().length > 80) score += 20;
+  if (typeof payload.source === 'string' && payload.source.toLowerCase().includes('campaign')) score += 20;
+  return Math.min(score, 100);
+}
+
+function resolveLeadStatus(score) {
+  if (score >= 75) return 'hot';
+  if (score >= 45) return 'qualified';
+  return 'new';
+}
+
+function requireJobToken(req, res, next) {
+  const token = req.get('X-Job-Token');
+  if (!token || token !== JOB_RUNNER_TOKEN) return res.status(401).json({ error: 'Invalid job token' });
+  return next();
+}
 
 function normalizeHost(host = '') {
   return host.replace(/:\d+$/, '').trim().toLowerCase();
@@ -518,6 +642,192 @@ app.get('/api/v1/brand', (req, res) => {
       updatedAt: tenant.updatedAt,
     },
   });
+});
+
+
+app.get('/api/v5/personalization/resolve', async (req, res) => {
+  if (!V5_PERSONALIZATION_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const tenantFilter = req.tenant ? { tenantId: req.tenant._id } : {};
+  const context = {
+    tenant: req.tenant?.slug,
+    source: typeof req.query.source === 'string' ? req.query.source : '',
+    campaign: typeof req.query.campaign === 'string' ? req.query.campaign : '',
+    locale: typeof req.query.locale === 'string' ? req.query.locale : '',
+    country: typeof req.query.country === 'string' ? req.query.country : '',
+    device: typeof req.query.device === 'string' ? req.query.device : '',
+    userType: typeof req.query.userType === 'string' ? req.query.userType : '',
+  };
+
+  const entityType = typeof req.query.entityType === 'string' ? req.query.entityType : 'hero';
+  const entityKey = typeof req.query.entityKey === 'string' ? req.query.entityKey : 'homepage-main';
+
+  const variants = await ContentVariant.find({ ...tenantFilter, entityType, entityKey }).lean();
+  const variantById = new Map(variants.map((variant) => [String(variant._id), variant]));
+  const rules = await PersonalizationRule.find({ ...tenantFilter, isActive: true }).sort({ priority: 1, createdAt: 1 }).lean();
+
+  let matchedRule = null;
+  let variant = variants.find((candidate) => candidate.isDefault) ?? variants[0] ?? null;
+
+  for (const rule of rules) {
+    const candidate = variantById.get(String(rule.variantId));
+    if (!candidate || candidate.entityType !== entityType || candidate.entityKey !== entityKey) continue;
+    if (matchesRuleContext(rule.conditions ?? {}, context)) {
+      matchedRule = rule;
+      variant = candidate;
+      break;
+    }
+  }
+
+  return res.json({
+    data: {
+      context,
+      entityType,
+      entityKey,
+      variant,
+      matchedRule: matchedRule ? {
+        id: String(matchedRule._id),
+        name: matchedRule.name,
+        priority: matchedRule.priority,
+      } : null,
+    },
+  });
+});
+
+app.post('/api/cms/v5/audience-segments', requireAction('settingsUpdate'), enforceCsrf, limiterSensitive, async (req, res) => {
+  if (!V5_PERSONALIZATION_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const { name, description = '', criteria = {}, isActive = true } = req.body ?? {};
+  if (typeof name !== 'string' || name.trim().length < 2) return res.status(400).json({ error: 'name is required' });
+  const segment = await AudienceSegment.create({ tenantId: req.tenant?._id, name: name.trim(), description, criteria, isActive: Boolean(isActive) });
+  await logAudit(req, 'v5.segment.create', 'audience_segment', String(segment._id));
+  return res.status(201).json({ item: segment });
+});
+
+app.post('/api/cms/v5/content-variants', requireAction('postUpdate'), enforceCsrf, limiterSensitive, async (req, res) => {
+  if (!V5_PERSONALIZATION_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const { entityType, entityKey, title, content = {}, metadata = {}, isDefault = false } = req.body ?? {};
+  if (!['hero', 'cta', 'page_block'].includes(entityType)) return res.status(400).json({ error: 'invalid entityType' });
+  if (typeof entityKey !== 'string' || entityKey.trim().length < 2) return res.status(400).json({ error: 'entityKey is required' });
+  if (typeof title !== 'string' || title.trim().length < 2) return res.status(400).json({ error: 'title is required' });
+
+  const variant = await ContentVariant.create({
+    tenantId: req.tenant?._id,
+    entityType,
+    entityKey: entityKey.trim(),
+    title: title.trim(),
+    content,
+    metadata,
+    isDefault: Boolean(isDefault),
+  });
+  await logAudit(req, 'v5.variant.create', 'content_variant', String(variant._id));
+  return res.status(201).json({ item: variant });
+});
+
+app.post('/api/cms/v5/personalization-rules', requireAction('settingsUpdate'), enforceCsrf, limiterSensitive, async (req, res) => {
+  if (!V5_PERSONALIZATION_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const { name, priority = 100, conditions = {}, segmentId = null, variantId, isActive = true } = req.body ?? {};
+  if (typeof name !== 'string' || name.trim().length < 2) return res.status(400).json({ error: 'name is required' });
+  if (typeof variantId !== 'string') return res.status(400).json({ error: 'variantId is required' });
+
+  const variant = await ContentVariant.findOne({ _id: variantId, ...(req.tenant ? { tenantId: req.tenant._id } : {}) });
+  if (!variant) return res.status(404).json({ error: 'Variant not found' });
+
+  const rule = await PersonalizationRule.create({
+    tenantId: req.tenant?._id,
+    name: name.trim(),
+    priority,
+    conditions,
+    segmentId,
+    variantId: variant._id,
+    isActive: Boolean(isActive),
+  });
+  await logAudit(req, 'v5.rule.create', 'personalization_rule', String(rule._id));
+  return res.status(201).json({ item: rule });
+});
+
+app.get('/api/cms/v5/search', requireAction('postRead'), limiterSensitive, async (req, res) => {
+  if (!V5_GLOBAL_SEARCH_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const queryText = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (queryText.length < 2) return res.status(400).json({ error: 'q must be at least 2 chars' });
+
+  const tenantFilter = req.tenant ? { tenantId: req.tenant._id } : {};
+  const regex = new RegExp(queryText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+  const [posts, leads, variants, users] = await Promise.all([
+    Post.find({ ...tenantFilter, status: { $ne: 'removed' }, $or: [{ title: regex }, { excerpt: regex }, { content: regex }, { tags: regex }] }).limit(10).lean(),
+    V5_LEADS_ENABLED ? Lead.find({ ...tenantFilter, $or: [{ name: regex }, { email: regex }, { company: regex }, { message: regex }, { source: regex }, { campaign: regex }] }).limit(10).lean() : [],
+    ContentVariant.find({ ...tenantFilter, $or: [{ title: regex }, { entityKey: regex }] }).limit(10).lean(),
+    User.find({ ...(req.tenant ? { tenantId: req.tenant._id } : {}), $or: [{ name: regex }, { email: regex }] }).limit(10).select('name email role').lean(),
+  ]);
+
+  return res.json({
+    query: queryText,
+    results: {
+      posts: posts.map((post) => ({ id: String(post._id), title: post.title, slug: post.slug, status: post.status })),
+      leads: leads.map((lead) => ({ id: String(lead._id), name: lead.name, email: lead.email, status: lead.status, score: lead.score })),
+      contentVariants: variants.map((variant) => ({ id: String(variant._id), title: variant.title, entityType: variant.entityType, entityKey: variant.entityKey })),
+      users: users.map((user) => ({ id: String(user._id), name: user.name, email: user.email, role: user.role })),
+    },
+  });
+});
+
+app.post('/api/public/forms/:type', limiterSensitive, async (req, res) => {
+  if (!V5_LEADS_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const formType = req.params.type;
+  if (!['contact', 'quote', 'audit', 'brochure'].includes(formType)) return res.status(400).json({ error: 'invalid form type' });
+
+  const { name, email, company = '', message = '', campaign = '', source = 'direct', context = {} } = req.body ?? {};
+  if (typeof name !== 'string' || name.trim().length < 2) return res.status(400).json({ error: 'name is required' });
+  if (typeof email !== 'string' || !email.includes('@')) return res.status(400).json({ error: 'email is invalid' });
+
+  const leadPayload = { type: formType, name: name.trim(), email: email.trim().toLowerCase(), company, message, campaign, source, context };
+  const score = computeLeadScore(leadPayload);
+  const lead = await Lead.create({
+    tenantId: req.tenant?._id,
+    ...leadPayload,
+    score,
+    status: resolveLeadStatus(score),
+    routing: {
+      team: req.tenant?.slug ?? 'default',
+      owner: score >= 75 ? 'admin-on-call' : '',
+      pipeline: 'inbound',
+    },
+  });
+
+  await enqueueJob({ tenantId: req.tenant?._id, type: 'lead.received', payload: { leadId: String(lead._id), score: lead.score, status: lead.status } });
+  await logAudit(req, 'v5.lead.capture', 'lead', String(lead._id), { type: lead.type, score: lead.score });
+  return res.status(201).json({ item: lead });
+});
+
+app.post('/api/cms/v5/jobs', requireAction('settingsUpdate'), enforceCsrf, limiterSensitive, async (req, res) => {
+  if (!V5_JOBS_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const { type, payload = {}, runAt } = req.body ?? {};
+  if (typeof type !== 'string' || type.trim().length < 3) return res.status(400).json({ error: 'type is required' });
+  const job = await enqueueJob({ tenantId: req.tenant?._id, type: type.trim(), payload, runAt: runAt ? new Date(runAt) : new Date() });
+  await logAudit(req, 'v5.job.enqueue', 'job', String(job._id), { type: job.type });
+  return res.status(201).json({ item: job });
+});
+
+app.post('/api/internal/jobs/run-next', requireJobToken, async (req, res) => {
+  if (!V5_JOBS_ENABLED) return res.status(404).json({ error: 'Feature disabled' });
+  const now = new Date();
+  const job = await Job.findOneAndUpdate(
+    { status: 'queued', runAt: { $lte: now } },
+    { $set: { status: 'running' }, $inc: { attempts: 1 } },
+    { sort: { runAt: 1, createdAt: 1 }, new: true },
+  );
+  if (!job) return res.status(204).end();
+
+  const fail = typeof req.query.fail === 'string' && req.query.fail === '1';
+  if (fail) {
+    job.status = 'failed';
+    job.lastError = 'Simulated failure';
+  } else {
+    job.status = 'succeeded';
+    job.lastError = '';
+  }
+  await job.save();
+
+  return res.json({ item: job });
 });
 
 app.get('/api/cms/summary', requireAction('postRead'), async (req, res) => {
