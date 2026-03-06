@@ -19,7 +19,12 @@ const emptyForm: FormState = { title: '', slug: '', excerpt: '', content: '', st
 
 function validate(form: FormState) {
   const errors: string[] = [];
+  const normalizedSlug = form.slug.trim();
   if (form.title.trim().length < 3) errors.push('Le titre doit contenir au moins 3 caractères.');
+  if (!normalizedSlug) errors.push('Le slug est obligatoire.');
+  if (normalizedSlug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedSlug)) {
+    errors.push('Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets.');
+  }
   if (form.excerpt.trim().length < 10) errors.push('Le résumé doit contenir au moins 10 caractères.');
   if (form.content.trim().length < 20) errors.push('Le contenu doit contenir au moins 20 caractères.');
   if (!form.category.trim()) errors.push('La catégorie est obligatoire.');
@@ -53,6 +58,10 @@ function ContentSection({ type, items, onRefresh, notify }: { type: ContentType;
   const save = () => {
     const all = getCMSContent();
     const slug = ensureUniqueSlug(all, form.slug || form.title, editing?.id, form.lockSlug);
+    if (!slug) {
+      setErrors(['Impossible de générer un slug valide.']);
+      return;
+    }
     const payload = { ...form, slug };
     const nextErrors = validate(payload);
     if (nextErrors.length) return setErrors(nextErrors);
@@ -87,6 +96,7 @@ function ContentSection({ type, items, onRefresh, notify }: { type: ContentType;
   };
 
   const edit = (item: CMSContentItem) => {
+    setErrors([]);
     setEditing(item);
     setForm({
       title: item.title, slug: item.slug, excerpt: item.excerpt, content: item.content, status: item.status,
@@ -96,8 +106,17 @@ function ContentSection({ type, items, onRefresh, notify }: { type: ContentType;
   };
 
   const setQuickStatus = (item: CMSContentItem, status: ContentStatus) => {
+    if (status === 'published' && (!item.coverId || !item.coverAltText?.trim())) {
+      notify('error', 'Pour publier, définissez une cover et un alt text.');
+      return;
+    }
     const now = new Date().toISOString();
-    upsertCMSContent({ ...item, status, publishedAt: status === 'published' ? (item.publishedAt || now) : item.publishedAt, updatedAt: now });
+    upsertCMSContent({
+      ...item,
+      status,
+      publishedAt: status === 'published' ? (item.publishedAt || now) : status === 'scheduled' ? (item.publishedAt || now) : item.publishedAt,
+      updatedAt: now,
+    });
     onRefresh();
     notify('success', `Statut mis à jour: ${status}`);
   };
@@ -203,7 +222,11 @@ function MediaLibrarySection({ onRefresh, notify }: { onRefresh: () => void; not
         <p className="font-medium truncate">{file.name}</p>
         <p>{file.folder} · {new Date(file.uploadedDate).toLocaleDateString()}</p>
         <p className="truncate">Variants: {Object.keys(file.variants).join(', ') || 'none'}</p>
-        <div className="flex gap-2 flex-wrap"><button className="px-2 py-1 border rounded" onClick={() => { void navigator.clipboard.writeText(file.originalUrl); notify('success', 'URL copiée.'); }}>Copy URL</button>{coverTarget && <button className="px-2 py-1 border rounded" onClick={() => { const target = contentTargets.find((item) => item.id === coverTarget); if (!target) return; upsertCMSContent({ ...target, coverId: file.id, updatedAt: new Date().toISOString() }); onRefresh(); notify('success', 'Cover mise à jour.'); }}>Use as cover</button>}<button className="px-2 py-1 border rounded text-red-600" onClick={() => { if (!window.confirm(`Supprimer ${file.name} ?`)) return; deleteMediaFile(file.id); onRefresh(); notify('success', 'Média supprimé.'); }}>Delete</button></div>
+        <div className="flex gap-2 flex-wrap"><button className="px-2 py-1 border rounded" onClick={() => {
+          void navigator.clipboard.writeText(file.originalUrl)
+            .then(() => notify('success', 'URL copiée.'))
+            .catch(() => notify('error', 'Impossible de copier l\'URL.'));
+        }}>Copy URL</button>{coverTarget && <button className="px-2 py-1 border rounded" onClick={() => { const target = contentTargets.find((item) => item.id === coverTarget); if (!target) return; upsertCMSContent({ ...target, coverId: file.id, coverAltText: target.coverAltText || file.alt || file.name, updatedAt: new Date().toISOString() }); onRefresh(); notify('success', 'Cover mise à jour.'); }}>Use as cover</button>}<button className="px-2 py-1 border rounded text-red-600" onClick={() => { if (!window.confirm(`Supprimer ${file.name} ?`)) return; deleteMediaFile(file.id); onRefresh(); notify('success', 'Média supprimé.'); }}>Delete</button></div>
       </div>)}
     </div>
 
