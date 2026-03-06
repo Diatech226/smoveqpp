@@ -94,6 +94,12 @@ function toSeedItems(): CMSContentItem[] {
   return [...serviceItems, ...projectItems, ...postItems, ...eventItems];
 }
 
+function isPubliclyVisible(item: CMSContentItem, now = Date.now()) {
+  if (item.status === 'published') return true;
+  if (item.status === 'scheduled' && item.publishedAt) return new Date(item.publishedAt).getTime() <= now;
+  return false;
+}
+
 export function getCMSContent(): CMSContentItem[] {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) return JSON.parse(stored).map(resolveScheduledPublication);
@@ -110,7 +116,7 @@ function resolveScheduledPublication(item: CMSContentItem): CMSContentItem {
 }
 
 export function getPublicPublishedContent(type: ContentType) {
-  return getCMSContent().filter((item) => item.type === type && item.status === 'published');
+  return getCMSContent().filter((item) => item.type === type && isPubliclyVisible(item));
 }
 
 export function saveCMSContent(items: CMSContentItem[]) {

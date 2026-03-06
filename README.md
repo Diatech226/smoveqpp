@@ -401,3 +401,39 @@ Documentation associée:
 - `docs/personalization.md`
 - `docs/integrations.md`
 - `docs/security-enterprise.md`
+
+---
+
+## 8) V6 — Consolidation avancée CMS (implémenté)
+
+### Ce que V6 apporte
+- **Prévisualisation avant publication** pour posts/projets/services/events via route hash `#preview-{type}-{id}?token=...` avec token temporaire et à usage unique.
+- **Workflow éditorial renforcé** : statuts `draft`, `review`, `scheduled`, `published`, `archived` (et `removed` interne), quick actions directement en liste.
+- **Publication planifiée** : champ date/heure activé pour `scheduled`, et visibilité publique alignée sur `published` ou `scheduled` avec date atteinte.
+- **UX CMS professionnalisée** : skeleton loading, sections de formulaire (contenu / média / publication / SEO blocks), états vides, confirmations de suppression, notifications uniformisées.
+- **Médiathèque enrichie** : drag & drop multi-upload, recherche par nom, filtres type/folder/date, aperçu agrandi, affichage variantes (`thumb/sm/md/lg/og`), copie URL, action “Use as cover”.
+- **Dashboard éditorial enrichi** : KPI par type de contenu + médias + utilisateur courant, blocs d’état (draft/review/scheduled/récents).
+
+### Comment tester V6
+1. Lancer le front (`npm run dev`) et ouvrir `#cms-dashboard` avec un compte admin.
+2. Créer/éditer un contenu dans `posts`, `projects`, `services` ou `events`.
+3. Cliquer **Preview** (liste ou formulaire édité), vérifier l’ouverture de la page avec badge **Draft preview** et la consommation unique du token.
+4. Tester les quick actions (**Review**, **Publier**, **Archiver**) depuis les listes CMS.
+5. Mettre un contenu en `scheduled` avec une date future et vérifier qu’il n’apparaît pas publiquement avant la date.
+6. Dans la médiathèque :
+   - déposer plusieurs fichiers,
+   - filtrer par type/folder/date,
+   - ouvrir un aperçu,
+   - copier URL,
+   - appliquer un média en cover d’un contenu.
+
+### Limitations actuelles (V6)
+- Le contenu CMS reste stocké côté client (`localStorage`) dans cette base de code.
+- Les tokens preview sont sécurisés pour un mode SPA local (TTL + single-use), mais nécessitent un backend dédié pour un niveau production strict multi-utilisateur.
+- Les pages publiques consomment partiellement le contenu CMS selon les sections existantes du front actuel.
+
+### Future iterations
+- Basculer le stockage contenu/media vers API persistance serveur.
+- Centraliser previews et publication planifiée côté backend (jetons signés, invalidation serveur).
+- Ajouter audit log éditeurs, versions d’articles et permissions fines par rôle.
+- Introduire tests E2E CMS et monitoring orienté fiabilité opérationnelle.

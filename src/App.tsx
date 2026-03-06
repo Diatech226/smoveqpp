@@ -16,8 +16,10 @@ import ProjectsSection from './components/ProjectsSection';
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
 import CMSDashboard from './components/cms/CMSDashboard';
+import PreviewPage from './components/PreviewPage';
 import APropos from './imports/APropos';
 import { Palette, Code, Megaphone, Video, Box, ArrowRight, Calendar, User } from 'lucide-react';
+import { consumePreviewToken } from './data/previewTokens';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 
 // Simplified services for homepage
@@ -624,7 +626,7 @@ function AppContent() {
 
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.slice(1) || 'home';
+      const hash = window.location.hash.slice(1).split('?')[0] || 'home';
       const isCmsRoute = hash === 'cms-dashboard' || hash.startsWith('cms-');
 
       if (isCmsRoute && !cmsEnabled) {
@@ -734,6 +736,27 @@ function AppContent() {
         );
       }
       return <RegisterPage />;
+    }
+
+    if (currentPage.startsWith('preview-')) {
+      const [previewType, ...rest] = currentPage.replace('preview-', '').split('-');
+      const itemId = rest.join('-');
+      const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+      const token = params.get('token') || '';
+      const allowedTypes = ['posts', 'projects', 'services', 'events'];
+
+      if (!allowedTypes.includes(previewType) || !itemId || !consumePreviewToken(previewType as 'posts' | 'projects' | 'services' | 'events', itemId, token)) {
+        return (
+          <SecurityStatePage
+            title="Preview expirée"
+            description="Le lien de prévisualisation est invalide, expiré ou déjà utilisé."
+            actionHref="#cms-dashboard"
+            actionLabel="Retour au CMS"
+          />
+        );
+      }
+
+      return <PreviewPage type={previewType as 'posts' | 'projects' | 'services' | 'events'} itemId={itemId} />;
     }
 
     // CMS pages
