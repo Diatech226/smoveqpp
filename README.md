@@ -385,3 +385,19 @@ Une première base V4 multi-tenant est en place côté API:
 
 Documentation V4 détaillée:
 - `docs/v4-enterprise-plan.md`
+
+
+## 8) V5 (intelligente / composable / revenue-driven)
+
+Un socle V5 modulaire est disponible derrière feature flags :
+- personnalisation dynamique (`/api/v5/personalization/resolve`),
+- recherche CMS transverse (`/api/cms/v5/search`),
+- lead engine (`/api/public/forms/:type`),
+- jobs/orchestration (`/api/cms/v5/jobs`, `/api/internal/jobs/run-next`).
+
+Documentation associée:
+- `README_V5.md`
+- `docs/architecture-v5.md`
+- `docs/personalization.md`
+- `docs/integrations.md`
+- `docs/security-enterprise.md`
