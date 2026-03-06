@@ -36,16 +36,27 @@ SMOVE est actuellement une application **React + Vite + TypeScript** avec :
 npm install
 ```
 
-### Variables d'environnement
+## Environment Variables
 1) Copier le template :
 ```bash
 cp .env.example .env
 ```
-2) Renseigner au minimum :
+
+2) Variables **obligatoires** pour démarrer correctement :
 - `MONGO_URI`
 - `SESSION_SECRET`
 - `VITE_API_BASE_URL`
 - `CLIENT_ORIGIN`
+
+3) Variables **optionnelles** (selon vos besoins) :
+- `VITE_ENABLE_*` + `VITE_DEV_ADMIN_*` pour les options CMS/front en développement,
+- `GOOGLE_*`, `GITHUB_*`, `FACEBOOK_*` pour OAuth,
+- `FEATURE_*`, `APP_VERSION`, `DEFAULT_TENANT_SLUG`, `JOB_RUNNER_TOKEN` pour les flags API,
+- `BRAND_*` pour les fallbacks visuels si le branding n'est pas présent en base.
+
+4) Local vs production :
+- **Local** : conservez `NODE_ENV=development`, `CLIENT_ORIGIN=http://localhost:5173` et les callbacks OAuth localhost.
+- **Production** : passez `NODE_ENV=production`, définissez un `SESSION_SECRET` fort, un `CLIENT_ORIGIN` exact, et les URLs OAuth de votre domaine.
 
 ### Démarrage
 Terminal 1 (front) :
@@ -83,9 +94,9 @@ Pour un bootstrap manuel, créer un utilisateur via endpoint register puis force
 - Application d'un média en cover d'un contenu.
 - En V7 : ajout d'un fallback alt text automatique lors de “Use as cover”.
 
-Variables prévues pour production/futur backend :
-- `MEDIA_STORAGE`, `MEDIA_PUBLIC_BASE_URL`, `MEDIA_MAX_BYTES`, `MEDIA_MAX_FILES`
-- `S3_*` pour stockage objet compatible.
+Variables actuellement utilisées pour ce module :
+- aucune variable d'environnement dédiée côté front (stockage `localStorage`),
+- le front appelle l'API via `VITE_API_BASE_URL`.
 
 ---
 
@@ -115,10 +126,6 @@ npm run build
 npm run db:migrate:v3
 ```
 
-### Prisma (notes)
-Le repo ne contient pas de schéma Prisma actif. Si un pivot Prisma est engagé plus tard, variables déjà réservées dans `.env.example` :
-- `DATABASE_URL`
-- `DIRECT_DATABASE_URL`
 
 ---
 
