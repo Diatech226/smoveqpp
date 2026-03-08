@@ -555,7 +555,7 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.get('/api/auth/session', (req, res) => {
-  res.json({ user: req.user ? toSafeUser(req.user) : null, csrfToken: ensureCsrfToken(req) });
+  res.json({ data: { user: req.user ? toSafeUser(req.user) : null, csrfToken: ensureCsrfToken(req) } });
 });
 
 app.post('/api/auth/register', limiterAuth, async (req, res) => {
@@ -569,7 +569,7 @@ app.post('/api/auth/register', limiterAuth, async (req, res) => {
     return req.login(user, async (error) => {
       if (error) return res.status(500).json({ error: 'Unable to start session' });
       await logAudit(req, 'register', 'user', String(user._id), { role: user.role });
-      return res.json({ user: toSafeUser(user), csrfToken: ensureCsrfToken(req) });
+      return res.json({ data: { user: toSafeUser(user), csrfToken: ensureCsrfToken(req) } });
     });
   } catch {
     return res.status(500).json({ error: 'Server error' });
@@ -587,7 +587,7 @@ app.post('/api/auth/login', limiterAuth, (req, res, next) => {
           if (regenErr) return next(regenErr);
           ensureCsrfToken(req);
           await logAudit(req, 'login', 'user', String(user._id));
-          return res.json({ user: toSafeUser(user), csrfToken: req.session.csrfToken });
+          return res.json({ data: { user: toSafeUser(user), csrfToken: req.session.csrfToken } });
         });
       });
     });
@@ -838,7 +838,7 @@ app.get('/api/cms/summary', requireAction('postRead'), async (req, res) => {
     Post.countDocuments({ ...tenantFilter, status: 'published' }),
     Post.countDocuments({ ...tenantFilter, status: 'archived' }),
   ]);
-  res.json({ totalPosts, drafts, published, archived });
+  res.json({ data: { totalPosts, drafts, published, archived } });
 });
 
 app.get('/api/cms/posts', requireAction('postRead'), limiterSensitive, async (req, res) => {
@@ -853,7 +853,7 @@ app.get('/api/cms/posts', requireAction('postRead'), limiterSensitive, async (re
     Post.countDocuments(query),
   ]);
 
-  res.json({ items: posts.map((post) => toPostResponse(post)), page, limit, total, totalPages: Math.ceil(total / limit) });
+  res.json({ data: { items: posts.map((post) => toPostResponse(post)), page, limit, total, totalPages: Math.ceil(total / limit) } });
 });
 
 app.post('/api/cms/posts', requireAction('postCreate'), enforceCsrf, limiterSensitive, async (req, res) => {
@@ -864,7 +864,7 @@ app.post('/api/cms/posts', requireAction('postCreate'), enforceCsrf, limiterSens
 
   const post = await Post.create({ ...parsed, tenantId: req.tenant?._id, authorId: req.user._id, publishedAt: parsed.status === 'published' ? new Date() : null });
   await logAudit(req, 'post.create', 'post', String(post._id), { status: post.status });
-  return res.status(201).json({ item: toPostResponse(post) });
+  return res.status(201).json({ data: { item: toPostResponse(post) } });
 });
 
 app.put('/api/cms/posts/:id', requireAction('postUpdate'), enforceCsrf, limiterSensitive, async (req, res) => {
@@ -884,7 +884,7 @@ app.put('/api/cms/posts/:id', requireAction('postUpdate'), enforceCsrf, limiterS
   if (parsed.status) post.publishedAt = parsed.status === 'published' ? (post.publishedAt ?? new Date()) : null;
   await post.save();
   await logAudit(req, 'post.update', 'post', String(post._id), { before, after: { status: post.status, title: post.title, category: post.category } });
-  return res.json({ item: toPostResponse(post) });
+  return res.json({ data: { item: toPostResponse(post) } });
 });
 
 app.delete('/api/cms/posts/:id', requireAction('postDelete'), enforceCsrf, limiterSensitive, async (req, res) => {

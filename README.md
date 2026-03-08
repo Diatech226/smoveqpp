@@ -196,3 +196,44 @@ Voir aussi : `CHANGELOG_V7.md` et `docs/v7-stabilisation-report.md`.
 3. Établir un vrai lint TypeScript/ESLint unifié (au-delà des tests sécurité actuels).
 4. Industrialiser la chaîne CI/CD (build, tests, smoke test API).
 5. Préparer la convergence éventuelle vers Next.js/Prisma uniquement après stabilisation fonctionnelle complète.
+
+## Admin CMS Design & UX
+
+### Organisation du back-office
+- **Layout pro unifié** : sidebar fixe, topbar avec recherche globale, profil/admin, zone de contenu principale.
+- **Navigation claire** : Dashboard, Articles, Services, Projects, Events, Media, Categories/Taxonomies, Users, Settings.
+- **Composants admin réutilisables** (`src/components/cms/admin/AdminUI.tsx`) :
+  - `AdminPageHeader`
+  - `AdminStatsGrid`
+  - `AdminTable`
+  - `AdminStatusBadge`
+  - `AdminQuickActions`
+  - `AdminEmptyState`
+  - `AdminSearchBar`
+  - `AdminFormSection`
+  - `MediaPicker`
+  - `ConfirmDeleteDialog`
+  - `PreviewButton`
+
+### Logique CRUD CMS
+- CRUD rapide par module (posts/services/projects/events) avec création rapide et actions de statut.
+- Statuts éditoriaux harmonisés : `draft`, `review`, `scheduled`, `published`, `archived`.
+- Media workflow intégré : upload, preview, copy URL, suppression.
+- Settings orientés branding/SEO avec sauvegarde explicite.
+
+### API admin & auth documentées (état du dépôt)
+> Note : dans ce dépôt, les routes actives sont principalement sous `/api/cms/*` et `/api/auth/*`.
+
+- `GET /api/auth/session` → session courante + CSRF (`data.user`, `data.csrfToken`)
+- `POST /api/auth/login` → login + CSRF (`data.user`, `data.csrfToken`)
+- `POST /api/auth/logout` → logout (204)
+- `GET /api/cms/summary` → KPI dashboard (`data.totalPosts`, etc.)
+- `GET /api/cms/posts` → liste paginée (`data.items`, `data.page`, `data.totalPages`)
+- `POST /api/cms/posts` → création (`data.item`)
+- `PUT /api/cms/posts/:id` → mise à jour (`data.item`)
+- `DELETE /api/cms/posts/:id` → soft delete (204)
+
+### Prochaines itérations recommandées
+1. Étendre le même contrat API (`json.data`) à tous modules CMS (services/projects/events/media/users/settings).
+2. Remplacer progressivement le stockage local front par persistance Mongo côté API.
+3. Ajouter tests d'intégration API + tests E2E admin.
