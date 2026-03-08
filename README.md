@@ -29,6 +29,7 @@ SMOVE est actuellement une application **React + Vite + TypeScript** avec :
 
 ### Prérequis
 - Node.js 18+
+- npm 9+
 - MongoDB accessible (local ou distant)
 
 ### Installation
@@ -55,7 +56,7 @@ cp .env.example .env
 - `BRAND_*` pour les fallbacks visuels si le branding n'est pas présent en base.
 
 4) Local vs production :
-- **Local** : conservez `NODE_ENV=development`, `CLIENT_ORIGIN=http://localhost:5173` et les callbacks OAuth localhost.
+- **Local** : conservez `NODE_ENV=development`, `CLIENT_ORIGIN=http://localhost:3000` et les callbacks OAuth localhost.
 - **Production** : passez `NODE_ENV=production`, définissez un `SESSION_SECRET` fort, un `CLIENT_ORIGIN` exact, et les URLs OAuth de votre domaine.
 
 ### Démarrage
@@ -63,6 +64,7 @@ Terminal 1 (front) :
 ```bash
 npm run dev
 ```
+Le front Vite démarre sur `http://localhost:3000` (port défini dans `vite.config.ts`).
 
 Terminal 2 (API auth) :
 ```bash
@@ -70,6 +72,12 @@ npm run dev:api
 ```
 
 ---
+
+
+### CSP en développement (Vite)
+- En dev (`npm run dev`), les en-têtes CSP stricts sont **désactivés** côté Vite pour autoriser le runtime HMR et les scripts injectés par Vite/React.
+- En preview/prod (`vite preview` et déploiement), la CSP stricte reste active via les headers de sécurité.
+- Si vous forcez manuellement `script-src 'self'` en local, Vite peut échouer avec des erreurs d'inline script/preamble.
 
 ## Bootstrap admin
 
