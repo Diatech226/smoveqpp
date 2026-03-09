@@ -1,6 +1,7 @@
 
   import { defineConfig } from 'vite';
   import react from '@vitejs/plugin-react-swc';
+  import os from 'node:os';
   import path from 'path';
 
   const PRODUCTION_SECURITY_HEADERS = {
@@ -14,6 +15,7 @@
 
   export default defineConfig(({ command }) => ({
     plugins: [react()],
+    cacheDir: path.join(os.tmpdir(), 'smoveapp-vite-cache'),
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
