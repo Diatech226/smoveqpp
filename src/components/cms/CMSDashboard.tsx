@@ -343,3 +343,5 @@ export function CMSDashboard({ currentSection, onSectionChange }: { currentSecti
     </AdminShell>
   );
 }
+
+export default CMSDashboard;
