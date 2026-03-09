@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Briefcase, Calendar, FileText, FlaskConical, Globe, Image as ImageIcon, LayoutDashboard, LogOut, Plugin, Search, Settings, Sparkles, Tags, Users } from 'lucide-react';
+import { Briefcase, Calendar, FileText, FlaskConical, Globe, Image as ImageIcon, LayoutDashboard, LogOut, Puzzle, Search, Settings, Sparkles, Tags, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { getCMSContent } from '../../data/cmsContent';
@@ -21,7 +21,7 @@ import { EnvironmentBadge, ExperimentStatusBadge, PluginStatusBadge } from './ad
 type CMSSection = 'overview' | 'posts' | 'services' | 'events' | 'media' | 'taxonomies' | 'users' | 'settings' | 'headless' | 'environments' | 'personalization' | 'experiments' | 'search' | 'ai' | 'plugins';
 
 const menuItems = [
-  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard }, { id: 'posts', label: 'Articles', icon: FileText }, { id: 'services', label: 'Services', icon: Briefcase }, { id: 'events', label: 'Events', icon: Calendar }, { id: 'media', label: 'Media', icon: ImageIcon }, { id: 'taxonomies', label: 'Taxonomies', icon: Tags }, { id: 'headless', label: 'Headless API', icon: Globe }, { id: 'environments', label: 'Environments', icon: Settings }, { id: 'personalization', label: 'Personalization', icon: Users }, { id: 'experiments', label: 'A/B Tests', icon: FlaskConical }, { id: 'search', label: 'Search', icon: Search }, { id: 'ai', label: 'AI Assistant', icon: Sparkles }, { id: 'plugins', label: 'Plugins', icon: Plugin }, { id: 'users', label: 'Users', icon: Users }, { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard }, { id: 'posts', label: 'Articles', icon: FileText }, { id: 'services', label: 'Services', icon: Briefcase }, { id: 'events', label: 'Events', icon: Calendar }, { id: 'media', label: 'Media', icon: ImageIcon }, { id: 'taxonomies', label: 'Taxonomies', icon: Tags }, { id: 'headless', label: 'Headless API', icon: Globe }, { id: 'environments', label: 'Environments', icon: Settings }, { id: 'personalization', label: 'Personalization', icon: Users }, { id: 'experiments', label: 'A/B Tests', icon: FlaskConical }, { id: 'search', label: 'Search', icon: Search }, { id: 'ai', label: 'AI Assistant', icon: Sparkles }, { id: 'plugins', label: 'Plugins', icon: Puzzle }, { id: 'users', label: 'Users', icon: Users }, { id: 'settings', label: 'Settings', icon: Settings },
 ] as const;
 
 function CMSDashboard({ currentSection, onSectionChange }: { currentSection: CMSSection; onSectionChange: (section: CMSSection) => void }) {
