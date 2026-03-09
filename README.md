@@ -197,43 +197,70 @@ Voir aussi : `CHANGELOG_V7.md` et `docs/v7-stabilisation-report.md`.
 4. Industrialiser la chaîne CI/CD (build, tests, smoke test API).
 5. Préparer la convergence éventuelle vers Next.js/Prisma uniquement après stabilisation fonctionnelle complète.
 
-## Admin CMS Design & UX
+## CMS Admin UX
 
-### Organisation du back-office
-- **Layout pro unifié** : sidebar fixe, topbar avec recherche globale, profil/admin, zone de contenu principale.
-- **Navigation claire** : Dashboard, Articles, Services, Projects, Events, Media, Categories/Taxonomies, Users, Settings.
-- **Composants admin réutilisables** (`src/components/cms/admin/AdminUI.tsx`) :
-  - `AdminPageHeader`
-  - `AdminStatsGrid`
-  - `AdminTable`
-  - `AdminStatusBadge`
-  - `AdminQuickActions`
-  - `AdminEmptyState`
-  - `AdminSearchBar`
-  - `AdminFormSection`
-  - `MediaPicker`
-  - `ConfirmDeleteDialog`
-  - `PreviewButton`
+### Architecture UI admin
+- **Shell applicatif premium** : `AdminShell` orchestre un layout type SaaS avec sidebar fixe, topbar de contexte, et espace de contenu aéré.
+- **Navigation CMS unifiée** : Dashboard, Articles, Services, Projects, Events, Media, Taxonomies, Users, Settings.
+- **Design system admin réutilisable** : composants homogènes (cards, table, filtres, statuts, sections formulaire, empty states, confirmations).
 
-### Logique CRUD CMS
-- CRUD rapide par module (posts/services/projects/events) avec création rapide et actions de statut.
-- Statuts éditoriaux harmonisés : `draft`, `review`, `scheduled`, `published`, `archived`.
-- Media workflow intégré : upload, preview, copy URL, suppression.
-- Settings orientés branding/SEO avec sauvegarde explicite.
+### Composants clés
+Composants principaux dans `src/components/cms/admin/AdminUI.tsx` :
+- `AdminShell`, `AdminSidebar`, `AdminTopbar`, `AdminPageHeader`
+- `AdminStatsCards`, `AdminDataTable`, `AdminStatusBadge`
+- `AdminFiltersBar`, `AdminSearchInput`
+- `AdminFormSection`, `AdminEmptyState`, `AdminLoadingSkeleton`
+- `AdminConfirmDialog`, `MediaPicker`, `CoverPreviewCard`, `QuickStatusActions`, `PreviewButton`
 
-### API admin & auth documentées (état du dépôt)
-> Note : dans ce dépôt, les routes actives sont principalement sous `/api/cms/*` et `/api/auth/*`.
+### Modules CMS disponibles
+- **Dashboard** : KPI, activité récente, quick actions.
+- **Articles / Services / Projects / Events** : CRUD local V7 avec workflow de statuts harmonisé.
+- **Media** : bibliothèque grille, upload image, preview, copie URL, suppression.
+- **Taxonomies** : affichage labels actifs par type de contenu.
+- **Users** : vue administrateur courante.
+- **Settings** : branding + hero video.
 
-- `GET /api/auth/session` → session courante + CSRF (`data.user`, `data.csrfToken`)
-- `POST /api/auth/login` → login + CSRF (`data.user`, `data.csrfToken`)
-- `POST /api/auth/logout` → logout (204)
-- `GET /api/cms/summary` → KPI dashboard (`data.totalPosts`, etc.)
-- `GET /api/cms/posts` → liste paginée (`data.items`, `data.page`, `data.totalPages`)
-- `POST /api/cms/posts` → création (`data.item`)
-- `PUT /api/cms/posts/:id` → mise à jour (`data.item`)
-- `DELETE /api/cms/posts/:id` → soft delete (204)
+### Logique dashboard
+- Compteurs consolidés (total contenus, publiés, en review, médias).
+- Sections d’action rapide pour limiter les clics sur les opérations fréquentes.
+- Bloc activité pour prioriser les dernières modifications.
 
-### Prochaines itérations recommandées
-1. Étendre le même contrat API (`json.data`) à tous modules CMS (services/projects/events/media/users/settings).
-2. Remplacer progressivement le stockage local front par persistance Mongo côté API.
-3. Ajouter tests d'intégration API + tests E2E admin.
+### Fonctionnement des CRUD
+- Création rapide par module avec génération automatique de slug unique.
+- Filtrage/recherche textuelle immédiate.
+- Mise à jour de statut via `QuickStatusActions`.
+- Suppression avec confirmation utilisateur.
+
+### Workflow des statuts
+- Statuts standardisés : `draft`, `review`, `scheduled`, `published`, `archived`.
+- Changement de statut accessible directement depuis les tableaux.
+- Badge visuel cohérent pour chaque état éditorial.
+
+### Media workflow
+- Upload local via `uploadMediaFile`.
+- Gestion visuelle en carte + preview.
+- Actions courantes : copy URL, use as cover (UX), suppression confirmée.
+
+### API admin/auth — état réel du dépôt
+> Le dépôt actuel expose principalement `/api/cms/*` et `/api/auth/*` côté serveur Express.
+
+- `GET /api/auth/session`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/cms/summary`
+- `GET /api/cms/posts`
+- `POST /api/cms/posts`
+- `PUT /api/cms/posts/:id`
+- `DELETE /api/cms/posts/:id`
+
+### Known issues
+- Les modules CMS hors `posts` restent majoritairement en persistance locale front (localStorage).
+- Les routes demandées de type `/api/admin/*` ne sont pas encore implémentées telles quelles dans ce dépôt.
+- Le workflow “use as cover” côté média est actuellement une action UX (pas encore branchée sur chaque formulaire d’édition avancé).
+
+### Prochaines itérations du CMS
+1. Ajouter la couche API persistante pour services/projects/events/media/users/settings.
+2. Introduire une API `/api/admin/*` consolidée avec validation stricte et contrat `json.data` homogène.
+3. Ajouter pagination serveur + filtres serveur sur l’ensemble des listes admin.
+4. Ajouter tests d’intégration API + E2E UI admin sur parcours critiques.

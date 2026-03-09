@@ -14,51 +14,87 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { deleteCMSContent, ensureUniqueSlug, getCMSContent, upsertCMSContent, type CMSContentItem, type ContentStatus, type ContentType } from '../../data/cmsContent';
+import {
+  deleteCMSContent,
+  ensureUniqueSlug,
+  getCMSContent,
+  getCMSCategories,
+  upsertCMSContent,
+  type CMSContentItem,
+  type ContentStatus,
+  type ContentType,
+} from '../../data/cmsContent';
 import { deleteMediaFile, getMediaFiles, uploadMediaFile } from '../../data/media';
 import { getActiveTaxonomyLabels } from '../../data/taxonomies';
 import { getBrandSettings, saveBrandSettings } from '../../data/brandSettings';
 import {
+  AdminConfirmDialog,
+  AdminDataTable,
   AdminEmptyState,
+  AdminFiltersBar,
   AdminFormSection,
   AdminPageHeader,
-  AdminQuickActions,
-  AdminSearchBar,
-  AdminStatsGrid,
+  AdminSearchInput,
+  AdminShell,
+  AdminSidebar,
+  AdminStatsCards,
   AdminStatusBadge,
-  AdminTable,
-  ConfirmDeleteDialog,
+  AdminTopbar,
+  CoverPreviewCard,
+  MediaPicker,
   PreviewButton,
+  QuickStatusActions,
 } from './admin/AdminUI';
 
-type CMSSection = 'overview' | 'services' | 'projects' | 'posts' | 'events' | 'media' | 'taxonomies' | 'settings' | 'users';
+type CMSSection =
+  | 'overview'
+  | 'services'
+  | 'projects'
+  | 'posts'
+  | 'events'
+  | 'media'
+  | 'taxonomies'
+  | 'settings'
+  | 'users';
 
 const menuItems: Array<{ id: CMSSection; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'posts', label: 'Articles / Blog', icon: FileText },
+  { id: 'posts', label: 'Articles', icon: FileText },
   { id: 'services', label: 'Services', icon: Briefcase },
   { id: 'projects', label: 'Projects', icon: FolderOpen },
   { id: 'events', label: 'Events', icon: Calendar },
   { id: 'media', label: 'Media', icon: ImageIcon },
-  { id: 'taxonomies', label: 'Categories / Taxonomies', icon: Tags },
+  { id: 'taxonomies', label: 'Taxonomies', icon: Tags },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'settings', label: 'Settings', icon: Settings },
-];
+] as const;
 
-const statuses: ContentStatus[] = ['draft', 'review', 'scheduled', 'published', 'archived'];
+const workflowStatuses: Array<'draft' | 'review' | 'scheduled' | 'published' | 'archived'> = [
+  'draft',
+  'review',
+  'scheduled',
+  'published',
+  'archived',
+];
 
 function ContentSection({ type, items, onRefresh }: { type: ContentType; items: CMSContentItem[]; onRefresh: () => void }) {
   const [query, setQuery] = useState('');
   const [title, setTitle] = useState('');
   const [status, setStatus] = useState<ContentStatus>('draft');
   const [category, setCategory] = useState('');
-  const filtered = items.filter((item) => item.title.toLowerCase().includes(query.toLowerCase()) || item.slug.includes(query));
+
+  const categories = useMemo(() => getCMSCategories(items), [items]);
+  const filtered = items.filter((item) => {
+    const needle = query.toLowerCase();
+    return item.title.toLowerCase().includes(needle) || item.slug.toLowerCase().includes(needle);
+  });
 
   const createItem = () => {
     if (title.trim().length < 3) return;
     const all = getCMSContent();
-    const slug = ensureUniqueSlug(all, title);
     const now = new Date().toISOString();
+    const slug = ensureUniqueSlug(all, title);
+
     upsertCMSContent({
       id: `${type}-${Date.now()}`,
       type,
@@ -67,17 +103,18 @@ function ContentSection({ type, items, onRefresh }: { type: ContentType; items: 
       excerpt: 'Résumé à compléter',
       content: 'Contenu à compléter',
       status,
+      category: category || 'general',
       coverId: '',
       coverAltText: '',
       galleryIds: [],
       videoUrl: '',
-      category: category || 'general',
       publishedAt: status === 'published' ? now : null,
-      createdAt: now,
-      updatedAt: now,
       viewsCount: 0,
       commentsCount: 0,
+      createdAt: now,
+      updatedAt: now,
     });
+
     setTitle('');
     setCategory('');
     setStatus('draft');
@@ -86,34 +123,56 @@ function ContentSection({ type, items, onRefresh }: { type: ContentType; items: 
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title={`Gestion ${type}`} description="CRUD rapide avec statuts éditoriaux" rightSlot={<AdminSearchBar value={query} onChange={setQuery} />} actions={<button className="rounded-lg bg-[#273a41] px-3 py-2 text-sm font-medium text-white" onClick={createItem}><Plus size={14} className="mr-2 inline" />Nouveau</button>} />
-      <AdminFormSection title="Création rapide" helper="Informations générales + publication.">
-        <div className="grid gap-3 md:grid-cols-4">
-          <input className="rounded-lg border border-slate-200 p-2 text-sm" placeholder="Titre" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <input className="rounded-lg border border-slate-200 p-2 text-sm" placeholder="Catégorie" value={category} onChange={(e) => setCategory(e.target.value)} />
-          <select className="rounded-lg border border-slate-200 p-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value as ContentStatus)}>{statuses.map((item) => <option key={item}>{item}</option>)}</select>
-          <button className="rounded-lg border border-slate-200 px-3 py-2 text-sm" onClick={createItem}>Enregistrer</button>
+      <AdminPageHeader title={`Gestion ${type}`} description="Interface CRUD rapide, claire et homogène." />
+      <AdminFiltersBar>
+        <AdminSearchInput value={query} onChange={setQuery} placeholder={`Rechercher dans ${type}`} />
+        <button onClick={createItem} className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white">
+          <Plus size={15} className="mr-1 inline" /> Nouveau
+        </button>
+      </AdminFiltersBar>
+
+      <AdminFormSection title="Création rapide" helper="Informations principales, SEO slug auto, statut éditorial.">
+        <div className="grid gap-3 lg:grid-cols-4">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl border border-slate-200 p-2.5 text-sm" placeholder="Titre" />
+          <input value={category} onChange={(e) => setCategory(e.target.value)} list={`category-${type}`} className="rounded-xl border border-slate-200 p-2.5 text-sm" placeholder="Catégorie" />
+          <datalist id={`category-${type}`}>{categories.map((entry) => <option key={entry} value={entry} />)}</datalist>
+          <select value={status} onChange={(e) => setStatus(e.target.value as ContentStatus)} className="rounded-xl border border-slate-200 p-2.5 text-sm">
+            {workflowStatuses.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
+          </select>
+          <button onClick={createItem} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">Save draft</button>
         </div>
       </AdminFormSection>
 
-      {filtered.length === 0 ? <AdminEmptyState title="Aucun contenu" description="Créez un premier élément pour ce module." /> : (
-        <AdminTable
-          columns={['Titre', 'Statut', 'Catégorie', 'Mise à jour', 'Actions']}
+      {!filtered.length ? (
+        <AdminEmptyState title="Aucun élément trouvé" description="Créez un contenu ou ajustez vos filtres." />
+      ) : (
+        <AdminDataTable
+          columns={['Titre', 'Cover', 'Catégorie', 'Statut', 'Date', 'Actions']}
           rows={filtered.map((item) => (
             <tr key={item.id}>
-              <td className="px-4 py-3"><p className="font-medium text-slate-900">{item.title}</p><p className="text-xs text-slate-500">/{item.slug}</p></td>
-              <td className="px-4 py-3"><AdminStatusBadge status={item.status} /></td>
+              <td className="px-4 py-3 align-top">
+                <p className="font-medium text-slate-900">{item.title}</p>
+                <p className="text-xs text-slate-500">/{item.slug}</p>
+              </td>
+              <td className="px-4 py-3"><CoverPreviewCard title={item.title} src={undefined} /></td>
               <td className="px-4 py-3 text-slate-600">{item.category}</td>
-              <td className="px-4 py-3 text-slate-500">{new Date(item.updatedAt).toLocaleDateString()}</td>
               <td className="px-4 py-3">
-                <div className="flex gap-2">
-                  <PreviewButton onClick={() => window.alert(`Preview: ${item.title}`)} />
-                  <button className="rounded border border-slate-200 px-2 py-1 text-xs" onClick={() => {
-                    const next = statuses[(statuses.indexOf(item.status) + 1) % statuses.length];
-                    upsertCMSContent({ ...item, status: next, updatedAt: new Date().toISOString() });
-                    onRefresh();
-                  }}>Status +1</button>
-                  <ConfirmDeleteDialog label={item.title} onConfirm={() => { deleteCMSContent(item.id); onRefresh(); }} />
+                <AdminStatusBadge status={item.status} />
+                <div className="mt-2">
+                  <QuickStatusActions
+                    status={item.status}
+                    onChange={(nextStatus) => {
+                      upsertCMSContent({ ...item, status: nextStatus, updatedAt: new Date().toISOString() });
+                      onRefresh();
+                    }}
+                  />
+                </div>
+              </td>
+              <td className="px-4 py-3 text-xs text-slate-500">{new Date(item.updatedAt).toLocaleDateString()}</td>
+              <td className="px-4 py-3">
+                <div className="flex flex-wrap gap-1">
+                  <PreviewButton onClick={() => window.alert(`Preview ${item.title}`)} />
+                  <AdminConfirmDialog label={item.title} onConfirm={() => { deleteCMSContent(item.id); onRefresh(); }} />
                 </div>
               </td>
             </tr>
@@ -130,26 +189,41 @@ function MediaSection({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="Media Library" description="Prévisualisation, upload et actions rapides" rightSlot={<AdminSearchBar value={query} onChange={setQuery} placeholder="Rechercher un média" />} actions={<label className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-sm"><Upload size={14} className="mr-2 inline" />Upload<input hidden multiple type="file" onChange={(event) => {
-        const selected = event.target.files;
-        if (!selected) return;
-        void Promise.all(Array.from(selected).map((file) => uploadMediaFile({ name: file.name, type: file.type.startsWith('video') ? 'video' : 'image', file, uploadedBy: 'admin', folder: 'Archive' }))).then(onRefresh);
-      }} /></label>} />
+      <AdminPageHeader title="Media Library" description="Bibliothèque média avec grille, preview et actions rapides." />
+      <AdminFiltersBar>
+        <AdminSearchInput value={query} onChange={setQuery} placeholder="Rechercher un média" />
+        <label className="cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
+          <Upload size={14} className="mr-1 inline" /> Upload
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              await uploadMediaFile({ file, name: file.name, type: 'image', uploadedBy: 'admin' });
+              onRefresh();
+              event.target.value = '';
+            }}
+          />
+        </label>
+      </AdminFiltersBar>
 
-      {files.length === 0 ? <AdminEmptyState title="Aucun média" description="Déposez des images/vidéos pour alimenter les contenus." /> : (
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-4">
+      {!files.length ? (
+        <AdminEmptyState title="Médiathèque vide" description="Importez vos premières images pour alimenter vos contenus." />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {files.map((file) => (
-            <div key={file.id} className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-              <div className="mb-2 aspect-video overflow-hidden rounded bg-slate-100">
-                {file.type === 'image' ? <img src={file.variants.sm?.url || file.originalUrl} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-xs text-slate-500">VIDEO</div>}
+            <MediaPicker key={file.id}>
+              <img src={file.variants.thumb?.url || file.originalUrl} alt={file.altText || file.name} className="h-40 w-full rounded-lg bg-slate-100 object-cover" />
+              <p className="mt-2 truncate text-sm font-medium text-slate-900">{file.name}</p>
+              <p className="text-xs text-slate-500">{file.folder} · {(file.size / 1024).toFixed(1)} KB</p>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => navigator.clipboard?.writeText(file.originalUrl)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs">Copy URL</button>
+                <button onClick={() => window.alert(`Use ${file.name} as cover`)} className="rounded-lg border border-cyan-200 px-2 py-1 text-xs text-cyan-700">Use as cover</button>
+                <AdminConfirmDialog label={file.name} onConfirm={() => { deleteMediaFile(file.id); onRefresh(); }} />
               </div>
-              <p className="truncate text-sm font-medium text-slate-900">{file.name}</p>
-              <p className="text-xs text-slate-500">{file.folder}</p>
-              <div className="mt-2 flex gap-2">
-                <button className="rounded border border-slate-200 px-2 py-1 text-xs" onClick={() => void navigator.clipboard.writeText(file.originalUrl)}>Copy URL</button>
-                <ConfirmDeleteDialog label={file.name} onConfirm={() => { deleteMediaFile(file.id); onRefresh(); }} />
-              </div>
-            </div>
+            </MediaPicker>
           ))}
         </div>
       )}
@@ -157,89 +231,115 @@ function MediaSection({ onRefresh }: { onRefresh: () => void }) {
   );
 }
 
-export default function CMSDashboard({ currentSection, onSectionChange }: { currentSection: string; onSectionChange: (section: string) => void }) {
-  const { user, logout, canAccessCMS } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
+export function CMSDashboard({ currentSection, onSectionChange }: { currentSection: CMSSection; onSectionChange: (section: CMSSection) => void }) {
+  const { user, logout } = useAuth();
   const [search, setSearch] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const allContent = useMemo(() => getCMSContent(), [refreshKey]);
-  const contentInReview = allContent.filter((item) => item.status === 'review').slice(0, 5);
-  const recent = [...allContent].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)).slice(0, 5);
-  const settings = getBrandSettings();
+  const settings = useMemo(() => getBrandSettings(), [refreshKey]);
 
-  if (!canAccessCMS) return null;
+  const contentInReview = allContent.filter((item) => item.status === 'review');
+  const recent = [...allContent].sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)).slice(0, 6);
 
-  const mainStats = [
-    { label: 'Articles', value: allContent.filter((item) => item.type === 'posts').length },
-    { label: 'Services', value: allContent.filter((item) => item.type === 'services').length },
-    { label: 'Projects', value: allContent.filter((item) => item.type === 'projects').length },
-    { label: 'Drafts', value: allContent.filter((item) => item.status === 'draft').length, hint: 'Tous modules' },
+  const stats = [
+    { label: 'Total contenus', value: allContent.length, hint: 'Tous modules CMS' },
+    { label: 'Published', value: allContent.filter((x) => x.status === 'published').length, hint: 'En ligne' },
+    { label: 'Review', value: contentInReview.length, hint: 'À valider' },
+    { label: 'Media files', value: getMediaFiles().length, hint: 'Bibliothèque' },
   ];
 
+  const selectedLabel = menuItems.find((item) => item.id === currentSection)?.label ?? 'Dashboard';
+
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 p-4 lg:grid-cols-[250px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)]">
-          <div className="mb-4 rounded-xl bg-[#273a41] px-3 py-4 text-white">
-            <p className="text-sm text-white/80">SMOVE</p>
-            <p className="text-lg font-semibold">Admin CMS</p>
-          </div>
-          <nav className="space-y-1">
-            {menuItems.map((item) => <button key={item.id} onClick={() => onSectionChange(item.id)} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm ${currentSection === item.id ? 'bg-[#00b3e8] text-white' : 'text-slate-700 hover:bg-slate-100'}`}><item.icon size={16} />{item.label}</button>)}
-          </nav>
-          <button className="mt-4 flex w-full items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-rose-600" onClick={async () => { await logout(); window.location.hash = 'login'; }}><LogOut size={16} />Déconnexion</button>
-        </aside>
-
-        <main className="space-y-4">
-          <AdminPageHeader title={menuItems.find((item) => item.id === currentSection)?.label ?? 'Dashboard'} description="Back-office éditorial professionnel" rightSlot={<AdminSearchBar value={search} onChange={setSearch} placeholder="Recherche globale" />} actions={<div className="rounded-full bg-slate-100 px-3 py-2 text-xs text-slate-600">{user?.email}</div>} />
-
-          {currentSection === 'overview' && (
-            <div className="space-y-4">
-              <AdminStatsGrid stats={mainStats} />
-              <div className="grid gap-4 xl:grid-cols-2">
-                <AdminFormSection title="Accès rapides" helper="Actions fréquentes du quotidien.">
-                  <AdminQuickActions>
-                    <button className="rounded-lg border border-slate-200 px-3 py-2 text-sm" onClick={() => onSectionChange('posts')}>+ Nouvel article</button>
-                    <button className="rounded-lg border border-slate-200 px-3 py-2 text-sm" onClick={() => onSectionChange('projects')}>+ Nouveau projet</button>
-                    <button className="rounded-lg border border-slate-200 px-3 py-2 text-sm" onClick={() => onSectionChange('media')}>Upload média</button>
-                    <button className="rounded-lg border border-slate-200 px-3 py-2 text-sm" onClick={() => onSectionChange('users')}>Gérer users</button>
-                  </AdminQuickActions>
-                </AdminFormSection>
-                <AdminFormSection title="Activité récente" helper="Derniers contenus modifiés.">
-                  {recent.map((item) => <div key={item.id} className="flex items-center justify-between rounded border border-slate-200 p-2 text-sm"><span>{item.title}</span><AdminStatusBadge status={item.status} /></div>)}
-                </AdminFormSection>
+    <AdminShell
+      sidebar={
+        <AdminSidebar
+          items={menuItems}
+          activeId={currentSection}
+          onChange={(id) => onSectionChange(id as CMSSection)}
+          profileSlot={<div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">{user?.email ?? 'admin@smove.local'}</div>}
+          footerSlot={<button className="flex w-full items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-sm text-rose-600" onClick={async () => { await logout(); window.location.hash = 'login'; }}><LogOut size={16} />Déconnexion</button>}
+        />
+      }
+      topbar={
+        <AdminTopbar
+          title={selectedLabel}
+          subtitle="Back-office premium orienté productivité"
+          search={search}
+          onSearch={setSearch}
+          onCreate={() => onSectionChange('posts')}
+          userSlot={<div className="rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-600">{user?.name ?? 'Admin'}</div>}
+        />
+      }
+    >
+      {currentSection === 'overview' && (
+        <div className="space-y-4">
+          <AdminStatsCards stats={stats} />
+          <div className="grid gap-4 xl:grid-cols-2">
+            <AdminFormSection title="Quick actions" helper="Accès instantanés aux actions fréquentes.">
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => onSectionChange('posts')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">+ Article</button>
+                <button onClick={() => onSectionChange('projects')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">+ Projet</button>
+                <button onClick={() => onSectionChange('media')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">Upload média</button>
+                <button onClick={() => onSectionChange('settings')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">Paramètres</button>
               </div>
-              <AdminFormSection title="Contenus en review" helper="Priorités éditoriales à valider.">
-                {contentInReview.length === 0 ? <p className="text-sm text-slate-500">Aucun brouillon en attente de review.</p> : contentInReview.map((item) => <div key={item.id} className="flex items-center justify-between border-b border-slate-100 pb-2 text-sm last:border-0"><span>{item.title}</span><span className="text-xs text-slate-500">{item.type}</span></div>)}
-              </AdminFormSection>
-            </div>
-          )}
-
-          {(currentSection === 'posts' || currentSection === 'services' || currentSection === 'projects' || currentSection === 'events') && <ContentSection type={currentSection} items={allContent.filter((item) => item.type === currentSection)} onRefresh={() => setRefreshKey((value) => value + 1)} />}
-
-          {currentSection === 'media' && <MediaSection onRefresh={() => setRefreshKey((value) => value + 1)} />}
-
-          {currentSection === 'taxonomies' && <AdminFormSection title="Taxonomies" helper="Labels actifs par type de contenu.">
-            <p className="text-sm text-slate-600">Services: {getActiveTaxonomyLabels('service_category').join(', ')}</p>
-            <p className="text-sm text-slate-600">Projects: {getActiveTaxonomyLabels('project_category').join(', ')}</p>
-            <p className="text-sm text-slate-600">Posts: {getActiveTaxonomyLabels('post_category').join(', ')}</p>
-          </AdminFormSection>}
-
-          {currentSection === 'users' && <AdminTable columns={['Nom', 'Email', 'Role', 'Status']} rows={<tr><td className="px-4 py-3">{user?.name || 'Admin'}</td><td className="px-4 py-3">{user?.email}</td><td className="px-4 py-3">admin</td><td className="px-4 py-3"><AdminStatusBadge status="active" /></td></tr>} />}
-
-          {currentSection === 'settings' && (
-            <AdminFormSection title="Branding & SEO" helper="Configuration globale CMS">
-              <label className="block text-xs font-medium text-slate-600">Hero video URL</label>
-              <input className="w-full rounded border border-slate-200 p-2 text-sm" defaultValue={settings.heroVideoUrl} onBlur={(event) => saveBrandSettings({ ...settings, heroVideoUrl: event.target.value })} />
-              <label className="block text-xs font-medium text-slate-600">Logo text</label>
-              <input className="w-full rounded border border-slate-200 p-2 text-sm" defaultValue={settings.textLogo} onBlur={(event) => saveBrandSettings({ ...settings, textLogo: event.target.value })} />
-              <button className="rounded-lg bg-[#273a41] px-3 py-2 text-sm font-medium text-white" onClick={() => saveBrandSettings({ ...settings })}>Sauvegarder</button>
             </AdminFormSection>
-          )}
+            <AdminFormSection title="Activité récente" helper="Derniers contenus modifiés.">
+              {recent.map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">{item.title}</p>
+                    <p className="text-xs text-slate-500">{item.type}</p>
+                  </div>
+                  <AdminStatusBadge status={item.status} />
+                </div>
+              ))}
+            </AdminFormSection>
+          </div>
+        </div>
+      )}
 
-          <footer className="text-center text-xs text-slate-500">SMOVE CMS · expérience back-office premium</footer>
-        </main>
-      </div>
-    </div>
+      {(currentSection === 'posts' || currentSection === 'services' || currentSection === 'projects' || currentSection === 'events') && (
+        <ContentSection
+          type={currentSection}
+          items={allContent.filter((item) => item.type === currentSection).filter((item) => item.title.toLowerCase().includes(search.toLowerCase()))}
+          onRefresh={() => setRefreshKey((value) => value + 1)}
+        />
+      )}
+
+      {currentSection === 'media' && <MediaSection onRefresh={() => setRefreshKey((value) => value + 1)} />}
+
+      {currentSection === 'taxonomies' && (
+        <AdminFormSection title="Categories & Taxonomies" helper="Labels actifs disponibles dans les formulaires.">
+          <p className="text-sm text-slate-700">Services: {getActiveTaxonomyLabels('service_category').join(', ') || 'N/A'}</p>
+          <p className="text-sm text-slate-700">Projects: {getActiveTaxonomyLabels('project_category').join(', ') || 'N/A'}</p>
+          <p className="text-sm text-slate-700">Posts: {getActiveTaxonomyLabels('post_category').join(', ') || 'N/A'}</p>
+        </AdminFormSection>
+      )}
+
+      {currentSection === 'users' && (
+        <AdminDataTable
+          columns={['Nom', 'Email', 'Role', 'Status']}
+          rows={<tr><td className="px-4 py-3">{user?.name || 'Admin'}</td><td className="px-4 py-3">{user?.email}</td><td className="px-4 py-3">admin</td><td className="px-4 py-3"><AdminStatusBadge status="active" /></td></tr>}
+        />
+      )}
+
+      {currentSection === 'settings' && (
+        <AdminFormSection title="Settings" helper="Branding, SEO, CMS et hero video.">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-500">Hero video URL</label>
+              <input className="w-full rounded-xl border border-slate-200 p-2.5 text-sm" defaultValue={settings.heroVideoUrl} onBlur={(e) => saveBrandSettings({ ...settings, heroVideoUrl: e.target.value })} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-500">Logo text</label>
+              <input className="w-full rounded-xl border border-slate-200 p-2.5 text-sm" defaultValue={settings.textLogo} onBlur={(e) => saveBrandSettings({ ...settings, textLogo: e.target.value })} />
+            </div>
+          </div>
+          <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm text-white" onClick={() => saveBrandSettings({ ...settings })}>Sauvegarder</button>
+        </AdminFormSection>
+      )}
+    </AdminShell>
   );
 }
