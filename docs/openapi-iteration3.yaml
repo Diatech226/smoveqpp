@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: SMOVE CMS Admin API
+  version: 3.0.0
+paths:
+  /api/v1/users:
+    get:
+      summary: List tenant users
+  /api/v1/users/invite:
+    post:
+      summary: Invite user
+  /api/v1/users/{id}/role:
+    patch:
+      summary: Update user role
+  /api/v1/users/{id}/status:
+    patch:
+      summary: Update user status
+  /api/v1/audit-logs:
+    get:
+      summary: List audit logs
+  /api/v1/analytics/overview:
+    get:
+      summary: Admin KPI overview

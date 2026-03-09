@@ -18,6 +18,10 @@ export const Permissions = {
   SERVICE_READ: 'service:read',
   SERVICE_CREATE: 'service:create',
   SERVICE_UPDATE: 'service:update',
+  USER_READ: 'user:read',
+  USER_INVITE: 'user:invite',
+  USER_ROLE_UPDATE: 'user:role:update',
+  USER_STATUS_UPDATE: 'user:status:update',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];
@@ -33,6 +37,10 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     Permissions.SERVICE_READ,
     Permissions.SERVICE_CREATE,
     Permissions.SERVICE_UPDATE,
+    Permissions.USER_READ,
+    Permissions.USER_INVITE,
+    Permissions.USER_ROLE_UPDATE,
+    Permissions.USER_STATUS_UPDATE,
   ],
   [Roles.AUTHOR]: [
     Permissions.POST_READ,
@@ -41,6 +49,10 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     Permissions.SERVICE_READ,
     Permissions.SERVICE_CREATE,
     Permissions.SERVICE_UPDATE,
+    Permissions.USER_READ,
+    Permissions.USER_INVITE,
+    Permissions.USER_ROLE_UPDATE,
+    Permissions.USER_STATUS_UPDATE,
   ],
   [Roles.VIEWER]: [Permissions.POST_READ, Permissions.SERVICE_READ],
 };
