@@ -1,0 +1,7 @@
+{
+  "key": "headless-seo-toolkit",
+  "name": "Headless SEO Toolkit",
+  "version": "1.0.0",
+  "capabilities": ["seo:suggestions", "public:search:enhancer"],
+  "minCoreVersion": "v5"
+}

@@ -21,6 +21,13 @@ const { mediaRoutes } = require('./routes/media.routes');
 const { usersRoutes } = require('./routes/users.routes');
 const { auditLogsRoutes } = require('./routes/auditLogs.routes');
 const { analyticsRoutes } = require('./routes/analytics.routes');
+const { publicRoutes } = require('./routes/public.routes');
+const { contentEnvironmentRoutes } = require('./routes/contentEnvironment.routes');
+const { personalizationRoutes } = require('./routes/personalization.routes');
+const { experimentsRoutes } = require('./routes/experiments.routes');
+const { searchRoutes } = require('./routes/search.routes');
+const { aiRoutes } = require('./routes/ai.routes');
+const { pluginsRoutes } = require('./routes/plugins.routes');
 const { hasPermission, Permissions } = require('./security/permissions');
 
 const logger = {
@@ -955,6 +962,14 @@ app.use('/api/v1/media', mediaRoutes);
 app.use('/api/v1/users', usersRoutes({ requireAdmin, logAudit }));
 app.use('/api/v1/audit-logs', auditLogsRoutes({ requireAdmin }));
 app.use('/api/v1/analytics', analyticsRoutes({ requireAdmin }));
+
+app.use('/api/v1/public', publicRoutes);
+app.use('/api/v1/content', contentEnvironmentRoutes);
+app.use('/api/v1/personalization', personalizationRoutes);
+app.use('/api/v1/experiments', experimentsRoutes);
+app.use('/api/v1/search', searchRoutes);
+app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1/plugins', pluginsRoutes);
 
 app.use((error, _req, res, _next) => {
   logger.error({ error }, 'unhandled-request-error');
