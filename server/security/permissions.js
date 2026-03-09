@@ -29,6 +29,12 @@ const Permissions = Object.freeze({
   SERVICE_READ: 'service:read',
   SERVICE_CREATE: 'service:create',
   SERVICE_UPDATE: 'service:update',
+  USER_READ: 'user:read',
+  USER_INVITE: 'user:invite',
+  USER_ROLE_UPDATE: 'user:role:update',
+  USER_STATUS_UPDATE: 'user:status:update',
+  AUDIT_READ: 'audit:read',
+  ANALYTICS_READ: 'analytics:read',
 });
 
 const rolePermissions = Object.freeze({
@@ -53,6 +59,7 @@ const rolePermissions = Object.freeze({
     Permissions.MEDIA_READ,
     Permissions.MEDIA_UPLOAD,
     Permissions.MEDIA_DELETE,
+    Permissions.USER_READ,
   ],
   [Roles.AUTHOR]: [
     Permissions.POST_READ,

@@ -18,6 +18,9 @@ const { eventRoutes } = require('./routes/events.routes');
 const { taxonomyRoutes } = require('./routes/taxonomies.routes');
 const { settingsRoutes } = require('./routes/settings.routes');
 const { mediaRoutes } = require('./routes/media.routes');
+const { usersRoutes } = require('./routes/users.routes');
+const { auditLogsRoutes } = require('./routes/auditLogs.routes');
+const { analyticsRoutes } = require('./routes/analytics.routes');
 const { hasPermission, Permissions } = require('./security/permissions');
 
 const logger = {
@@ -62,6 +65,8 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     passwordHash: { type: String },
     role: { type: String, enum: ROLES, default: 'viewer' },
+    status: { type: String, enum: ['active', 'inactive', 'invited'], default: 'active', index: true },
+    invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     provider: { type: String, default: 'local' },
     providerId: { type: String },
   },
@@ -327,6 +332,12 @@ function isAllowed(role, action) {
   }
 
   return hasPermission(role, permission);
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.user) return fail(res, 401, 'UNAUTHENTICATED', 'Authentication required');
+  if (req.user.role !== 'admin') return fail(res, 403, 'FORBIDDEN', 'Admin role required');
+  return next();
 }
 
 function requireAction(action) {
@@ -833,10 +844,17 @@ app.post('/api/internal/jobs/run-next', requireJobToken, async (req, res) => {
   );
   if (!job) return res.status(204).end();
 
-  const fail = typeof req.query.fail === 'string' && req.query.fail === '1';
-  if (fail) {
-    job.status = 'failed';
-    job.lastError = 'Simulated failure';
+  const shouldFail = typeof req.query.fail === 'string' && req.query.fail === '1';
+  if (shouldFail) {
+    const maxAttempts = 3;
+    if (job.attempts < maxAttempts) {
+      job.status = 'queued';
+      job.lastError = `Attempt ${job.attempts} failed`;
+      job.runAt = new Date(Date.now() + 60 * 1000 * job.attempts);
+    } else {
+      job.status = 'failed';
+      job.lastError = `Failed after ${job.attempts} attempts`;
+    }
   } else {
     job.status = 'succeeded';
     job.lastError = '';
@@ -934,6 +952,9 @@ app.use('/api/v1/events', eventRoutes);
 app.use('/api/v1/taxonomies', taxonomyRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/media', mediaRoutes);
+app.use('/api/v1/users', usersRoutes({ requireAdmin, logAudit }));
+app.use('/api/v1/audit-logs', auditLogsRoutes({ requireAdmin }));
+app.use('/api/v1/analytics', analyticsRoutes({ requireAdmin }));
 
 app.use((error, _req, res, _next) => {
   logger.error({ error }, 'unhandled-request-error');
