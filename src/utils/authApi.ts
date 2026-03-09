@@ -1,8 +1,15 @@
 import type { AppUser } from './securityPolicy';
 
 interface AuthApiResponse {
-  user?: AppUser;
-  csrfToken?: string;
+  success?: boolean;
+  data?: {
+    user?: AppUser;
+    csrfToken?: string;
+  };
+  error?: {
+    code?: string;
+    message?: string;
+  } | null;
 }
 
 export interface AuthResult {
@@ -53,8 +60,8 @@ async function requestAuth(
 
 function toAuthResult(payload: AuthApiResponse | null): AuthResult {
   return {
-    user: payload?.user ?? null,
-    csrfToken: payload?.csrfToken ?? null,
+    user: payload?.data?.user ?? null,
+    csrfToken: payload?.data?.csrfToken ?? null,
   };
 }
 
