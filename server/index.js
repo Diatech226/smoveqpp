@@ -14,6 +14,10 @@ const { ok, fail } = require('./utils/apiResponse');
 const { errorHandler } = require('./middleware/errorHandler');
 const { enforceCsrf } = require('./middleware/enforceCsrf');
 const { serviceRoutes } = require('./routes/service.routes');
+const { eventRoutes } = require('./routes/events.routes');
+const { taxonomyRoutes } = require('./routes/taxonomies.routes');
+const { settingsRoutes } = require('./routes/settings.routes');
+const { mediaRoutes } = require('./routes/media.routes');
 const { hasPermission, Permissions } = require('./security/permissions');
 
 const logger = {
@@ -923,7 +927,13 @@ for (const provider of ['google', 'github', 'facebook']) {
   });
 }
 
+app.use('/uploads', express.static('server/uploads'));
+
 app.use('/api/v1/services', serviceRoutes);
+app.use('/api/v1/events', eventRoutes);
+app.use('/api/v1/taxonomies', taxonomyRoutes);
+app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/media', mediaRoutes);
 
 app.use((error, _req, res, _next) => {
   logger.error({ error }, 'unhandled-request-error');
