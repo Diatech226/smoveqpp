@@ -35,6 +35,16 @@ const Permissions = Object.freeze({
   USER_STATUS_UPDATE: 'user:status:update',
   AUDIT_READ: 'audit:read',
   ANALYTICS_READ: 'analytics:read',
+
+  CONTENT_ENVIRONMENT_READ: 'content:environment:read',
+  CONTENT_ENVIRONMENT_PROMOTE: 'content:environment:promote',
+  PERSONALIZATION_READ: 'personalization:read',
+  PERSONALIZATION_MANAGE: 'personalization:manage',
+  EXPERIMENT_READ: 'experiment:read',
+  EXPERIMENT_MANAGE: 'experiment:manage',
+  AI_ASSIST: 'ai:assist',
+  PLUGIN_READ: 'plugin:read',
+  PLUGIN_MANAGE: 'plugin:manage',
 });
 
 const rolePermissions = Object.freeze({
@@ -60,6 +70,14 @@ const rolePermissions = Object.freeze({
     Permissions.MEDIA_UPLOAD,
     Permissions.MEDIA_DELETE,
     Permissions.USER_READ,
+    Permissions.CONTENT_ENVIRONMENT_READ,
+    Permissions.CONTENT_ENVIRONMENT_PROMOTE,
+    Permissions.PERSONALIZATION_READ,
+    Permissions.PERSONALIZATION_MANAGE,
+    Permissions.EXPERIMENT_READ,
+    Permissions.EXPERIMENT_MANAGE,
+    Permissions.AI_ASSIST,
+    Permissions.PLUGIN_READ,
   ],
   [Roles.AUTHOR]: [
     Permissions.POST_READ,
@@ -75,8 +93,13 @@ const rolePermissions = Object.freeze({
     Permissions.TAXONOMY_READ,
     Permissions.MEDIA_READ,
     Permissions.MEDIA_UPLOAD,
+    Permissions.CONTENT_ENVIRONMENT_READ,
+    Permissions.PERSONALIZATION_READ,
+    Permissions.EXPERIMENT_READ,
+    Permissions.AI_ASSIST,
+    Permissions.PLUGIN_READ,
   ],
-  [Roles.VIEWER]: [Permissions.POST_READ, Permissions.SERVICE_READ, Permissions.SETTINGS_READ, Permissions.EVENT_READ, Permissions.TAXONOMY_READ, Permissions.MEDIA_READ],
+  [Roles.VIEWER]: [Permissions.POST_READ, Permissions.SERVICE_READ, Permissions.SETTINGS_READ, Permissions.EVENT_READ, Permissions.TAXONOMY_READ, Permissions.MEDIA_READ, Permissions.CONTENT_ENVIRONMENT_READ, Permissions.PERSONALIZATION_READ, Permissions.EXPERIMENT_READ, Permissions.PLUGIN_READ],
 });
 
 function hasPermission(role, permission) {
