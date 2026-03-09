@@ -21,6 +21,7 @@ import APropos from './imports/APropos';
 import { Palette, Code, Megaphone, Video, Box, ArrowRight, Calendar, User } from 'lucide-react';
 import { consumePreviewToken } from './data/previewTokens';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
+import { Toaster } from './components/ui/sonner';
 
 // Simplified services for homepage
 const servicesData = [
@@ -900,6 +901,7 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
+      <Toaster />
       <AppContent />
     </AuthProvider>
   );

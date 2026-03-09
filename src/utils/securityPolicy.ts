@@ -1,4 +1,6 @@
-export type UserRole = 'admin' | 'editor' | 'author' | 'viewer';
+import { hasPermission, Permissions, type UserRole } from '../security/permissions';
+
+export type { UserRole };
 
 export interface AppUser {
   id: string;
@@ -39,7 +41,7 @@ export function evaluateCmsAccess(input: CmsAccessInput): CmsAccessDecision {
   if (!input.isAuthenticated || !input.user) {
     return 'unauthenticated';
   }
-  if (input.user.role !== 'admin') {
+  if (!hasPermission(input.user.role, Permissions.POST_READ)) {
     return 'forbidden';
   }
   return 'allow';

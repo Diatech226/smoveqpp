@@ -10,6 +10,11 @@ const { Strategy: LocalStrategy } = require('passport-local');
 const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 const { Strategy: GitHubStrategy } = require('passport-github2');
 const { Strategy: FacebookStrategy } = require('passport-facebook');
+const { ok, fail } = require('./utils/apiResponse');
+const { errorHandler } = require('./middleware/errorHandler');
+const { enforceCsrf } = require('./middleware/enforceCsrf');
+const { serviceRoutes } = require('./routes/service.routes');
+const { hasPermission, Permissions } = require('./security/permissions');
 
 const logger = {
   info: (...args) => console.log(...args),
@@ -302,14 +307,29 @@ function resolveRole(email) {
 }
 
 function isAllowed(role, action) {
-  return (ACTIONS[action] ?? []).includes(role);
+  const actionToPermission = {
+    postRead: Permissions.POST_READ,
+    postCreate: Permissions.POST_CREATE,
+    postUpdate: Permissions.POST_UPDATE,
+    postPublish: Permissions.POST_PUBLISH,
+    postDelete: Permissions.POST_DELETE,
+    settingsUpdate: Permissions.SETTINGS_UPDATE,
+    mediaDelete: Permissions.MEDIA_DELETE,
+  };
+
+  const permission = actionToPermission[action];
+  if (!permission) {
+    return (ACTIONS[action] ?? []).includes(role);
+  }
+
+  return hasPermission(role, permission);
 }
 
 function requireAction(action) {
   return (req, res, next) => {
-    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+    if (!req.user) return fail(res, 401, 'UNAUTHENTICATED', 'Authentication required');
     if (!isAllowed(req.user.role, action)) {
-      return res.status(403).json({ error: `Role ${req.user.role} cannot perform ${action}` });
+      return fail(res, 403, 'FORBIDDEN', `Role ${req.user.role} cannot perform ${action}`);
     }
     return next();
   };
@@ -330,14 +350,6 @@ async function logAudit(req, action, entityType, entityId, diff = undefined) {
   } catch (error) {
     logger.error({ error, action, entityType, entityId }, 'audit-log-failed');
   }
-}
-
-function enforceCsrf(req, res, next) {
-  const token = req.get('X-CSRF-Token');
-  if (!token || token !== req.session.csrfToken) {
-    return res.status(403).json({ error: 'Invalid CSRF token' });
-  }
-  return next();
 }
 
 function normalizeSlug(input = '') {
@@ -555,7 +567,7 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.get('/api/auth/session', (req, res) => {
-  res.json({ data: { user: req.user ? toSafeUser(req.user) : null, csrfToken: ensureCsrfToken(req) } });
+  ok(res, { user: req.user ? toSafeUser(req.user) : null, csrfToken: ensureCsrfToken(req) }, {});
 });
 
 app.post('/api/auth/register', limiterAuth, async (req, res) => {
@@ -911,9 +923,11 @@ for (const provider of ['google', 'github', 'facebook']) {
   });
 }
 
+app.use('/api/v1/services', serviceRoutes);
+
 app.use((error, _req, res, _next) => {
   logger.error({ error }, 'unhandled-request-error');
-  res.status(500).json({ error: 'Unexpected server error' });
+  errorHandler(error, _req, res, _next);
 });
 
 mongoose.connect(MONGO_URI).then(() => {

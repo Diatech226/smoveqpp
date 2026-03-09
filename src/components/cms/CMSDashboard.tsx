@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Briefcase,
   Calendar,
@@ -13,6 +13,7 @@ import {
   Upload,
   Users,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   deleteCMSContent,
@@ -27,10 +28,11 @@ import {
 import { deleteMediaFile, getMediaFiles, uploadMediaFile } from '../../data/media';
 import { getActiveTaxonomyLabels } from '../../data/taxonomies';
 import { getBrandSettings, saveBrandSettings } from '../../data/brandSettings';
+import { createService, fetchServices, updateService } from '../../features/cms/services/api';
+import { hasPermission, Permissions } from '../../security/permissions';
 import {
   AdminConfirmDialog,
   AdminDataTable,
-  AdminEmptyState,
   AdminFiltersBar,
   AdminFormSection,
   AdminPageHeader,
@@ -45,6 +47,9 @@ import {
   PreviewButton,
   QuickStatusActions,
 } from './admin/AdminUI';
+import { CmsEmptyState } from './CmsEmptyState';
+import { CmsErrorState } from './CmsErrorState';
+import { CmsLoadingState } from './CmsLoadingState';
 
 type CMSSection =
   | 'overview'
@@ -78,10 +83,18 @@ const workflowStatuses: Array<'draft' | 'review' | 'scheduled' | 'published' | '
 ];
 
 function ContentSection({ type, items, onRefresh }: { type: ContentType; items: CMSContentItem[]; onRefresh: () => void }) {
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [title, setTitle] = useState('');
   const [status, setStatus] = useState<ContentStatus>('draft');
   const [category, setCategory] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const [remoteError, setRemoteError] = useState<string | null>(null);
+
+  const canReadServices = hasPermission(user?.role, Permissions.SERVICE_READ);
+  const canCreateServices = hasPermission(user?.role, Permissions.SERVICE_CREATE);
+  const canUpdateServices = hasPermission(user?.role, Permissions.SERVICE_UPDATE);
 
   const categories = useMemo(() => getCMSCategories(items), [items]);
   const filtered = items.filter((item) => {
@@ -89,45 +102,127 @@ function ContentSection({ type, items, onRefresh }: { type: ContentType; items: 
     return item.title.toLowerCase().includes(needle) || item.slug.toLowerCase().includes(needle);
   });
 
-  const createItem = () => {
-    if (title.trim().length < 3) return;
-    const all = getCMSContent();
-    const now = new Date().toISOString();
-    const slug = ensureUniqueSlug(all, title);
+  useEffect(() => {
+    if (type !== 'services' || !canReadServices) return;
+    let active = true;
+    setRemoteLoading(true);
+    setRemoteError(null);
 
-    upsertCMSContent({
-      id: `${type}-${Date.now()}`,
-      type,
-      title: title.trim(),
-      slug,
-      excerpt: 'Résumé à compléter',
-      content: 'Contenu à compléter',
-      status,
-      category: category || 'general',
-      coverId: '',
-      coverAltText: '',
-      galleryIds: [],
-      videoUrl: '',
-      publishedAt: status === 'published' ? now : null,
-      viewsCount: 0,
-      commentsCount: 0,
-      createdAt: now,
-      updatedAt: now,
-    });
+    fetchServices()
+      .then(({ items: remoteItems }) => {
+        if (!active) return;
+        const now = new Date().toISOString();
+        remoteItems.forEach((item) => {
+          upsertCMSContent({
+            id: item.id,
+            type: 'services',
+            title: item.title,
+            slug: item.slug,
+            excerpt: item.description,
+            content: item.description || 'Service',
+            status: item.status,
+            coverId: '',
+            coverAltText: '',
+            galleryIds: [],
+            category: 'services',
+            createdAt: item.createdAt || now,
+            updatedAt: item.updatedAt || now,
+            publishedAt: item.status === 'published' ? item.updatedAt : null,
+          });
+        });
+        onRefresh();
+      })
+      .catch((error: unknown) => {
+        setRemoteError(error instanceof Error ? error.message : 'Erreur API services');
+      })
+      .finally(() => {
+        if (active) setRemoteLoading(false);
+      });
 
-    setTitle('');
-    setCategory('');
-    setStatus('draft');
-    onRefresh();
+    return () => {
+      active = false;
+    };
+  }, [type, canReadServices]);
+
+  const createItem = async () => {
+    if (title.trim().length < 3) {
+      toast.error('Le titre doit contenir au moins 3 caractères.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const all = getCMSContent();
+      const now = new Date().toISOString();
+      const slug = ensureUniqueSlug(all, title);
+
+      if (type === 'services' && canCreateServices) {
+        const created = await createService({ title: title.trim(), description: 'Résumé à compléter', status: status === 'published' ? 'published' : 'draft', slug });
+        if (created) {
+          upsertCMSContent({
+            id: created.id,
+            type,
+            title: created.title,
+            slug: created.slug,
+            excerpt: created.description,
+            content: created.description || 'Contenu à compléter',
+            status: created.status,
+            category: category || 'general',
+            coverId: '',
+            coverAltText: '',
+            galleryIds: [],
+            videoUrl: '',
+            publishedAt: created.status === 'published' ? created.updatedAt : null,
+            viewsCount: 0,
+            commentsCount: 0,
+            createdAt: created.createdAt,
+            updatedAt: created.updatedAt,
+          });
+        }
+      } else {
+        upsertCMSContent({
+          id: `${type}-${Date.now()}`,
+          type,
+          title: title.trim(),
+          slug,
+          excerpt: 'Résumé à compléter',
+          content: 'Contenu à compléter',
+          status,
+          category: category || 'general',
+          coverId: '',
+          coverAltText: '',
+          galleryIds: [],
+          videoUrl: '',
+          publishedAt: status === 'published' ? now : null,
+          viewsCount: 0,
+          commentsCount: 0,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      setTitle('');
+      setCategory('');
+      setStatus('draft');
+      onRefresh();
+      toast.success('Contenu créé avec succès.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Impossible de créer le contenu.');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (remoteLoading && type === 'services') return <CmsLoadingState label="Chargement des services..." />;
+  if (remoteError && type === 'services') return <CmsErrorState message={remoteError} onRetry={onRefresh} />;
 
   return (
     <div className="space-y-4">
       <AdminPageHeader title={`Gestion ${type}`} description="Interface CRUD rapide, claire et homogène." />
       <AdminFiltersBar>
         <AdminSearchInput value={query} onChange={setQuery} placeholder={`Rechercher dans ${type}`} />
-        <button onClick={createItem} className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white">
-          <Plus size={15} className="mr-1 inline" /> Nouveau
+        <button onClick={createItem} disabled={isSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
+          <Plus size={15} className="mr-1 inline" /> {isSaving ? 'Enregistrement...' : 'Nouveau'}
         </button>
       </AdminFiltersBar>
 
@@ -139,12 +234,12 @@ function ContentSection({ type, items, onRefresh }: { type: ContentType; items: 
           <select value={status} onChange={(e) => setStatus(e.target.value as ContentStatus)} className="rounded-xl border border-slate-200 p-2.5 text-sm">
             {workflowStatuses.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
           </select>
-          <button onClick={createItem} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">Save draft</button>
+          <button onClick={createItem} disabled={isSaving} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm disabled:opacity-60">Save draft</button>
         </div>
       </AdminFormSection>
 
       {!filtered.length ? (
-        <AdminEmptyState title="Aucun élément trouvé" description="Créez un contenu ou ajustez vos filtres." />
+        <CmsEmptyState title="Aucun élément trouvé" description="Créez un contenu ou ajustez vos filtres." />
       ) : (
         <AdminDataTable
           columns={['Titre', 'Cover', 'Catégorie', 'Statut', 'Date', 'Actions']}
@@ -161,7 +256,14 @@ function ContentSection({ type, items, onRefresh }: { type: ContentType; items: 
                 <div className="mt-2">
                   <QuickStatusActions
                     status={item.status}
-                    onChange={(nextStatus) => {
+                    onChange={async (nextStatus) => {
+                      if (type === 'services' && canUpdateServices) {
+                        try {
+                          await updateService(item.id, { status: nextStatus === 'published' ? 'published' : 'draft' });
+                        } catch (error) {
+                          toast.error(error instanceof Error ? error.message : 'Échec de mise à jour.');
+                        }
+                      }
                       upsertCMSContent({ ...item, status: nextStatus, updatedAt: new Date().toISOString() });
                       onRefresh();
                     }}
@@ -172,7 +274,7 @@ function ContentSection({ type, items, onRefresh }: { type: ContentType; items: 
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-1">
                   <PreviewButton onClick={() => window.alert(`Preview ${item.title}`)} />
-                  <AdminConfirmDialog label={item.title} onConfirm={() => { deleteCMSContent(item.id); onRefresh(); }} />
+                  <AdminConfirmDialog label={item.title} onConfirm={() => { deleteCMSContent(item.id); onRefresh(); toast.success('Élément supprimé.'); }} />
                 </div>
               </td>
             </tr>
@@ -203,6 +305,7 @@ function MediaSection({ onRefresh }: { onRefresh: () => void }) {
               if (!file) return;
               await uploadMediaFile({ file, name: file.name, type: 'image', uploadedBy: 'admin' });
               onRefresh();
+              toast.success('Média importé avec succès.');
               event.target.value = '';
             }}
           />
@@ -210,7 +313,7 @@ function MediaSection({ onRefresh }: { onRefresh: () => void }) {
       </AdminFiltersBar>
 
       {!files.length ? (
-        <AdminEmptyState title="Médiathèque vide" description="Importez vos premières images pour alimenter vos contenus." />
+        <CmsEmptyState title="Médiathèque vide" description="Importez vos premières images pour alimenter vos contenus." />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {files.map((file) => (
@@ -219,9 +322,9 @@ function MediaSection({ onRefresh }: { onRefresh: () => void }) {
               <p className="mt-2 truncate text-sm font-medium text-slate-900">{file.name}</p>
               <p className="text-xs text-slate-500">{file.folder} · {(file.size / 1024).toFixed(1)} KB</p>
               <div className="mt-3 flex gap-2">
-                <button onClick={() => navigator.clipboard?.writeText(file.originalUrl)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs">Copy URL</button>
+                <button onClick={() => { navigator.clipboard?.writeText(file.originalUrl); toast.success('URL copiée.'); }} className="rounded-lg border border-slate-200 px-2 py-1 text-xs">Copy URL</button>
                 <button onClick={() => window.alert(`Use ${file.name} as cover`)} className="rounded-lg border border-cyan-200 px-2 py-1 text-xs text-cyan-700">Use as cover</button>
-                <AdminConfirmDialog label={file.name} onConfirm={() => { deleteMediaFile(file.id); onRefresh(); }} />
+                <AdminConfirmDialog label={file.name} onConfirm={() => { deleteMediaFile(file.id); onRefresh(); toast.success('Média supprimé.'); }} />
               </div>
             </MediaPicker>
           ))}
@@ -286,7 +389,7 @@ export function CMSDashboard({ currentSection, onSectionChange }: { currentSecti
               </div>
             </AdminFormSection>
             <AdminFormSection title="Activité récente" helper="Derniers contenus modifiés.">
-              {recent.map((item) => (
+              {!recent.length ? <CmsEmptyState title="Aucune activité" description="Les modifications récentes apparaîtront ici." /> : recent.map((item) => (
                 <div key={item.id} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2">
                   <div>
                     <p className="text-sm font-medium text-slate-800">{item.title}</p>
@@ -321,7 +424,7 @@ export function CMSDashboard({ currentSection, onSectionChange }: { currentSecti
       {currentSection === 'users' && (
         <AdminDataTable
           columns={['Nom', 'Email', 'Role', 'Status']}
-          rows={<tr><td className="px-4 py-3">{user?.name || 'Admin'}</td><td className="px-4 py-3">{user?.email}</td><td className="px-4 py-3">admin</td><td className="px-4 py-3"><AdminStatusBadge status="active" /></td></tr>}
+          rows={<tr><td className="px-4 py-3">{user?.name || 'Admin'}</td><td className="px-4 py-3">{user?.email}</td><td className="px-4 py-3">{user?.role || 'viewer'}</td><td className="px-4 py-3"><AdminStatusBadge status="active" /></td></tr>}
         />
       )}
 
@@ -337,7 +440,7 @@ export function CMSDashboard({ currentSection, onSectionChange }: { currentSecti
               <input className="w-full rounded-xl border border-slate-200 p-2.5 text-sm" defaultValue={settings.textLogo} onBlur={(e) => saveBrandSettings({ ...settings, textLogo: e.target.value })} />
             </div>
           </div>
-          <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm text-white" onClick={() => saveBrandSettings({ ...settings })}>Sauvegarder</button>
+          <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm text-white" onClick={() => { saveBrandSettings({ ...settings }); toast.success('Paramètres sauvegardés.'); }}>Sauvegarder</button>
         </AdminFormSection>
       )}
     </AdminShell>
