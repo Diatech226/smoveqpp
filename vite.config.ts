@@ -3,16 +3,26 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
-  const SECURITY_HEADERS = {
+  const BASE_SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Content-Security-Policy':
-      "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;",
   };
 
-  export default defineConfig({
+  const PROD_CSP =
+    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;";
+
+  const DEV_CSP =
+    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: ws: wss:;";
+
+  export default defineConfig(({ command }) => {
+    const securityHeaders = {
+      ...BASE_SECURITY_HEADERS,
+      'Content-Security-Policy': command === 'serve' ? DEV_CSP : PROD_CSP,
+    };
+
+    return {
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -125,12 +135,13 @@
       target: 'esnext',
       outDir: 'build',
     },
-    server: {
-      port: 3000,
-      open: true,
-      headers: SECURITY_HEADERS,
-    },
-    preview: {
-      headers: SECURITY_HEADERS,
-    },
+      server: {
+        port: 3000,
+        open: true,
+        headers: securityHeaders,
+      },
+      preview: {
+        headers: securityHeaders,
+      },
+    };
   });
