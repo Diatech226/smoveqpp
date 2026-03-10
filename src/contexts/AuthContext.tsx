@@ -62,14 +62,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const session = await fetchServerSession();
-      if (!isActive) {
-        return;
-      }
+      try {
+        const session = await fetchServerSession();
+        if (!isActive) {
+          return;
+        }
 
-      setCsrfToken(session.csrfToken);
-      setUser(resolveTrustedSessionUser(session.user));
-      setIsAuthReady(true);
+        setCsrfToken(session.csrfToken);
+        setUser(resolveTrustedSessionUser(session.user));
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setCsrfToken(null);
+        setUser(null);
+      } finally {
+        if (isActive) {
+          setIsAuthReady(true);
+        }
+      }
     };
 
     bootstrapAuth();
