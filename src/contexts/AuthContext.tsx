@@ -27,9 +27,18 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function clearLegacyClientAuthArtifacts() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
   // Legacy keys contained credentials/session data and must no longer be trusted.
-  localStorage.removeItem('smove_user');
-  localStorage.removeItem('smove_users');
+  // Access to storage can fail in strict privacy modes, so this cleanup must stay best-effort.
+  try {
+    window.localStorage.removeItem('smove_user');
+    window.localStorage.removeItem('smove_users');
+  } catch {
+    // Ignore storage access errors to avoid breaking the auth bootstrap.
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -62,14 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const session = await fetchServerSession();
-      if (!isActive) {
-        return;
-      }
+      try {
+        const session = await fetchServerSession();
+        if (!isActive) {
+          return;
+        }
 
-      setCsrfToken(session.csrfToken);
-      setUser(resolveTrustedSessionUser(session.user));
-      setIsAuthReady(true);
+        setCsrfToken(session.csrfToken);
+        setUser(resolveTrustedSessionUser(session.user));
+      } finally {
+        if (isActive) {
+          setIsAuthReady(true);
+        }
+      }
     };
 
     bootstrapAuth();
