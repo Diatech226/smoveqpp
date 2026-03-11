@@ -26,6 +26,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const FALLBACK_AUTH_CONTEXT: AuthContextType = {
+  user: null,
+  login: async () => false,
+  register: async () => false,
+  logout: async () => {},
+  isAuthenticated: false,
+  isAuthReady: true,
+  cmsEnabled: false,
+  registrationEnabled: false,
+  canAccessCMS: false,
+};
+
 function clearLegacyClientAuthArtifacts() {
   if (typeof window === 'undefined') {
     return;
@@ -79,6 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setCsrfToken(session.csrfToken);
         setUser(resolveTrustedSessionUser(session.user));
+      } catch {
+        if (!isActive) {
+          return;
+        }
+        setUser(null);
+        setCsrfToken(null);
       } finally {
         if (isActive) {
           setIsAuthReady(true);
@@ -162,8 +180,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return context ?? FALLBACK_AUTH_CONTEXT;
 }

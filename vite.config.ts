@@ -4,19 +4,21 @@
   import path from 'path';
 
   const BASE_SECURITY_HEADERS = {
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  };
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+};
 
-  const PROD_CSP =
-    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;";
+const DEV_SERVER_PORT = Number(process.env.VITE_PORT ?? process.env.PORT ?? 3000);
 
-  const DEV_CSP =
-    "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: ws: wss:;";
+const PROD_CSP =
+  "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;";
 
-  export default defineConfig(({ command }) => {
+const DEV_CSP =
+  `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:${DEV_SERVER_PORT}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http://localhost:${DEV_SERVER_PORT} ws://localhost:${DEV_SERVER_PORT} ws: wss:;`;
+
+export default defineConfig(({ command }) => {
     const securityHeaders = {
       ...BASE_SECURITY_HEADERS,
       'Content-Security-Policy': command === 'serve' ? DEV_CSP : PROD_CSP,
@@ -136,7 +138,7 @@
       outDir: 'build',
     },
       server: {
-        port: 3000,
+        port: DEV_SERVER_PORT,
         open: true,
         headers: securityHeaders,
       },
