@@ -5,12 +5,15 @@ interface AuthApiPayload {
   csrfToken?: string | null;
 }
 
+interface AuthApiError {
+  code?: string;
+  message?: string;
+}
+
 interface AuthApiResponse {
   success?: boolean;
-  data?: AuthApiPayload;
-  error?: { code?: string; message?: string };
-  user?: AppUser | null;
-  csrfToken?: string | null;
+  data?: AuthApiPayload | null;
+  error?: AuthApiError | null;
 }
 
 export interface AuthResult {
@@ -18,6 +21,7 @@ export interface AuthResult {
   csrfToken: string | null;
   success: boolean;
   errorMessage: string | null;
+  errorCode: string | null;
   status: number;
 }
 
@@ -25,17 +29,27 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\
 const AUTH_BASE_URL = `${API_BASE_URL}/auth`;
 const REQUEST_TIMEOUT_MS = 10000;
 
-function normalizeAuthPayload(payload: AuthApiResponse | null, status: number): AuthResult {
-  if (!payload) {
-    return { user: null, csrfToken: null, success: false, errorMessage: 'Réponse serveur invalide.', status };
-  }
+function fallbackErrorMessage(code: string | null, status: number): string {
+  if (code === 'INVALID_CREDENTIALS') return 'Identifiants invalides.';
+  if (code === 'INVALID_CSRF') return 'Session expirée, merci de réessayer.';
+  if (code === 'RATE_LIMITED') return 'Trop de tentatives. Réessayez plus tard.';
+  if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
+  return 'Erreur d’authentification.';
+}
 
-  const nestedData = payload.data;
+function normalizeAuthPayload(payload: AuthApiResponse | null, status: number): AuthResult {
+  const data = payload?.data ?? null;
+  const error = payload?.error ?? null;
+  const success = payload?.success === true && status < 400;
+  const errorCode = typeof error?.code === 'string' ? error.code : null;
+  const explicitMessage = typeof error?.message === 'string' ? error.message : null;
+
   return {
-    user: nestedData?.user ?? payload.user ?? null,
-    csrfToken: nestedData?.csrfToken ?? payload.csrfToken ?? null,
-    success: payload.success ?? status < 400,
-    errorMessage: payload.error?.message ?? null,
+    user: data?.user ?? null,
+    csrfToken: data?.csrfToken ?? null,
+    success,
+    errorCode,
+    errorMessage: success ? null : explicitMessage ?? fallbackErrorMessage(errorCode, status),
     status,
   };
 }
@@ -60,19 +74,11 @@ async function requestAuth(path: string, init: RequestInit = {}, csrfToken?: str
       signal: controller.signal,
     });
 
-    if (response.status === 204) {
-      return { user: null, csrfToken: null, success: true, errorMessage: null, status: 204 };
-    }
-
     const body = (await response.json().catch(() => null)) as AuthApiResponse | null;
     const normalized = normalizeAuthPayload(body, response.status);
 
     if (!response.ok) {
-      return {
-        ...normalized,
-        success: false,
-        errorMessage: normalized.errorMessage ?? 'Erreur d’authentification.',
-      };
+      return { ...normalized, success: false };
     }
 
     return normalized;
@@ -81,6 +87,7 @@ async function requestAuth(path: string, init: RequestInit = {}, csrfToken?: str
       user: null,
       csrfToken: null,
       success: false,
+      errorCode: 'NETWORK_ERROR',
       errorMessage: 'Serveur indisponible. Réessayez plus tard.',
       status: 0,
     };

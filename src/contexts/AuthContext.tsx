@@ -67,22 +67,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearLegacyClientAuthArtifacts();
 
     const bootstrapAuth = async () => {
-      if (!cmsEnabled) {
+      try {
+        if (!cmsEnabled) {
+          if (!isActive) return;
+          setUser(null);
+          setCsrfToken(null);
+          setAuthError(null);
+          setIsAuthReady(true);
+          return;
+        }
+
+        const session = await fetchServerSession();
+        if (!isActive) return;
+
+        setCsrfToken(session.csrfToken);
+        setUser(resolveTrustedSessionUser(session.user));
+        setAuthError(session.success ? null : session.errorMessage);
+      } catch {
         if (!isActive) return;
         setUser(null);
-        setCsrfToken(null);
-        setIsAuthReady(true);
-        setAuthError(null);
-        return;
+        setAuthError('Session indisponible. Le site reste accessible.');
+      } finally {
+        if (isActive) {
+          setIsAuthReady(true);
+        }
       }
-
-      const session = await fetchServerSession();
-      if (!isActive) return;
-
-      setCsrfToken(session.csrfToken);
-      setUser(resolveTrustedSessionUser(session.user));
-      setAuthError(session.success ? null : session.errorMessage);
-      setIsAuthReady(true);
     };
 
     void bootstrapAuth();
@@ -100,9 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const result = await loginWithApi(email, password, csrfToken);
     setCsrfToken(result.csrfToken);
-    setUser(resolveTrustedSessionUser(result.user));
+    const trustedUser = resolveTrustedSessionUser(result.user);
+    setUser(trustedUser);
     setAuthError(result.success ? null : result.errorMessage);
-    return !!result.user;
+    return !!trustedUser;
   };
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
@@ -113,9 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const result = await registerWithApi(email, password, name, csrfToken);
     setCsrfToken(result.csrfToken);
-    setUser(resolveTrustedSessionUser(result.user));
+    const trustedUser = resolveTrustedSessionUser(result.user);
+    setUser(trustedUser);
     setAuthError(result.success ? null : result.errorMessage);
-    return !!result.user;
+    return !!trustedUser;
   };
 
   const logout = async () => {

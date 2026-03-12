@@ -1,8 +1,9 @@
 const { createApp } = require('./app');
 const { connectMongo } = require('./config/mongo');
-const { API_PORT } = require('./config/env');
+const { API_PORT, validateCriticalEnv } = require('./config/env');
 
 async function bootstrap() {
+  validateCriticalEnv();
   await connectMongo();
   const app = createApp();
   app.listen(API_PORT, () => {

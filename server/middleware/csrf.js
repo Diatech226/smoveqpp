@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { sendError } = require('../utils/apiResponse');
 
 function getOrCreateCsrfToken(req) {
   if (!req.session.csrfToken) {
@@ -21,7 +22,7 @@ function requireCsrf(req, res, next) {
   const token = req.get('X-CSRF-Token');
   const sessionToken = req.session?.csrfToken;
   if (!token || !sessionToken || token !== sessionToken) {
-    return res.status(403).json({ success: false, error: { code: 'INVALID_CSRF', message: 'Invalid CSRF token' } });
+    return sendError(res, 403, 'INVALID_CSRF', 'Invalid CSRF token');
   }
   return next();
 }
