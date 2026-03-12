@@ -1,13 +1,12 @@
 
-  import { defineConfig } from 'vite';
+  import { defineConfig, loadEnv } from 'vite';
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
-  const VITE_PORT = Number(process.env.PORT ?? process.env.VITE_PORT ?? 3000);
-  const API_ORIGIN = process.env.API_ORIGIN ?? 'http://localhost:4000';
-  const VITE_HOST = `http://localhost:${VITE_PORT}`;
-  const VITE_WS_HOST = `ws://localhost:${VITE_PORT}`;
-  const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
+  function parsePort(rawValue: string | undefined, fallback: number): number {
+    const parsed = Number(rawValue);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
 
   const BASE_SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
@@ -16,12 +15,12 @@
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   };
 
-  function createCsp(isDev: boolean) {
+  function createCsp(isDev: boolean, hosts: { clientHost: string; clientWsHost: string; apiOrigin: string; apiWsOrigin: string }) {
     const scriptSrc = isDev
-      ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${VITE_HOST}`
+      ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${hosts.clientHost}`
       : "script-src 'self'";
     const connectSrc = isDev
-      ? `connect-src 'self' ${VITE_HOST} ${VITE_WS_HOST} ${API_ORIGIN} ${API_WS_ORIGIN}`
+      ? `connect-src 'self' ${hosts.clientHost} ${hosts.clientWsHost} ${hosts.apiOrigin} ${hosts.apiWsOrigin}`
       : "connect-src 'self' https:";
 
     return [
@@ -38,16 +37,23 @@
     ].join('; ');
   }
 
-  function createSecurityHeaders(isDev: boolean) {
+  function createSecurityHeaders(isDev: boolean, hosts: { clientHost: string; clientWsHost: string; apiOrigin: string; apiWsOrigin: string }) {
     return {
       ...BASE_SECURITY_HEADERS,
-      'Content-Security-Policy': createCsp(isDev),
+      'Content-Security-Policy': createCsp(isDev, hosts),
     };
   }
 
   export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, process.cwd(), '');
+    const clientPort = parsePort(env.VITE_PORT ?? env.CLIENT_PORT, 5173);
+    const apiOrigin = env.VITE_API_ORIGIN ?? env.API_ORIGIN ?? 'http://localhost:3001';
+    const clientHost = `http://localhost:${clientPort}`;
+    const clientWsHost = `ws://localhost:${clientPort}`;
+    const apiWsOrigin = apiOrigin.replace(/^http/, 'ws');
+
     const isDev = mode === 'development';
-    const SECURITY_HEADERS = createSecurityHeaders(isDev);
+    const SECURITY_HEADERS = createSecurityHeaders(isDev, { clientHost, clientWsHost, apiOrigin, apiWsOrigin });
 
     return {
     plugins: [react()],
@@ -163,20 +169,20 @@
       outDir: 'build',
     },
     server: {
-      port: VITE_PORT,
+      port: clientPort,
       strictPort: true,
       open: true,
       headers: SECURITY_HEADERS,
       proxy: {
         '/api': {
-          target: API_ORIGIN,
+          target: apiOrigin,
           changeOrigin: true,
           secure: false,
         },
       },
     },
     preview: {
-      port: VITE_PORT,
+      port: clientPort,
       strictPort: true,
       headers: SECURITY_HEADERS,
     },

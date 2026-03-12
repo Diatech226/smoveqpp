@@ -3,7 +3,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
-const { FRONTEND_ORIGIN, API_PORT, isProduction } = require('./config/env');
+const { FRONTEND_ORIGIN, API_ORIGIN, isProduction } = require('./config/env');
 const { createSessionMiddleware, createCorsOptions } = require('./config/session');
 const { exposeCsrfToken } = require('./middleware/csrf');
 const { UserRepository } = require('./repositories/userRepository');
@@ -12,7 +12,6 @@ const { buildAuthController } = require('./controllers/authController');
 const { createAuthRoutes } = require('./routes/authRoutes');
 const { sendError } = require('./utils/apiResponse');
 
-const API_ORIGIN = process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`;
 const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
 
 const DEV_CSP = [
