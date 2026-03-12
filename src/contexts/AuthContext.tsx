@@ -4,6 +4,7 @@ import {
   loginWithApi,
   logoutWithApi,
   registerWithApi,
+  type AuthResult,
 } from '../utils/authApi';
 import {
   evaluateCmsAccess,
@@ -12,6 +13,7 @@ import {
   type AppUser,
 } from '../utils/securityPolicy';
 import { clearLegacyAuthArtifacts } from '../repositories/authArtifactsRepository';
+import { logError, logInfo, logWarn } from '../utils/observability';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -40,6 +42,16 @@ const SAFE_FALLBACK_CONTEXT: AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType>(SAFE_FALLBACK_CONTEXT);
+
+function resolveAuthActionError(result: AuthResult): string | null {
+  if (result.success) return null;
+  if (result.errorMessage) return result.errorMessage;
+  return 'Authentification indisponible. Réessayez.';
+}
+
+function shouldResetSession(result: AuthResult): boolean {
+  return result.errorCode === 'SESSION_UNAUTHORIZED' || result.errorCode === 'INVALID_CSRF';
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -78,11 +90,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setCsrfToken(session.csrfToken);
         setUser(resolveTrustedSessionUser(session.user));
-        setAuthError(session.success ? null : session.errorMessage);
-      } catch {
+        setAuthError(resolveAuthActionError(session));
+
+        if (!session.success) {
+          logWarn({
+            scope: 'auth_context',
+            event: 'session_bootstrap_failed',
+            details: { errorCode: session.errorCode, status: session.status },
+          });
+        }
+      } catch (error) {
         if (!isActive) return;
         setUser(null);
         setAuthError('Session indisponible. Le site reste accessible.');
+        logError({ scope: 'auth_context', event: 'session_bootstrap_exception', error });
       } finally {
         if (isActive) {
           setIsAuthReady(true);
@@ -107,7 +128,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCsrfToken(result.csrfToken);
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
-    setAuthError(result.success ? null : result.errorMessage);
+    setAuthError(resolveAuthActionError(result));
+
+    if (!result.success) {
+      logWarn({
+        scope: 'auth_context',
+        event: 'login_failed',
+        details: { errorCode: result.errorCode, status: result.status },
+      });
+      if (shouldResetSession(result)) {
+        setUser(null);
+      }
+    } else {
+      logInfo({ scope: 'auth_context', event: 'login_succeeded' });
+    }
+
     return !!trustedUser;
   };
 
@@ -121,7 +156,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCsrfToken(result.csrfToken);
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
-    setAuthError(result.success ? null : result.errorMessage);
+    setAuthError(resolveAuthActionError(result));
+
+    if (!result.success) {
+      logWarn({
+        scope: 'auth_context',
+        event: 'registration_failed',
+        details: { errorCode: result.errorCode, status: result.status },
+      });
+      if (shouldResetSession(result)) {
+        setUser(null);
+      }
+    }
+
     return !!trustedUser;
   };
 
@@ -129,7 +176,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await logoutWithApi(csrfToken);
     setUser(null);
     setCsrfToken(result.csrfToken);
-    setAuthError(result.success ? null : result.errorMessage);
+    setAuthError(resolveAuthActionError(result));
+
+    if (!result.success) {
+      logWarn({
+        scope: 'auth_context',
+        event: 'logout_failed',
+        details: { errorCode: result.errorCode, status: result.status },
+      });
+    }
   };
 
   const value = useMemo<AuthContextType>(

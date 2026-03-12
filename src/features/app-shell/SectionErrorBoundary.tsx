@@ -2,16 +2,17 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { logError } from '../../utils/observability';
 import { AppErrorState } from './AppStatusState';
 
-interface AppErrorBoundaryProps {
+interface SectionErrorBoundaryProps {
+  scope: string;
   children: ReactNode;
 }
 
-interface AppErrorBoundaryState {
+interface SectionErrorBoundaryState {
   hasError: boolean;
 }
 
-export default class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
-  state: AppErrorBoundaryState = { hasError: false };
+export default class SectionErrorBoundary extends Component<SectionErrorBoundaryProps, SectionErrorBoundaryState> {
+  state: SectionErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError() {
     return { hasError: true };
@@ -19,10 +20,13 @@ export default class AppErrorBoundary extends Component<AppErrorBoundaryProps, A
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logError({
-      scope: 'app_boundary',
-      event: 'runtime_render_crash',
+      scope: 'page_boundary',
+      event: 'page_render_crash',
       error,
-      details: { componentStack: errorInfo.componentStack },
+      details: {
+        section: this.props.scope,
+        componentStack: errorInfo.componentStack,
+      },
     });
   }
 
@@ -30,8 +34,8 @@ export default class AppErrorBoundary extends Component<AppErrorBoundaryProps, A
     if (this.state.hasError) {
       return (
         <AppErrorState
-          title="Erreur d'initialisation"
-          description="Le runtime applicatif a rencontré une erreur. Rechargez la page."
+          title="Contenu indisponible"
+          description="Cette section a rencontré une erreur. Revenez à l’accueil."
           actionHref="#home"
           actionLabel="Retour à l'accueil"
         />
