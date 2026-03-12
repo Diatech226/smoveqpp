@@ -1,3 +1,28 @@
+const fs = require('fs');
+const path = require('path');
+
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+
+  const content = fs.readFileSync(filePath, 'utf8');
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex <= 0) continue;
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const rawValue = trimmed.slice(separatorIndex + 1).trim();
+    const value = rawValue.replace(/^['\"]|['\"]$/g, '');
+
+    process.env[key] = value;
+  }
+}
+
+loadEnvFile(path.resolve(process.cwd(), '.env'));
+loadEnvFile(path.resolve(process.cwd(), '.env.local'));
+
 const isProduction = process.env.NODE_ENV === 'production';
 
 function parseIntOrDefault(value, fallback) {
@@ -5,7 +30,8 @@ function parseIntOrDefault(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-const FRONTEND_PORT = parseIntOrDefault(process.env.PORT ?? process.env.VITE_PORT, 3000);
+const API_PORT = parseIntOrDefault(process.env.API_PORT, 3001);
+const FRONTEND_PORT = parseIntOrDefault(process.env.CLIENT_PORT ?? process.env.VITE_PORT, 5173);
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'dev-session-secret-change-me';
 
 function assertSessionSecretStrength() {
@@ -23,8 +49,9 @@ function validateCriticalEnv() {
 
 module.exports = {
   isProduction,
-  API_PORT: parseIntOrDefault(process.env.API_PORT, 3001),
+  API_PORT,
   FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
+  API_ORIGIN: process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`,
   SESSION_SECRET,
   MONGO_URI: process.env.MONGO_URI ?? '',
   MONGO_DB_NAME: process.env.MONGO_DB_NAME ?? undefined,
