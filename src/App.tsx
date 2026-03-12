@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { Component, useState, useEffect, useRef, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
@@ -610,6 +610,38 @@ function SecurityStatePage({ title, description, actionHref, actionLabel }: Secu
   );
 }
 
+
+interface AppErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface AppErrorBoundaryState {
+  hasError: boolean;
+}
+
+class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
+  state: AppErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <SecurityStatePage
+          title="Erreur d'initialisation"
+          description="Le runtime applicatif a rencontré une erreur. Rechargez la page."
+          actionHref="#home"
+          actionLabel="Retour à l'accueil"
+        />
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function AppContent() {
   const {
     isAuthenticated,
@@ -877,7 +909,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <AppErrorBoundary>
+        <AppContent />
+      </AppErrorBoundary>
     </AuthProvider>
   );
 }
