@@ -10,7 +10,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register, registrationEnabled, cmsEnabled } = useAuth();
+  const { register, registrationEnabled, cmsEnabled, authError } = useAuth();
   const isFormDisabled = loading || !registrationEnabled || !cmsEnabled;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,8 +42,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+    if (password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères');
       setLoading(false);
       return;
     }
@@ -53,7 +53,7 @@ export default function RegisterPage() {
     if (success) {
       window.location.hash = 'cms-dashboard';
     } else {
-      setError('Cet email est déjà utilisé');
+      setError(authError ?? 'Cet email est déjà utilisé');
     }
     
     setLoading(false);

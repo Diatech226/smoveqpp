@@ -1,10 +1,12 @@
-export type UserRole = 'admin' | 'editor' | 'viewer';
+export type UserRole = 'admin' | 'editor' | 'author' | 'viewer';
 
 export interface AppUser {
   id: string;
   email: string;
   name: string;
   role: UserRole;
+  status?: 'active' | 'invited' | 'suspended';
+  tenantId?: string | null;
 }
 
 export type CmsAccessDecision = 'allow' | 'disabled' | 'unauthenticated' | 'forbidden';
@@ -23,14 +25,13 @@ function parseBooleanFlag(value: string | undefined, defaultValue: boolean): boo
 }
 
 export const SECURITY_FLAGS = {
-  // CMS is enabled in development by default, disabled in production unless explicitly enabled.
   cmsEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_CMS, import.meta.env.DEV),
-  // Public self-registration is disabled by default in every environment.
   registrationEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_REGISTRATION, false),
-  // Dev fallback admin login is enabled only in development unless explicitly disabled.
   devAdminFallbackEnabled:
-    import.meta.env.DEV && parseBooleanFlag(import.meta.env.VITE_ENABLE_DEV_ADMIN, true),
+    import.meta.env.DEV && parseBooleanFlag(import.meta.env.VITE_ENABLE_DEV_ADMIN, false),
 } as const;
+
+const cmsRoles = new Set<UserRole>(['admin', 'editor', 'author']);
 
 export function evaluateCmsAccess(input: CmsAccessInput): CmsAccessDecision {
   if (!input.cmsEnabled) {
@@ -39,13 +40,12 @@ export function evaluateCmsAccess(input: CmsAccessInput): CmsAccessDecision {
   if (!input.isAuthenticated || !input.user) {
     return 'unauthenticated';
   }
-  if (input.user.role !== 'admin') {
+  if (!cmsRoles.has(input.user.role)) {
     return 'forbidden';
   }
   return 'allow';
 }
 
-// Explicitly reject trust in browser-persisted identities to prevent local tampering.
 export function resolveTrustedSessionUser(serverUser: AppUser | null, _clientStoredUser?: unknown): AppUser | null {
   return serverUser;
 }

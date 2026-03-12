@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, registrationEnabled, cmsEnabled } = useAuth();
+  const { login, registrationEnabled, cmsEnabled, authError } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +32,7 @@ export default function LoginPage() {
     if (success) {
       window.location.hash = 'cms-dashboard';
     } else {
-      setError('Email ou mot de passe incorrect');
+      setError(authError ?? 'Email ou mot de passe incorrect');
     }
     
     setLoading(false);
