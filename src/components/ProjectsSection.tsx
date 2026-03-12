@@ -1,10 +1,10 @@
 import { motion } from 'motion/react';
 import { ArrowRight, ExternalLink } from 'lucide-react';
-import { getFeaturedProjects } from '../data/projects';
+import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 export default function ProjectsSection() {
-  const featuredProjects = getFeaturedProjects(6);
+  const featuredProjects = projectRepository.getFeatured(6);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

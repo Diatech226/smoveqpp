@@ -11,6 +11,7 @@ import {
   SECURITY_FLAGS,
   type AppUser,
 } from '../utils/securityPolicy';
+import { clearLegacyAuthArtifacts } from '../repositories/authArtifactsRepository';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -40,11 +41,6 @@ const SAFE_FALLBACK_CONTEXT: AuthContextType = {
 
 const AuthContext = createContext<AuthContextType>(SAFE_FALLBACK_CONTEXT);
 
-function clearLegacyClientAuthArtifacts() {
-  localStorage.removeItem('smove_user');
-  localStorage.removeItem('smove_users');
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
@@ -64,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isActive = true;
-    clearLegacyClientAuthArtifacts();
+    clearLegacyAuthArtifacts();
 
     const bootstrapAuth = async () => {
       try {

@@ -1,22 +1,6 @@
-export interface Project {
-  id: string;
-  title: string;
-  client: string;
-  category: string;
-  year: string;
-  description: string;
-  challenge: string;
-  solution: string;
-  results: string[];
-  tags: string[];
-  mainImage: string;
-  images: string[];
-  testimonial?: {
-    text: string;
-    author: string;
-    position: string;
-  };
-}
+import type { Project } from '../domain/contentSchemas';
+
+export type { Project };
 
 export const projects: Project[] = [
   {

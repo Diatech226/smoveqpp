@@ -1,3 +1,4 @@
+import { listStorageKeys, readFromStorage, removeFromStorage } from '../repositories/storage/localStorageStore';
 /**
  * Performance Utilities
  * Helper functions for optimizing performance
@@ -240,21 +241,25 @@ export const reportWebVitals = (metric: any): void => {
 // Memory management
 export const clearUnusedData = (): void => {
   // Clear old cache entries
-  const keys = Object.keys(localStorage);
+  const keys = listStorageKeys();
   const now = Date.now();
   const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
 
   keys.forEach(key => {
     try {
-      const item = localStorage.getItem(key);
-      if (!item) return;
-
-      const data = JSON.parse(item);
-      if (data.timestamp && now - data.timestamp > maxAge) {
-        localStorage.removeItem(key);
+      const data = readFromStorage(
+        key,
+        (value): value is { timestamp?: unknown } => typeof value === 'object' && value !== null,
+        {},
+      );
+      if ('timestamp' in data) {
+        const timestamp = data.timestamp;
+        if (typeof timestamp === 'number' && now - timestamp > maxAge) {
+          removeFromStorage(key);
+        }
       }
     } catch (error) {
-      // Invalid JSON, skip
+      // Invalid payload, skip
     }
   });
 };
