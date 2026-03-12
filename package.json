@@ -63,6 +63,11 @@
     "build": "vite build",
     "test:security": "vitest run src/utils/securityPolicy.test.ts",
     "dev:server": "node server/index.js",
-    "test:auth": "vitest run src/utils/securityPolicy.test.ts server/tests/*.test.js"
+    "test:auth": "vitest run src/utils/securityPolicy.test.ts server/tests/*.test.js",
+    "lint": "node scripts/lint.js",
+    "typecheck": "node scripts/typecheck.js",
+    "test": "node scripts/test-auth-smoke.js",
+    "test:e2e:smoke": "node scripts/test-auth-smoke.js",
+    "ci:check": "npm run lint && npm run typecheck && npm run test"
   }
 }

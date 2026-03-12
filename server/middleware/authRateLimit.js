@@ -1,3 +1,5 @@
+const { sendError } = require('../utils/apiResponse');
+
 function createAuthRateLimiter({ windowMs, max }) {
   const buckets = new Map();
 
@@ -15,10 +17,9 @@ function createAuthRateLimiter({ windowMs, max }) {
     buckets.set(key, current);
 
     if (current.count > max) {
-      return res.status(429).json({
-        success: false,
-        error: { code: 'RATE_LIMITED', message: 'Too many auth attempts. Try again later.' },
-      });
+      const retryAfterSeconds = Math.max(1, Math.ceil((current.resetAt - now) / 1000));
+      res.setHeader('Retry-After', String(retryAfterSeconds));
+      return sendError(res, 429, 'RATE_LIMITED', 'Too many auth attempts. Try again later.');
     }
 
     return next();

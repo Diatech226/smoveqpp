@@ -10,6 +10,7 @@ const { UserRepository } = require('./repositories/userRepository');
 const { AuthService } = require('./services/authService');
 const { buildAuthController } = require('./controllers/authController');
 const { createAuthRoutes } = require('./routes/authRoutes');
+const { sendError } = require('./utils/apiResponse');
 
 const DEV_CSP = [
   "default-src 'self'",
@@ -61,7 +62,7 @@ function createApp(deps = {}) {
 
   app.use((err, _req, res, _next) => {
     console.error('[api] unhandled error', err);
-    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Unexpected error' } });
+    sendError(res, 500, 'INTERNAL_ERROR', 'Unexpected error');
   });
 
   return app;

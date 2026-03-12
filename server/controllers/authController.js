@@ -1,4 +1,6 @@
 const { getOrCreateCsrfToken } = require('../middleware/csrf');
+const { sendSuccess, sendError } = require('../utils/apiResponse');
+const { logAuthEvent } = require('../utils/authLogger');
 
 function buildAuthController({ authService }) {
   return {
@@ -10,35 +12,33 @@ function buildAuthController({ authService }) {
         req.session.role = null;
       }
 
-      return res.json({
-        success: true,
-        data: {
-          user,
-          csrfToken: getOrCreateCsrfToken(req),
-        },
+      logAuthEvent(req, 'session', 'success', { authenticated: Boolean(user) });
+      return sendSuccess(res, 200, {
+        user,
+        csrfToken: getOrCreateCsrfToken(req),
       });
     },
 
     register: async (req, res) => {
       const result = await authService.register(req.body ?? {});
       if (!result.ok) {
-        return res.status(result.status).json({ success: false, error: { code: result.code, message: result.message } });
+        logAuthEvent(req, 'register', 'failure', { code: result.code, email: req.body?.email ?? null });
+        return sendError(res, result.status, result.code, result.message);
       }
 
       req.session.regenerate((regenerateError) => {
         if (regenerateError) {
-          return res.status(500).json({ success: false, error: { code: 'SESSION_ERROR', message: 'Failed to initialize session' } });
+          logAuthEvent(req, 'register', 'failure', { code: 'SESSION_ERROR' });
+          return sendError(res, 500, 'SESSION_ERROR', 'Failed to initialize session');
         }
 
         req.session.userId = result.user.id;
         req.session.role = result.user.role;
 
-        return res.status(201).json({
-          success: true,
-          data: {
-            user: result.user,
-            csrfToken: getOrCreateCsrfToken(req),
-          },
+        logAuthEvent(req, 'register', 'success', { userId: result.user.id, email: result.user.email });
+        return sendSuccess(res, 201, {
+          user: result.user,
+          csrfToken: getOrCreateCsrfToken(req),
         });
       });
     },
@@ -46,23 +46,23 @@ function buildAuthController({ authService }) {
     login: async (req, res) => {
       const result = await authService.login(req.body ?? {});
       if (!result.ok) {
-        return res.status(result.status).json({ success: false, error: { code: result.code, message: result.message } });
+        logAuthEvent(req, 'login', 'failure', { code: result.code, email: req.body?.email ?? null });
+        return sendError(res, result.status, result.code, result.message);
       }
 
       req.session.regenerate((regenerateError) => {
         if (regenerateError) {
-          return res.status(500).json({ success: false, error: { code: 'SESSION_ERROR', message: 'Failed to initialize session' } });
+          logAuthEvent(req, 'login', 'failure', { code: 'SESSION_ERROR' });
+          return sendError(res, 500, 'SESSION_ERROR', 'Failed to initialize session');
         }
 
         req.session.userId = result.user.id;
         req.session.role = result.user.role;
 
-        return res.json({
-          success: true,
-          data: {
-            user: result.user,
-            csrfToken: getOrCreateCsrfToken(req),
-          },
+        logAuthEvent(req, 'login', 'success', { userId: result.user.id, email: result.user.email });
+        return sendSuccess(res, 200, {
+          user: result.user,
+          csrfToken: getOrCreateCsrfToken(req),
         });
       });
     },
@@ -70,16 +70,15 @@ function buildAuthController({ authService }) {
     logout: async (req, res) => {
       req.session.destroy((error) => {
         if (error) {
-          return res.status(500).json({ success: false, error: { code: 'SESSION_ERROR', message: 'Failed to logout' } });
+          logAuthEvent(req, 'logout', 'failure', { code: 'SESSION_ERROR' });
+          return sendError(res, 500, 'SESSION_ERROR', 'Failed to logout');
         }
 
         res.clearCookie('smove.sid');
-        return res.json({
-          success: true,
-          data: {
-            user: null,
-            csrfToken: null,
-          },
+        logAuthEvent(req, 'logout', 'success');
+        return sendSuccess(res, 200, {
+          user: null,
+          csrfToken: null,
         });
       });
     },
