@@ -26,24 +26,24 @@ describe('evaluateCmsAccess', () => {
     expect(decision).toBe('unauthenticated');
   });
 
-  it('denies access for authenticated non-admin users', () => {
+  it('allows editor and author roles for cms', () => {
+    expect(
+      evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'editor' } }),
+    ).toBe('allow');
+
+    expect(
+      evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'author' } }),
+    ).toBe('allow');
+  });
+
+  it('denies viewer role for cms', () => {
     const decision = evaluateCmsAccess({
       cmsEnabled: true,
       isAuthenticated: true,
-      user: { role: 'editor' },
+      user: { role: 'viewer' },
     });
 
     expect(decision).toBe('forbidden');
-  });
-
-  it('allows access for authenticated admin users', () => {
-    const decision = evaluateCmsAccess({
-      cmsEnabled: true,
-      isAuthenticated: true,
-      user: { role: 'admin' },
-    });
-
-    expect(decision).toBe('allow');
   });
 });
 

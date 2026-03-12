@@ -14,6 +14,7 @@ import {
 
 interface AuthContextType {
   user: AppUser | null;
+  authError: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -26,6 +27,7 @@ interface AuthContextType {
 
 const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   user: null,
+  authError: null,
   login: async () => false,
   register: async () => false,
   logout: async () => undefined,
@@ -47,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
   const registrationEnabled = SECURITY_FLAGS.registrationEnabled;
@@ -64,34 +67,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearLegacyClientAuthArtifacts();
 
     const bootstrapAuth = async () => {
-      try {
-        if (!cmsEnabled) {
-          if (!isActive) {
-            return;
-          }
-          setUser(null);
-          setCsrfToken(null);
-          setIsAuthReady(true);
-          return;
-        }
-
-        const session = await fetchServerSession();
-        if (!isActive) {
-          return;
-        }
-
-        setCsrfToken(session.csrfToken);
-        setUser(resolveTrustedSessionUser(session.user));
-      } catch {
-        if (isActive) {
-          setUser(null);
-          setCsrfToken(null);
-        }
-      } finally {
-        if (isActive) {
-          setIsAuthReady(true);
-        }
+      if (!cmsEnabled) {
+        if (!isActive) return;
+        setUser(null);
+        setCsrfToken(null);
+        setIsAuthReady(true);
+        setAuthError(null);
+        return;
       }
+
+      const session = await fetchServerSession();
+      if (!isActive) return;
+
+      setCsrfToken(session.csrfToken);
+      setUser(resolveTrustedSessionUser(session.user));
+      setAuthError(session.success ? null : session.errorMessage);
+      setIsAuthReady(true);
     };
 
     void bootstrapAuth();
@@ -103,50 +94,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     if (!cmsEnabled) {
+      setAuthError('Le CMS est désactivé.');
       return false;
-    }
-
-    const devAdminEmail = import.meta.env.VITE_DEV_ADMIN_EMAIL;
-    const devAdminPassword = import.meta.env.VITE_DEV_ADMIN_PASSWORD;
-    const devAdminName = import.meta.env.VITE_DEV_ADMIN_NAME || 'Dev Administrator';
-
-    if (
-      SECURITY_FLAGS.devAdminFallbackEnabled &&
-      devAdminEmail &&
-      devAdminPassword &&
-      email === devAdminEmail &&
-      password === devAdminPassword
-    ) {
-      setUser({ id: 'dev-admin', email: devAdminEmail, name: devAdminName, role: 'admin' });
-      return true;
     }
 
     const result = await loginWithApi(email, password, csrfToken);
     setCsrfToken(result.csrfToken);
     setUser(resolveTrustedSessionUser(result.user));
+    setAuthError(result.success ? null : result.errorMessage);
     return !!result.user;
   };
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
     if (!registrationEnabled || !cmsEnabled) {
+      setAuthError('L’inscription est désactivée.');
       return false;
     }
 
     const result = await registerWithApi(email, password, name, csrfToken);
     setCsrfToken(result.csrfToken);
     setUser(resolveTrustedSessionUser(result.user));
+    setAuthError(result.success ? null : result.errorMessage);
     return !!result.user;
   };
 
   const logout = async () => {
-    await logoutWithApi(csrfToken);
+    const result = await logoutWithApi(csrfToken);
     setUser(null);
-    setCsrfToken(null);
+    setCsrfToken(result.csrfToken);
+    setAuthError(result.success ? null : result.errorMessage);
   };
 
   const value = useMemo<AuthContextType>(
     () => ({
       user,
+      authError,
       login,
       register,
       logout,
@@ -156,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       registrationEnabled,
       canAccessCMS,
     }),
-    [user, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS],
+    [user, authError, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

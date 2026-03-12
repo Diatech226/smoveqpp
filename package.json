@@ -62,6 +62,7 @@
     "dev": "vite",
     "build": "vite build",
     "test:security": "vitest run src/utils/securityPolicy.test.ts",
-    "dev:server": "node server/index.js"
+    "dev:server": "node server/index.js",
+    "test:auth": "vitest run src/utils/securityPolicy.test.ts server/tests/*.test.js"
   }
 }
