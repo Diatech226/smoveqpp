@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Calendar, User, Tag, Check, Quote, ExternalLink } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
-import { getProjectById } from '../data/projects';
+import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface ProjectDetailPageProps {
@@ -10,7 +10,7 @@ interface ProjectDetailPageProps {
 }
 
 export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
-  const project = getProjectById(projectId);
+  const project = projectRepository.getById(projectId);
 
   if (!project) {
     return (

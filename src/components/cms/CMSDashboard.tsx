@@ -16,9 +16,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { projects } from '../../data/projects';
-import { getBlogPosts } from '../../data/blog';
-import { getMediaFiles } from '../../data/media';
+import { cmsRepository } from '../../repositories/cmsRepository';
 
 interface CMSDashboardProps {
   currentSection: string;
@@ -29,24 +27,26 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const { user, logout, canAccessCMS } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const cmsStats = cmsRepository.getStats();
+
   const stats = [
     {
       label: 'Total Projets',
-      value: projects.length,
+      value: cmsStats.projectCount,
       icon: FolderOpen,
       color: 'from-[#00b3e8] to-[#00c0e8]',
       change: '+12%',
     },
     {
       label: 'Articles Blog',
-      value: getBlogPosts().length,
+      value: cmsStats.blogPostCount,
       icon: FileText,
       color: 'from-[#a855f7] to-[#9333ea]',
       change: '+8%',
     },
     {
       label: 'Fichiers Média',
-      value: getMediaFiles().length,
+      value: cmsStats.mediaCount,
       icon: ImageIcon,
       color: 'from-[#ffc247] to-[#ff9f47]',
       change: '+15%',

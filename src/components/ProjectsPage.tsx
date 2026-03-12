@@ -3,12 +3,15 @@ import { motion } from 'motion/react';
 import { Filter, Search, ArrowRight, ExternalLink } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
-import { projects, projectCategories } from '../data/projects';
+import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const projects = projectRepository.getAll();
+  const projectCategories = projectRepository.getCategories();
 
   const filteredProjects = projects.filter((project) => {
     const matchesCategory = selectedCategory === 'Tous' || project.category === selectedCategory;
