@@ -14,6 +14,8 @@ import APropos from '../../imports/APropos';
 import HomePageContent from '../marketing/home/HomePageContent';
 import type { ResolvedPage } from '../../app-routing/navigationTypes';
 import SecurityStatePage from './SecurityStatePage';
+import SectionErrorBoundary from './SectionErrorBoundary';
+import { AppLoadingState } from './AppStatusState';
 
 interface AppPageRendererProps {
   currentPage: ResolvedPage;
@@ -32,7 +34,7 @@ export default function AppPageRenderer({
 }: AppPageRendererProps) {
   if (currentPage === 'auth-loading') {
     return (
-      <SecurityStatePage
+      <AppLoadingState
         title="Vérification de session"
         description="Validation de votre session en cours..."
         actionHref="#home"
@@ -70,7 +72,11 @@ export default function AppPageRenderer({
   }
 
   if (currentPage === 'cms-dashboard') {
-    return <CMSDashboard currentSection={cmsSection} onSectionChange={onCmsSectionChange} />;
+    return (
+      <SectionErrorBoundary scope="cms-dashboard">
+        <CMSDashboard currentSection={cmsSection} onSectionChange={onCmsSectionChange} />
+      </SectionErrorBoundary>
+    );
   }
 
   if (currentPage === 'cms-unavailable') {
@@ -97,45 +103,79 @@ export default function AppPageRenderer({
 
   if (currentPage.startsWith('project-')) {
     const projectId = currentPage.replace('project-', '');
-    return <ProjectDetailPage projectId={projectId} />;
+    return (
+      <SectionErrorBoundary scope="project-detail">
+        <ProjectDetailPage projectId={projectId} />
+      </SectionErrorBoundary>
+    );
   }
 
   switch (currentPage) {
     case 'home':
       return (
-        <>
-          <Navigation currentPath="/" />
-          <HomePageContent />
-        </>
+        <SectionErrorBoundary scope="home">
+          <>
+            <Navigation currentPath="/" />
+            <HomePageContent />
+          </>
+        </SectionErrorBoundary>
       );
     case 'projects':
-      return <ProjectsPage />;
+      return (
+        <SectionErrorBoundary scope="projects">
+          <ProjectsPage />
+        </SectionErrorBoundary>
+      );
     case 'services-all':
-      return <ServicesHubPage />;
+      return (
+        <SectionErrorBoundary scope="services">
+          <ServicesHubPage />
+        </SectionErrorBoundary>
+      );
     case 'service-design':
-      return <DesignBrandingPage />;
+      return (
+        <SectionErrorBoundary scope="service-design">
+          <DesignBrandingPage />
+        </SectionErrorBoundary>
+      );
     case 'service-web':
-      return <WebDevelopmentPage />;
+      return (
+        <SectionErrorBoundary scope="service-web">
+          <WebDevelopmentPage />
+        </SectionErrorBoundary>
+      );
     case 'portfolio':
-      return <PortfolioPage />;
+      return (
+        <SectionErrorBoundary scope="portfolio">
+          <PortfolioPage />
+        </SectionErrorBoundary>
+      );
     case 'blog':
-      return <BlogPageEnhanced />;
+      return (
+        <SectionErrorBoundary scope="blog">
+          <BlogPageEnhanced />
+        </SectionErrorBoundary>
+      );
     case 'apropos':
       return (
-        <>
-          <Navigation currentPath="/apropos" />
-          <div className="pt-20">
-            <APropos />
-          </div>
-          <Footer />
-        </>
+        <SectionErrorBoundary scope="apropos">
+          <>
+            <Navigation currentPath="/apropos" />
+            <div className="pt-20">
+              <APropos />
+            </div>
+            <Footer />
+          </>
+        </SectionErrorBoundary>
       );
     default:
       return (
-        <>
-          <Navigation currentPath="/" />
-          <HomePageContent />
-        </>
+        <SectionErrorBoundary scope="home">
+          <>
+            <Navigation currentPath="/" />
+            <HomePageContent />
+          </>
+        </SectionErrorBoundary>
       );
   }
 }

@@ -66,8 +66,12 @@
     "test:auth": "vitest run src/utils/securityPolicy.test.ts server/tests/*.test.js",
     "lint": "node scripts/lint.js",
     "typecheck": "node scripts/typecheck.js",
-    "test": "node scripts/test-auth-smoke.js",
+    "test": "npm run test:unit && npm run test:smoke",
     "test:e2e:smoke": "node scripts/test-auth-smoke.js",
-    "ci:check": "npm run lint && npm run typecheck && npm run test"
+    "ci:check": "npm run verify",
+    "test:unit": "vitest run src/**/*.test.ts",
+    "test:integration": "vitest run src/app-routing/routeResolver.test.ts src/repositories/repositories.test.ts src/repositories/storage/localStorageStore.test.ts src/utils/authApi.test.ts",
+    "test:smoke": "node scripts/test-auth-smoke.js",
+    "verify": "npm run lint && npm run typecheck && npm run test"
   }
 }

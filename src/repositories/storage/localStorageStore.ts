@@ -1,3 +1,5 @@
+import { logWarn } from '../../utils/observability';
+
 const isBrowser = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
 export function readFromStorage<T>(
@@ -43,7 +45,17 @@ export function readFromStorage<T>(
 
 export function writeToStorage<T>(key: string, value: T): void {
   if (!isBrowser()) return;
-  window.localStorage.setItem(key, JSON.stringify(value));
+
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    logWarn({
+      scope: 'storage',
+      event: 'write_failed',
+      error,
+      details: { key },
+    });
+  }
 }
 
 export function removeFromStorage(key: string): void {

@@ -1,6 +1,11 @@
 const fs = require('fs');
 
-const targets = ['src/utils/authApi.ts', 'src/contexts/AuthContext.tsx'];
+const targets = [
+  'src/utils/authApi.ts',
+  'src/contexts/AuthContext.tsx',
+  'src/config/runtimeConfig.ts',
+  'src/utils/observability.ts',
+];
 const violations = [];
 
 for (const file of targets) {
@@ -8,8 +13,8 @@ for (const file of targets) {
   if (!source.includes('export')) {
     violations.push(`${file}: missing exports`);
   }
-  if (source.includes('any')) {
-    violations.push(`${file}: contains "any"`);
+  if (source.includes(': any') || source.includes('<any>')) {
+    violations.push(`${file}: contains forbidden any`);
   }
 }
 
