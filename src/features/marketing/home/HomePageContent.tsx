@@ -5,6 +5,73 @@ import Footer from '../../../components/Footer';
 import ProjectsSection from '../../../components/ProjectsSection';
 import { ImageWithFallback } from '../../../components/figma/ImageWithFallback';
 
+const servicesData = [
+  {
+    icon: Palette,
+    title: 'Design & Branding',
+    description:
+      "Création d'interfaces immersives, animations 3D et expériences interactives, de logo et d'identité visuels.",
+    color: 'from-[#00b3e8] to-[#00c0e8]',
+  },
+  {
+    icon: Code,
+    title: 'Développement Web & Mobile',
+    description: 'Applications web modernes, rapides et sécurisées, adaptées à vos besoins métiers.',
+    color: 'from-[#34c759] to-[#2da84a]',
+  },
+  {
+    icon: Megaphone,
+    title: 'Communication Digitale',
+    description: 'Stratégie de contenu, visibilité en ligne, branding et storytelling digital.',
+    color: 'from-[#ffc247] to-[#ff9f47]',
+  },
+  {
+    icon: Video,
+    title: 'Production Vidéo',
+    description: 'Création de vidéos professionnelles pour vos campagnes marketing et événements.',
+    color: 'from-[#ff6b6b] to-[#ee5a6f]',
+  },
+  {
+    icon: Box,
+    title: 'Création 3D',
+    description: 'Modélisation 3D, animations et expériences immersives pour vos projets.',
+    color: 'from-[#a855f7] to-[#9333ea]',
+  },
+];
+
+const blogPosts = [
+  {
+    id: '1',
+    title: 'Les tendances du design web en 2024',
+    excerpt:
+      'Découvrez les dernières tendances qui façonnent le paysage du design web moderne et comment les intégrer dans vos projets.',
+    image: 'modern web design trends 2024',
+    category: 'Design',
+    author: 'Marie Kouassi',
+    date: '15 Jan 2024',
+  },
+  {
+    id: '2',
+    title: "L'importance du SEO pour votre entreprise",
+    excerpt:
+      'Comment optimiser votre présence en ligne et améliorer votre visibilité sur les moteurs de recherche.',
+    image: 'seo optimization business growth',
+    category: 'Marketing',
+    author: 'Jean Baptiste',
+    date: '12 Jan 2024',
+  },
+  {
+    id: '3',
+    title: 'Créer une identité de marque forte',
+    excerpt:
+      'Les éléments essentiels pour construire une marque mémorable et cohérente qui résonne avec votre audience.',
+    image: 'brand identity design process',
+    category: 'Branding',
+    author: 'Aïcha Traoré',
+    date: '10 Jan 2024',
+  },
+];
+
 function HomePageContent() {
   return (
     <div className="relative" style={{ position: 'relative' }}>

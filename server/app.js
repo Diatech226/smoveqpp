@@ -3,7 +3,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
-const { FRONTEND_ORIGIN, isProduction } = require('./config/env');
+const { FRONTEND_ORIGIN, API_PORT, isProduction } = require('./config/env');
 const { createSessionMiddleware, createCorsOptions } = require('./config/session');
 const { exposeCsrfToken } = require('./middleware/csrf');
 const { UserRepository } = require('./repositories/userRepository');
@@ -11,6 +11,9 @@ const { AuthService } = require('./services/authService');
 const { buildAuthController } = require('./controllers/authController');
 const { createAuthRoutes } = require('./routes/authRoutes');
 const { sendError } = require('./utils/apiResponse');
+
+const API_ORIGIN = process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`;
+const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
 
 const DEV_CSP = [
   "default-src 'self'",
@@ -22,7 +25,7 @@ const DEV_CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${FRONTEND_ORIGIN} ${FRONTEND_ORIGIN.replace('http', 'ws')}`,
+  `connect-src 'self' ${FRONTEND_ORIGIN} ${FRONTEND_ORIGIN.replace('http', 'ws')} ${API_ORIGIN} ${API_WS_ORIGIN}`,
 ].join('; ');
 
 const PROD_CSP = [

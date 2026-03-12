@@ -4,8 +4,10 @@
   import path from 'path';
 
   const VITE_PORT = Number(process.env.PORT ?? process.env.VITE_PORT ?? 3000);
+  const API_ORIGIN = process.env.API_ORIGIN ?? 'http://localhost:4000';
   const VITE_HOST = `http://localhost:${VITE_PORT}`;
   const VITE_WS_HOST = `ws://localhost:${VITE_PORT}`;
+  const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
 
   const BASE_SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
@@ -19,7 +21,7 @@
       ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${VITE_HOST}`
       : "script-src 'self'";
     const connectSrc = isDev
-      ? `connect-src 'self' ${VITE_HOST} ${VITE_WS_HOST}`
+      ? `connect-src 'self' ${VITE_HOST} ${VITE_WS_HOST} ${API_ORIGIN} ${API_WS_ORIGIN}`
       : "connect-src 'self' https:";
 
     return [
@@ -167,7 +169,7 @@
       headers: SECURITY_HEADERS,
       proxy: {
         '/api': {
-          target: process.env.API_ORIGIN ?? 'http://localhost:3001',
+          target: API_ORIGIN,
           changeOrigin: true,
           secure: false,
         },

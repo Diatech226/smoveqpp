@@ -120,7 +120,7 @@ export const APP_CONFIG = {
 
   // API Configuration (for future backend)
   api: {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+    baseUrl: import.meta.env.VITE_API_BASE_URL || '/api/v1',
     timeout: 10000,
     retries: 3,
     endpoints: {
