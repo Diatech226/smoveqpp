@@ -3,16 +3,51 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
-  const SECURITY_HEADERS = {
+  const VITE_PORT = Number(process.env.PORT ?? process.env.VITE_PORT ?? 3000);
+  const VITE_HOST = `http://localhost:${VITE_PORT}`;
+  const VITE_WS_HOST = `ws://localhost:${VITE_PORT}`;
+
+  const BASE_SECURITY_HEADERS = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Content-Security-Policy':
-      "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;",
   };
 
-  export default defineConfig({
+  function createCsp(isDev: boolean) {
+    const scriptSrc = isDev
+      ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${VITE_HOST}`
+      : "script-src 'self'";
+    const connectSrc = isDev
+      ? `connect-src 'self' ${VITE_HOST} ${VITE_WS_HOST}`
+      : "connect-src 'self' https:";
+
+    return [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+      "object-src 'none'",
+      scriptSrc,
+      "worker-src 'self' blob:",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      connectSrc,
+    ].join('; ');
+  }
+
+  function createSecurityHeaders(isDev: boolean) {
+    return {
+      ...BASE_SECURITY_HEADERS,
+      'Content-Security-Policy': createCsp(isDev),
+    };
+  }
+
+  export default defineConfig(({ mode }) => {
+    const isDev = mode === 'development';
+    const SECURITY_HEADERS = createSecurityHeaders(isDev);
+
+    return {
     plugins: [react()],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
@@ -126,11 +161,22 @@
       outDir: 'build',
     },
     server: {
-      port: 3000,
+      port: VITE_PORT,
+      strictPort: true,
       open: true,
       headers: SECURITY_HEADERS,
+      proxy: {
+        '/api': {
+          target: process.env.API_ORIGIN ?? 'http://localhost:3001',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
     preview: {
+      port: VITE_PORT,
+      strictPort: true,
       headers: SECURITY_HEADERS,
     },
+  };
   });

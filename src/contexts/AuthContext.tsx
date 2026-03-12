@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   fetchServerSession,
   loginWithApi,
@@ -24,10 +24,21 @@ interface AuthContextType {
   canAccessCMS: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const SAFE_FALLBACK_CONTEXT: AuthContextType = {
+  user: null,
+  login: async () => false,
+  register: async () => false,
+  logout: async () => undefined,
+  isAuthenticated: false,
+  isAuthReady: true,
+  cmsEnabled: false,
+  registrationEnabled: false,
+  canAccessCMS: false,
+};
+
+const AuthContext = createContext<AuthContextType>(SAFE_FALLBACK_CONTEXT);
 
 function clearLegacyClientAuthArtifacts() {
-  // Legacy keys contained credentials/session data and must no longer be trusted.
   localStorage.removeItem('smove_user');
   localStorage.removeItem('smove_users');
 }
@@ -53,26 +64,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearLegacyClientAuthArtifacts();
 
     const bootstrapAuth = async () => {
-      if (!cmsEnabled) {
+      try {
+        if (!cmsEnabled) {
+          if (!isActive) {
+            return;
+          }
+          setUser(null);
+          setCsrfToken(null);
+          setIsAuthReady(true);
+          return;
+        }
+
+        const session = await fetchServerSession();
         if (!isActive) {
           return;
         }
-        setUser(null);
-        setIsAuthReady(true);
-        return;
-      }
 
-      const session = await fetchServerSession();
-      if (!isActive) {
-        return;
+        setCsrfToken(session.csrfToken);
+        setUser(resolveTrustedSessionUser(session.user));
+      } catch {
+        if (isActive) {
+          setUser(null);
+          setCsrfToken(null);
+        }
+      } finally {
+        if (isActive) {
+          setIsAuthReady(true);
+        }
       }
-
-      setCsrfToken(session.csrfToken);
-      setUser(resolveTrustedSessionUser(session.user));
-      setIsAuthReady(true);
     };
 
-    bootstrapAuth();
+    void bootstrapAuth();
 
     return () => {
       isActive = false;
@@ -95,18 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email === devAdminEmail &&
       password === devAdminPassword
     ) {
-      setUser({
-        id: 'dev-admin',
-        email: devAdminEmail,
-        name: devAdminName,
-        role: 'admin',
-      });
+      setUser({ id: 'dev-admin', email: devAdminEmail, name: devAdminName, role: 'admin' });
       return true;
     }
 
     const result = await loginWithApi(email, password, csrfToken);
     setCsrfToken(result.csrfToken);
-    setUser(result.user);
+    setUser(resolveTrustedSessionUser(result.user));
     return !!result.user;
   };
 
@@ -117,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const result = await registerWithApi(email, password, name, csrfToken);
     setCsrfToken(result.csrfToken);
-    setUser(result.user);
+    setUser(resolveTrustedSessionUser(result.user));
     return !!result.user;
   };
 
@@ -127,29 +144,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCsrfToken(null);
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        register,
-        logout,
-        isAuthenticated,
-        isAuthReady,
-        cmsEnabled,
-        registrationEnabled,
-        canAccessCMS,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      login,
+      register,
+      logout,
+      isAuthenticated,
+      isAuthReady,
+      cmsEnabled,
+      registrationEnabled,
+      canAccessCMS,
+    }),
+    [user, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return useContext(AuthContext);
 }
