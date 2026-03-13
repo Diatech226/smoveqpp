@@ -14,12 +14,30 @@ describe('AuthService', () => {
     repository = {
       existsByEmail: async (email) => users.some((u) => u.email === email),
       create: async (input) => {
-        const user = { id: String(users.length + 1), ...input, createdAt: new Date(), updatedAt: new Date() };
+        const user = {
+          id: String(users.length + 1),
+          ...input,
+          authProvider: input.authProvider ?? 'local',
+          providerId: input.providerId ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
         users.push(user);
         return user;
       },
       findByEmailWithPassword: async (email) => users.find((u) => u.email === email) ?? null,
+      findByProvider: async (provider, providerId) => users.find((u) => u.authProvider === provider && u.providerId === providerId) ?? null,
       findById: async (id) => users.find((u) => u.id === id) ?? null,
+      upsertOAuthUser: async (input) => {
+        const existing = users.find((u) => u.email === input.email || (u.authProvider === input.authProvider && u.providerId === input.providerId));
+        if (existing) {
+          Object.assign(existing, input);
+          return existing;
+        }
+        const user = { id: String(users.length + 1), ...input, passwordHash: null, createdAt: new Date(), updatedAt: new Date() };
+        users.push(user);
+        return user;
+      },
       updateLastLoginAt: async (id, date) => {
         const user = users.find((u) => u.id === String(id));
         if (!user) return null;
@@ -27,28 +45,27 @@ describe('AuthService', () => {
         return user;
       },
     };
-    service = new AuthService({ userRepository: repository });
+    service = new AuthService({ userRepository: repository, oauthProviders: { google: { enabled: true }, facebook: { enabled: true } } });
   });
 
-  it('register creates a user with secure defaults', async () => {
-    const result = await service.register({ email: 'X@x.com', password: 'password123', name: 'X' });
-    expect(result.ok).toBe(true);
-    expect(users).toHaveLength(1);
-    expect(users[0].email).toBe('x@x.com');
-    expect(users[0].role).toBe('viewer');
-    expect(users[0].passwordHash).not.toBe('password123');
+  it('public register is disabled', async () => {
+    const result = await service.register({});
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('REGISTRATION_DISABLED');
   });
 
-  it('duplicate email is rejected', async () => {
-    await service.register({ email: 'x@x.com', password: 'password123', name: 'X' });
-    const duplicate = await service.register({ email: 'x@x.com', password: 'password123', name: 'Y' });
+  it('admin seed creates admin only once', async () => {
+    const first = await service.seedAdminFromEnv({ email: 'admin@x.com', password: 'password123', name: 'Admin' });
+    const second = await service.seedAdminFromEnv({ email: 'admin@x.com', password: 'password123', name: 'Admin' });
 
-    expect(duplicate.ok).toBe(false);
-    expect(duplicate.code).toBe('EMAIL_EXISTS');
+    expect(first.ok).toBe(true);
+    expect(first.created).toBe(true);
+    expect(second.created).toBe(false);
+    expect(users[0].role).toBe('admin');
   });
 
   it('valid login succeeds and updates lastLoginAt', async () => {
-    await service.register({ email: 'x@x.com', password: 'password123', name: 'X' });
+    await service.seedAdminFromEnv({ email: 'x@x.com', password: 'password123', name: 'X' });
 
     const result = await service.login({ email: 'x@x.com', password: 'password123' });
 
@@ -63,10 +80,19 @@ describe('AuthService', () => {
   });
 
   it('suspended user login is refused', async () => {
-    const registered = await service.register({ email: 's@x.com', password: 'password123', name: 'S' });
+    await service.seedAdminFromEnv({ email: 's@x.com', password: 'password123', name: 'S' });
     users[0].status = 'suspended';
-    const result = await service.login({ email: registered.user.email, password: 'password123' });
+    const result = await service.login({ email: 's@x.com', password: 'password123' });
     expect(result.ok).toBe(false);
     expect(result.code).toBe('ACCOUNT_SUSPENDED');
+  });
+
+  it('google oauth creates or reuses user', async () => {
+    const first = await service.loginWithOAuth({ email: 'g@x.com', name: 'G', authProvider: 'google', providerId: 'g-1' });
+    const second = await service.loginWithOAuth({ email: 'g@x.com', name: 'G', authProvider: 'google', providerId: 'g-1' });
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(users).toHaveLength(1);
   });
 });

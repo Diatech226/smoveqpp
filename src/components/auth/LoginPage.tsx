@@ -8,8 +8,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, registrationEnabled, cmsEnabled, authError } = useAuth();
+  const { login, loginWithOAuth, oauthProviders, cmsEnabled, authError } = useAuth();
 
+
+  const handleOAuth = async (provider: 'google' | 'facebook') => {
+    setError('');
+    const mockEmail = window.prompt(`Email ${provider}`);
+    if (!mockEmail) return;
+
+    const success = await loginWithOAuth(provider, {
+      email: mockEmail,
+      name: mockEmail.split('@')[0],
+      providerId: `${provider}-${mockEmail}`
+    });
+
+    if (success) {
+      window.location.hash = 'cms-dashboard';
+    } else {
+      setError(authError ?? `Connexion ${provider} impossible`);
+    }
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -261,6 +279,25 @@ export default function LoginPage() {
             </motion.button>
           </form>
 
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              disabled={!oauthProviders.google || loading}
+              onClick={() => handleOAuth('google')}
+              className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
+            >
+              Continuer avec Google
+            </button>
+            <button
+              type="button"
+              disabled={!oauthProviders.facebook || loading}
+              onClick={() => handleOAuth('facebook')}
+              className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
+            >
+              Continuer avec Facebook
+            </button>
+          </div>
+
           {/* Footer Links */}
           <motion.div
             className="mt-8 text-center space-y-3"
@@ -268,17 +305,6 @@ export default function LoginPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
-            {registrationEnabled && (
-              <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
-                Pas encore de compte?{' '}
-                <a
-                  href="#register"
-                  className="text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] hover:underline"
-                >
-                  S'inscrire
-                </a>
-              </p>
-            )}
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
               <a
                 href="#home"

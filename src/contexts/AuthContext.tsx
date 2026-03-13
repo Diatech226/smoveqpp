@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
+  fetchOAuthProviders,
   fetchServerSession,
   loginWithApi,
   logoutWithApi,
-  registerWithApi,
+  oauthLoginWithApi,
   type AuthResult,
 } from '../utils/authApi';
 import {
@@ -15,30 +16,37 @@ import {
 import { clearLegacyAuthArtifacts } from '../repositories/authArtifactsRepository';
 import { logError, logInfo, logWarn } from '../utils/observability';
 
+interface OAuthProviderState {
+  google: boolean;
+  facebook: boolean;
+}
+
 interface AuthContextType {
   user: AppUser | null;
   authError: string | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  loginWithOAuth: (provider: 'google' | 'facebook', payload: { email: string; name: string; providerId: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAuthReady: boolean;
   cmsEnabled: boolean;
-  registrationEnabled: boolean;
+  registrationEnabled: false;
   canAccessCMS: boolean;
+  oauthProviders: OAuthProviderState;
 }
 
 const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   user: null,
   authError: null,
   login: async () => false,
-  register: async () => false,
+  loginWithOAuth: async () => false,
   logout: async () => undefined,
   isAuthenticated: false,
   isAuthReady: true,
   cmsEnabled: false,
   registrationEnabled: false,
   canAccessCMS: false,
+  oauthProviders: { google: false, facebook: false },
 };
 
 const AuthContext = createContext<AuthContextType>(SAFE_FALLBACK_CONTEXT);
@@ -58,9 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [oauthProviders, setOauthProviders] = useState<OAuthProviderState>({ google: false, facebook: false });
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
-  const registrationEnabled = SECURITY_FLAGS.registrationEnabled;
+  const registrationEnabled = false;
   const isAuthenticated = !!user;
 
   const canAccessCMS =
@@ -91,6 +100,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCsrfToken(session.csrfToken);
         setUser(resolveTrustedSessionUser(session.user));
         setAuthError(resolveAuthActionError(session));
+
+        const providers = await fetchOAuthProviders(session.csrfToken);
+        if (isActive && providers.providers) {
+          setOauthProviders({
+            google: Boolean(providers.providers.google?.enabled),
+            facebook: Boolean(providers.providers.facebook?.enabled),
+          });
+        }
 
         if (!session.success) {
           logWarn({
@@ -131,11 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthError(resolveAuthActionError(result));
 
     if (!result.success) {
-      logWarn({
-        scope: 'auth_context',
-        event: 'login_failed',
-        details: { errorCode: result.errorCode, status: result.status },
-      });
+      logWarn({ scope: 'auth_context', event: 'login_failed', details: { errorCode: result.errorCode, status: result.status } });
       if (shouldResetSession(result)) {
         setUser(null);
       }
@@ -146,29 +159,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return !!trustedUser;
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
-    if (!registrationEnabled || !cmsEnabled) {
-      setAuthError('L’inscription est désactivée.');
-      return false;
-    }
-
-    const result = await registerWithApi(email, password, name, csrfToken);
+  const loginWithOAuth = async (
+    provider: 'google' | 'facebook',
+    payload: { email: string; name: string; providerId: string },
+  ): Promise<boolean> => {
+    const result = await oauthLoginWithApi(provider, payload, csrfToken);
     setCsrfToken(result.csrfToken);
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
     setAuthError(resolveAuthActionError(result));
-
-    if (!result.success) {
-      logWarn({
-        scope: 'auth_context',
-        event: 'registration_failed',
-        details: { errorCode: result.errorCode, status: result.status },
-      });
-      if (shouldResetSession(result)) {
-        setUser(null);
-      }
-    }
-
     return !!trustedUser;
   };
 
@@ -179,11 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthError(resolveAuthActionError(result));
 
     if (!result.success) {
-      logWarn({
-        scope: 'auth_context',
-        event: 'logout_failed',
-        details: { errorCode: result.errorCode, status: result.status },
-      });
+      logWarn({ scope: 'auth_context', event: 'logout_failed', details: { errorCode: result.errorCode, status: result.status } });
     }
   };
 
@@ -192,15 +187,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       authError,
       login,
-      register,
+      loginWithOAuth,
       logout,
       isAuthenticated,
       isAuthReady,
       cmsEnabled,
       registrationEnabled,
       canAccessCMS,
+      oauthProviders,
     }),
-    [user, authError, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS],
+    [user, authError, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS, oauthProviders],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

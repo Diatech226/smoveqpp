@@ -6,7 +6,7 @@ export interface AppUser {
   name: string;
   role: UserRole;
   status?: 'active' | 'invited' | 'suspended';
-  tenantId?: string | null;
+  authProvider?: 'local' | 'google' | 'facebook';
 }
 
 export type CmsAccessDecision = 'allow' | 'disabled' | 'unauthenticated' | 'forbidden';
@@ -26,9 +26,8 @@ function parseBooleanFlag(value: string | undefined, defaultValue: boolean): boo
 
 export const SECURITY_FLAGS = {
   cmsEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_CMS, import.meta.env.DEV),
-  registrationEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_REGISTRATION, false),
-  devAdminFallbackEnabled:
-    import.meta.env.DEV && parseBooleanFlag(import.meta.env.VITE_ENABLE_DEV_ADMIN, false),
+  registrationEnabled: false,
+  devAdminFallbackEnabled: false,
 } as const;
 
 const cmsRoles = new Set<UserRole>(['admin', 'editor', 'author']);

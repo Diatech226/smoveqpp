@@ -8,7 +8,6 @@ import WebDevelopmentPage from '../../components/services/WebDevelopmentPage';
 import ProjectsPage from '../../components/ProjectsPage';
 import ProjectDetailPage from '../../components/ProjectDetailPage';
 import LoginPage from '../../components/auth/LoginPage';
-import RegisterPage from '../../components/auth/RegisterPage';
 import CMSDashboard from '../../components/cms/CMSDashboard';
 import APropos from '../../imports/APropos';
 import HomePageContent from '../marketing/home/HomePageContent';
@@ -22,15 +21,13 @@ interface AppPageRendererProps {
   cmsSection: string;
   onCmsSectionChange: (section: string) => void;
   cmsEnabled: boolean;
-  registrationEnabled: boolean;
 }
 
 export default function AppPageRenderer({
   currentPage,
   cmsSection,
   onCmsSectionChange,
-  cmsEnabled,
-  registrationEnabled,
+  cmsEnabled
 }: AppPageRendererProps) {
   if (currentPage === 'auth-loading') {
     return (
@@ -57,19 +54,7 @@ export default function AppPageRenderer({
     return <LoginPage />;
   }
 
-  if (currentPage === 'register') {
-    if (!registrationEnabled) {
-      return (
-        <SecurityStatePage
-          title="Inscription désactivée"
-          description="L'inscription publique est désactivée. Seuls les comptes provisionnés par un administrateur peuvent accéder au CMS."
-          actionHref="#login"
-          actionLabel="Aller à la connexion"
-        />
-      );
-    }
-    return <RegisterPage />;
-  }
+
 
   if (currentPage === 'cms-dashboard') {
     return (
