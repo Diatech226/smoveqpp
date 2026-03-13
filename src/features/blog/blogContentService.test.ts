@@ -54,6 +54,15 @@ describe('blogContentService', () => {
     expect(a).toBeLessThan(b);
   });
 
+
+  it('resolves a published post by canonical slug', () => {
+    const published = blogRepository.getPublished()[0];
+    const result = getBlogPostBySlugContract(published.slug);
+
+    expect(result?.slug).toBe(published.slug);
+    expect(result?.seo.canonicalSlug).toBe(published.slug);
+  });
+
   it('ignores drafts when resolving by slug for blog rendering', () => {
     const post = blogRepository.getAll()[0];
     blogRepository.save({ ...post, id: 'draft-1', slug: 'draft-1', status: 'draft' });

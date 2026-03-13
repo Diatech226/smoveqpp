@@ -118,6 +118,17 @@ describe('projectRepository and cmsRepository', () => {
     expect(projectRepository.getByCategory('Tous').length).toBe(projectRepository.getAll().length);
   });
 
+
+  it('supports CMS project save and delete workflows', () => {
+    const seed = projectRepository.getAll()[0];
+
+    projectRepository.save({ ...seed, id: 'project-new', title: 'Projet CMS Ops' });
+    expect(projectRepository.getById('project-new')?.title).toBe('Projet CMS Ops');
+
+    projectRepository.delete('project-new');
+    expect(projectRepository.getById('project-new')).toBeUndefined();
+  });
+
   it('aggregates CMS stats from domain repositories', () => {
     const stats = cmsRepository.getStats();
 

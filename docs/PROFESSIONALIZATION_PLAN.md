@@ -225,3 +225,26 @@ This iteration is intentionally constrained:
 - Project CRUD persistence and media upload authoring flow completion in CMS.
 - Full backend publishing orchestration and review workflow across roles.
 - Browser e2e coverage for critical admin publish/edit/delete paths.
+
+## Iteration 3 execution update (implemented)
+
+### CMS content operations maturity
+- Completed **projects CMS workflow loop** with operational parity to blog (`list → create/edit → validate → save → confirm → delete confirmation`) using the same admin state and action semantics.
+- Upgraded project repository from static-read model to storage-backed CRUD contract to remove placeholder behavior in core content operations.
+- Added explicit retry actions for blog/settings failures to prevent dead-end admin states and make recovery behavior visible.
+- Preserved existing CMS visual language while improving section-level consistency of editing panels, validation errors, save states, and destructive action safeguards.
+
+### Blog publishing/rendering stability
+- Tightened canonical published content filtering in blog content service through an explicit `renderable + published` predicate before list/detail rendering.
+- Centralized slug-detail resolution on canonical entries to reduce divergence between listing and detail contracts.
+- Kept blog visual output unchanged while making publish/read assumptions explicit in the data layer.
+
+### CMS ↔ Blog publishing bridge
+- Reinforced the bridge around canonical adapters by ensuring frontend contracts are derived only from publishable canonical entries.
+- Kept backward-safe behavior for existing seeded and CMS-authored entries while clarifying the contract for future persistent publishing orchestration.
+
+### Deferred to Iteration 4
+- Media upload authoring UX inside CMS (file picker + upload progress + validation constraints).
+- Role-aware archive/unpublish lifecycle beyond hard delete.
+- Browser e2e coverage for CMS project/blog critical paths (create/edit/delete/retry).
+- Dedicated metadata editing workflow (canonical title/description overrides) in CMS blog editor.

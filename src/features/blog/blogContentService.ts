@@ -32,6 +32,13 @@ const formatDate = (value: string) => {
   return new Date(parsed).toLocaleDateString('fr-FR');
 };
 
+const isRenderablePublishedEntry = (entry: ReturnType<typeof toCanonicalBlogEntry>) =>
+  entry.status === 'published' &&
+  Boolean(entry.slug.trim()) &&
+  Boolean(entry.title.trim()) &&
+  Boolean(entry.content.trim()) &&
+  Boolean(entry.excerpt.trim());
+
 const toListItem = (entry: ReturnType<typeof toCanonicalBlogEntry>, featuredId?: string): BlogListItem => ({
   id: entry.id,
   slug: entry.slug,
@@ -46,15 +53,18 @@ const toListItem = (entry: ReturnType<typeof toCanonicalBlogEntry>, featuredId?:
   seo: entry.seo,
 });
 
-export function getBlogContentContract(): BlogContentContract {
-  const canonicalEntries = blogRepository
-    .getPublished()
+const getCanonicalPublishedEntries = () =>
+  blogRepository
+    .getAll()
     .map(toCanonicalBlogEntry)
-    .filter((post) => Boolean(post.id && post.slug && post.title))
+    .filter(isRenderablePublishedEntry)
     .sort((a, b) => {
       const byDate = Date.parse(b.publishedDate) - Date.parse(a.publishedDate);
       return byDate !== 0 ? byDate : a.slug.localeCompare(b.slug);
     });
+
+export function getBlogContentContract(): BlogContentContract {
+  const canonicalEntries = getCanonicalPublishedEntries();
 
   const [firstPost] = canonicalEntries;
   const posts = canonicalEntries.map((entry) => toListItem(entry, firstPost?.id));
@@ -71,11 +81,7 @@ export function getBlogPostBySlugContract(slug: string): BlogListItem | undefine
     return undefined;
   }
 
-  const post = blogRepository.getBySlug(slug);
+  const canonicalPost = getCanonicalPublishedEntries().find((post) => post.slug === slug);
 
-  if (!post || post.status !== 'published') {
-    return undefined;
-  }
-
-  return toListItem(toCanonicalBlogEntry(post));
+  return canonicalPost ? toListItem(canonicalPost) : undefined;
 }
