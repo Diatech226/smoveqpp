@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { normalizeEmail } = require('../models/User');
 
 function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -35,7 +36,7 @@ class AuthService {
   }
 
   async register(payload) {
-    const email = String(payload.email ?? '').trim().toLowerCase();
+    const email = normalizeEmail(payload.email);
     const password = String(payload.password ?? '');
     const name = String(payload.name ?? '').trim();
 
@@ -58,7 +59,7 @@ class AuthService {
   }
 
   async login(payload) {
-    const email = String(payload.email ?? '').trim().toLowerCase();
+    const email = normalizeEmail(payload.email);
     const password = String(payload.password ?? '');
 
     if (!email || !password) {
@@ -74,8 +75,8 @@ class AuthService {
       return { ok: false, status: 403, code: 'ACCOUNT_SUSPENDED', message: 'Account suspended' };
     }
 
-    await this.userRepository.updateLastLoginAt(user.id, new Date());
-    return { ok: true, user: sanitizeUser(user) };
+    const updatedUser = await this.userRepository.updateLastLoginAt(user.id, new Date());
+    return { ok: true, user: sanitizeUser(updatedUser ?? user) };
   }
 
   async getSessionUser(sessionUserId) {

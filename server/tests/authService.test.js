@@ -22,17 +22,38 @@ describe('AuthService', () => {
       findById: async (id) => users.find((u) => u.id === id) ?? null,
       updateLastLoginAt: async (id, date) => {
         const user = users.find((u) => u.id === String(id));
-        if (user) user.lastLoginAt = date;
+        if (!user) return null;
+        user.lastLoginAt = date;
+        return user;
       },
     };
     service = new AuthService({ userRepository: repository });
   });
 
-  it('register creates a user', async () => {
-    const result = await service.register({ email: 'x@x.com', password: 'password123', name: 'X' });
+  it('register creates a user with secure defaults', async () => {
+    const result = await service.register({ email: 'X@x.com', password: 'password123', name: 'X' });
     expect(result.ok).toBe(true);
     expect(users).toHaveLength(1);
+    expect(users[0].email).toBe('x@x.com');
+    expect(users[0].role).toBe('viewer');
     expect(users[0].passwordHash).not.toBe('password123');
+  });
+
+  it('duplicate email is rejected', async () => {
+    await service.register({ email: 'x@x.com', password: 'password123', name: 'X' });
+    const duplicate = await service.register({ email: 'x@x.com', password: 'password123', name: 'Y' });
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.code).toBe('EMAIL_EXISTS');
+  });
+
+  it('valid login succeeds and updates lastLoginAt', async () => {
+    await service.register({ email: 'x@x.com', password: 'password123', name: 'X' });
+
+    const result = await service.login({ email: 'x@x.com', password: 'password123' });
+
+    expect(result.ok).toBe(true);
+    expect(result.user?.lastLoginAt).toBeTruthy();
   });
 
   it('invalid login fails cleanly', async () => {

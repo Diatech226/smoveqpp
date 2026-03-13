@@ -34,6 +34,10 @@ const API_PORT = parseIntOrDefault(process.env.API_PORT, 3001);
 const FRONTEND_PORT = parseIntOrDefault(process.env.CLIENT_PORT ?? process.env.VITE_PORT, 5173);
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'dev-session-secret-change-me';
 
+const AUTH_STORAGE_MODE = ['auto', 'mongo', 'memory'].includes(process.env.AUTH_STORAGE_MODE)
+  ? process.env.AUTH_STORAGE_MODE
+  : 'auto';
+
 function assertSessionSecretStrength() {
   const looksDefault = SESSION_SECRET === 'dev-session-secret-change-me';
   const tooShort = SESSION_SECRET.length < 32;
@@ -45,11 +49,16 @@ function assertSessionSecretStrength() {
 
 function validateCriticalEnv() {
   assertSessionSecretStrength();
+
+  if (AUTH_STORAGE_MODE === 'mongo' && !process.env.MONGO_URI) {
+    throw new Error('MONGO_URI is required when AUTH_STORAGE_MODE is set to "mongo".');
+  }
 }
 
 module.exports = {
   isProduction,
   API_PORT,
+  AUTH_STORAGE_MODE,
   FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
   API_ORIGIN: process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`,
   SESSION_SECRET,
