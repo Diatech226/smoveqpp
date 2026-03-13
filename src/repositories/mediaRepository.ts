@@ -9,8 +9,17 @@ export interface MediaUploadInput {
   file: File;
   uploadedBy: string;
   alt?: string;
+  caption?: string;
   tags?: string[];
 }
+
+const normalizeMedia = (file: MediaFile): MediaFile => ({
+  ...file,
+  name: file.name.trim(),
+  alt: file.alt?.trim() || file.name.trim(),
+  caption: file.caption?.trim() || file.alt?.trim() || file.name.trim(),
+  tags: file.tags.map((tag) => tag.trim()).filter(Boolean),
+});
 
 export interface MediaRepository {
   getAll(): MediaFile[];
@@ -24,7 +33,12 @@ export interface MediaRepository {
 
 class LocalMediaRepository implements MediaRepository {
   getAll(): MediaFile[] {
-    return readFromStorage(MEDIA_STORAGE_KEY, isMediaFileArray, []);
+    const files = readFromStorage(MEDIA_STORAGE_KEY, isMediaFileArray, []);
+    const normalized = files.map(normalizeMedia);
+    if (JSON.stringify(files) !== JSON.stringify(normalized)) {
+      writeToStorage(MEDIA_STORAGE_KEY, normalized);
+    }
+    return normalized;
   }
 
   getById(id: string): MediaFile | undefined {
@@ -36,7 +50,7 @@ class LocalMediaRepository implements MediaRepository {
       throw new Error('Invalid media file payload');
     }
 
-    const trustedFile = file;
+    const trustedFile = normalizeMedia(file);
     const files = this.getAll();
     const index = files.findIndex((candidate) => candidate.id === trustedFile.id);
 
@@ -77,6 +91,7 @@ class LocalMediaRepository implements MediaRepository {
           uploadedDate: new Date().toISOString(),
           uploadedBy: data.uploadedBy,
           alt: data.alt || data.name,
+          caption: data.caption || data.alt || data.name,
           tags: data.tags || [],
         };
 

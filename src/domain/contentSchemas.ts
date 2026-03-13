@@ -15,6 +15,12 @@ export interface BlogPost {
   featuredImage: string;
   images: string[];
   status: BlogStatus;
+  seo?: {
+    title?: string;
+    description?: string;
+    canonicalSlug?: string;
+    socialImage?: string;
+  };
 }
 
 export type MediaType = 'image' | 'video' | 'document';
@@ -29,6 +35,7 @@ export interface MediaFile {
   uploadedDate: string;
   uploadedBy: string;
   alt?: string;
+  caption?: string;
   tags: string[];
 }
 
@@ -60,6 +67,8 @@ export const isBlogPost = (value: unknown): value is BlogPost => {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
 
+  const seo = v.seo as Record<string, unknown> | undefined;
+
   return (
     isString(v.id) &&
     isString(v.title) &&
@@ -74,7 +83,14 @@ export const isBlogPost = (value: unknown): value is BlogPost => {
     isString(v.readTime) &&
     isString(v.featuredImage) &&
     isStringArray(v.images) &&
-    (v.status === 'published' || v.status === 'draft' || v.status === 'archived')
+    (v.status === 'published' || v.status === 'draft' || v.status === 'archived') &&
+    (seo === undefined ||
+      (typeof seo === 'object' &&
+        seo !== null &&
+        (seo.title === undefined || typeof seo.title === 'string') &&
+        (seo.description === undefined || typeof seo.description === 'string') &&
+        (seo.canonicalSlug === undefined || typeof seo.canonicalSlug === 'string') &&
+        (seo.socialImage === undefined || typeof seo.socialImage === 'string')))
   );
 };
 
@@ -93,6 +109,7 @@ export const isMediaFile = (value: unknown): value is MediaFile => {
     isString(v.uploadedDate) &&
     isString(v.uploadedBy) &&
     (v.alt === undefined || isString(v.alt)) &&
+    (v.caption === undefined || isString(v.caption)) &&
     isStringArray(v.tags)
   );
 };

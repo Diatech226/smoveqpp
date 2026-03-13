@@ -24,6 +24,7 @@ import { cmsRepository } from '../../repositories/cmsRepository';
 import { mediaRepository } from '../../repositories/mediaRepository';
 import { projectRepository } from '../../repositories/projectRepository';
 import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
+import { isMediaReference, resolveBlogMediaReference, toMediaReference } from '../../features/blog/mediaReference';
 import type { BlogPost } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -51,6 +52,10 @@ interface BlogFormState {
   featuredImage: string;
   readTime: string;
   status: BlogPost['status'];
+  seoTitle: string;
+  seoDescription: string;
+  canonicalSlug: string;
+  socialImage: string;
 }
 
 interface ProjectFormState {
@@ -77,6 +82,10 @@ const EMPTY_BLOG_FORM: BlogFormState = {
   featuredImage: '',
   readTime: '5 min',
   status: 'draft',
+  seoTitle: '',
+  seoDescription: '',
+  canonicalSlug: '',
+  socialImage: '',
 };
 
 const EMPTY_PROJECT_FORM: ProjectFormState = {
@@ -225,6 +234,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (error instanceof BlogRepositoryError && error.code === 'BLOG_INVALID_STATUS_TRANSITION') {
       return 'Transition de statut invalide. Repassez en brouillon avant publication.';
     }
+    if (error instanceof BlogRepositoryError && error.code === 'BLOG_INVALID_MEDIA_REFERENCE') {
+      return 'Le média sélectionné est introuvable. Sélectionnez une autre ressource.';
+    }
     return 'Enregistrement impossible. Vérifiez les champs et réessayez.';
   };
 
@@ -247,6 +259,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       featuredImage: post.featuredImage,
       readTime: post.readTime,
       status: post.status,
+      seoTitle: post.seo?.title || '',
+      seoDescription: post.seo?.description || '',
+      canonicalSlug: post.seo?.canonicalSlug || post.slug,
+      socialImage: post.seo?.socialImage || '',
     });
     setBlogFormErrors({});
     setBlogEditorMode('edit');
@@ -260,6 +276,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (!normalizeSlug(form.slug, form.title)) errors.slug = 'Le slug est requis.';
     if (!form.author.trim()) errors.author = 'L’auteur est requis.';
     if (!form.category.trim()) errors.category = 'La catégorie est requise.';
+    if (form.seoDescription && form.seoDescription.trim().length > 320) {
+      errors.seoDescription = 'La description SEO doit rester concise (320 caractères max).';
+    }
     return errors;
   };
 
@@ -307,10 +326,39 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const resetBlogEditor = () => {
+    if (blogHasUnsavedChanges && !window.confirm('Des modifications non enregistrées seront perdues. Continuer ?')) {
+      return;
+    }
     setBlogEditorMode('list');
     setBlogForm(EMPTY_BLOG_FORM);
     setBlogFormErrors({});
   };
+
+  const blogHasUnsavedChanges = useMemo(() => {
+    if (blogEditorMode === 'list') return false;
+    if (blogEditorMode === 'create') {
+      return JSON.stringify(blogForm) !== JSON.stringify(EMPTY_BLOG_FORM);
+    }
+    const existing = posts.find((post) => post.id === blogForm.id);
+    if (!existing) return true;
+    const normalizedExisting: BlogFormState = {
+      id: existing.id,
+      title: existing.title,
+      slug: existing.slug,
+      excerpt: existing.excerpt,
+      content: existing.content,
+      author: existing.author,
+      category: existing.category,
+      featuredImage: existing.featuredImage,
+      readTime: existing.readTime,
+      status: existing.status,
+      seoTitle: existing.seo?.title || '',
+      seoDescription: existing.seo?.description || '',
+      canonicalSlug: existing.seo?.canonicalSlug || existing.slug,
+      socialImage: existing.seo?.socialImage || '',
+    };
+    return JSON.stringify(normalizedExisting) !== JSON.stringify(blogForm);
+  }, [blogEditorMode, blogForm, posts]);
 
   const saveBlogPost = (nextStatus?: BlogPost['status']) => {
     const formToSave: BlogFormState = nextStatus ? { ...blogForm, status: nextStatus } : blogForm;
@@ -619,12 +667,40 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             </select>
           </label>
           <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">SEO title</span>
+            <input
+              value={blogForm.seoTitle}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, seoTitle: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">SEO description</span>
+            <textarea
+              value={blogForm.seoDescription}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, seoDescription: event.target.value }))}
+              className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {blogFormErrors.seoDescription ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.seoDescription}</p> : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Canonical slug (optionnel)</span>
+            <input
+              value={blogForm.canonicalSlug}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, canonicalSlug: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+          <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Image vedette (requête image / média)</span>
             <input
               value={blogForm.featuredImage}
               onChange={(event) => setBlogForm((prev) => ({ ...prev, featuredImage: event.target.value }))}
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             />
+            {isMediaReference(blogForm.featuredImage) ? (
+              <p className="text-[12px] text-[#6f7f85] mt-1">Référence média liée: {blogForm.featuredImage}</p>
+            ) : null}
           </label>
           {mediaFiles.length > 0 ? (
             <div className="rounded-[10px] bg-[#f5f9fa] p-3">
@@ -633,13 +709,24 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 {mediaFiles.slice(0, 6).map((file) => (
                   <button
                     key={file.id}
-                    onClick={() => setBlogForm((prev) => ({ ...prev, featuredImage: file.alt || file.name }))}
+                    onClick={() =>
+                      setBlogForm((prev) => ({
+                        ...prev,
+                        featuredImage: toMediaReference(file.id),
+                        socialImage: toMediaReference(file.id),
+                      }))
+                    }
                     className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]"
                   >
                     {file.name}
                   </button>
                 ))}
               </div>
+            </div>
+          ) : null}
+          {blogForm.featuredImage ? (
+            <div className="rounded-[10px] border border-[#eef3f5] px-3 py-2 text-[12px] text-[#6f7f85]">
+              Aperçu média: {resolveBlogMediaReference(blogForm.featuredImage, blogForm.title || 'Article').caption}
             </div>
           ) : null}
           <AdminActionBar>
@@ -672,6 +759,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               Annuler
             </button>
           </AdminActionBar>
+          {blogHasUnsavedChanges ? (
+            <p className="text-[12px] text-amber-700">Modifications non enregistrées en cours.</p>
+          ) : null}
         </div>
       </AdminPanel>
     );

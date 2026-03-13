@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { evaluatePublishability, fromCmsBlogInput, normalizeSlug, toCanonicalBlogEntry } from './blogEntryAdapter';
 import { defaultBlogPosts } from '../../data/blogSeed';
+import { toMediaReference } from './mediaReference';
+import { mediaRepository } from '../../repositories/mediaRepository';
 
 describe('blogEntryAdapter', () => {
   it('normalizes slugs deterministically', () => {
@@ -34,6 +36,31 @@ describe('blogEntryAdapter', () => {
     expect(result.slug).toBe('nouveau-billet');
     expect(result.excerpt).toContain('Contenu principal');
     expect(result.status).toBe('draft');
+    expect(result.seo?.canonicalSlug).toBe('nouveau-billet');
+  });
+
+  it('resolves media references through repository assets when available', () => {
+    mediaRepository.save({
+      id: 'asset-1',
+      name: 'cover.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,abc',
+      thumbnailUrl: 'data:image/png;base64,abc',
+      size: 100,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Couverture article',
+      caption: 'Visuel de couverture',
+      tags: [],
+    });
+
+    const canonical = toCanonicalBlogEntry({
+      ...defaultBlogPosts[0],
+      featuredImage: toMediaReference('asset-1'),
+    });
+
+    expect(canonical.featuredImage).toBe('data:image/png;base64,abc');
+    expect(canonical.media.alt).toBe('Couverture article');
   });
 
 

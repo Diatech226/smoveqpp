@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Calendar, User, ArrowRight, Clock, Tag, Search } from 'lucide-react';
 import Navigation from './Navigation';
@@ -40,6 +40,26 @@ export default function BlogPageEnhanced() {
                          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  const featuredPost = filteredPosts.find((post) => post.featured) || filteredPosts[0];
+
+  useEffect(() => {
+    const defaultTitle = 'Blog | SMOVE';
+    const seoTitle = featuredPost?.seo.title ? `${featuredPost.seo.title} | SMOVE` : defaultTitle;
+    document.title = seoTitle;
+
+    const metaDescription =
+      featuredPost?.seo.description || 'Actualités, conseils et insights sur le digital et la communication.';
+    const descriptionTag = document.querySelector('meta[name="description"]') || document.createElement('meta');
+    descriptionTag.setAttribute('name', 'description');
+    descriptionTag.setAttribute('content', metaDescription);
+    if (!descriptionTag.parentNode) document.head.appendChild(descriptionTag);
+
+    const canonicalTag = document.querySelector('link[rel="canonical"]') || document.createElement('link');
+    canonicalTag.setAttribute('rel', 'canonical');
+    canonicalTag.setAttribute('href', `${window.location.origin}/#/blog`);
+    if (!canonicalTag.parentNode) document.head.appendChild(canonicalTag);
+  }, [featuredPost]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -239,23 +259,21 @@ export default function BlogPageEnhanced() {
                     >
                       ✨ ARTICLE VEDETTE
                     </motion.div>
-                    <h2 className="font-['ABeeZee:Regular',sans-serif] text-[36px] md:text-[48px] text-white mb-4">
-                      {filteredPosts.find(post => post.featured)?.title}
-                    </h2>
+                    <h2 className="font-['ABeeZee:Regular',sans-serif] text-[36px] md:text-[48px] text-white mb-4">{featuredPost?.title}</h2>
                     <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[18px] text-white/90 mb-6">
-                      {filteredPosts.find(post => post.featured)?.excerpt}
+                      {featuredPost?.excerpt}
                     </p>
                     <div className="flex items-center gap-6 text-white/80 mb-8">
                       <div className="flex items-center gap-2">
                         <User size={18} />
                         <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px]">
-                          {filteredPosts.find(post => post.featured)?.author}
+                          {featuredPost?.author}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar size={18} />
                         <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px]">
-                          {filteredPosts.find(post => post.featured)?.date}
+                          {featuredPost?.date}
                         </span>
                       </div>
                     </div>
@@ -291,8 +309,8 @@ export default function BlogPageEnhanced() {
                     >
                       <ImageWithFallback
                         src=""
-                        alt={filteredPosts.find(post => post.featured)?.title || ''}
-                        query={filteredPosts.find(post => post.featured)?.image || ''}
+                        alt={featuredPost?.media.alt || featuredPost?.title || ''}
+                        query={featuredPost?.image || ''}
                         className="w-full h-full object-cover"
                       />
                     </motion.div>

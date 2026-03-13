@@ -39,6 +39,7 @@ describe('blogContentService', () => {
     expect(contract.posts.length).toBeGreaterThan(0);
     expect(contract.posts.every((post) => post.slug.length > 0)).toBe(true);
     expect(contract.posts[0].seo.canonicalSlug).toBe(contract.posts[0].slug);
+    expect(contract.posts[0].media.alt.length).toBeGreaterThan(0);
   });
 
   it('orders posts deterministically by date then slug', () => {
