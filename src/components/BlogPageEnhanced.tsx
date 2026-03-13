@@ -1,83 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Calendar, User, ArrowRight, Clock, Tag, Search } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-
-const blogPosts = [
-  {
-    id: 1,
-    title: 'Création de site web pour SMOVE',
-    excerpt: '"SMOVE propose une vision moderne du web africain, tournée vers l\'innovation et la qualité."',
-    author: 'Spencer Tarring',
-    date: 'Il y a 4 jours',
-    category: 'Développement Web',
-    image: 'modern website design workspace',
-    readTime: '5 min',
-    featured: true,
-  },
-  {
-    id: 2,
-    title: 'Communication d\'entreprise pour ECLA BTP',
-    excerpt: 'Création de vidéo et affiche publicitaire pour mieux se démarquer sur la scène nationale.',
-    author: 'James Rodd',
-    date: 'Il y a 4 jours',
-    category: 'Communication',
-    image: 'corporate video production',
-    readTime: '4 min',
-  },
-  {
-    id: 3,
-    title: 'Création de logo et visuels pour Gobon Sarl',
-    excerpt: 'Création de logo et visuels pour une identité commerciale plus remarquée.',
-    author: 'David Silvester',
-    date: 'Il y a 4 jours',
-    category: 'Branding',
-    image: 'logo design creative',
-    readTime: '3 min',
-  },
-  {
-    id: 4,
-    title: 'Stratégie digitale pour PME ivoiriennes',
-    excerpt: 'Comment développer une présence en ligne efficace avec un budget limité.',
-    author: 'Jody Taylor',
-    date: 'Il y a 1 semaine',
-    category: 'Stratégie',
-    image: 'digital strategy meeting',
-    readTime: '7 min',
-  },
-  {
-    id: 5,
-    title: 'Animation 3D pour publicité moderne',
-    excerpt: 'Les tendances actuelles en matière d\'animation 3D pour les campagnes publicitaires.',
-    author: 'Sanjay Jadhav',
-    date: 'Il y a 1 semaine',
-    category: '3D & Animation',
-    image: '3d animation colorful',
-    readTime: '6 min',
-  },
-  {
-    id: 6,
-    title: 'Optimisation SEO pour le marché africain',
-    excerpt: 'Techniques et stratégies SEO adaptées aux marchés émergents africains.',
-    author: 'Spencer Tarring',
-    date: 'Il y a 2 semaines',
-    category: 'Marketing Digital',
-    image: 'seo optimization analytics',
-    readTime: '8 min',
-  },
-];
-
-const categories = [
-  'Tous',
-  'Développement Web',
-  'Communication',
-  'Branding',
-  'Stratégie',
-  '3D & Animation',
-  'Marketing Digital',
-];
+import { getBlogContentContract } from '../features/blog/blogContentService';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -105,7 +32,9 @@ export default function BlogPageEnhanced() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredPosts = blogPosts.filter((post) => {
+  const { categories, posts } = useMemo(() => getBlogContentContract(), []);
+
+  const filteredPosts = posts.filter((post) => {
     const matchesCategory = selectedCategory === 'Tous' || post.category === selectedCategory;
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
