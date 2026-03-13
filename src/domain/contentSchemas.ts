@@ -1,4 +1,4 @@
-export type BlogStatus = 'draft' | 'published' | 'archived';
+export type BlogStatus = 'draft' | 'in_review' | 'published' | 'archived';
 
 export interface BlogPost {
   id: string;
@@ -83,7 +83,7 @@ export const isBlogPost = (value: unknown): value is BlogPost => {
     isString(v.readTime) &&
     isString(v.featuredImage) &&
     isStringArray(v.images) &&
-    (v.status === 'published' || v.status === 'draft' || v.status === 'archived') &&
+    (v.status === 'published' || v.status === 'draft' || v.status === 'in_review' || v.status === 'archived') &&
     (seo === undefined ||
       (typeof seo === 'object' &&
         seo !== null &&

@@ -293,3 +293,26 @@ This iteration is intentionally constrained:
 - Role-specific review-ready workflow and editorial approvals (author → editor → publisher).
 - Scheduled publishing/unpublishing windows and richer publication audit history.
 - Backend-backed durable publishing pipeline beyond local storage persistence.
+
+## Iteration 6 execution update (implemented)
+
+### Persistent backend-backed CMS path
+- Added server-side content repository/service/routes for blog operations under `/api/v1/content` (and compatibility path `/api/content`) with file-backed persistence (`server/data/content.json`) to survive browser sessions and local storage resets.
+- Introduced explicit backend operations for blog list/save/delete/status transition and a stable service-level error mapping (`BLOG_VALIDATION_ERROR`, `BLOG_SLUG_CONFLICT`, `BLOG_NOT_FOUND`, `BLOG_INVALID_STATUS_TRANSITION`, `BLOG_NOT_PUBLISHABLE`).
+- Wired CMS blog loading/saving/deleting/status transitions to backend APIs with local repository fallback when backend is temporarily unavailable, preserving current repository interfaces while introducing a production-credible durable path.
+
+### Editorial roles, permissions, and moderation hardening
+- Expanded editorial status model to include `in_review` alongside `draft`, `published`, and `archived`.
+- Enforced role-aware publish controls in backend routes (authors can write and submit for review, but cannot publish directly).
+- Formalized moderation transitions (`draft → in_review`, `in_review → published`, `published ↔ draft`, archive flows) with invalid transition blocking server-side.
+- Updated CMS UI action affordances and messaging to make role constraints explicit (disabled states + visible notices instead of silent no-op behavior).
+
+### CMS ↔ blog publication trust + analytics foundation
+- Added publishability validation on backend publish path so malformed/incomplete content cannot be promoted to public status.
+- Preserved existing frontend blog visual rendering while tightening backend state transitions that govern public eligibility.
+- Added foundational editorial analytics endpoint and CMS indicators for draft/in-review/published/archived/recently-updated visibility.
+
+### Deferred to Iteration 7
+- Migrate projects/media metadata CRUD to the same backend content service and remove remaining local-storage-first write paths.
+- Add audit metadata (reviewer, timestamps, transition actor) and review comments for collaborative moderation.
+- Add browser e2e coverage for author/editor/admin review + publish permissions matrix.

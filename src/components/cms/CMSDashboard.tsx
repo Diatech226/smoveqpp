@@ -23,6 +23,14 @@ import { blogRepository, BlogRepositoryError } from '../../repositories/blogRepo
 import { cmsRepository } from '../../repositories/cmsRepository';
 import { mediaRepository } from '../../repositories/mediaRepository';
 import { projectRepository } from '../../repositories/projectRepository';
+import {
+  deleteBackendBlogPost,
+  fetchBackendBlogPosts,
+  fetchEditorialAnalytics,
+  saveBackendBlogPost,
+  transitionBackendBlogPost,
+  type EditorialAnalytics,
+} from '../../utils/contentApi';
 import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
 import { isMediaReference, resolveBlogMediaReference, toMediaReference } from '../../features/blog/mediaReference';
 import type { BlogPost } from '../../domain/contentSchemas';
@@ -146,17 +154,48 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const mediaFiles = useMemo(() => mediaRepository.getAll(), []);
   const cmsStats = useMemo(() => cmsRepository.getStats(), [posts, mediaFiles.length, projects.length]);
   const canDeleteContent = user?.role === 'admin';
+  const canEditContent = user?.role === 'admin' || user?.role === 'editor' || user?.role === 'author';
+  const canReviewContent = user?.role === 'admin' || user?.role === 'editor';
+  const canPublishContent = user?.role === 'admin' || user?.role === 'editor';
+  const [editorialAnalytics, setEditorialAnalytics] = useState<EditorialAnalytics | null>(null);
 
   useEffect(() => {
-    setPostsLoading(true);
-    try {
-      setPosts(blogRepository.getAll());
-      setPostsError('');
-    } catch {
-      setPostsError('Impossible de charger les articles. Réessayez.');
-    } finally {
-      setPostsLoading(false);
-    }
+    let active = true;
+
+    const load = async () => {
+      setPostsLoading(true);
+      try {
+        const backendPosts = await fetchBackendBlogPosts();
+        if (!active) return;
+        setPosts(backendPosts);
+        backendPosts.forEach((post) => blogRepository.save(post));
+        setPostsError('');
+      } catch {
+        try {
+          if (!active) return;
+          setPosts(blogRepository.getAll());
+          setPostsError('Backend indisponible, données locales affichées.');
+        } catch {
+          if (!active) return;
+          setPostsError('Impossible de charger les articles. Réessayez.');
+        }
+      } finally {
+        if (active) setPostsLoading(false);
+      }
+
+      try {
+        const analytics = await fetchEditorialAnalytics();
+        if (active) setEditorialAnalytics(analytics);
+      } catch {
+        if (active) setEditorialAnalytics(null);
+      }
+    };
+
+    void load();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const stats = [
@@ -237,6 +276,17 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (error instanceof BlogRepositoryError && error.code === 'BLOG_INVALID_MEDIA_REFERENCE') {
       return 'Le média sélectionné est introuvable. Sélectionnez une autre ressource.';
     }
+    if (error instanceof Error) {
+      if (error.message.includes('cannot publish')) {
+        return 'Publication non autorisée pour votre rôle.';
+      }
+      if (error.message.includes('Missing required publish fields')) {
+        return 'Article non publiable: renseignez titre, slug, extrait et contenu.';
+      }
+      if (error.message.trim()) {
+        return error.message;
+      }
+    }
     return 'Enregistrement impossible. Vérifiez les champs et réessayez.';
   };
 
@@ -285,13 +335,24 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
   const getStatusLabel = (status: BlogPost['status']) => {
     if (status === 'published') return 'Publié';
+    if (status === 'in_review') return 'En revue';
     if (status === 'archived') return 'Archivé';
     return 'Brouillon';
   };
 
-  const transitionPostStatus = (post: BlogPost, target: BlogPost['status']) => {
+  const transitionPostStatus = async (post: BlogPost, target: BlogPost['status']) => {
+    if (target === 'in_review' && !canEditContent) {
+      setPostsError('Soumission en revue non autorisée pour votre rôle.');
+      return;
+    }
+    if (target === 'published' && !canPublishContent) {
+      setPostsError('Publication non autorisée: rôle éditeur ou administrateur requis.');
+      return;
+    }
+
     const confirmationByTarget: Record<BlogPost['status'], string> = {
-      draft: `Retirer "${post.title}" du blog public et repasser en brouillon ?`,
+      draft: `Repasser "${post.title}" en brouillon ?`,
+      in_review: `Soumettre "${post.title}" à la revue éditoriale ?`,
       published: `Publier "${post.title}" sur le blog public ?`,
       archived: `Archiver "${post.title}" ? L’article ne sera plus visible publiquement.`,
     };
@@ -304,17 +365,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setPostsError('');
 
     try {
-      if (target === 'published') {
-        blogRepository.publish(post.id);
-        showSuccess('Article publié.');
-      } else if (target === 'draft') {
-        blogRepository.unpublish(post.id);
-        showSuccess('Article repassé en brouillon.');
-      } else {
-        blogRepository.archive(post.id);
-        showSuccess('Article archivé.');
-      }
-      setPosts(blogRepository.getAll());
+      const updated = await transitionBackendBlogPost(post.id, target);
+      blogRepository.save(updated);
+      setPosts((prev) => prev.map((entry) => (entry.id === post.id ? updated : entry)));
+      if (target === 'published') showSuccess('Article publié.');
+      else if (target === 'in_review') showSuccess('Article soumis en revue.');
+      else if (target === 'draft') showSuccess('Article repassé en brouillon.');
+      else showSuccess('Article archivé.');
       if (blogForm.id === post.id) {
         setBlogForm((prev) => ({ ...prev, status: target }));
       }
@@ -360,7 +417,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     return JSON.stringify(normalizedExisting) !== JSON.stringify(blogForm);
   }, [blogEditorMode, blogForm, posts]);
 
-  const saveBlogPost = (nextStatus?: BlogPost['status']) => {
+  const saveBlogPost = async (nextStatus?: BlogPost['status']) => {
     const formToSave: BlogFormState = nextStatus ? { ...blogForm, status: nextStatus } : blogForm;
     if (nextStatus) {
       setBlogForm(formToSave);
@@ -379,8 +436,17 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     try {
       const payload = fromCmsBlogInput(formToSave);
-      blogRepository.save(payload);
-      setPosts(blogRepository.getAll());
+      const saved = await saveBackendBlogPost(payload);
+      blogRepository.save(saved);
+      setPosts((prev) => {
+        const index = prev.findIndex((entry) => entry.id === saved.id);
+        if (index >= 0) {
+          const next = [...prev];
+          next[index] = saved;
+          return next;
+        }
+        return [...prev, saved];
+      });
       showSuccess(blogEditorMode === 'create' ? 'Article créé avec succès.' : 'Article mis à jour avec succès.');
       resetBlogEditor();
     } catch (error) {
@@ -390,7 +456,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
-  const deletePost = (post: BlogPost) => {
+  const deletePost = async (post: BlogPost) => {
     if (!canDeleteContent) {
       setPostsError('Suppression non autorisée: rôle administrateur requis.');
       return;
@@ -401,8 +467,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
 
     try {
+      await deleteBackendBlogPost(post.id);
       blogRepository.delete(post.id);
-      setPosts(blogRepository.getAll());
+      setPosts((prev) => prev.filter((entry) => entry.id !== post.id));
       showSuccess('Article supprimé.');
       if (blogForm.id === post.id) {
         resetBlogEditor();
@@ -427,13 +494,20 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }, 300);
   };
 
-  const retryLoadPosts = () => {
+  const retryLoadPosts = async () => {
     setPostsLoading(true);
     setPostsError('');
     try {
-      setPosts(blogRepository.getAll());
+      const backendPosts = await fetchBackendBlogPosts();
+      setPosts(backendPosts);
+      backendPosts.forEach((post) => blogRepository.save(post));
     } catch {
-      setPostsError('Impossible de charger les articles. Réessayez.');
+      try {
+        setPosts(blogRepository.getAll());
+        setPostsError('Backend indisponible, données locales affichées.');
+      } catch {
+        setPostsError('Impossible de charger les articles. Réessayez.');
+      }
     } finally {
       setPostsLoading(false);
     }
@@ -662,6 +736,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             >
               <option value="draft">Brouillon</option>
+              <option value="in_review">En revue</option>
               <option value="published">Publié</option>
               <option value="archived">Archivé</option>
             </select>
@@ -748,17 +823,20 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             </button>
             <button
               onClick={() => {
-                saveBlogPost('published');
+                saveBlogPost('in_review');
               }}
-              disabled={isSavingPost}
+              disabled={isSavingPost || !canEditContent}
               className="px-4 py-2 rounded-[10px] bg-[#00b3e8] text-white disabled:opacity-60"
             >
-              Publier
+              Soumettre en revue
             </button>
             <button onClick={resetBlogEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
               Annuler
             </button>
           </AdminActionBar>
+          {!canEditContent ? (
+            <p className="text-[12px] text-amber-700">Soumission en revue réservée aux rôles auteur/éditeur/administrateur.</p>
+          ) : null}
           {blogHasUnsavedChanges ? (
             <p className="text-[12px] text-amber-700">Modifications non enregistrées en cours.</p>
           ) : null}
@@ -877,10 +955,14 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {blogEditorMode !== 'list' ? renderBlogForm() : null}
 
           <AdminPanel title="Synthèse éditoriale">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <div className="rounded-[12px] border border-[#eef3f5] p-3">
                 <p className="text-[12px] text-[#6f7f85]">Brouillons</p>
                 <p className="text-[24px] text-[#273a41] font-['Abhaya_Libre:Bold',sans-serif]">{posts.filter((post) => post.status === 'draft').length}</p>
+              </div>
+              <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                <p className="text-[12px] text-[#6f7f85]">En revue</p>
+                <p className="text-[24px] text-[#273a41] font-['Abhaya_Libre:Bold',sans-serif]">{posts.filter((post) => post.status === 'in_review').length}</p>
               </div>
               <div className="rounded-[12px] border border-[#eef3f5] p-3">
                 <p className="text-[12px] text-[#6f7f85]">Publiés</p>
@@ -889,6 +971,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               <div className="rounded-[12px] border border-[#eef3f5] p-3">
                 <p className="text-[12px] text-[#6f7f85]">Archivés</p>
                 <p className="text-[24px] text-[#273a41] font-['Abhaya_Libre:Bold',sans-serif]">{posts.filter((post) => post.status === 'archived').length}</p>
+              </div>
+              <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                <p className="text-[12px] text-[#6f7f85]">MAJ 7j</p>
+                <p className="text-[24px] text-[#273a41] font-['Abhaya_Libre:Bold',sans-serif]">{editorialAnalytics?.recentlyUpdated.length ?? cmsStats.recentlyUpdatedCount}</p>
               </div>
             </div>
           </AdminPanel>
@@ -907,19 +993,28 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {post.status === 'draft' ? (
+                        <button
+                          onClick={() => transitionPostStatus(post, 'in_review')}
+                          disabled={statusTransitioningPostId === post.id || !canEditContent}
+                          className="px-3 py-2 border border-sky-200 text-sky-700 rounded-[10px] disabled:opacity-50"
+                        >
+                          Soumettre revue
+                        </button>
+                      ) : null}
                       {post.status !== 'published' ? (
                         <button
                           onClick={() => transitionPostStatus(post, 'published')}
-                          disabled={statusTransitioningPostId === post.id}
-                          className="px-3 py-2 border border-emerald-200 text-emerald-700 rounded-[10px]"
+                          disabled={statusTransitioningPostId === post.id || !canPublishContent || post.status === 'archived'}
+                          className="px-3 py-2 border border-emerald-200 text-emerald-700 rounded-[10px] disabled:opacity-50"
                         >
                           Publier
                         </button>
                       ) : (
                         <button
                           onClick={() => transitionPostStatus(post, 'draft')}
-                          disabled={statusTransitioningPostId === post.id}
-                          className="px-3 py-2 border border-amber-200 text-amber-700 rounded-[10px]"
+                          disabled={statusTransitioningPostId === post.id || !canReviewContent}
+                          className="px-3 py-2 border border-amber-200 text-amber-700 rounded-[10px] disabled:opacity-50"
                         >
                           Dépublier
                         </button>
@@ -951,9 +1046,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             )}
           </AdminPanel>
 
-          {!canDeleteContent ? (
+          {(!canDeleteContent || !canPublishContent) ? (
             <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-4 text-amber-800 flex items-center gap-2">
               <AlertTriangle size={16} />
+              {!canPublishContent ? 'Publication réservée aux éditeurs/administrateurs. ' : ''}
               Les suppressions définitives sont réservées au rôle administrateur.
             </div>
           ) : null}
