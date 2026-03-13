@@ -85,6 +85,17 @@ describe('AuthService', () => {
     expect(users[0].role).toBe('admin');
   });
 
+
+  it('admin seed and login normalize email casing', async () => {
+    const seed = await service.seedAdminFromEnv({ email: 'Admin@Example.com ', password: 'password123', name: 'Admin' });
+    const login = await service.login({ email: ' ADMIN@example.COM', password: 'password123' });
+
+    expect(seed.ok).toBe(true);
+    expect(seed.created).toBe(true);
+    expect(users[0].email).toBe('admin@example.com');
+    expect(login.ok).toBe(true);
+  });
+
   it('valid login succeeds and updates lastLoginAt', async () => {
     await service.seedAdminFromEnv({ email: 'x@x.com', password: 'password123', name: 'X' });
 

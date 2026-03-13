@@ -2,6 +2,10 @@ const { AUTH_STORAGE_MODE, MONGO_URI, MONGO_DB_NAME } = require('./env');
 
 let mongooseLib = null;
 let isConnected = false;
+let connectionState = {
+  connected: false,
+  reason: 'not_started',
+};
 
 function isMongoEnabledByMode() {
   return AUTH_STORAGE_MODE === 'mongo' || AUTH_STORAGE_MODE === 'auto';
@@ -9,8 +13,8 @@ function isMongoEnabledByMode() {
 
 async function connectMongo() {
   if (!isMongoEnabledByMode()) {
-    console.warn('[mongo] AUTH_STORAGE_MODE=memory. MongoDB auth repository is disabled.');
-    return false;
+    connectionState = { connected: false, reason: 'auth_storage_mode_memory' };
+    return connectionState;
   }
 
   if (!MONGO_URI) {
@@ -18,8 +22,8 @@ async function connectMongo() {
       throw new Error('MONGO_URI is missing. Configure it to enable MongoDB-backed authentication.');
     }
 
-    console.warn('[mongo] MONGO_URI missing: falling back to in-memory auth repository.');
-    return false;
+    connectionState = { connected: false, reason: 'mongo_uri_missing' };
+    return connectionState;
   }
 
   try {
@@ -32,8 +36,8 @@ async function connectMongo() {
       throw new Error(message);
     }
 
-    console.warn(`${message} Falling back to in-memory auth repository.`);
-    return false;
+    connectionState = { connected: false, reason: 'mongoose_dependency_missing' };
+    return connectionState;
   }
 
   await mongooseLib.connect(MONGO_URI, {
@@ -42,8 +46,8 @@ async function connectMongo() {
   });
 
   isConnected = true;
-  console.log('[mongo] connected');
-  return true;
+  connectionState = { connected: true, reason: 'connected' };
+  return connectionState;
 }
 
 async function disconnectMongo() {
@@ -57,4 +61,8 @@ function getMongoose() {
   return isConnected ? mongooseLib : null;
 }
 
-module.exports = { connectMongo, disconnectMongo, getMongoose, isMongoEnabledByMode };
+function getMongoConnectionState() {
+  return { ...connectionState };
+}
+
+module.exports = { connectMongo, disconnectMongo, getMongoose, getMongoConnectionState, isMongoEnabledByMode };
