@@ -6,7 +6,9 @@ const cookieParser = require('cookie-parser');
 const { FRONTEND_ORIGIN, API_ORIGIN, isProduction } = require('./config/env');
 const { createSessionMiddleware, createCorsOptions } = require('./config/session');
 const { exposeCsrfToken } = require('./middleware/csrf');
-const { UserRepository } = require('./repositories/userRepository');
+const { MemoryAuthRepository } = require('./repositories/authRepository.memory');
+const { MongoAuthRepository } = require('./repositories/authRepository.mongo');
+const { getMongoose } = require('./config/mongo');
 const { AuthService } = require('./services/authService');
 const { buildAuthController } = require('./controllers/authController');
 const { createAuthRoutes } = require('./routes/authRoutes');
@@ -43,7 +45,8 @@ const PROD_CSP = [
 function createApp(deps = {}) {
   const app = express();
 
-  const userRepository = deps.userRepository ?? new UserRepository();
+  const mongoose = getMongoose();
+  const userRepository = deps.userRepository ?? (mongoose ? new MongoAuthRepository({ mongoose }) : new MemoryAuthRepository());
   const authService = deps.authService ?? new AuthService({ userRepository });
   const authController = deps.authController ?? buildAuthController({ authService });
 
