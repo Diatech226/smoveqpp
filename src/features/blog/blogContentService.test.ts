@@ -69,4 +69,13 @@ describe('blogContentService', () => {
 
     expect(getBlogPostBySlugContract('draft-1')).toBeUndefined();
   });
+
+
+  it('excludes archived content from public contracts', () => {
+    const post = blogRepository.getAll()[0];
+    blogRepository.save({ ...post, id: 'archived-1', slug: 'archived-1', status: 'archived' });
+
+    expect(getBlogPostBySlugContract('archived-1')).toBeUndefined();
+    expect(getBlogContentContract().posts.some((entry) => entry.slug === 'archived-1')).toBe(false);
+  });
 });

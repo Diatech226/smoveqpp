@@ -15,6 +15,7 @@ import {
   Pencil,
   AlertTriangle,
   RotateCcw,
+  Archive,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -104,6 +105,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState('');
   const [isSavingPost, setIsSavingPost] = useState(false);
+  const [statusTransitioningPostId, setStatusTransitioningPostId] = useState<string | null>(null);
   const [blogEditorMode, setBlogEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [blogForm, setBlogForm] = useState<BlogFormState>(EMPTY_BLOG_FORM);
   const [blogFormErrors, setBlogFormErrors] = useState<Partial<Record<keyof BlogFormState, string>>>({});
@@ -217,6 +219,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (error instanceof BlogRepositoryError && error.code === 'BLOG_SLUG_CONFLICT') {
       return 'Ce slug existe déjà. Utilisez un slug unique.';
     }
+    if (error instanceof BlogRepositoryError && error.code === 'BLOG_NOT_FOUND') {
+      return 'Article introuvable. Rechargez la liste puis réessayez.';
+    }
+    if (error instanceof BlogRepositoryError && error.code === 'BLOG_INVALID_STATUS_TRANSITION') {
+      return 'Transition de statut invalide. Repassez en brouillon avant publication.';
+    }
     return 'Enregistrement impossible. Vérifiez les champs et réessayez.';
   };
 
@@ -255,14 +263,62 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     return errors;
   };
 
+
+  const getStatusLabel = (status: BlogPost['status']) => {
+    if (status === 'published') return 'Publié';
+    if (status === 'archived') return 'Archivé';
+    return 'Brouillon';
+  };
+
+  const transitionPostStatus = (post: BlogPost, target: BlogPost['status']) => {
+    const confirmationByTarget: Record<BlogPost['status'], string> = {
+      draft: `Retirer "${post.title}" du blog public et repasser en brouillon ?`,
+      published: `Publier "${post.title}" sur le blog public ?`,
+      archived: `Archiver "${post.title}" ? L’article ne sera plus visible publiquement.`,
+    };
+
+    if (!window.confirm(confirmationByTarget[target])) {
+      return;
+    }
+
+    setStatusTransitioningPostId(post.id);
+    setPostsError('');
+
+    try {
+      if (target === 'published') {
+        blogRepository.publish(post.id);
+        showSuccess('Article publié.');
+      } else if (target === 'draft') {
+        blogRepository.unpublish(post.id);
+        showSuccess('Article repassé en brouillon.');
+      } else {
+        blogRepository.archive(post.id);
+        showSuccess('Article archivé.');
+      }
+      setPosts(blogRepository.getAll());
+      if (blogForm.id === post.id) {
+        setBlogForm((prev) => ({ ...prev, status: target }));
+      }
+    } catch (error) {
+      setPostsError(mapBlogError(error));
+    } finally {
+      setStatusTransitioningPostId(null);
+    }
+  };
+
   const resetBlogEditor = () => {
     setBlogEditorMode('list');
     setBlogForm(EMPTY_BLOG_FORM);
     setBlogFormErrors({});
   };
 
-  const saveBlogPost = () => {
-    const errors = validateBlogForm(blogForm);
+  const saveBlogPost = (nextStatus?: BlogPost['status']) => {
+    const formToSave: BlogFormState = nextStatus ? { ...blogForm, status: nextStatus } : blogForm;
+    if (nextStatus) {
+      setBlogForm(formToSave);
+    }
+
+    const errors = validateBlogForm(formToSave);
     setBlogFormErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -274,7 +330,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setPostsError('');
 
     try {
-      const payload = fromCmsBlogInput(blogForm);
+      const payload = fromCmsBlogInput(formToSave);
       blogRepository.save(payload);
       setPosts(blogRepository.getAll());
       showSuccess(blogEditorMode === 'create' ? 'Article créé avec succès.' : 'Article mis à jour avec succès.');
@@ -559,6 +615,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             >
               <option value="draft">Brouillon</option>
               <option value="published">Publié</option>
+              <option value="archived">Archivé</option>
             </select>
           </label>
           <label className="block">
@@ -592,6 +649,24 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
             >
               <Save size={16} /> {isSavingPost ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+            <button
+              onClick={() => {
+                saveBlogPost('draft');
+              }}
+              disabled={isSavingPost}
+              className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41] disabled:opacity-60"
+            >
+              Enregistrer en brouillon
+            </button>
+            <button
+              onClick={() => {
+                saveBlogPost('published');
+              }}
+              disabled={isSavingPost}
+              className="px-4 py-2 rounded-[10px] bg-[#00b3e8] text-white disabled:opacity-60"
+            >
+              Publier
             </button>
             <button onClick={resetBlogEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
               Annuler
@@ -711,6 +786,23 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
           {blogEditorMode !== 'list' ? renderBlogForm() : null}
 
+          <AdminPanel title="Synthèse éditoriale">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                <p className="text-[12px] text-[#6f7f85]">Brouillons</p>
+                <p className="text-[24px] text-[#273a41] font-['Abhaya_Libre:Bold',sans-serif]">{posts.filter((post) => post.status === 'draft').length}</p>
+              </div>
+              <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                <p className="text-[12px] text-[#6f7f85]">Publiés</p>
+                <p className="text-[24px] text-[#273a41] font-['Abhaya_Libre:Bold',sans-serif]">{posts.filter((post) => post.status === 'published').length}</p>
+              </div>
+              <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                <p className="text-[12px] text-[#6f7f85]">Archivés</p>
+                <p className="text-[24px] text-[#273a41] font-['Abhaya_Libre:Bold',sans-serif]">{posts.filter((post) => post.status === 'archived').length}</p>
+              </div>
+            </div>
+          </AdminPanel>
+
           <AdminPanel title="Articles">
             {posts.length === 0 ? (
               <AdminEmptyState label="Aucun article disponible." />
@@ -721,10 +813,36 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     <div>
                       <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{post.title}</p>
                       <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">
-                        /{post.slug} • {post.status === 'published' ? 'Publié' : 'Brouillon'}
+                        /{post.slug} • {getStatusLabel(post.status)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {post.status !== 'published' ? (
+                        <button
+                          onClick={() => transitionPostStatus(post, 'published')}
+                          disabled={statusTransitioningPostId === post.id}
+                          className="px-3 py-2 border border-emerald-200 text-emerald-700 rounded-[10px]"
+                        >
+                          Publier
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => transitionPostStatus(post, 'draft')}
+                          disabled={statusTransitioningPostId === post.id}
+                          className="px-3 py-2 border border-amber-200 text-amber-700 rounded-[10px]"
+                        >
+                          Dépublier
+                        </button>
+                      )}
+                      {post.status !== 'archived' ? (
+                        <button
+                          onClick={() => transitionPostStatus(post, 'archived')}
+                          disabled={statusTransitioningPostId === post.id}
+                          className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2"
+                        >
+                          <Archive size={14} /> Archiver
+                        </button>
+                      ) : null}
                       <button onClick={() => startEditPost(post)} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2">
                         <Pencil size={15} /> Modifier
                       </button>

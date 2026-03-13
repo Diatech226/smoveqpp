@@ -21,6 +21,12 @@ export interface CanonicalBlogEntry {
   seo: CanonicalBlogSeo;
 }
 
+
+export interface PublishabilityEvaluation {
+  publishable: boolean;
+  reasons: string[];
+}
+
 export interface CmsBlogInput {
   id?: string;
   title: string;
@@ -77,6 +83,32 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
       description: excerpt,
       canonicalSlug: slug,
     },
+  };
+}
+
+
+export function evaluatePublishability(entry: CanonicalBlogEntry): PublishabilityEvaluation {
+  const reasons: string[] = [];
+
+  if (entry.status !== 'published') {
+    reasons.push('status_not_published');
+  }
+  if (!entry.slug.trim()) {
+    reasons.push('missing_slug');
+  }
+  if (!entry.title.trim()) {
+    reasons.push('missing_title');
+  }
+  if (!entry.content.trim()) {
+    reasons.push('missing_content');
+  }
+  if (!entry.excerpt.trim()) {
+    reasons.push('missing_excerpt');
+  }
+
+  return {
+    publishable: reasons.length === 0,
+    reasons,
   };
 }
 

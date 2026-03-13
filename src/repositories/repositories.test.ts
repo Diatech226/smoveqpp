@@ -81,6 +81,28 @@ describe('blogRepository', () => {
     expect(posts.length).toBeGreaterThan(0);
     expect(posts[0].title).toBeTruthy();
   });
+
+
+  it('supports explicit publish/unpublish/archive transitions', () => {
+    const seed = blogRepository.getAll()[0];
+    const postId = 'status-transition-post';
+
+    blogRepository.save({ ...seed, id: postId, slug: 'status-transition-post', status: 'draft' });
+
+    expect(blogRepository.publish(postId).status).toBe('published');
+    expect(blogRepository.unpublish(postId).status).toBe('draft');
+    expect(blogRepository.archive(postId).status).toBe('archived');
+  });
+
+  it('migrates legacy persisted entries without status to draft safely', () => {
+    const seed = blogRepository.getAll()[0];
+    localStorage.setItem('smove_blog_posts', JSON.stringify([{ ...seed, id: 'legacy-without-status', slug: 'legacy-without-status', status: undefined }]));
+
+    const migrated = blogRepository.getById('legacy-without-status');
+
+    expect(migrated?.status).toBe('draft');
+  });
+
 });
 
 describe('mediaRepository', () => {

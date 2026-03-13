@@ -1,5 +1,5 @@
 import { blogRepository } from '../../repositories/blogRepository';
-import { toCanonicalBlogEntry } from './blogEntryAdapter';
+import { evaluatePublishability, toCanonicalBlogEntry } from './blogEntryAdapter';
 
 export interface BlogListItem {
   id: string;
@@ -33,11 +33,7 @@ const formatDate = (value: string) => {
 };
 
 const isRenderablePublishedEntry = (entry: ReturnType<typeof toCanonicalBlogEntry>) =>
-  entry.status === 'published' &&
-  Boolean(entry.slug.trim()) &&
-  Boolean(entry.title.trim()) &&
-  Boolean(entry.content.trim()) &&
-  Boolean(entry.excerpt.trim());
+  evaluatePublishability(entry).publishable;
 
 const toListItem = (entry: ReturnType<typeof toCanonicalBlogEntry>, featuredId?: string): BlogListItem => ({
   id: entry.id,

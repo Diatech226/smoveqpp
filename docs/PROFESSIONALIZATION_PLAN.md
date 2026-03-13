@@ -248,3 +248,26 @@ This iteration is intentionally constrained:
 - Role-aware archive/unpublish lifecycle beyond hard delete.
 - Browser e2e coverage for CMS project/blog critical paths (create/edit/delete/retry).
 - Dedicated metadata editing workflow (canonical title/description overrides) in CMS blog editor.
+
+## Iteration 4 execution update (implemented)
+
+### CMS editorial lifecycle maturity
+- Expanded blog editorial status model to `draft | published | archived` with explicit CMS visibility and action paths.
+- Added clear status transition actions in CMS blog list (`publish`, `unpublish to draft`, `archive`) with confirmation prompts for each transition.
+- Improved admin trust signals with lifecycle summary cards (draft/published/archived counts), clearer status labels, and transition failure messaging.
+- Strengthened save vs publish separation by supporting explicit “save as draft” and “publish” actions directly from the blog editor form.
+
+### CMS persistence reliability
+- Hardened blog repository with explicit lifecycle operations (`publish`, `unpublish`, `archive`) and typed operational errors (`not found`, `invalid status transition`, `slug conflict`).
+- Added safe legacy migration behavior for persisted blog entries missing `status`, defaulting to `draft` during read normalization.
+- Preserved backward compatibility by normalizing persisted payloads instead of requiring a destructive data reset.
+
+### CMS ↔ Blog publication contract hardening
+- Introduced explicit publishability evaluation in the blog entry adapter layer to codify which fields/states make an entry public-safe.
+- Wired blog content service to that publishability contract so public listing/detail flows deterministically exclude draft/archived/incomplete content.
+- Kept blog presentation unchanged while making publication eligibility a formal, test-backed domain rule.
+
+### Deferred to Iteration 5
+- Role-specific review-ready workflow and editorial approvals (author → editor → publisher).
+- Scheduled publishing/unpublishing windows and richer publication audit history.
+- Backend-backed durable publishing pipeline beyond local storage persistence.

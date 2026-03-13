@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fromCmsBlogInput, normalizeSlug, toCanonicalBlogEntry } from './blogEntryAdapter';
+import { evaluatePublishability, fromCmsBlogInput, normalizeSlug, toCanonicalBlogEntry } from './blogEntryAdapter';
 import { defaultBlogPosts } from '../../data/blogSeed';
 
 describe('blogEntryAdapter', () => {
@@ -34,5 +34,18 @@ describe('blogEntryAdapter', () => {
     expect(result.slug).toBe('nouveau-billet');
     expect(result.excerpt).toContain('Contenu principal');
     expect(result.status).toBe('draft');
+  });
+
+
+  it('flags non-published entries as not publishable', () => {
+    const evaluation = evaluatePublishability(
+      toCanonicalBlogEntry({
+        ...defaultBlogPosts[0],
+        status: 'archived',
+      }),
+    );
+
+    expect(evaluation.publishable).toBe(false);
+    expect(evaluation.reasons).toContain('status_not_published');
   });
 });
