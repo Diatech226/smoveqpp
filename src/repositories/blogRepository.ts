@@ -4,6 +4,18 @@ import { readFromStorage, writeToStorage } from './storage/localStorageStore';
 
 const BLOG_STORAGE_KEY = 'smove_blog_posts';
 
+export type BlogRepositoryErrorCode = 'BLOG_VALIDATION_ERROR' | 'BLOG_SLUG_CONFLICT';
+
+export class BlogRepositoryError extends Error {
+  constructor(
+    message: string,
+    public readonly code: BlogRepositoryErrorCode,
+  ) {
+    super(message);
+    this.name = 'BlogRepositoryError';
+  }
+}
+
 export interface BlogRepository {
   getAll(): BlogPost[];
   getById(id: string): BlogPost | undefined;
@@ -30,11 +42,20 @@ class LocalBlogRepository implements BlogRepository {
 
   save(post: BlogPost): void {
     if (!isBlogPost(post)) {
-      throw new Error('Invalid blog post payload');
+      throw new BlogRepositoryError('Invalid blog post payload', 'BLOG_VALIDATION_ERROR');
     }
 
     const trustedPost = post;
     const posts = this.getAll();
+
+    const slugOwner = posts.find(
+      (candidate) => candidate.slug === trustedPost.slug && candidate.id !== trustedPost.id,
+    );
+
+    if (slugOwner) {
+      throw new BlogRepositoryError('Ce slug est déjà utilisé par un autre article.', 'BLOG_SLUG_CONFLICT');
+    }
+
     const index = posts.findIndex((candidate) => candidate.id === trustedPost.id);
 
     if (index >= 0) {

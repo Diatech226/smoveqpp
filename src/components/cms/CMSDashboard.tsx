@@ -12,13 +12,17 @@ import {
   Plus,
   Save,
   Trash2,
+  Pencil,
+  AlertTriangle,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { blogRepository } from '../../repositories/blogRepository';
+import { blogRepository, BlogRepositoryError } from '../../repositories/blogRepository';
 import { cmsRepository } from '../../repositories/cmsRepository';
 import { mediaRepository } from '../../repositories/mediaRepository';
 import { projectRepository } from '../../repositories/projectRepository';
+import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
+import type { BlogPost } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
   AdminEmptyState,
@@ -34,6 +38,33 @@ interface CMSDashboardProps {
   onSectionChange: (section: string) => void;
 }
 
+interface BlogFormState {
+  id?: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  category: string;
+  featuredImage: string;
+  readTime: string;
+  status: BlogPost['status'];
+}
+
+const EMPTY_BLOG_FORM: BlogFormState = {
+  title: '',
+  slug: '',
+  excerpt: '',
+  content: '',
+  author: '',
+  category: '',
+  featuredImage: '',
+  readTime: '5 min',
+  status: 'draft',
+};
+
+const SETTINGS_STORAGE_KEY = 'smove_cms_settings';
+
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
   const { user, logout, canAccessCMS } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -41,10 +72,48 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [feedback, setFeedback] = useState('');
   const [sectionError, setSectionError] = useState('');
 
-  const cmsStats = cmsRepository.getStats();
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState('');
+  const [isSavingPost, setIsSavingPost] = useState(false);
+  const [blogEditorMode, setBlogEditorMode] = useState<'list' | 'create' | 'edit'>('list');
+  const [blogForm, setBlogForm] = useState<BlogFormState>(EMPTY_BLOG_FORM);
+  const [blogFormErrors, setBlogFormErrors] = useState<Partial<Record<keyof BlogFormState, string>>>({});
+
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsValues, setSettingsValues] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (!raw) {
+        return { siteTitle: 'SMOVE', supportEmail: 'contact@smove.africa', instantPublishing: true };
+      }
+      const parsed = JSON.parse(raw) as { siteTitle?: string; supportEmail?: string; instantPublishing?: boolean };
+      return {
+        siteTitle: parsed.siteTitle || 'SMOVE',
+        supportEmail: parsed.supportEmail || 'contact@smove.africa',
+        instantPublishing: parsed.instantPublishing ?? true,
+      };
+    } catch {
+      return { siteTitle: 'SMOVE', supportEmail: 'contact@smove.africa', instantPublishing: true };
+    }
+  });
+
   const projects = useMemo(() => projectRepository.getAll(), []);
-  const posts = useMemo(() => blogRepository.getAll(), []);
   const mediaFiles = useMemo(() => mediaRepository.getAll(), []);
+  const cmsStats = useMemo(() => cmsRepository.getStats(), [posts, mediaFiles.length, projects.length]);
+  const canDeleteContent = user?.role === 'admin';
+
+  useEffect(() => {
+    setPostsLoading(true);
+    try {
+      setPosts(blogRepository.getAll());
+      setPostsError('');
+    } catch {
+      setPostsError('Impossible de charger les articles. Réessayez.');
+    } finally {
+      setPostsLoading(false);
+    }
+  }, []);
 
   const stats = [
     {
@@ -56,7 +125,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     },
     {
       label: 'Articles Blog',
-      value: cmsStats.blogPostCount,
+      value: posts.length,
       icon: FileText,
       color: 'from-[#a855f7] to-[#9333ea]',
       change: '+8%',
@@ -98,7 +167,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const handleSectionChange = (section: string) => {
-    setSectionBusy(section);
+    setSectionBusy(currentSection);
     setSectionError('');
     setTimeout(() => {
       onSectionChange(section);
@@ -111,6 +180,203 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setTimeout(() => setFeedback(''), 2500);
   };
 
+  const mapBlogError = (error: unknown) => {
+    if (error instanceof BlogRepositoryError && error.code === 'BLOG_SLUG_CONFLICT') {
+      return 'Ce slug existe déjà. Utilisez un slug unique.';
+    }
+    return 'Enregistrement impossible. Vérifiez les champs et réessayez.';
+  };
+
+  const startCreatePost = () => {
+    setBlogForm(EMPTY_BLOG_FORM);
+    setBlogFormErrors({});
+    setBlogEditorMode('create');
+    setPostsError('');
+  };
+
+  const startEditPost = (post: BlogPost) => {
+    setBlogForm({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      content: post.content,
+      author: post.author,
+      category: post.category,
+      featuredImage: post.featuredImage,
+      readTime: post.readTime,
+      status: post.status,
+    });
+    setBlogFormErrors({});
+    setBlogEditorMode('edit');
+  };
+
+  const validateBlogForm = (form: BlogFormState) => {
+    const errors: Partial<Record<keyof BlogFormState, string>> = {};
+    if (!form.title.trim()) errors.title = 'Le titre est requis.';
+    if (!form.content.trim()) errors.content = 'Le contenu est requis.';
+    if (!form.excerpt.trim()) errors.excerpt = 'Le résumé est requis.';
+    if (!normalizeSlug(form.slug, form.title)) errors.slug = 'Le slug est requis.';
+    if (!form.author.trim()) errors.author = 'L’auteur est requis.';
+    if (!form.category.trim()) errors.category = 'La catégorie est requise.';
+    return errors;
+  };
+
+  const resetBlogEditor = () => {
+    setBlogEditorMode('list');
+    setBlogForm(EMPTY_BLOG_FORM);
+    setBlogFormErrors({});
+  };
+
+  const saveBlogPost = () => {
+    const errors = validateBlogForm(blogForm);
+    setBlogFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setPostsError('Veuillez corriger les erreurs avant d’enregistrer.');
+      return;
+    }
+
+    setIsSavingPost(true);
+    setPostsError('');
+
+    try {
+      const payload = fromCmsBlogInput(blogForm);
+      blogRepository.save(payload);
+      setPosts(blogRepository.getAll());
+      showSuccess(blogEditorMode === 'create' ? 'Article créé avec succès.' : 'Article mis à jour avec succès.');
+      resetBlogEditor();
+    } catch (error) {
+      setPostsError(mapBlogError(error));
+    } finally {
+      setIsSavingPost(false);
+    }
+  };
+
+  const deletePost = (post: BlogPost) => {
+    if (!canDeleteContent) {
+      setPostsError('Suppression non autorisée: rôle administrateur requis.');
+      return;
+    }
+
+    if (!window.confirm(`Supprimer définitivement "${post.title}" ?`)) {
+      return;
+    }
+
+    try {
+      blogRepository.delete(post.id);
+      setPosts(blogRepository.getAll());
+      showSuccess('Article supprimé.');
+      if (blogForm.id === post.id) {
+        resetBlogEditor();
+      }
+    } catch {
+      setPostsError('Suppression impossible. Réessayez.');
+    }
+  };
+
+  const saveSettings = () => {
+    if (!settingsValues.siteTitle.trim() || !settingsValues.supportEmail.includes('@')) {
+      setSectionError('Renseignez un nom de site et un email de support valide.');
+      return;
+    }
+
+    setSettingsSaving(true);
+    setSectionError('');
+    setTimeout(() => {
+      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settingsValues));
+      setSettingsSaving(false);
+      showSuccess('Paramètres enregistrés avec succès.');
+    }, 300);
+  };
+
+  const renderBlogForm = () => {
+    const title = blogEditorMode === 'create' ? 'Créer un article' : 'Modifier un article';
+
+    return (
+      <AdminPanel title={title}>
+        <div className="space-y-4">
+          {(['title', 'slug', 'author', 'category', 'readTime'] as const).map((fieldKey) => (
+            <label key={fieldKey} className="block">
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <input
+                value={blogForm[fieldKey]}
+                onChange={(event) => setBlogForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
+                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              />
+              {blogFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors[fieldKey]}</p> : null}
+            </label>
+          ))}
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Résumé</span>
+            <textarea
+              value={blogForm.excerpt}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, excerpt: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {blogFormErrors.excerpt ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.excerpt}</p> : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Contenu</span>
+            <textarea
+              value={blogForm.content}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, content: event.target.value }))}
+              className="mt-1 w-full min-h-[140px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {blogFormErrors.content ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.content}</p> : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Statut</span>
+            <select
+              value={blogForm.status}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, status: event.target.value as BlogPost['status'] }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            >
+              <option value="draft">Brouillon</option>
+              <option value="published">Publié</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Image vedette (requête image / média)</span>
+            <input
+              value={blogForm.featuredImage}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, featuredImage: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+          {mediaFiles.length > 0 ? (
+            <div className="rounded-[10px] bg-[#f5f9fa] p-3">
+              <p className="text-[13px] text-[#6f7f85] mb-2">Associer un média existant</p>
+              <div className="flex flex-wrap gap-2">
+                {mediaFiles.slice(0, 6).map((file) => (
+                  <button
+                    key={file.id}
+                    onClick={() => setBlogForm((prev) => ({ ...prev, featuredImage: file.alt || file.name }))}
+                    className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]"
+                  >
+                    {file.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <AdminActionBar>
+            <button
+              onClick={saveBlogPost}
+              disabled={isSavingPost}
+              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
+            >
+              <Save size={16} /> {isSavingPost ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+            <button onClick={resetBlogEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
+              Annuler
+            </button>
+          </AdminActionBar>
+        </div>
+      </AdminPanel>
+    );
+  };
+
   if (!canAccessCMS) {
     return (
       <div className="min-h-screen bg-[#f5f9fa] flex items-center justify-center px-6">
@@ -119,7 +385,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             Accès refusé
           </h1>
           <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#38484e] mb-6">
-            Seuls les comptes administrateurs peuvent accéder au CMS.
+            Seuls les comptes administrateurs, éditeurs ou auteurs peuvent accéder au CMS.
           </p>
           <a
             href="#home"
@@ -133,7 +399,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   }
 
   const renderSectionContent = () => {
-    if (sectionBusy === currentSection) {
+    if (sectionBusy) {
       return <AdminLoadingState label="Chargement de la section..." />;
     }
 
@@ -145,31 +411,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             subtitle="Liste, édition et statut de vos projets portfolio."
             actions={
               <button
-                onClick={() => showSuccess('Nouveau brouillon projet créé.')}
+                onClick={() => showSuccess('Création de projet disponible lors de la prochaine itération backend.')}
                 className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif]"
               >
                 Nouveau projet
               </button>
             }
           />
-          <AdminActionBar>
-            <button
-              onClick={() => showSuccess('Changements enregistrés pour les projets.')}
-              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px]"
-            >
-              <Save size={16} /> Enregistrer
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm('Supprimer les projets archivés ?')) {
-                  showSuccess('Archivage des projets confirmé.');
-                }
-              }}
-              className="inline-flex items-center gap-2 text-red-600 border border-red-200 px-4 py-2 rounded-[10px]"
-            >
-              <Trash2 size={16} /> Action destructive
-            </button>
-          </AdminActionBar>
           <AdminPanel title="Projets récents">
             {projects.length === 0 ? (
               <AdminEmptyState label="Aucun projet trouvé. Créez votre premier projet pour commencer." />
@@ -196,32 +444,60 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         <div className="space-y-6">
           <AdminPageHeader
             title="Gestion du blog"
-            subtitle="Statut de publication, cohérence des slugs et qualité de contenu."
+            subtitle="Liste, édition, validation et publication des articles."
             actions={
               <button
-                onClick={() => showSuccess('Nouveau brouillon d\'article initialisé.')}
+                onClick={startCreatePost}
                 className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif]"
               >
                 Nouvel article
               </button>
             }
           />
+
+          {postsError ? <AdminErrorState label={postsError} /> : null}
+          {postsLoading ? <AdminLoadingState label="Chargement des articles..." /> : null}
+
+          {blogEditorMode !== 'list' ? renderBlogForm() : null}
+
           <AdminPanel title="Articles">
             {posts.length === 0 ? (
               <AdminEmptyState label="Aucun article disponible." />
             ) : (
               <div className="space-y-3">
-                {posts.slice(0, 5).map((post) => (
-                  <div key={post.id} className="rounded-[12px] border border-[#eef3f5] px-4 py-3">
-                    <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{post.title}</p>
-                    <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">
-                      /{post.slug} • {post.status === 'published' ? 'Publié' : 'Brouillon'}
-                    </p>
+                {posts.map((post) => (
+                  <div key={post.id} className="rounded-[12px] border border-[#eef3f5] px-4 py-3 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{post.title}</p>
+                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">
+                        /{post.slug} • {post.status === 'published' ? 'Publié' : 'Brouillon'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => startEditPost(post)} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2">
+                        <Pencil size={15} /> Modifier
+                      </button>
+                      <button
+                        onClick={() => deletePost(post)}
+                        disabled={!canDeleteContent}
+                        className="px-3 py-2 border border-red-200 text-red-600 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-50"
+                        title={canDeleteContent ? 'Supprimer cet article' : 'Réservé aux administrateurs'}
+                      >
+                        <Trash2 size={15} /> Supprimer
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </AdminPanel>
+
+          {!canDeleteContent ? (
+            <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-4 text-amber-800 flex items-center gap-2">
+              <AlertTriangle size={16} />
+              Les suppressions définitives sont réservées au rôle administrateur.
+            </div>
+          ) : null}
         </div>
       );
     }
@@ -255,15 +531,36 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {sectionError ? <AdminErrorState label={sectionError} /> : null}
           <AdminPanel title="Publication">
             <div className="space-y-3">
+              <label className="block">
+                <span className="text-[14px] text-[#6f7f85]">Nom du site</span>
+                <input
+                  value={settingsValues.siteTitle}
+                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteTitle: event.target.value }))}
+                  className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[14px] text-[#6f7f85]">Email support</span>
+                <input
+                  value={settingsValues.supportEmail}
+                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, supportEmail: event.target.value }))}
+                  className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                />
+              </label>
               <label className="flex items-center justify-between rounded-[12px] border border-[#eef3f5] p-4">
                 <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Autoriser la publication immédiate</span>
-                <input type="checkbox" defaultChecked />
+                <input
+                  type="checkbox"
+                  checked={settingsValues.instantPublishing}
+                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, instantPublishing: event.target.checked }))}
+                />
               </label>
               <button
-                onClick={() => showSuccess('Paramètres enregistrés avec succès.')}
-                className="bg-[#273a41] text-white rounded-[10px] px-4 py-2"
+                onClick={saveSettings}
+                disabled={settingsSaving}
+                className="bg-[#273a41] text-white rounded-[10px] px-4 py-2 disabled:opacity-60"
               >
-                Sauvegarder
+                {settingsSaving ? 'Sauvegarde...' : 'Sauvegarder'}
               </button>
             </div>
           </AdminPanel>
