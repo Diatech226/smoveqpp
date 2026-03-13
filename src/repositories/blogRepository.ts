@@ -35,6 +35,7 @@ export interface BlogRepository {
   archive(id: string): BlogPost;
   getPublished(): BlogPost[];
   getDrafts(): BlogPost[];
+  getInReview(): BlogPost[];
   getArchived(): BlogPost[];
   search(query: string): BlogPost[];
 }
@@ -43,7 +44,7 @@ export interface BlogRepository {
 const LEGACY_STATUS_FALLBACK: BlogPost['status'] = 'draft';
 
 const normalizeLegacyStatus = (status: unknown): BlogPost['status'] =>
-  status === 'published' || status === 'draft' || status === 'archived' ? status : LEGACY_STATUS_FALLBACK;
+  status === 'published' || status === 'draft' || status === 'in_review' || status === 'archived' ? status : LEGACY_STATUS_FALLBACK;
 
 const normalizeSeo = (candidate: Partial<BlogPost>): BlogPost['seo'] => {
   const seo = candidate.seo || {};
@@ -171,8 +172,15 @@ class LocalBlogRepository implements BlogRepository {
     const { posts, index } = this.requireById(id);
     const current = posts[index];
 
-    if (current.status === 'archived' && status === 'published') {
-      throw new BlogRepositoryError('Un article archivé doit repasser en brouillon avant publication.', 'BLOG_INVALID_STATUS_TRANSITION');
+    const transitions: Record<BlogPost['status'], BlogPost['status'][]> = {
+      draft: ['in_review', 'archived'],
+      in_review: ['draft', 'published', 'archived'],
+      published: ['draft', 'archived'],
+      archived: ['draft'],
+    };
+
+    if (!transitions[current.status].includes(status)) {
+      throw new BlogRepositoryError('Transition de statut invalide.', 'BLOG_INVALID_STATUS_TRANSITION');
     }
 
     const updated = { ...current, status };
@@ -206,6 +214,10 @@ class LocalBlogRepository implements BlogRepository {
 
   getDrafts(): BlogPost[] {
     return this.getAll().filter((post) => post.status === 'draft');
+  }
+
+  getInReview(): BlogPost[] {
+    return this.getAll().filter((post) => post.status === 'in_review');
   }
 
   getArchived(): BlogPost[] {

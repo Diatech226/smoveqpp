@@ -12,7 +12,10 @@ const { getMongoose } = require('./config/mongo');
 const { AuthService } = require('./services/authService');
 const { buildAuthController } = require('./controllers/authController');
 const { createAuthRoutes } = require('./routes/authRoutes');
+const { createContentRoutes } = require('./routes/contentRoutes');
 const { sendError } = require('./utils/apiResponse');
+const { FileContentRepository } = require('./repositories/contentRepository.file');
+const { ContentService } = require('./services/contentService');
 const { createOAuthConfig } = require('./config/passport');
 
 const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
@@ -58,6 +61,9 @@ function createApp(deps = {}) {
   });
   const authController = deps.authController ?? buildAuthController({ authService });
 
+  const contentRepository = deps.contentRepository ?? new FileContentRepository();
+  const contentService = deps.contentService ?? new ContentService({ contentRepository });
+
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use((req, res, next) => {
     res.setHeader('Content-Security-Policy', isProduction ? PROD_CSP : DEV_CSP);
@@ -71,7 +77,9 @@ function createApp(deps = {}) {
   app.use(exposeCsrfToken);
 
   app.use('/api/v1/auth', createAuthRoutes({ authController }));
+  app.use('/api/v1/content', createContentRoutes({ contentService }));
   app.use('/api/auth', createAuthRoutes({ authController }));
+  app.use('/api/content', createContentRoutes({ contentService }));
 
   app.use((err, _req, res, _next) => {
     console.error('[api] unhandled error', err);
