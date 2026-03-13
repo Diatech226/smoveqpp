@@ -41,6 +41,16 @@ describe('routeResolver', () => {
 });
 
 describe('guards', () => {
+
+  it('allows register when registration is enabled', () => {
+    const decision = resolveAuthPageGuard('register', {
+      ...baseAuth,
+      registrationEnabled: true,
+    });
+
+    expect(decision).toBe('register');
+  });
+
   it('denies register when registration is disabled', () => {
     const decision = resolveAuthPageGuard('register', {
       ...baseAuth,

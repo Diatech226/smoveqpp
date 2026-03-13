@@ -31,7 +31,7 @@ async function run() {
     findById: async (id) => users.find((u) => u.id === String(id)) ?? null,
     updateLastLoginAt: async () => null,
   };
-  const service = new AuthService({ userRepository: repo });
+  const service = new AuthService({ userRepository: repo, publicRegistrationEnabled: true });
   await service.register({ email: 'x@test.com', password: 'password123', name: 'X' });
   const login = await service.login({ email: 'x@test.com', password: 'password123' });
   assert.equal(login.ok, true, 'valid login must pass');

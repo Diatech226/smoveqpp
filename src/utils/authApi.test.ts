@@ -41,6 +41,22 @@ describe('normalizeAuthPayload', () => {
     expect(result.errorMessage).toBe('Invalid credentials');
   });
 
+
+  it('maps duplicate email errors to localized fallback message', () => {
+    const result = normalizeAuthPayload(
+      {
+        success: false,
+        error: {
+          code: 'EMAIL_ALREADY_EXISTS',
+        },
+      },
+      409,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe('Un compte existe déjà avec cet email.');
+  });
+
   it('provides fallback message when payload is malformed', () => {
     const result = normalizeAuthPayload(null, 500);
 

@@ -54,6 +54,27 @@ describe('AuthService', () => {
     expect(result.code).toBe('REGISTRATION_DISABLED');
   });
 
+
+  it('register creates user when public registration is enabled', async () => {
+    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
+
+    const result = await registerEnabledService.register({ email: 'new@x.com', password: 'password123', name: 'New User' });
+
+    expect(result.ok).toBe(true);
+    expect(result.user?.email).toBe('new@x.com');
+    expect(users[0].passwordHash).toBeTruthy();
+  });
+
+  it('register rejects duplicate email when enabled', async () => {
+    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
+
+    await registerEnabledService.register({ email: 'dup@x.com', password: 'password123', name: 'Dup One' });
+    const duplicate = await registerEnabledService.register({ email: 'dup@x.com', password: 'password123', name: 'Dup Two' });
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.code).toBe('EMAIL_ALREADY_EXISTS');
+  });
+
   it('admin seed creates admin only once', async () => {
     const first = await service.seedAdminFromEnv({ email: 'admin@x.com', password: 'password123', name: 'Admin' });
     const second = await service.seedAdminFromEnv({ email: 'admin@x.com', password: 'password123', name: 'Admin' });
