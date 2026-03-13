@@ -206,3 +206,22 @@ This iteration is intentionally constrained:
 - Stronger permission matrices and per-action authorization UX.
 - End-to-end publish lifecycle orchestration (draft/review/publish workflow across CMS and frontend routes).
 - Extended content validation (slug uniqueness enforcement at save-time repository level).
+
+## Iteration 2 execution update (implemented)
+
+### CMS workflow completion and consistency
+- Completed the **blog admin workflow loop** in CMS (`list → create/edit → validate → save → confirm → delete confirmation`) with clear save/pending/error feedback.
+- Added explicit role-based admin action clarity for destructive operations (delete restricted to admin role with visible messaging instead of silent no-op behavior).
+- Improved settings section from scaffolded toggle to validated save flow with persisted admin configuration (`siteTitle`, `supportEmail`, `instantPublishing`).
+- Standardized section feedback behavior by routing repository and validation errors into explicit admin error states.
+
+### Blog pipeline hardening and CMS compatibility
+- Added a canonical blog entry adapter layer to normalize CMS-authored payloads and frontend-rendered entries under a stable contract.
+- Enforced slug normalization and slug uniqueness checks at repository save-time to prevent route/content collisions.
+- Strengthened blog content contract with deterministic ordering (`publishedDate` then slug tie-break) and explicit SEO-ready metadata fields (`title`, `description`, `canonicalSlug`) without any visual change to blog pages.
+- Hardened CMS-to-blog mapping via `fromCmsBlogInput` so CMS forms produce schema-valid, render-safe blog entities.
+
+### Deferred to Iteration 3
+- Project CRUD persistence and media upload authoring flow completion in CMS.
+- Full backend publishing orchestration and review workflow across roles.
+- Browser e2e coverage for critical admin publish/edit/delete paths.

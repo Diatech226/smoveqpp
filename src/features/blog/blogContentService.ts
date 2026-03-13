@@ -1,5 +1,5 @@
 import { blogRepository } from '../../repositories/blogRepository';
-import type { BlogPost } from '../../domain/contentSchemas';
+import { toCanonicalBlogEntry } from './blogEntryAdapter';
 
 export interface BlogListItem {
   id: string;
@@ -12,6 +12,11 @@ export interface BlogListItem {
   image: string;
   readTime: string;
   featured: boolean;
+  seo: {
+    title: string;
+    description: string;
+    canonicalSlug: string;
+  };
 }
 
 export interface BlogContentContract {
@@ -19,33 +24,40 @@ export interface BlogContentContract {
   posts: BlogListItem[];
 }
 
-const FALLBACK_CATEGORY = 'Non classé';
+const formatDate = (value: string) => {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return 'Date indisponible';
+  }
+  return new Date(parsed).toLocaleDateString('fr-FR');
+};
 
-const isValidDate = (value: string) => !Number.isNaN(Date.parse(value));
-
-const getSafeExcerpt = (post: BlogPost) => post.excerpt || post.content.slice(0, 160) || 'Contenu indisponible.';
-
-const toListItem = (post: BlogPost, featuredId?: string): BlogListItem => ({
-  id: post.id,
-  slug: post.slug,
-  title: post.title || 'Article sans titre',
-  excerpt: getSafeExcerpt(post),
-  author: post.author || 'Équipe SMOVE',
-  date: isValidDate(post.publishedDate) ? new Date(post.publishedDate).toLocaleDateString('fr-FR') : 'Date indisponible',
-  category: post.category || FALLBACK_CATEGORY,
-  image: post.featuredImage || 'blog article image',
-  readTime: post.readTime || '5 min',
-  featured: featuredId ? featuredId === post.id : false,
+const toListItem = (entry: ReturnType<typeof toCanonicalBlogEntry>, featuredId?: string): BlogListItem => ({
+  id: entry.id,
+  slug: entry.slug,
+  title: entry.title,
+  excerpt: entry.excerpt,
+  author: entry.author,
+  date: formatDate(entry.publishedDate),
+  category: entry.category,
+  image: entry.featuredImage,
+  readTime: entry.readTime,
+  featured: featuredId ? featuredId === entry.id : false,
+  seo: entry.seo,
 });
 
 export function getBlogContentContract(): BlogContentContract {
-  const publishedPosts = blogRepository
+  const canonicalEntries = blogRepository
     .getPublished()
+    .map(toCanonicalBlogEntry)
     .filter((post) => Boolean(post.id && post.slug && post.title))
-    .sort((a, b) => (Date.parse(b.publishedDate) || 0) - (Date.parse(a.publishedDate) || 0));
+    .sort((a, b) => {
+      const byDate = Date.parse(b.publishedDate) - Date.parse(a.publishedDate);
+      return byDate !== 0 ? byDate : a.slug.localeCompare(b.slug);
+    });
 
-  const [firstPost] = publishedPosts;
-  const posts = publishedPosts.map((post) => toListItem(post, firstPost?.id));
+  const [firstPost] = canonicalEntries;
+  const posts = canonicalEntries.map((entry) => toListItem(entry, firstPost?.id));
   const categories = ['Tous', ...new Set(posts.map((post) => post.category))];
 
   return {
@@ -65,5 +77,5 @@ export function getBlogPostBySlugContract(slug: string): BlogListItem | undefine
     return undefined;
   }
 
-  return toListItem(post);
+  return toListItem(toCanonicalBlogEntry(post));
 }

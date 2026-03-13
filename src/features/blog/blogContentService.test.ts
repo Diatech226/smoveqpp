@@ -38,6 +38,20 @@ describe('blogContentService', () => {
     expect(contract.categories[0]).toBe('Tous');
     expect(contract.posts.length).toBeGreaterThan(0);
     expect(contract.posts.every((post) => post.slug.length > 0)).toBe(true);
+    expect(contract.posts[0].seo.canonicalSlug).toBe(contract.posts[0].slug);
+  });
+
+  it('orders posts deterministically by date then slug', () => {
+    const seed = blogRepository.getAll()[0];
+
+    blogRepository.save({ ...seed, id: 'order-b', slug: 'bbb-order', publishedDate: '2024-01-01', status: 'published' });
+    blogRepository.save({ ...seed, id: 'order-a', slug: 'aaa-order', publishedDate: '2024-01-01', status: 'published' });
+
+    const contract = getBlogContentContract();
+    const a = contract.posts.findIndex((post) => post.slug === 'aaa-order');
+    const b = contract.posts.findIndex((post) => post.slug === 'bbb-order');
+
+    expect(a).toBeLessThan(b);
   });
 
   it('ignores drafts when resolving by slug for blog rendering', () => {

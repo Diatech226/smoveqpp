@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { blogRepository } from './blogRepository';
+import { blogRepository, BlogRepositoryError } from './blogRepository';
 import { mediaRepository } from './mediaRepository';
 import { projectRepository } from './projectRepository';
 import { cmsRepository } from './cmsRepository';
@@ -48,6 +48,20 @@ describe('blogRepository', () => {
 
     expect(blogRepository.getAll()).toHaveLength(initialCount + 1);
     expect(blogRepository.getById('new-post')?.title).toBe('Nouvel article');
+  });
+
+
+
+  it('rejects duplicated slugs to preserve canonical routing', () => {
+    const post = blogRepository.getAll()[0];
+
+    expect(() =>
+      blogRepository.save({
+        ...post,
+        id: 'duplicate-slug-post',
+        slug: post.slug,
+      }),
+    ).toThrowError(BlogRepositoryError);
   });
 
   it('recovers safely from corrupted local storage payloads', () => {
