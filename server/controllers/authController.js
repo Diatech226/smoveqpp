@@ -39,14 +39,18 @@ function buildAuthController({ authService }) {
 
     register: async (req, res) => {
       const result = await authService.register(req.body ?? {});
-      logAuthEvent(req, 'register', 'failure', { code: result.code, email: req.body?.email ?? null });
-      return sendError(res, result.status, result.code, result.message);
+      if (!result.ok) {
+        logAuthEvent(req, 'register', 'failure', { code: result.code, reason: result.reason ?? null, email: req.body?.email ?? null });
+        return sendError(res, result.status, result.code, result.message);
+      }
+
+      return startSession(req, res, result.user, 'register', 201);
     },
 
     login: async (req, res) => {
       const result = await authService.login(req.body ?? {});
       if (!result.ok) {
-        logAuthEvent(req, 'login', 'failure', { code: result.code, email: req.body?.email ?? null });
+        logAuthEvent(req, 'login', 'failure', { code: result.code, reason: result.reason ?? null, email: req.body?.email ?? null });
         return sendError(res, result.status, result.code, result.message);
       }
 

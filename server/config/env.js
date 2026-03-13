@@ -43,6 +43,11 @@ const AUTH_STORAGE_MODE = ['auto', 'mongo', 'memory'].includes(process.env.AUTH_
   ? process.env.AUTH_STORAGE_MODE
   : 'auto';
 
+const PUBLIC_REGISTRATION_ENABLED = parseBoolean(
+  process.env.PUBLIC_REGISTRATION_ENABLED ?? process.env.VITE_ENABLE_REGISTRATION,
+  false,
+);
+
 function assertSessionSecretStrength() {
   const looksDefault = SESSION_SECRET === 'dev-session-secret-change-me';
   const tooShort = SESSION_SECRET.length < 32;
@@ -81,6 +86,7 @@ module.exports = {
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? '',
   ADMIN_NAME: process.env.ADMIN_NAME ?? 'Administrator',
   OAUTH_DEFAULT_ROLE: process.env.OAUTH_DEFAULT_ROLE ?? 'viewer',
+  PUBLIC_REGISTRATION_ENABLED,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
   GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? `${process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`}${GOOGLE_CALLBACK_PATH}`,

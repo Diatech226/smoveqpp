@@ -8,6 +8,7 @@ import WebDevelopmentPage from '../../components/services/WebDevelopmentPage';
 import ProjectsPage from '../../components/ProjectsPage';
 import ProjectDetailPage from '../../components/ProjectDetailPage';
 import LoginPage from '../../components/auth/LoginPage';
+import RegisterPage from '../../components/auth/RegisterPage';
 import CMSDashboard from '../../components/cms/CMSDashboard';
 import APropos from '../../imports/APropos';
 import HomePageContent from '../marketing/home/HomePageContent';
@@ -54,7 +55,19 @@ export default function AppPageRenderer({
     return <LoginPage />;
   }
 
-
+  if (currentPage === 'register') {
+    if (!cmsEnabled) {
+      return (
+        <SecurityStatePage
+          title="CMS désactivé"
+          description="Le CMS est désactivé dans cet environnement tant qu'un backend d'authentification sécurisé n'est pas configuré."
+          actionHref="#home"
+          actionLabel="Retour à l'accueil"
+        />
+      );
+    }
+    return <RegisterPage />;
+  }
 
   if (currentPage === 'cms-dashboard') {
     return (

@@ -40,6 +40,7 @@ function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'AUTH_TIMEOUT') return 'Le serveur tarde à répondre. Réessayez.';
   if (code === 'AUTH_OFFLINE') return 'Connexion indisponible. Vérifiez votre réseau.';
   if (code === 'REGISTRATION_DISABLED') return 'Inscription publique désactivée.';
+  if (code === 'EMAIL_ALREADY_EXISTS') return 'Un compte existe déjà avec cet email.';
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
   return 'Erreur d’authentification.';
 }
@@ -135,6 +136,11 @@ export function fetchServerSession(csrfToken?: string | null): Promise<AuthResul
 
 export function loginWithApi(email: string, password: string, csrfToken?: string | null): Promise<AuthResult> {
   return requestAuth('/login', { method: 'POST', body: JSON.stringify({ email, password }) }, csrfToken);
+}
+
+
+export function registerWithApi(email: string, password: string, name: string, csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/register', { method: 'POST', body: JSON.stringify({ email, password, name }) }, csrfToken);
 }
 
 export function fetchOAuthProviders(csrfToken?: string | null): Promise<AuthResult> {

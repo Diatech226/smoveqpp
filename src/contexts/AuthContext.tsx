@@ -5,6 +5,7 @@ import {
   loginWithApi,
   logoutWithApi,
   oauthLoginWithApi,
+  registerWithApi,
   type AuthResult,
 } from '../utils/authApi';
 import {
@@ -26,11 +27,12 @@ interface AuthContextType {
   authError: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   loginWithOAuth: (provider: 'google' | 'facebook', payload: { email: string; name: string; providerId: string }) => Promise<boolean>;
+  register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAuthReady: boolean;
   cmsEnabled: boolean;
-  registrationEnabled: false;
+  registrationEnabled: boolean;
   canAccessCMS: boolean;
   oauthProviders: OAuthProviderState;
 }
@@ -40,6 +42,7 @@ const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   authError: null,
   login: async () => false,
   loginWithOAuth: async () => false,
+  register: async () => false,
   logout: async () => undefined,
   isAuthenticated: false,
   isAuthReady: true,
@@ -69,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [oauthProviders, setOauthProviders] = useState<OAuthProviderState>({ google: false, facebook: false });
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
-  const registrationEnabled = false;
+  const registrationEnabled = SECURITY_FLAGS.registrationEnabled;
   const isAuthenticated = !!user;
 
   const canAccessCMS =
@@ -171,6 +174,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return !!trustedUser;
   };
 
+  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+    if (!cmsEnabled) {
+      setAuthError('Le CMS est désactivé.');
+      return false;
+    }
+
+    const result = await registerWithApi(email, password, name, csrfToken);
+    setCsrfToken(result.csrfToken);
+    const trustedUser = resolveTrustedSessionUser(result.user);
+    setUser(trustedUser);
+    setAuthError(resolveAuthActionError(result));
+
+    if (!result.success) {
+      logWarn({ scope: 'auth_context', event: 'register_failed', details: { errorCode: result.errorCode, status: result.status } });
+      if (shouldResetSession(result)) {
+        setUser(null);
+      }
+    } else {
+      logInfo({ scope: 'auth_context', event: 'register_succeeded' });
+    }
+
+    return !!trustedUser;
+  };
+
   const logout = async () => {
     const result = await logoutWithApi(csrfToken);
     setUser(null);
@@ -188,6 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authError,
       login,
       loginWithOAuth,
+      register,
       logout,
       isAuthenticated,
       isAuthReady,

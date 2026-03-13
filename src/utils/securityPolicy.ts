@@ -26,7 +26,7 @@ function parseBooleanFlag(value: string | undefined, defaultValue: boolean): boo
 
 export const SECURITY_FLAGS = {
   cmsEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_CMS, import.meta.env.DEV),
-  registrationEnabled: false,
+  registrationEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_REGISTRATION, false),
   devAdminFallbackEnabled: false,
 } as const;
 

@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { normalizeEmail } = require('../models/User');
-const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE } = require('../config/env');
+const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED } = require('../config/env');
 
 let bcryptLib = null;
 try {
@@ -48,9 +48,10 @@ function sanitizeUser(user) {
 }
 
 class AuthService {
-  constructor({ userRepository, oauthProviders = {} }) {
+  constructor({ userRepository, oauthProviders = {}, publicRegistrationEnabled = PUBLIC_REGISTRATION_ENABLED }) {
     this.userRepository = userRepository;
     this.oauthProviders = oauthProviders;
+    this.publicRegistrationEnabled = Boolean(publicRegistrationEnabled);
   }
 
   async seedAdminFromEnv({ email, password, name }) {
@@ -78,8 +79,40 @@ class AuthService {
     return { ok: true, created: true, user: sanitizeUser(user) };
   }
 
-  async register() {
-    return { ok: false, status: 403, code: 'REGISTRATION_DISABLED', message: 'Public registration is disabled' };
+  async register(payload) {
+    if (!this.publicRegistrationEnabled) {
+      return { ok: false, status: 403, code: 'REGISTRATION_DISABLED', message: 'Public registration is disabled' };
+    }
+
+    const email = normalizeEmail(payload.email);
+    const name = String(payload.name ?? '').trim();
+    const password = String(payload.password ?? '');
+
+    if (!email || !name || !password) {
+      return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'name, email and password are required' };
+    }
+
+    if (password.length < 8) {
+      return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'password must be at least 8 characters' };
+    }
+
+    const exists = await this.userRepository.existsByEmail(email);
+    if (exists) {
+      return { ok: false, status: 409, code: 'EMAIL_ALREADY_EXISTS', message: 'An account already exists with this email' };
+    }
+
+    const passwordHash = await hashPassword(password);
+    const user = await this.userRepository.create({
+      email,
+      name,
+      passwordHash,
+      role: 'viewer',
+      status: 'active',
+      authProvider: 'local',
+      providerId: null,
+    });
+
+    return { ok: true, user: sanitizeUser(user) };
   }
 
   async login(payload) {
@@ -91,8 +124,17 @@ class AuthService {
     }
 
     const user = await this.userRepository.findByEmailWithPassword(email);
-    if (!user || user.authProvider !== 'local' || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
-      return { ok: false, status: 401, code: 'INVALID_CREDENTIALS', message: 'Invalid credentials' };
+    if (!user) {
+      return { ok: false, status: 401, code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', reason: 'email_not_found' };
+    }
+
+    if (user.authProvider !== 'local' || !user.passwordHash) {
+      return { ok: false, status: 401, code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', reason: 'local_password_missing' };
+    }
+
+    const isValidPassword = await verifyPassword(password, user.passwordHash);
+    if (!isValidPassword) {
+      return { ok: false, status: 401, code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', reason: 'password_mismatch' };
     }
 
     if (user.status === 'suspended') {
