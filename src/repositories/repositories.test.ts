@@ -59,6 +59,18 @@ describe('blogRepository', () => {
     expect(posts[0].id).toBeTruthy();
   });
 
+
+  it('prevents duplicate slugs across different blog entries', () => {
+    const source = blogRepository.getAll()[0];
+
+    expect(() =>
+      blogRepository.save({
+        ...source,
+        id: 'duplicate-slug-post',
+      }),
+    ).toThrow(/Slug already exists/i);
+  });
+
   it('falls back to defaults when schema is invalid', () => {
     localStorage.setItem('smove_blog_posts', JSON.stringify([{ bad: 'shape' }]));
 

@@ -180,3 +180,50 @@ This iteration is intentionally constrained:
 - **Prioritize maintainability, reliability, and operational clarity.**
 - **For the blog: preserve current visual identity and avoid UI redesign proposals.**
 - **For the CMS: harmonize incrementally within current visual language.**
+## Execution update (current iteration)
+
+### Completed in this iteration
+- **CMS — workflow + harmonization (priority 1)**
+  - Added explicit section-level loading states for all CMS areas.
+  - Added standardized success/error feedback banners for CMS actions.
+  - Added destructive-action safeguards (`confirm`) for blog/media deletion flows.
+  - Added concrete blog workflow operations inside CMS (publish/draft toggle + delete + refresh).
+  - Added explicit read-only signaling on projects section to avoid false editing affordances.
+  - Harmonized CMS section surfaces and spacing around a shared card/panel rhythm aligned with existing product language.
+- **Blog — architecture hardening (priority 2)**
+  - Introduced a canonical blog content bridge (`features/blog/blogContentBridge.ts`) consumed by the blog page.
+  - Blog page now reads from repository-backed published entries instead of local ad-hoc page constants.
+  - Added deterministic publish ordering (newest first) and canonical metadata contract (`seo.canonicalPath`, title, description).
+  - Added fallback handling for invalid dates and missing featured images.
+- **Shared CMS/blog contract (priority 3)**
+  - Established `BlogListItem` projection as a stable frontend consumption contract from repository entities.
+  - Added slug uniqueness guard at repository save-time for safer CMS-to-blog publishing consistency.
+
+### Partially completed after this iteration
+- CMS projects/settings remain partially static and require backend-backed persistence for full CRUD parity.
+- Blog detail rendering path is still not fully repository-driven (list path is now canonicalized first).
+- SEO pipeline is contract-ready at the list layer, but document/head injection strategy remains pending.
+
+### Still missing
+- Durable backend persistence for CMS users/content and externalized session strategy.
+- True browser-level e2e coverage for CMS create/edit/delete happy + failure paths.
+- Full CMS permission matrix at action granularity (beyond current admin gating).
+
+### Next implementation iteration (execution-ready)
+1. **CMS**
+   - Add reusable CMS primitives (`AdminPageHeader`, `AdminSectionCard`, `AdminStateBlock`) extracted from dashboard usage.
+   - Complete create/edit forms for blog/media with field-level validation and inline error states.
+   - Add standardized action feedback timeouts and retry UX for repository errors.
+2. **Blog**
+   - Route blog detail page rendering through the same content bridge contract.
+   - Add strict slug-route resolution with typed not-found fallback.
+   - Add metadata adapter for title/description/canonical handoff to app-shell SEO infrastructure.
+3. **Integration**
+   - Add migration-safe repository boundary for future API backend (adapter interface + local fallback).
+   - Add contract tests covering CMS write -> blog read consistency and slug collision behavior.
+
+### CMS vs Blog responsibilities (this phase)
+- **CMS owns:** content authoring workflow state, validation, save/delete feedback, and operator safeguards.
+- **Blog owns:** stable rendering from published contract, defensive fallback rendering, and metadata readiness.
+- **Shared boundary owns:** canonical shape/versioning and publish eligibility constraints.
+

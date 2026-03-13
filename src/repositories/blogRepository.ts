@@ -35,6 +35,16 @@ class LocalBlogRepository implements BlogRepository {
 
     const trustedPost = post;
     const posts = this.getAll();
+    const slugConflict = posts.find(
+      (candidate) =>
+        candidate.slug.toLowerCase() === trustedPost.slug.toLowerCase() &&
+        candidate.id !== trustedPost.id,
+    );
+
+    if (slugConflict) {
+      throw new Error('Slug already exists for another blog post');
+    }
+
     const index = posts.findIndex((candidate) => candidate.id === trustedPost.id);
 
     if (index >= 0) {
@@ -54,7 +64,9 @@ class LocalBlogRepository implements BlogRepository {
   }
 
   getPublished(): BlogPost[] {
-    return this.getAll().filter((post) => post.status === 'published');
+    return this.getAll()
+      .filter((post) => post.status === 'published')
+      .sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
   }
 
   getDrafts(): BlogPost[] {
