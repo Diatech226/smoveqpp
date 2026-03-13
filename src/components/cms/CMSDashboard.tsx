@@ -14,6 +14,7 @@ import {
   Trash2,
   Pencil,
   AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -51,6 +52,20 @@ interface BlogFormState {
   status: BlogPost['status'];
 }
 
+interface ProjectFormState {
+  id?: string;
+  title: string;
+  client: string;
+  category: string;
+  year: string;
+  description: string;
+  challenge: string;
+  solution: string;
+  results: string;
+  tags: string;
+  mainImage: string;
+}
+
 const EMPTY_BLOG_FORM: BlogFormState = {
   title: '',
   slug: '',
@@ -61,6 +76,19 @@ const EMPTY_BLOG_FORM: BlogFormState = {
   featuredImage: '',
   readTime: '5 min',
   status: 'draft',
+};
+
+const EMPTY_PROJECT_FORM: ProjectFormState = {
+  title: '',
+  client: '',
+  category: '',
+  year: new Date().getFullYear().toString(),
+  description: '',
+  challenge: '',
+  solution: '',
+  results: '',
+  tags: '',
+  mainImage: 'project cover image',
 };
 
 const SETTINGS_STORAGE_KEY = 'smove_cms_settings';
@@ -98,7 +126,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   });
 
-  const projects = useMemo(() => projectRepository.getAll(), []);
+  const [projects, setProjects] = useState(() => projectRepository.getAll());
+  const [projectsError, setProjectsError] = useState('');
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [projectEditorMode, setProjectEditorMode] = useState<'list' | 'create' | 'edit'>('list');
+  const [projectForm, setProjectForm] = useState<ProjectFormState>(EMPTY_PROJECT_FORM);
+  const [projectFormErrors, setProjectFormErrors] = useState<Partial<Record<keyof ProjectFormState, string>>>({});
   const mediaFiles = useMemo(() => mediaRepository.getAll(), []);
   const cmsStats = useMemo(() => cmsRepository.getStats(), [posts, mediaFiles.length, projects.length]);
   const canDeleteContent = user?.role === 'admin';
@@ -290,6 +323,198 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }, 300);
   };
 
+  const retryLoadPosts = () => {
+    setPostsLoading(true);
+    setPostsError('');
+    try {
+      setPosts(blogRepository.getAll());
+    } catch {
+      setPostsError('Impossible de charger les articles. Réessayez.');
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  const startCreateProject = () => {
+    setProjectEditorMode('create');
+    setProjectForm(EMPTY_PROJECT_FORM);
+    setProjectFormErrors({});
+    setProjectsError('');
+  };
+
+  const startEditProject = (project: (typeof projects)[number]) => {
+    setProjectEditorMode('edit');
+    setProjectForm({
+      id: project.id,
+      title: project.title,
+      client: project.client,
+      category: project.category,
+      year: project.year,
+      description: project.description,
+      challenge: project.challenge,
+      solution: project.solution,
+      results: project.results.join('\n'),
+      tags: project.tags.join(', '),
+      mainImage: project.mainImage,
+    });
+    setProjectFormErrors({});
+    setProjectsError('');
+  };
+
+  const validateProjectForm = (form: ProjectFormState) => {
+    const errors: Partial<Record<keyof ProjectFormState, string>> = {};
+    if (!form.title.trim()) errors.title = 'Le titre est requis.';
+    if (!form.client.trim()) errors.client = 'Le client est requis.';
+    if (!form.category.trim()) errors.category = 'La catégorie est requise.';
+    if (!form.description.trim()) errors.description = 'La description est requise.';
+    if (!form.challenge.trim()) errors.challenge = 'Le challenge est requis.';
+    if (!form.solution.trim()) errors.solution = 'La solution est requise.';
+    return errors;
+  };
+
+  const resetProjectEditor = () => {
+    setProjectEditorMode('list');
+    setProjectForm(EMPTY_PROJECT_FORM);
+    setProjectFormErrors({});
+  };
+
+  const saveProject = () => {
+    const errors = validateProjectForm(projectForm);
+    setProjectFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setProjectsError('Veuillez corriger les erreurs du projet avant d’enregistrer.');
+      return;
+    }
+
+    setIsSavingProject(true);
+    setProjectsError('');
+
+    try {
+      const baseId = projectForm.id || `project-${Date.now()}`;
+      projectRepository.save({
+        id: baseId,
+        title: projectForm.title.trim(),
+        client: projectForm.client.trim(),
+        category: projectForm.category.trim(),
+        year: projectForm.year.trim() || new Date().getFullYear().toString(),
+        description: projectForm.description.trim(),
+        challenge: projectForm.challenge.trim(),
+        solution: projectForm.solution.trim(),
+        results: projectForm.results.split('\n').map((line) => line.trim()).filter(Boolean),
+        tags: projectForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+        mainImage: projectForm.mainImage.trim() || 'project cover image',
+        images: projectForm.mainImage.trim() ? [projectForm.mainImage.trim()] : [],
+      });
+      setProjects(projectRepository.getAll());
+      showSuccess(projectEditorMode === 'create' ? 'Projet créé avec succès.' : 'Projet mis à jour avec succès.');
+      resetProjectEditor();
+    } catch {
+      setProjectsError('Enregistrement du projet impossible. Réessayez.');
+    } finally {
+      setIsSavingProject(false);
+    }
+  };
+
+  const deleteProject = (projectId: string, projectTitle: string) => {
+    if (!canDeleteContent) {
+      setProjectsError('Suppression non autorisée: rôle administrateur requis.');
+      return;
+    }
+
+    if (!window.confirm(`Supprimer définitivement le projet "${projectTitle}" ?`)) {
+      return;
+    }
+
+    try {
+      projectRepository.delete(projectId);
+      setProjects(projectRepository.getAll());
+      if (projectForm.id === projectId) {
+        resetProjectEditor();
+      }
+      showSuccess('Projet supprimé.');
+    } catch {
+      setProjectsError('Suppression du projet impossible. Réessayez.');
+    }
+  };
+
+  const renderProjectForm = () => {
+    const title = projectEditorMode === 'create' ? 'Créer un projet' : 'Modifier un projet';
+
+    return (
+      <AdminPanel title={title}>
+        <div className="space-y-4">
+          {(['title', 'client', 'category', 'year', 'mainImage'] as const).map((fieldKey) => (
+            <label key={fieldKey} className="block">
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <input
+                value={projectForm[fieldKey]}
+                onChange={(event) => setProjectForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
+                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              />
+              {projectFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors[fieldKey]}</p> : null}
+            </label>
+          ))}
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Description</span>
+            <textarea
+              value={projectForm.description}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, description: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {projectFormErrors.description ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.description}</p> : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Challenge</span>
+            <textarea
+              value={projectForm.challenge}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, challenge: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {projectFormErrors.challenge ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.challenge}</p> : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Solution</span>
+            <textarea
+              value={projectForm.solution}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, solution: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {projectFormErrors.solution ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.solution}</p> : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Résultats (une ligne par résultat)</span>
+            <textarea
+              value={projectForm.results}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, results: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Tags (séparés par virgule)</span>
+            <input
+              value={projectForm.tags}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, tags: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+          <AdminActionBar>
+            <button
+              onClick={saveProject}
+              disabled={isSavingProject}
+              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
+            >
+              <Save size={16} /> {isSavingProject ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+            <button onClick={resetProjectEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
+              Annuler
+            </button>
+          </AdminActionBar>
+        </div>
+      </AdminPanel>
+    );
+  };
+
   const renderBlogForm = () => {
     const title = blogEditorMode === 'create' ? 'Créer un article' : 'Modifier un article';
 
@@ -411,25 +636,41 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             subtitle="Liste, édition et statut de vos projets portfolio."
             actions={
               <button
-                onClick={() => showSuccess('Création de projet disponible lors de la prochaine itération backend.')}
+                onClick={startCreateProject}
                 className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif]"
               >
                 Nouveau projet
               </button>
             }
           />
+
+          {projectsError ? <AdminErrorState label={projectsError} /> : null}
+          {projectEditorMode !== 'list' ? renderProjectForm() : null}
+
           <AdminPanel title="Projets récents">
             {projects.length === 0 ? (
               <AdminEmptyState label="Aucun projet trouvé. Créez votre premier projet pour commencer." />
             ) : (
               <div className="space-y-3">
-                {projects.slice(0, 4).map((project) => (
-                  <div key={project.id} className="rounded-[12px] border border-[#eef3f5] px-4 py-3 flex items-center justify-between">
+                {projects.map((project) => (
+                  <div key={project.id} className="rounded-[12px] border border-[#eef3f5] px-4 py-3 flex items-center justify-between gap-4">
                     <div>
                       <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{project.title}</p>
                       <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">{project.client} • {project.year}</p>
                     </div>
-                    <span className="text-[13px] text-[#9ba1a4]">{project.category}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] text-[#9ba1a4]">{project.category}</span>
+                      <button onClick={() => startEditProject(project)} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2">
+                        <Pencil size={15} /> Modifier
+                      </button>
+                      <button
+                        onClick={() => deleteProject(project.id, project.title)}
+                        disabled={!canDeleteContent}
+                        className="px-3 py-2 border border-red-200 text-red-600 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <Trash2 size={15} /> Supprimer
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -455,7 +696,17 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             }
           />
 
-          {postsError ? <AdminErrorState label={postsError} /> : null}
+          {postsError ? (
+            <AdminActionBar>
+              <AdminErrorState label={postsError} />
+              <button
+                onClick={retryLoadPosts}
+                className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2"
+              >
+                <RotateCcw size={15} /> Réessayer
+              </button>
+            </AdminActionBar>
+          ) : null}
           {postsLoading ? <AdminLoadingState label="Chargement des articles..." /> : null}
 
           {blogEditorMode !== 'list' ? renderBlogForm() : null}
@@ -528,7 +779,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       return (
         <div className="space-y-6">
           <AdminPageHeader title="Paramètres" subtitle="Configuration globale et garde-fous de publication." />
-          {sectionError ? <AdminErrorState label={sectionError} /> : null}
+          {sectionError ? (
+            <AdminActionBar>
+              <AdminErrorState label={sectionError} />
+              <button
+                onClick={saveSettings}
+                disabled={settingsSaving}
+                className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2 disabled:opacity-60"
+              >
+                <RotateCcw size={15} /> Réessayer
+              </button>
+            </AdminActionBar>
+          ) : null}
           <AdminPanel title="Publication">
             <div className="space-y-3">
               <label className="block">
