@@ -34,7 +34,6 @@ function AppContent() {
         cmsSection={cmsSection}
         onCmsSectionChange={setCmsSection}
         cmsEnabled={cmsEnabled}
-        registrationEnabled={registrationEnabled}
       />
 
       {!shouldHideScrollToTop && (

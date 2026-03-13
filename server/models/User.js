@@ -1,5 +1,6 @@
 const USER_ROLES = ['admin', 'editor', 'author', 'viewer'];
 const USER_STATUSES = ['active', 'invited', 'suspended'];
+const AUTH_PROVIDERS = ['local', 'google', 'facebook'];
 
 function normalizeEmail(email) {
   return String(email ?? '').trim().toLowerCase();
@@ -9,13 +10,13 @@ function normalizeUserInput(input) {
   return {
     id: String(input.id),
     email: normalizeEmail(input.email),
-    passwordHash: String(input.passwordHash),
-    name: String(input.name).trim(),
+    passwordHash: input.passwordHash ? String(input.passwordHash) : null,
+    name: String(input.name ?? '').trim(),
     role: USER_ROLES.includes(input.role) ? input.role : 'viewer',
     status: USER_STATUSES.includes(input.status) ? input.status : 'active',
-    tenantId: input.tenantId ?? null,
+    authProvider: AUTH_PROVIDERS.includes(input.authProvider) ? input.authProvider : 'local',
+    providerId: input.providerId ? String(input.providerId) : null,
     lastLoginAt: input.lastLoginAt ?? null,
-    emailVerified: Boolean(input.emailVerified),
     createdAt: input.createdAt ?? new Date(),
     updatedAt: input.updatedAt ?? new Date(),
   };
@@ -42,7 +43,7 @@ function createUserModel(mongoose) {
       },
       passwordHash: {
         type: String,
-        required: true,
+        default: null,
       },
       name: {
         type: String,
@@ -61,13 +62,15 @@ function createUserModel(mongoose) {
         default: 'active',
         index: true,
       },
-      tenantId: {
+      authProvider: {
+        type: String,
+        enum: AUTH_PROVIDERS,
+        default: 'local',
+        index: true,
+      },
+      providerId: {
         type: String,
         default: null,
-      },
-      emailVerified: {
-        type: Boolean,
-        default: false,
       },
       lastLoginAt: {
         type: Date,
@@ -80,7 +83,8 @@ function createUserModel(mongoose) {
     },
   );
 
-  schema.index({ role: 1, status: 1 });
+  schema.index({ email: 1 }, { unique: true });
+  schema.index({ authProvider: 1, providerId: 1 }, { unique: true, sparse: true });
 
   schema.pre('validate', function normalizeBeforeValidate(next) {
     if (this.email) {
@@ -95,4 +99,4 @@ function createUserModel(mongoose) {
   return mongoose.model('User', schema);
 }
 
-module.exports = { USER_ROLES, USER_STATUSES, normalizeEmail, normalizeUserInput, createUserModel };
+module.exports = { USER_ROLES, USER_STATUSES, AUTH_PROVIDERS, normalizeEmail, normalizeUserInput, createUserModel };

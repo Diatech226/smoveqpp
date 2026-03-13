@@ -9,8 +9,8 @@ function mapMongoUser(doc) {
     name: doc.name,
     role: doc.role,
     status: doc.status,
-    tenantId: doc.tenantId ?? null,
-    emailVerified: Boolean(doc.emailVerified),
+    authProvider: doc.authProvider,
+    providerId: doc.providerId ?? null,
     lastLoginAt: doc.lastLoginAt ?? null,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
@@ -25,12 +25,12 @@ class MongoAuthRepository {
   async create(input) {
     const user = await this.UserModel.create({
       email: normalizeEmail(input.email),
-      passwordHash: input.passwordHash,
+      passwordHash: input.passwordHash ?? null,
       name: input.name,
       role: input.role,
       status: input.status,
-      tenantId: input.tenantId ?? null,
-      emailVerified: Boolean(input.emailVerified),
+      authProvider: input.authProvider ?? 'local',
+      providerId: input.providerId ?? null,
     });
 
     return mapMongoUser(user);
@@ -38,6 +38,11 @@ class MongoAuthRepository {
 
   async findByEmailWithPassword(email) {
     const user = await this.UserModel.findOne({ email: normalizeEmail(email) }).exec();
+    return mapMongoUser(user);
+  }
+
+  async findByProvider(authProvider, providerId) {
+    const user = await this.UserModel.findOne({ authProvider, providerId: String(providerId) }).exec();
     return mapMongoUser(user);
   }
 
@@ -49,6 +54,34 @@ class MongoAuthRepository {
   async existsByEmail(email) {
     const count = await this.UserModel.countDocuments({ email: normalizeEmail(email) }).exec();
     return count > 0;
+  }
+
+  async upsertOAuthUser({ email, name, authProvider, providerId, role = 'viewer', status = 'active' }) {
+    const user = await this.UserModel.findOneAndUpdate(
+      {
+        $or: [{ email: normalizeEmail(email) }, { authProvider, providerId: String(providerId) }],
+      },
+      {
+        $set: {
+          email: normalizeEmail(email),
+          name,
+          authProvider,
+          providerId: String(providerId),
+          status,
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          role,
+          createdAt: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+      },
+    ).exec();
+
+    return mapMongoUser(user);
   }
 
   async updateLastLoginAt(id, date) {

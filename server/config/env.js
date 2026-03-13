@@ -30,6 +30,11 @@ function parseIntOrDefault(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function parseBoolean(value, fallback = false) {
+  if (value === undefined) return fallback;
+  return value === 'true';
+}
+
 const API_PORT = parseIntOrDefault(process.env.API_PORT, 3001);
 const FRONTEND_PORT = parseIntOrDefault(process.env.CLIENT_PORT ?? process.env.VITE_PORT, 5173);
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'dev-session-secret-change-me';
@@ -55,6 +60,9 @@ function validateCriticalEnv() {
   }
 }
 
+const GOOGLE_CALLBACK_PATH = process.env.GOOGLE_CALLBACK_PATH ?? '/api/v1/auth/oauth/google/callback';
+const FACEBOOK_CALLBACK_PATH = process.env.FACEBOOK_CALLBACK_PATH ?? '/api/v1/auth/oauth/facebook/callback';
+
 module.exports = {
   isProduction,
   API_PORT,
@@ -65,8 +73,19 @@ module.exports = {
   MONGO_URI: process.env.MONGO_URI ?? '',
   MONGO_DB_NAME: process.env.MONGO_DB_NAME ?? undefined,
   SESSION_TTL_SECONDS: parseIntOrDefault(process.env.SESSION_TTL_SECONDS, 60 * 60 * 24),
-  BCRYPT_ROUNDS: parseIntOrDefault(process.env.BCRYPT_ROUNDS, 12),
+  PASSWORD_HASH_ROUNDS: parseIntOrDefault(process.env.PASSWORD_HASH_ROUNDS, 12),
   AUTH_RATE_LIMIT_MAX: parseIntOrDefault(process.env.AUTH_RATE_LIMIT_MAX, 10),
   AUTH_RATE_LIMIT_WINDOW_MS: parseIntOrDefault(process.env.AUTH_RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000),
+  SEED_ADMIN_ON_START: parseBoolean(process.env.SEED_ADMIN_ON_START, false),
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL ?? '',
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? '',
+  ADMIN_NAME: process.env.ADMIN_NAME ?? 'Administrator',
+  OAUTH_DEFAULT_ROLE: process.env.OAUTH_DEFAULT_ROLE ?? 'viewer',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
+  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? `${process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`}${GOOGLE_CALLBACK_PATH}`,
+  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID ?? '',
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET ?? '',
+  FACEBOOK_CALLBACK_URL: process.env.FACEBOOK_CALLBACK_URL ?? `${process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`}${FACEBOOK_CALLBACK_PATH}`,
   validateCriticalEnv,
 };

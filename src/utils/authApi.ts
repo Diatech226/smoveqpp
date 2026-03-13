@@ -5,6 +5,7 @@ import type { AppUser } from './securityPolicy';
 interface AuthApiPayload {
   user?: AppUser | null;
   csrfToken?: string | null;
+  providers?: Record<string, { enabled: boolean }>;
 }
 
 interface AuthApiError {
@@ -21,6 +22,7 @@ interface AuthApiResponse {
 export interface AuthResult {
   user: AppUser | null;
   csrfToken: string | null;
+  providers?: Record<string, { enabled: boolean }>;
   success: boolean;
   errorMessage: string | null;
   errorCode: string | null;
@@ -37,6 +39,7 @@ function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'SESSION_UNAUTHORIZED') return 'Session invalide. Merci de vous reconnecter.';
   if (code === 'AUTH_TIMEOUT') return 'Le serveur tarde à répondre. Réessayez.';
   if (code === 'AUTH_OFFLINE') return 'Connexion indisponible. Vérifiez votre réseau.';
+  if (code === 'REGISTRATION_DISABLED') return 'Inscription publique désactivée.';
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
   return 'Erreur d’authentification.';
 }
@@ -51,6 +54,7 @@ export function normalizeAuthPayload(payload: AuthApiResponse | null, status: nu
   return {
     user: data?.user ?? null,
     csrfToken: data?.csrfToken ?? null,
+    providers: data?.providers,
     success,
     errorCode,
     errorMessage: success ? null : explicitMessage ?? fallbackErrorMessage(errorCode, status),
@@ -62,6 +66,7 @@ function networkFailure(errorCode: string): AuthResult {
   return {
     user: null,
     csrfToken: null,
+    providers: undefined,
     success: false,
     errorCode,
     errorMessage: fallbackErrorMessage(errorCode, 0),
@@ -91,11 +96,7 @@ async function requestAuth(path: string, init: RequestInit = {}, csrfToken?: str
 
     const body = (await response.json().catch(() => null)) as AuthApiResponse | null;
     if (!body) {
-      logWarn({
-        scope: 'auth_api',
-        event: 'malformed_payload',
-        details: { path, status: response.status },
-      });
+      logWarn({ scope: 'auth_api', event: 'malformed_payload', details: { path, status: response.status } });
     }
 
     const normalized = normalizeAuthPayload(body, response.status);
@@ -136,8 +137,16 @@ export function loginWithApi(email: string, password: string, csrfToken?: string
   return requestAuth('/login', { method: 'POST', body: JSON.stringify({ email, password }) }, csrfToken);
 }
 
-export function registerWithApi(email: string, password: string, name: string, csrfToken?: string | null): Promise<AuthResult> {
-  return requestAuth('/register', { method: 'POST', body: JSON.stringify({ email, password, name }) }, csrfToken);
+export function fetchOAuthProviders(csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/oauth/providers', { method: 'GET' }, csrfToken);
+}
+
+export function oauthLoginWithApi(
+  provider: 'google' | 'facebook',
+  payload: { email: string; name: string; providerId: string },
+  csrfToken?: string | null,
+): Promise<AuthResult> {
+  return requestAuth(`/oauth/${provider}`, { method: 'POST', body: JSON.stringify(payload) }, csrfToken);
 }
 
 export function logoutWithApi(csrfToken?: string | null): Promise<AuthResult> {

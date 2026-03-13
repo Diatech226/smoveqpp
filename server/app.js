@@ -13,6 +13,7 @@ const { AuthService } = require('./services/authService');
 const { buildAuthController } = require('./controllers/authController');
 const { createAuthRoutes } = require('./routes/authRoutes');
 const { sendError } = require('./utils/apiResponse');
+const { createOAuthConfig } = require('./config/passport');
 
 const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
 
@@ -47,7 +48,14 @@ function createApp(deps = {}) {
 
   const mongoose = getMongoose();
   const userRepository = deps.userRepository ?? (mongoose ? new MongoAuthRepository({ mongoose }) : new MemoryAuthRepository());
-  const authService = deps.authService ?? new AuthService({ userRepository });
+  const oauthConfig = createOAuthConfig();
+  const authService = deps.authService ?? new AuthService({
+    userRepository,
+    oauthProviders: {
+      google: { enabled: oauthConfig.googleEnabled },
+      facebook: { enabled: oauthConfig.facebookEnabled },
+    },
+  });
   const authController = deps.authController ?? buildAuthController({ authService });
 
   app.use(helmet({ contentSecurityPolicy: false }));

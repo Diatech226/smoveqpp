@@ -18,6 +18,31 @@ class MemoryAuthRepository {
     return null;
   }
 
+  async findByProvider(authProvider, providerId) {
+    for (const user of users.values()) {
+      if (user.authProvider === authProvider && user.providerId === String(providerId)) return { ...user };
+    }
+    return null;
+  }
+
+  async upsertOAuthUser(input) {
+    const existingByProvider = await this.findByProvider(input.authProvider, input.providerId);
+    if (existingByProvider) {
+      const updated = normalizeUserInput({ ...existingByProvider, ...input, id: existingByProvider.id });
+      users.set(updated.id, updated);
+      return { ...updated };
+    }
+
+    const existingByEmail = await this.findByEmailWithPassword(input.email);
+    if (existingByEmail) {
+      const updated = normalizeUserInput({ ...existingByEmail, ...input, id: existingByEmail.id });
+      users.set(updated.id, updated);
+      return { ...updated };
+    }
+
+    return this.create(input);
+  }
+
   async findById(id) {
     const user = users.get(String(id));
     return user ? { ...user } : null;

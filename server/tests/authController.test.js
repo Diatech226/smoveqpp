@@ -35,6 +35,17 @@ describe('auth controller session and logout', () => {
     expect(typeof res.body.data.csrfToken).toBe('string');
   });
 
+  it('register endpoint responds forbidden', async () => {
+    const authController = buildAuthController({
+      authService: { register: async () => ({ ok: false, status: 403, code: 'REGISTRATION_DISABLED', message: 'disabled' }) },
+    });
+    const req = { session: {}, body: {} };
+    const res = createRes();
+
+    await authController.register(req, res);
+    expect(res.statusCode).toBe(403);
+  });
+
   it('logout destroys session cleanly', async () => {
     const authController = buildAuthController({ authService: {} });
     const req = { session: { destroy: (cb) => cb() } };
