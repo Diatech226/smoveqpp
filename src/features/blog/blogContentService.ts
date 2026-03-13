@@ -16,6 +16,11 @@ export interface BlogListItem {
     title: string;
     description: string;
     canonicalSlug: string;
+    socialImage: string;
+  };
+  media: {
+    alt: string;
+    caption: string;
   };
 }
 
@@ -47,6 +52,10 @@ const toListItem = (entry: ReturnType<typeof toCanonicalBlogEntry>, featuredId?:
   readTime: entry.readTime,
   featured: featuredId ? featuredId === entry.id : false,
   seo: entry.seo,
+  media: {
+    alt: entry.media.alt,
+    caption: entry.media.caption,
+  },
 });
 
 const getCanonicalPublishedEntries = () =>

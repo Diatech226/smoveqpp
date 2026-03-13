@@ -1,9 +1,18 @@
 import type { BlogPost } from '../../domain/contentSchemas';
+import { BLOG_MEDIA_FALLBACK_QUERY, resolveBlogMediaReference } from './mediaReference';
 
 export interface CanonicalBlogSeo {
   title: string;
   description: string;
   canonicalSlug: string;
+  socialImage: string;
+}
+
+export interface CanonicalBlogMedia {
+  reference: string;
+  src: string;
+  alt: string;
+  caption: string;
 }
 
 export interface CanonicalBlogEntry {
@@ -19,6 +28,7 @@ export interface CanonicalBlogEntry {
   publishedDate: string;
   status: BlogPost['status'];
   seo: CanonicalBlogSeo;
+  media: CanonicalBlogMedia;
 }
 
 
@@ -39,9 +49,11 @@ export interface CmsBlogInput {
   readTime?: string;
   status: BlogPost['status'];
   publishedDate?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  canonicalSlug?: string;
+  socialImage?: string;
 }
-
-const FALLBACK_IMAGE_QUERY = 'blog article image';
 
 export function normalizeSlug(rawSlug: string, fallbackTitle?: string): string {
   const base = (rawSlug || fallbackTitle || '')
@@ -65,6 +77,11 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
   const excerpt = post.excerpt || post.content.slice(0, 160) || 'Contenu indisponible.';
   const title = post.title || 'Article sans titre';
   const slug = normalizeSlug(post.slug, title);
+  const media = resolveBlogMediaReference(post.featuredImage, title);
+  const seoTitle = post.seo?.title?.trim() || title;
+  const seoDescription = post.seo?.description?.trim() || excerpt;
+  const canonicalSlug = normalizeSlug(post.seo?.canonicalSlug || slug, title);
+  const socialImage = post.seo?.socialImage?.trim() || media.src;
 
   return {
     id: post.id,
@@ -74,15 +91,17 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
     content: post.content || '',
     author: post.author || 'Équipe SMOVE',
     category: post.category || 'Non classé',
-    featuredImage: post.featuredImage || FALLBACK_IMAGE_QUERY,
+    featuredImage: media.src,
     readTime: post.readTime || '5 min',
     publishedDate: safeDateString(post.publishedDate),
     status: post.status,
     seo: {
-      title,
-      description: excerpt,
-      canonicalSlug: slug,
+      title: seoTitle,
+      description: seoDescription,
+      canonicalSlug,
+      socialImage,
     },
+    media,
   };
 }
 
@@ -104,6 +123,12 @@ export function evaluatePublishability(entry: CanonicalBlogEntry): Publishabilit
   }
   if (!entry.excerpt.trim()) {
     reasons.push('missing_excerpt');
+  }
+  if (!entry.seo.title.trim()) {
+    reasons.push('missing_seo_title');
+  }
+  if (!entry.seo.description.trim()) {
+    reasons.push('missing_seo_description');
   }
 
   return {
@@ -129,8 +154,14 @@ export function fromCmsBlogInput(input: CmsBlogInput): BlogPost {
     tags: [],
     publishedDate: input.publishedDate || new Date().toISOString(),
     readTime: input.readTime?.trim() || '5 min',
-    featuredImage: input.featuredImage?.trim() || FALLBACK_IMAGE_QUERY,
+    featuredImage: input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
     images: input.featuredImage?.trim() ? [input.featuredImage.trim()] : [],
     status: input.status,
+    seo: {
+      title: input.seoTitle?.trim() || title,
+      description: input.seoDescription?.trim() || excerpt,
+      canonicalSlug: normalizeSlug(input.canonicalSlug || slug, title),
+      socialImage: input.socialImage?.trim() || input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
+    },
   };
 }

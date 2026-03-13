@@ -4,6 +4,7 @@ import { mediaRepository } from './mediaRepository';
 import { projectRepository } from './projectRepository';
 import { cmsRepository } from './cmsRepository';
 import type { BlogPost, MediaFile } from '../domain/contentSchemas';
+import { toMediaReference } from '../features/blog/mediaReference';
 
 class MemoryStorage {
   private store = new Map<string, string>();
@@ -103,6 +104,19 @@ describe('blogRepository', () => {
     expect(migrated?.status).toBe('draft');
   });
 
+  it('rejects dangling media references during save', () => {
+    const seed = blogRepository.getAll()[0];
+
+    expect(() =>
+      blogRepository.save({
+        ...seed,
+        id: 'invalid-media-ref-post',
+        slug: 'invalid-media-ref-post',
+        featuredImage: toMediaReference('missing-asset'),
+      }),
+    ).toThrowError(BlogRepositoryError);
+  });
+
 });
 
 describe('mediaRepository', () => {
@@ -129,6 +143,7 @@ describe('mediaRepository', () => {
     mediaRepository.save(file);
 
     expect(mediaRepository.getById('media-1')?.name).toBe('hero.jpg');
+    expect(mediaRepository.getById('media-1')?.caption).toBe('hero');
   });
 });
 

@@ -239,6 +239,28 @@ This iteration is intentionally constrained:
 - Centralized slug-detail resolution on canonical entries to reduce divergence between listing and detail contracts.
 - Kept blog visual output unchanged while making publish/read assumptions explicit in the data layer.
 
+## Iteration 5 execution update (implemented)
+
+### Media reliability and normalization
+- Introduced a canonical media reference pattern for blog featured assets (`media:<id>`) with safe resolution and fallback behavior.
+- Hardened repository validation to reject dangling media references at save-time instead of publishing broken asset links.
+- Normalized media persistence (`alt`, `caption`, tags) to improve consistency between CMS pickers and blog consumption.
+
+### SEO metadata readiness without visual redesign
+- Extended canonical blog contracts with deterministic SEO metadata (`title`, `description`, `canonicalSlug`, `socialImage`) and migration-safe defaults.
+- Added CMS blog editing support for SEO-safe fields (SEO title/description/canonical slug) inside the existing form language.
+- Added non-visual blog metadata hydration (`document.title`, description meta, canonical link) driven by published content contract.
+
+### CMS productivity and trust hardening
+- Added explicit invalid-media feedback in CMS save flows to make asset integrity failures visible and recoverable.
+- Added unsaved-change guardrails in blog editor mode to reduce accidental content loss during repeated edit operations.
+- Kept CMS interaction model incremental and visually aligned while improving save/publish confidence signals.
+
+### Deferred to Iteration 6
+- Full media upload lifecycle UX (upload, replace, deprecate) with stronger asset governance.
+- Expanded SEO governance (length checks, duplication checks, advanced social cards) across all content types.
+- Browser e2e coverage for CMS media-linked publish flows and metadata integrity checks.
+
 ### CMS ↔ Blog publishing bridge
 - Reinforced the bridge around canonical adapters by ensuring frontend contracts are derived only from publishable canonical entries.
 - Kept backward-safe behavior for existing seeded and CMS-authored entries while clarifying the contract for future persistent publishing orchestration.
