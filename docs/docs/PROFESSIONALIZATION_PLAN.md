@@ -1,9 +1,15 @@
 # Production Readiness Plan (Current-State Based)
 
-Last updated: 2026-03-14 (iteration: release-readiness hardening)
+Last updated: 2026-03-14 (iteration: operational durability hardening)
 
 ## Current status
 
+
+### Latest iteration progress (P4 operational durability hardening)
+- Added schema-versioned content store normalization (`schemaVersion`, `migrationHistory`) so legacy content upgrades are explicit and replayable on read/write.
+- Added durable file-backed audit persistence (`server/data/audit-log.json`) and expanded CMS/content action auditing beyond ephemeral in-memory buffers.
+- Added backend media upload foundation (`POST /api/v1/content/media/upload`) with size/type validation, deterministic server-side naming, checksum metadata, and local-disk persistence under `server/data/uploads`.
+- Added operations scripts (`ops:backup`, `ops:restore`, `ops:verify-integrity`) and runbooks for deployment, rollback, and auth/content recovery.
 
 ### Latest iteration progress (P3 release-readiness hardening)
 - Added real-browser Playwright critical-flow E2E suite covering register/login/logout, client/admin route behavior, CMS access control, blog publish workflow, and page-content/media paths.

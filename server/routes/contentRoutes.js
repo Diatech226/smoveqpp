@@ -13,7 +13,51 @@ function logContentFailure(req, event, code, details = {}) {
   });
 }
 
-function createContentRoutes({ contentService }) {
+function toAuditContext(req, eventType, outcome, payload = {}) {
+  return {
+    eventType,
+    outcome,
+    actor: {
+      userId: req.session?.userId ?? null,
+      role: req.session?.role ?? null,
+      ip: req.ip || null,
+    },
+    target: {
+      entityType: payload.entityType || null,
+      entityId: payload.entityId || null,
+    },
+    request: {
+      requestId: req.requestId ?? null,
+      method: req.method,
+      path: req.originalUrl,
+    },
+    metadata: payload.metadata || {},
+  };
+}
+
+function parseUploadPayload(payload) {
+  const rawDataUrl = typeof payload?.dataUrl === 'string' ? payload.dataUrl.trim() : '';
+  const dataUrlMatch = rawDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+
+  if (!dataUrlMatch) {
+    return { ok: false, error: { code: 'MEDIA_INVALID_PAYLOAD', message: 'Expected media dataUrl with base64 payload.' } };
+  }
+
+  return {
+    ok: true,
+    parsed: {
+      filename: `${payload?.filename || 'media-file'}`,
+      mimeType: dataUrlMatch[1],
+      encodedFile: dataUrlMatch[2],
+      title: `${payload?.title || payload?.filename || ''}`.trim(),
+      alt: `${payload?.alt || payload?.filename || ''}`.trim(),
+      caption: `${payload?.caption || ''}`.trim(),
+      tags: Array.isArray(payload?.tags) ? payload.tags.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+    },
+  };
+}
+
+function createContentRoutes({ contentService, auditService, mediaStorage }) {
   const router = express.Router();
 
   router.use(requireAuthenticated);
@@ -30,15 +74,18 @@ function createContentRoutes({ contentService }) {
     const result = contentService.saveBlogPost(req.body);
     if (!result.ok) {
       logContentFailure(req, 'cms_blog_save_failed', result.error.code);
+      auditService?.record(toAuditContext(req, 'cms_blog_save', 'failure', { entityType: 'blog_post', metadata: { code: result.error.code } }));
       return sendError(res, 400, result.error.code, result.error.message);
     }
     logInfo('cms_blog_saved', { requestId: req.requestId, userId: req.session?.userId ?? null, postId: result.post.id });
+    auditService?.record(toAuditContext(req, 'cms_blog_save', 'success', { entityType: 'blog_post', entityId: result.post.id }));
     return sendSuccess(res, { post: result.post });
   });
 
   router.delete('/blog/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     contentService.deleteBlogPost(req.params.id);
     logInfo('cms_blog_deleted', { requestId: req.requestId, userId: req.session?.userId ?? null, postId: req.params.id });
+    auditService?.record(toAuditContext(req, 'cms_blog_delete', 'success', { entityType: 'blog_post', entityId: req.params.id }));
     return sendSuccess(res, { deleted: true });
   });
 
@@ -47,6 +94,11 @@ function createContentRoutes({ contentService }) {
 
     if (status === 'published' && req.session?.role === 'author') {
       logContentFailure(req, 'cms_blog_transition_failed', 'FORBIDDEN', { targetStatus: status, postId: req.params.id });
+      auditService?.record(toAuditContext(req, 'cms_blog_transition', 'failure', {
+        entityType: 'blog_post',
+        entityId: req.params.id,
+        metadata: { code: 'FORBIDDEN', targetStatus: status },
+      }));
       return sendError(res, 403, 'FORBIDDEN', 'Authors cannot publish content directly.');
     }
 
@@ -54,9 +106,19 @@ function createContentRoutes({ contentService }) {
     if (!result.ok) {
       const statusCode = result.error.code === 'BLOG_NOT_FOUND' ? 404 : 400;
       logContentFailure(req, 'cms_blog_transition_failed', result.error.code, { targetStatus: status, postId: req.params.id });
+      auditService?.record(toAuditContext(req, 'cms_blog_transition', 'failure', {
+        entityType: 'blog_post',
+        entityId: req.params.id,
+        metadata: { code: result.error.code, targetStatus: status },
+      }));
       return sendError(res, statusCode, result.error.code, result.error.message);
     }
 
+    auditService?.record(toAuditContext(req, 'cms_blog_transition', 'success', {
+      entityType: 'blog_post',
+      entityId: req.params.id,
+      metadata: { targetStatus: status },
+    }));
     return sendSuccess(res, { post: result.post });
   });
 
@@ -67,30 +129,93 @@ function createContentRoutes({ contentService }) {
     const result = contentService.saveProject(req.body);
     if (!result.ok) {
       logContentFailure(req, 'cms_project_save_failed', result.error.code);
+      auditService?.record(toAuditContext(req, 'cms_project_save', 'failure', { entityType: 'project', metadata: { code: result.error.code } }));
       return sendError(res, 400, result.error.code, result.error.message);
     }
+    auditService?.record(toAuditContext(req, 'cms_project_save', 'success', { entityType: 'project', entityId: result.project.id }));
     return sendSuccess(res, { project: result.project });
   });
 
   router.delete('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     contentService.deleteProject(req.params.id);
+    auditService?.record(toAuditContext(req, 'cms_project_delete', 'success', { entityType: 'project', entityId: req.params.id }));
     return sendSuccess(res, { deleted: true });
   });
 
   router.get('/media', requirePermission(Permissions.CONTENT_READ), (req, res) =>
     sendSuccess(res, { mediaFiles: contentService.listMediaFiles() }));
 
+  router.post('/media/upload', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const parsed = parseUploadPayload(req.body || {});
+    if (!parsed.ok) {
+      auditService?.record(toAuditContext(req, 'cms_media_upload', 'failure', { entityType: 'media_asset', metadata: { code: parsed.error.code } }));
+      return sendError(res, 400, parsed.error.code, parsed.error.message);
+    }
+
+    const stored = mediaStorage.saveBase64Upload(parsed.parsed);
+    if (!stored.ok) {
+      logContentFailure(req, 'cms_media_upload_failed', stored.error.code);
+      auditService?.record(toAuditContext(req, 'cms_media_upload', 'failure', { entityType: 'media_asset', metadata: { code: stored.error.code } }));
+      return sendError(res, 400, stored.error.code, stored.error.message);
+    }
+
+    const now = new Date().toISOString();
+    const mediaPayload = {
+      id: stored.file.id,
+      name: parsed.parsed.filename,
+      title: parsed.parsed.title || parsed.parsed.filename,
+      label: parsed.parsed.title || parsed.parsed.filename,
+      type: stored.file.mediaType,
+      url: stored.file.publicUrl,
+      thumbnailUrl: stored.file.publicUrl,
+      size: stored.file.size,
+      uploadedDate: now,
+      uploadedBy: req.session?.userId ?? 'unknown',
+      alt: parsed.parsed.alt || parsed.parsed.filename,
+      caption: parsed.parsed.caption || parsed.parsed.alt || parsed.parsed.filename,
+      tags: parsed.parsed.tags,
+      source: 'local-disk',
+      metadata: {
+        mimeType: stored.file.mimeType,
+        checksumSha256: stored.file.checksumSha256,
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const saved = contentService.saveMediaFile(mediaPayload);
+    if (!saved.ok) {
+      logContentFailure(req, 'cms_media_save_failed', saved.error.code);
+      auditService?.record(toAuditContext(req, 'cms_media_upload', 'failure', {
+        entityType: 'media_asset',
+        entityId: stored.file.id,
+        metadata: { code: saved.error.code },
+      }));
+      return sendError(res, 400, saved.error.code, saved.error.message);
+    }
+
+    auditService?.record(toAuditContext(req, 'cms_media_upload', 'success', {
+      entityType: 'media_asset',
+      entityId: stored.file.id,
+      metadata: { mimeType: stored.file.mimeType, size: stored.file.size },
+    }));
+    return sendSuccess(res, { mediaFile: saved.mediaFile });
+  });
+
   router.post('/media', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const result = contentService.saveMediaFile(req.body);
     if (!result.ok) {
       logContentFailure(req, 'cms_media_save_failed', result.error.code);
+      auditService?.record(toAuditContext(req, 'cms_media_save', 'failure', { entityType: 'media_asset', metadata: { code: result.error.code } }));
       return sendError(res, 400, result.error.code, result.error.message);
     }
+    auditService?.record(toAuditContext(req, 'cms_media_save', 'success', { entityType: 'media_asset', entityId: result.mediaFile.id }));
     return sendSuccess(res, { mediaFile: result.mediaFile });
   });
 
   router.delete('/media/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     contentService.deleteMediaFile(req.params.id);
+    auditService?.record(toAuditContext(req, 'cms_media_delete', 'success', { entityType: 'media_asset', entityId: req.params.id }));
     return sendSuccess(res, { deleted: true });
   });
 
@@ -101,8 +226,10 @@ function createContentRoutes({ contentService }) {
     const result = contentService.savePageContent(req.body);
     if (!result.ok) {
       logContentFailure(req, 'cms_page_content_save_failed', result.error.code);
+      auditService?.record(toAuditContext(req, 'cms_page_content_save', 'failure', { entityType: 'page_content', metadata: { code: result.error.code } }));
       return sendError(res, 400, result.error.code, result.error.message);
     }
+    auditService?.record(toAuditContext(req, 'cms_page_content_save', 'success', { entityType: 'page_content', entityId: 'home' }));
     return sendSuccess(res, { pageContent: result.pageContent });
   });
 
@@ -113,9 +240,16 @@ function createContentRoutes({ contentService }) {
     const result = contentService.saveSettings(req.body);
     if (!result.ok) {
       logContentFailure(req, 'cms_settings_save_failed', result.error.code);
+      auditService?.record(toAuditContext(req, 'cms_settings_save', 'failure', { entityType: 'cms_settings', metadata: { code: result.error.code } }));
       return sendError(res, 400, result.error.code, result.error.message);
     }
+    auditService?.record(toAuditContext(req, 'cms_settings_save', 'success', { entityType: 'cms_settings', entityId: 'global' }));
     return sendSuccess(res, { settings: result.settings });
+  });
+
+  router.get('/admin/audit-events', requirePermission(Permissions.USER_MANAGE), (req, res) => {
+    const events = auditService?.list({ limit: req.query?.limit }) || [];
+    return sendSuccess(res, { events });
   });
 
   return router;

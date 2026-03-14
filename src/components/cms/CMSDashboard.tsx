@@ -17,8 +17,9 @@ import {
   RotateCcw,
   Archive,
   Users,
+  Upload,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useAuth, type AuthAuditEvent } from '../../contexts/AuthContext';
 import type { AppUser } from '../../utils/securityPolicy';
 import { blogRepository, BlogRepositoryError } from '../../repositories/blogRepository';
@@ -43,6 +44,7 @@ import {
   saveBackendProject,
   saveBackendSettings,
   transitionBackendBlogPost,
+  uploadBackendMediaFile,
   type CmsSettings,
   type EditorialAnalytics,
 } from '../../utils/contentApi';
@@ -151,6 +153,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [projectFormErrors, setProjectFormErrors] = useState<Partial<Record<keyof ProjectFormState, string>>>({});
   const [mediaQuery, setMediaQuery] = useState('');
   const [selectedMediaId, setSelectedMediaId] = useState<string>('');
+  const [mediaUploadError, setMediaUploadError] = useState('');
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [homeContentForm, setHomeContentForm] = useState<HomePageContentSettings>(() => pageContentRepository.getHomePageContent());
   const [homeContentSaving, setHomeContentSaving] = useState(false);
   const [homeContentError, setHomeContentError] = useState('');
@@ -715,6 +719,51 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
+
+  const handleMediaUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setMediaUploadError('');
+    setIsUploadingMedia(true);
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result !== 'string') {
+            reject(new Error('Invalid media payload'));
+            return;
+          }
+          resolve(reader.result);
+        };
+        reader.onerror = () => reject(new Error('Failed to read media file'));
+        reader.readAsDataURL(file);
+      });
+
+      const uploaded = await requestWithRetry(
+        () =>
+          uploadBackendMediaFile({
+            filename: file.name,
+            title: file.name,
+            dataUrl,
+            alt: file.name,
+          }),
+        { retries: 1, retryDelayMs: 250 },
+      );
+
+      mediaRepository.save(uploaded);
+      setSelectedMediaId(uploaded.id);
+      setMediaVersion((version) => version + 1);
+      showSuccess('Média uploadé et persisté sur le serveur.');
+    } catch (error) {
+      setMediaUploadError('Upload média impossible (format/taille ou backend indisponible).');
+    } finally {
+      setIsUploadingMedia(false);
+      event.currentTarget.value = '';
+    }
+  };
+
   const deleteSelectedMedia = async () => {
     if (!selectedMedia) return;
     if (!canDeleteContent) {
@@ -1235,8 +1284,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           <AdminPageHeader title="Médiathèque" subtitle="Fichiers validés et prêts à être utilisés dans le contenu CMS." />
           <AdminActionBar>
             <input value={mediaQuery} onChange={(event) => setMediaQuery(event.target.value)} placeholder="Rechercher un média (nom, alt, tag)…" className="w-full max-w-[420px] rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]" />
+            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41] cursor-pointer">
+              <Upload size={14} /> {isUploadingMedia ? 'Upload…' : 'Uploader un fichier'}
+              <input type="file" className="hidden" onChange={handleMediaUpload} disabled={!canEditContent || isUploadingMedia} />
+            </label>
             <button type="button" onClick={() => { setMediaQuery(''); setSelectedMediaId(''); }} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] text-[14px]">Réinitialiser</button>
           </AdminActionBar>
+          {mediaUploadError ? <AdminErrorState label={mediaUploadError} /> : null}
           <div className="grid lg:grid-cols-[2fr_1fr] gap-4">
             <AdminPanel title="Ressources médias">
               {filteredMediaFiles.length === 0 ? (

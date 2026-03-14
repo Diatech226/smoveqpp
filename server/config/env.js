@@ -52,6 +52,15 @@ const PUBLIC_REGISTRATION_ENABLED = parseBoolean(
   true,
 );
 
+const CONTENT_SCHEMA_VERSION = parseIntOrDefault(process.env.CONTENT_SCHEMA_VERSION, 2);
+const MEDIA_UPLOAD_DIR = process.env.MEDIA_UPLOAD_DIR ?? path.resolve(process.cwd(), 'server/data/uploads');
+const MEDIA_PUBLIC_BASE_PATH = process.env.MEDIA_PUBLIC_BASE_PATH ?? '/uploads';
+const MEDIA_MAX_UPLOAD_BYTES = parseIntOrDefault(process.env.MEDIA_MAX_UPLOAD_BYTES, 5 * 1024 * 1024);
+const MEDIA_ALLOWED_MIME_TYPES = (process.env.MEDIA_ALLOWED_MIME_TYPES ?? 'image/jpeg,image/png,image/webp,image/gif,video/mp4,application/pdf')
+  .split(',')
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+
 function assertSessionSecretStrength() {
   const looksDefault = SESSION_SECRET === 'dev-session-secret-change-me';
   const tooShort = SESSION_SECRET.length < 32;
@@ -117,5 +126,10 @@ module.exports = {
   SMTP_PASS: process.env.SMTP_PASS ?? '',
   EMAIL_FROM: process.env.EMAIL_FROM ?? 'noreply@localhost',
   APP_BASE_URL: process.env.APP_BASE_URL ?? process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
+  CONTENT_SCHEMA_VERSION,
+  MEDIA_UPLOAD_DIR,
+  MEDIA_PUBLIC_BASE_PATH,
+  MEDIA_MAX_UPLOAD_BYTES,
+  MEDIA_ALLOWED_MIME_TYPES,
   validateCriticalEnv,
 };

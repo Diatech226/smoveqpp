@@ -1,48 +1,118 @@
 const fs = require('fs');
 const path = require('path');
+const { CONTENT_SCHEMA_VERSION } = require('../config/env');
 const { logWarn } = require('../utils/logger');
 
-const DATA_PATH = path.join(__dirname, '..', 'data', 'content.json');
+const DATA_DIR = path.resolve(process.cwd(), 'server/data');
+const DATA_PATH = path.join(DATA_DIR, 'content.json');
 
 const defaultState = {
+  schemaVersion: CONTENT_SCHEMA_VERSION,
   blogPosts: [],
   projects: [],
   mediaFiles: [],
   pageContent: null,
   settings: null,
+  migrationHistory: [],
 };
 
 function ensureStore() {
-  const dir = path.dirname(DATA_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
   }
+
   if (!fs.existsSync(DATA_PATH)) {
     fs.writeFileSync(DATA_PATH, JSON.stringify(defaultState, null, 2));
   }
 }
 
+function normalizeState(candidate = {}) {
+  return {
+    schemaVersion: Number(candidate.schemaVersion) || 1,
+    blogPosts: Array.isArray(candidate.blogPosts) ? candidate.blogPosts : [],
+    projects: Array.isArray(candidate.projects) ? candidate.projects : [],
+    mediaFiles: Array.isArray(candidate.mediaFiles) ? candidate.mediaFiles : [],
+    pageContent: candidate.pageContent && typeof candidate.pageContent === 'object' ? candidate.pageContent : null,
+    settings: candidate.settings && typeof candidate.settings === 'object' ? candidate.settings : null,
+    migrationHistory: Array.isArray(candidate.migrationHistory) ? candidate.migrationHistory : [],
+  };
+}
+
+function migrateState(state) {
+  const migrated = { ...state };
+
+  while (migrated.schemaVersion < CONTENT_SCHEMA_VERSION) {
+    const fromVersion = migrated.schemaVersion;
+
+    if (fromVersion < 2) {
+      migrated.blogPosts = Array.isArray(migrated.blogPosts)
+        ? migrated.blogPosts.map((post) => ({
+            ...post,
+            status: ['draft', 'in_review', 'published', 'archived'].includes(post?.status) ? post.status : 'draft',
+          }))
+        : [];
+
+      migrated.mediaFiles = Array.isArray(migrated.mediaFiles)
+        ? migrated.mediaFiles.map((file) => ({
+            ...file,
+            source: typeof file?.source === 'string' && file.source.trim() ? file.source : 'legacy-content-store',
+            metadata: file?.metadata && typeof file.metadata === 'object' ? file.metadata : {},
+            createdAt: file?.createdAt || file?.uploadedDate || new Date().toISOString(),
+            updatedAt: file?.updatedAt || file?.uploadedDate || new Date().toISOString(),
+          }))
+        : [];
+
+      migrated.migrationHistory.push({
+        fromVersion,
+        toVersion: 2,
+        migratedAt: new Date().toISOString(),
+        note: 'Backfilled blog status and media metadata defaults.',
+      });
+      migrated.schemaVersion = 2;
+      continue;
+    }
+
+    break;
+  }
+
+  return migrated;
+}
+
 function readState() {
   ensureStore();
+
+  let parsed;
   try {
-    const raw = fs.readFileSync(DATA_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
-    return {
-      blogPosts: Array.isArray(parsed.blogPosts) ? parsed.blogPosts : [],
-      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-      mediaFiles: Array.isArray(parsed.mediaFiles) ? parsed.mediaFiles : [],
-      pageContent: parsed.pageContent && typeof parsed.pageContent === 'object' ? parsed.pageContent : null,
-      settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : null,
-    };
+    parsed = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
   } catch (error) {
-    logWarn('content_repository_read_failed', { message: error?.message, path: DATA_PATH });
-    return { ...defaultState };
+    logWarn('content_store_read_failed', { reason: error?.message || 'unknown_error' });
+    parsed = { ...defaultState };
   }
+
+  const normalized = normalizeState(parsed);
+  const migrated = migrateState(normalized);
+
+  if (migrated.schemaVersion !== normalized.schemaVersion || migrated.migrationHistory.length !== normalized.migrationHistory.length) {
+    writeState(migrated);
+  }
+
+  return migrated;
 }
 
 function writeState(state) {
   ensureStore();
-  fs.writeFileSync(DATA_PATH, JSON.stringify(state, null, 2));
+  fs.writeFileSync(
+    DATA_PATH,
+    JSON.stringify(
+      {
+        ...defaultState,
+        ...normalizeState(state),
+        schemaVersion: CONTENT_SCHEMA_VERSION,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 class FileContentRepository {
@@ -51,13 +121,7 @@ class FileContentRepository {
   }
 
   saveState(state) {
-    writeState({
-      ...defaultState,
-      ...state,
-      blogPosts: Array.isArray(state.blogPosts) ? state.blogPosts : [],
-      projects: Array.isArray(state.projects) ? state.projects : [],
-      mediaFiles: Array.isArray(state.mediaFiles) ? state.mediaFiles : [],
-    });
+    writeState(state);
   }
 
   getBlogPosts() {
