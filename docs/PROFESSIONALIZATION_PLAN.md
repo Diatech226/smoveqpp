@@ -357,3 +357,28 @@ This iteration is intentionally constrained:
 - Replace dev-token fallback with full transactional email provider integration + audit trail.
 - Add account password/session revocation flows after sensitive identity actions.
 - Expand admin moderation guardrails (reason codes, actor audit events, bulk operations).
+
+## Iteration 6 execution update (implemented)
+
+### Identity admin operations hardening
+- Strengthened admin user management guardrails in CMS and backend: explicit role/status/provider/verification visibility, safer action states, and no silent update failures.
+- Restricted sensitive role mutation to admin actors server-side and blocked self-role/self-suspension edge cases.
+- Added lightweight admin audit visibility in CMS for recent identity events to support operational debugging.
+
+### Account moderation and auth-state alignment
+- Enforced coherent suspension behavior across login/session resolution so suspended accounts cannot continue normal authentication flows.
+- Clarified account lifecycle handling in admin update paths and frontend messaging for suspended-account outcomes.
+
+### Email delivery operationalization
+- Added email delivery service abstraction with SMTP-driven delivery when credentials are present and explicit dev fallback when unavailable.
+- Wired verification and password-reset messages to the delivery service with deterministic URLs and expiration metadata.
+- Added password reset request/confirm API flows to complete core account recovery operations.
+
+### Auditability baseline
+- Upgraded auth event logging into a structured, sanitized audit trail (bounded in-memory ring buffer) with secrets and email redaction.
+- Added admin-only API endpoint for recent audit events and integrated audit refresh into user-management operations.
+
+### Deferred to Iteration 7
+- Persistent audit store (DB-backed) with filtering/export support.
+- Full frontend UX for self-service password reset pages and invite/deactivation lifecycle.
+- Fine-grained admin policy model (multi-admin approvals for destructive account operations).

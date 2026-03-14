@@ -1,9 +1,27 @@
 const { createApp } = require('./app');
 const { connectMongo, getMongoose, getMongoConnectionState } = require('./config/mongo');
-const { API_PORT, validateCriticalEnv, SEED_ADMIN_ON_START, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME, AUTH_STORAGE_MODE, PUBLIC_REGISTRATION_ENABLED } = require('./config/env');
+const {
+  API_PORT,
+  validateCriticalEnv,
+  SEED_ADMIN_ON_START,
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  ADMIN_NAME,
+  AUTH_STORAGE_MODE,
+  PUBLIC_REGISTRATION_ENABLED,
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_SECURE,
+  SMTP_USER,
+  SMTP_PASS,
+  EMAIL_FROM,
+  APP_BASE_URL,
+} = require('./config/env');
 const { MongoAuthRepository } = require('./repositories/authRepository.mongo');
 const { MemoryAuthRepository } = require('./repositories/authRepository.memory');
 const { AuthService } = require('./services/authService');
+const { createOAuthConfig } = require('./config/passport');
+const { EmailService } = require('./services/emailService');
 
 async function bootstrap() {
   validateCriticalEnv();
@@ -13,7 +31,24 @@ async function bootstrap() {
   const mongoState = getMongoConnectionState();
   const usingMongoAuth = Boolean(mongoose);
   const userRepository = usingMongoAuth ? new MongoAuthRepository({ mongoose }) : new MemoryAuthRepository();
-  const authService = new AuthService({ userRepository });
+  const oauthConfig = createOAuthConfig();
+  const emailService = new EmailService({
+    smtpHost: SMTP_HOST,
+    smtpPort: SMTP_PORT,
+    smtpSecure: SMTP_SECURE,
+    smtpUser: SMTP_USER,
+    smtpPass: SMTP_PASS,
+    from: EMAIL_FROM,
+    appBaseUrl: APP_BASE_URL,
+  });
+  const authService = new AuthService({
+    userRepository,
+    oauthProviders: {
+      google: { enabled: oauthConfig.googleEnabled },
+      facebook: { enabled: oauthConfig.facebookEnabled },
+    },
+    emailService,
+  });
 
   if (usingMongoAuth) {
     console.log('[auth] MongoDB connected');
@@ -23,6 +58,7 @@ async function bootstrap() {
 
   console.log(`[auth] storage_mode=${usingMongoAuth ? 'mongo' : 'memory'} (AUTH_STORAGE_MODE=${AUTH_STORAGE_MODE})`);
   console.log(`[auth] public_registration=${PUBLIC_REGISTRATION_ENABLED ? 'enabled' : 'disabled'}`);
+  console.log(`[auth] email_delivery=${emailService.isDeliveryReady() ? 'smtp' : 'dev-fallback'}`);
 
   if (SEED_ADMIN_ON_START) {
     const seedResult = await authService.seedAdminFromEnv({

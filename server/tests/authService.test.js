@@ -44,6 +44,22 @@ describe('AuthService', () => {
         user.lastLoginAt = date;
         return user;
       },
+      setPasswordResetToken: async (id, { tokenHash, expiresAt }) => {
+        const user = users.find((u) => u.id === String(id));
+        if (!user) return null;
+        user.passwordResetTokenHash = tokenHash;
+        user.passwordResetTokenExpiresAt = expiresAt;
+        return user;
+      },
+      findByPasswordResetTokenHash: async (tokenHash) => users.find((u) => u.passwordResetTokenHash === tokenHash) ?? null,
+      resetPasswordByToken: async (id, { passwordHash }) => {
+        const user = users.find((u) => u.id === String(id));
+        if (!user) return null;
+        user.passwordHash = passwordHash;
+        user.passwordResetTokenHash = null;
+        user.passwordResetTokenExpiresAt = null;
+        return user;
+      },
     };
     service = new AuthService({ userRepository: repository, oauthProviders: { google: { enabled: true }, facebook: { enabled: true } } });
   });
@@ -151,4 +167,32 @@ describe('AuthService', () => {
     expect(second.ok).toBe(true);
     expect(users).toHaveLength(1);
   });
+
+
+  it('non-admin cannot change roles through admin update flow', async () => {
+    await service.seedAdminFromEnv({ email: 'admin@x.com', password: 'password123', name: 'Admin' });
+    await service.register({ email: 'user@x.com', password: 'password123', name: 'User One' });
+
+    const target = users.find((u) => u.email === 'user@x.com');
+    const result = await service.updateUserByAdmin(target.id, { role: 'editor' }, { id: 'external', role: 'editor' });
+
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('FORBIDDEN_ROLE_CHANGE');
+  });
+
+  it('password reset request + confirm updates credentials', async () => {
+    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
+    await registerEnabledService.register({ email: 'recover@x.com', password: 'password123', name: 'Recover User' });
+
+    const resetRequest = await registerEnabledService.requestPasswordReset({ email: 'recover@x.com' });
+    expect(resetRequest.ok).toBe(true);
+    expect(resetRequest.devToken).toBeTruthy();
+
+    const resetConfirm = await registerEnabledService.resetPasswordWithToken({ token: resetRequest.devToken, password: 'newpassword123' });
+    expect(resetConfirm.ok).toBe(true);
+
+    const login = await registerEnabledService.login({ email: 'recover@x.com', password: 'newpassword123' });
+    expect(login.ok).toBe(true);
+  });
+
 });

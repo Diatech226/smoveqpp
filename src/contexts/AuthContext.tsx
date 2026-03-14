@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   fetchAdminUsers,
+  fetchAuthAuditEvents,
   fetchOAuthProviders,
   fetchServerSession,
   loginWithApi,
@@ -43,6 +44,14 @@ interface AuthSessionState {
   role: string | null;
 }
 
+export interface AuthAuditEvent {
+  at?: string;
+  event?: string;
+  outcome?: string;
+  userId?: string | null;
+  [key: string]: unknown;
+}
+
 interface AuthContextType {
   user: AppUser | null;
   authError: string | null;
@@ -53,6 +62,7 @@ interface AuthContextType {
   verifyEmail: (token: string) => Promise<AuthActionResult>;
   resendVerification: () => Promise<AuthActionResult>;
   fetchAdminUsers: () => Promise<AppUser[]>;
+  fetchAdminAuditEvents: () => Promise<AuthAuditEvent[]>;
   updateAdminUser: (userId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>) => Promise<AuthActionResult>;
   clearAuthNotice: () => void;
   logout: () => Promise<void>;
@@ -76,6 +86,7 @@ const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   verifyEmail: async () => ({ success: false, error: 'Vérification indisponible. Réessayez.', destination: null }),
   resendVerification: async () => ({ success: false, error: 'Vérification indisponible. Réessayez.', destination: null }),
   fetchAdminUsers: async () => [],
+  fetchAdminAuditEvents: async () => [],
   updateAdminUser: async () => ({ success: false, error: 'Mise à jour indisponible. Réessayez.', destination: null }),
   clearAuthNotice: () => undefined,
   logout: async () => undefined,
@@ -344,6 +355,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result.users.map((entry) => resolveTrustedSessionUser(entry)).filter(Boolean) as AppUser[];
   };
 
+
+  const fetchAdminAuditEventsSafe = async () => {
+    const result = await fetchAuthAuditEvents(csrfToken);
+    if (!result.success || !result.events) {
+      throw new Error(result.errorMessage ?? 'Impossible de charger le journal d’audit.');
+    }
+    return result.events as AuthAuditEvent[];
+  };
+
   const updateAdminUser = async (
     userId: string,
     patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>,
@@ -388,6 +408,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmail,
       resendVerification,
       fetchAdminUsers: fetchAdminUsersSafe,
+      fetchAdminAuditEvents: fetchAdminAuditEventsSafe,
       updateAdminUser,
       clearAuthNotice: () => setAuthNotice(null),
       logout,

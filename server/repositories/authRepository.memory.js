@@ -32,6 +32,13 @@ class MemoryAuthRepository {
     return null;
   }
 
+  async findByPasswordResetTokenHash(tokenHash) {
+    for (const user of users.values()) {
+      if (user.passwordResetTokenHash === String(tokenHash)) return { ...user };
+    }
+    return null;
+  }
+
   async upsertOAuthUser(input) {
     const existingByProvider = await this.findByProvider(input.authProvider, input.providerId);
     if (existingByProvider) {
@@ -92,6 +99,28 @@ class MemoryAuthRepository {
     user.emailVerified = true;
     user.emailVerificationTokenHash = null;
     user.emailVerificationTokenExpiresAt = null;
+    user.updatedAt = new Date();
+    users.set(user.id, user);
+    return { ...user };
+  }
+
+
+  async setPasswordResetToken(id, { tokenHash, expiresAt }) {
+    const user = users.get(String(id));
+    if (!user) return null;
+    user.passwordResetTokenHash = String(tokenHash);
+    user.passwordResetTokenExpiresAt = expiresAt;
+    user.updatedAt = new Date();
+    users.set(user.id, user);
+    return { ...user };
+  }
+
+  async resetPasswordByToken(id, { passwordHash }) {
+    const user = users.get(String(id));
+    if (!user) return null;
+    user.passwordHash = passwordHash;
+    user.passwordResetTokenHash = null;
+    user.passwordResetTokenExpiresAt = null;
     user.updatedAt = new Date();
     users.set(user.id, user);
     return { ...user };

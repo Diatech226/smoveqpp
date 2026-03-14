@@ -24,6 +24,8 @@ function normalizeUserInput(input) {
     emailVerificationTokenHash: input.emailVerificationTokenHash ? String(input.emailVerificationTokenHash) : null,
     emailVerificationTokenExpiresAt: input.emailVerificationTokenExpiresAt ?? null,
     lastLoginAt: input.lastLoginAt ?? null,
+    passwordResetTokenHash: input.passwordResetTokenHash ? String(input.passwordResetTokenHash) : null,
+    passwordResetTokenExpiresAt: input.passwordResetTokenExpiresAt ?? null,
     createdAt: input.createdAt ?? new Date(),
     updatedAt: input.updatedAt ?? new Date(),
   };
@@ -99,6 +101,14 @@ function createUserModel(mongoose) {
         default: null,
       },
       lastLoginAt: {
+        type: Date,
+        default: null,
+      },
+      passwordResetTokenHash: {
+        type: String,
+        default: null,
+      },
+      passwordResetTokenExpiresAt: {
         type: Date,
         default: null,
       },
