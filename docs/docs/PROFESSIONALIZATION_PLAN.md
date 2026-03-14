@@ -1,15 +1,15 @@
 # Production Readiness Plan (Current-State Based)
 
-Last updated: 2026-03-14 (iteration: content durability expansion)
+Last updated: 2026-03-14 (iteration: release-readiness hardening)
 
 ## Current status
 
 
-### Latest iteration progress (P2 durability expansion)
-- Expanded backend content API beyond blog to include projects, media metadata, page content, and CMS settings in the same persisted content store (`server/data/content.json`) via `ContentService` + `contentRoutes`.
-- CMS dashboard now performs backend-first loading/saving for projects, page content, and settings with explicit retry paths, and keeps controlled local fallback only when backend is unavailable.
-- Media operations now include backend-backed listing/deletion contracts and normalized metadata persistence path (without introducing full cloud DAM upload flow yet).
-- Error handling now maps backend operation failures to visible CMS feedback for critical write paths, reducing silent persistence failures.
+### Latest iteration progress (P3 release-readiness hardening)
+- Added real-browser Playwright critical-flow E2E suite covering register/login/logout, client/admin route behavior, CMS access control, blog publish workflow, and page-content/media paths.
+- Hardened session strategy with explicit `SESSION_STORE_MODE`, Mongo-backed production expectation, and fail-fast startup checks when production durability guarantees are not met.
+- Added baseline operability endpoints (`/api/v1/health`, `/api/v1/ready`) and structured JSON logs for request correlation, auth events, CMS write failures, and bootstrap mode diagnostics.
+- Upgraded release path with explicit production mode fail-fast checks and a committed browser E2E suite scaffold for critical flows (pending CI dependency policy enablement).
 
 ### Maturity snapshot
 The project is **pre-production** with strong structural progress: modular frontend shell/routing, a working auth API with CSRF/session/RBAC controls, and a functional CMS/blog workflow baseline. It is not yet production-ready due to persistence/session durability gaps, incomplete account lifecycle UX, and limited operational readiness.
@@ -25,8 +25,8 @@ The project is **pre-production** with strong structural progress: modular front
 - Persistent auth is optional and currently fragile in practice: `mongoose`/`connect-mongo` are not listed in dependencies, so deployments can silently run memory-only auth/session fallback.
 - Content persistence is mixed (backend file store + frontend localStorage repositories), creating source-of-truth drift risk.
 - Password reset APIs exist server-side, but no corresponding frontend reset flow routes/pages are wired.
-- Logging/auditability is mostly console/in-memory, without durable telemetry/alerting.
-- "Lint" and "typecheck" scripts are smoke checks, not full static analysis/type compilation gates.
+- Logging/auditability is improved with structured request/auth/CMS failure logs, but durable external telemetry/alerting is still pending.
+- Static-analysis gates remain smoke-oriented today; full lint/typecheck enforcement is still a tracked release blocker.
 
 ---
 

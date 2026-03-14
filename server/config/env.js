@@ -43,6 +43,10 @@ const AUTH_STORAGE_MODE = ['auto', 'mongo', 'memory'].includes(process.env.AUTH_
   ? process.env.AUTH_STORAGE_MODE
   : 'auto';
 
+const SESSION_STORE_MODE = ['auto', 'mongo', 'memory'].includes(process.env.SESSION_STORE_MODE)
+  ? process.env.SESSION_STORE_MODE
+  : 'auto';
+
 const PUBLIC_REGISTRATION_ENABLED = parseBoolean(
   process.env.PUBLIC_REGISTRATION_ENABLED ?? process.env.VITE_ENABLE_REGISTRATION,
   true,
@@ -63,6 +67,18 @@ function validateCriticalEnv() {
   if (AUTH_STORAGE_MODE === 'mongo' && !process.env.MONGO_URI) {
     throw new Error('MONGO_URI is required when AUTH_STORAGE_MODE is set to "mongo".');
   }
+
+  if (SESSION_STORE_MODE === 'mongo' && !process.env.MONGO_URI) {
+    throw new Error('MONGO_URI is required when SESSION_STORE_MODE is set to "mongo".');
+  }
+
+  if (isProduction && AUTH_STORAGE_MODE !== 'mongo') {
+    throw new Error('AUTH_STORAGE_MODE must be set to "mongo" in production.');
+  }
+
+  if (isProduction && SESSION_STORE_MODE !== 'mongo') {
+    throw new Error('SESSION_STORE_MODE must be set to "mongo" in production.');
+  }
 }
 
 const GOOGLE_CALLBACK_PATH = process.env.GOOGLE_CALLBACK_PATH ?? '/api/v1/auth/oauth/google/callback';
@@ -72,6 +88,7 @@ module.exports = {
   isProduction,
   API_PORT,
   AUTH_STORAGE_MODE,
+  SESSION_STORE_MODE,
   FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
   API_ORIGIN: process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`,
   SESSION_SECRET,

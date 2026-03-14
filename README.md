@@ -41,7 +41,7 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 
 ### Backend
 - Node.js + Express
-- Session auth with `express-session`
+- Session auth with `express-session` + Mongo-backed production store (`connect-mongo`)
 - CSRF middleware and auth rate limiting
 - RBAC permission model (`admin`, `editor`, `author`, `viewer`, `client`)
 - Helmet + CORS + cookie parsing
@@ -53,6 +53,7 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 
 ### Testing/automation
 - Vitest unit/integration tests (frontend + selected server modules)
+- Playwright real-browser critical-flow suite (`tests/e2e/critical-flows.spec.ts`)
 - Node smoke script for auth flow (`scripts/test-auth-smoke.js`)
 - GitHub Actions quality/security workflows
 
@@ -86,14 +87,19 @@ npm run dev:server
 - The frontend bootstraps auth state from `GET /api/v1/auth/session`.
 - CSRF token from session payload is sent on state-changing auth requests.
 - CMS route access is guarded by both frontend checks and backend RBAC.
-- If Mongo is unavailable (or dependencies are missing in `auto` mode), auth can fall back to in-memory users.
+- In development, `AUTH_STORAGE_MODE=auto` can fall back to memory for local workflows.
+- In production, startup now fails fast unless auth and session store are explicitly Mongo-backed.
 
 ## MongoDB requirements and seeding
 
-- `AUTH_STORAGE_MODE` controls auth storage strategy:
+- `AUTH_STORAGE_MODE` controls user repository strategy:
   - `mongo`: require MongoDB connection.
-  - `auto`: use MongoDB when available; otherwise fallback.
-  - `memory`: always in-memory (non-persistent).
+  - `auto`: use MongoDB when available; otherwise fallback in development only.
+  - `memory`: always in-memory (non-persistent, dev only).
+- `SESSION_STORE_MODE` controls `express-session` storage:
+  - `mongo`: require Mongo session store (`connect-mongo`).
+  - `auto`: use Mongo store when available; otherwise fallback in development only.
+  - `memory`: in-memory session store (non-persistent, dev only).
 - Optional admin seeding on startup:
   - `SEED_ADMIN_ON_START=true`
   - `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`
@@ -134,6 +140,18 @@ npm run dev:server
 - `EMAIL_FROM`
 - `APP_BASE_URL`
 
+
+## Operational readiness endpoints
+
+- `GET /api/v1/health` — liveness signal for process availability.
+- `GET /api/v1/ready` — readiness signal including Mongo connectivity and session store mode. Returns `503` when dependencies are not ready.
+
+Structured JSON logs now include:
+- request-level access logs with `x-request-id`,
+- auth audit events,
+- CMS persistence failure events,
+- bootstrap mode visibility (storage/session/email).
+
 ## Current maturity notes
 
 - The app has good structural foundations but is still **pre-production**.
@@ -155,7 +173,9 @@ Before production release, prioritize:
 
 ```bash
 npm run dev
-npm run verify
+npm run lint
+npm run typecheck
 npm run test
+# optional (after adding @playwright/test in your environment): npx playwright test tests/e2e/critical-flows.spec.ts
 npm run build
 ```
