@@ -3,6 +3,7 @@ const Roles = {
   EDITOR: 'editor',
   AUTHOR: 'author',
   VIEWER: 'viewer',
+  CLIENT: 'client',
 };
 
 const Permissions = {
@@ -23,6 +24,7 @@ const rolePermissions = {
   ]),
   [Roles.AUTHOR]: new Set([Permissions.CMS_ACCESS, Permissions.CONTENT_READ, Permissions.CONTENT_WRITE]),
   [Roles.VIEWER]: new Set([Permissions.CONTENT_READ]),
+  [Roles.CLIENT]: new Set(),
 };
 
 function hasPermission(role, permission) {

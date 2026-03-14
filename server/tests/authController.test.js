@@ -51,7 +51,7 @@ describe('auth controller session and logout', () => {
       authService: {
         register: async () => ({
           ok: true,
-          user: { id: 'u1', email: 'u@test.com', role: 'viewer', status: 'client', accountStatus: 'active' },
+          user: { id: 'u1', email: 'u@test.com', role: 'client', status: 'client', accountStatus: 'active' },
         }),
       },
     });

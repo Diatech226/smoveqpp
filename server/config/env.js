@@ -85,7 +85,7 @@ module.exports = {
   ADMIN_EMAIL: process.env.ADMIN_EMAIL ?? '',
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? '',
   ADMIN_NAME: process.env.ADMIN_NAME ?? 'Administrator',
-  OAUTH_DEFAULT_ROLE: process.env.OAUTH_DEFAULT_ROLE ?? 'viewer',
+  OAUTH_DEFAULT_ROLE: process.env.OAUTH_DEFAULT_ROLE ?? 'client',
   PUBLIC_REGISTRATION_ENABLED,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',

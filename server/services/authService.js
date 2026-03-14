@@ -110,7 +110,7 @@ class AuthService {
         email,
         name,
         passwordHash,
-        role: 'viewer',
+        role: 'client',
         status: 'client',
         accountStatus: 'active',
         authProvider: 'local',

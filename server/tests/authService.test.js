@@ -63,7 +63,7 @@ describe('AuthService', () => {
     expect(result.ok).toBe(true);
     expect(result.user?.email).toBe('new@x.com');
     expect(result.user?.status).toBe('client');
-    expect(result.user?.role).toBe('viewer');
+    expect(result.user?.role).toBe('client');
     expect(users[0].passwordHash).toBeTruthy();
   });
 

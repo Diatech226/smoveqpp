@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'editor' | 'author' | 'viewer';
+export type UserRole = 'admin' | 'editor' | 'author' | 'viewer' | 'client';
 
 export interface AppUser {
   id: string;
@@ -48,4 +48,15 @@ export function evaluateCmsAccess(input: CmsAccessInput): CmsAccessDecision {
 
 export function resolveTrustedSessionUser(serverUser: AppUser | null, _clientStoredUser?: unknown): AppUser | null {
   return serverUser;
+}
+
+
+export function resolvePostLoginRoute(cmsEnabled: boolean, user: AppUser | null): 'cms-dashboard' | 'home' {
+  const decision = evaluateCmsAccess({
+    cmsEnabled,
+    isAuthenticated: Boolean(user),
+    user,
+  });
+
+  return decision === 'allow' ? 'cms-dashboard' : 'home';
 }

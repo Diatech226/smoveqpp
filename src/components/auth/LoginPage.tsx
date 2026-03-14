@@ -23,7 +23,7 @@ export default function LoginPage() {
     });
 
     if (result.success) {
-      window.location.hash = 'cms-dashboard';
+      window.location.hash = result.destination ?? 'home';
     } else {
       setError(result.error ?? authError ?? `Connexion ${provider} impossible`);
     }
@@ -48,7 +48,7 @@ export default function LoginPage() {
     const result = await login(email, password);
 
     if (result.success) {
-      window.location.hash = 'cms-dashboard';
+      window.location.hash = result.destination ?? 'home';
     } else {
       setError(result.error ?? authError ?? 'Email ou mot de passe incorrect');
     }
