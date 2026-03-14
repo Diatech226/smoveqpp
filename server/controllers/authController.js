@@ -2,7 +2,17 @@ const { getOrCreateCsrfToken } = require('../middleware/csrf');
 const { sendSuccess, sendError } = require('../utils/apiResponse');
 const { logAuthEvent } = require('../utils/authLogger');
 
-function startSession(req, res, user, eventName, statusCode = 200) {
+function buildSessionMeta(req, user) {
+  return {
+    sessionId: req.sessionID ?? null,
+    authenticatedAt: req.session?.authenticatedAt ?? null,
+    lastActivityAt: new Date().toISOString(),
+    authProvider: user?.authProvider ?? null,
+    role: user?.role ?? null,
+  };
+}
+
+function startSession(req, res, user, eventName, statusCode = 200, extras = {}) {
   req.session.regenerate((regenerateError) => {
     if (regenerateError) {
       logAuthEvent(req, eventName, 'failure', { code: 'SESSION_ERROR' });
@@ -11,11 +21,14 @@ function startSession(req, res, user, eventName, statusCode = 200) {
 
     req.session.userId = user.id;
     req.session.role = user.role;
+    req.session.authenticatedAt = new Date().toISOString();
 
     logAuthEvent(req, eventName, 'success', { userId: user.id, email: user.email });
     return sendSuccess(res, statusCode, {
       user,
       csrfToken: getOrCreateCsrfToken(req),
+      session: buildSessionMeta(req, user),
+      ...extras,
     });
   });
 }
@@ -28,12 +41,14 @@ function buildAuthController({ authService }) {
       if (!user) {
         req.session.userId = null;
         req.session.role = null;
+        req.session.authenticatedAt = null;
       }
 
       logAuthEvent(req, 'session', 'success', { authenticated: Boolean(user) });
       return sendSuccess(res, 200, {
         user,
         csrfToken: getOrCreateCsrfToken(req),
+        session: buildSessionMeta(req, user),
       });
     },
 
@@ -44,7 +59,9 @@ function buildAuthController({ authService }) {
         return sendError(res, result.status, result.code, result.message);
       }
 
-      return startSession(req, res, result.user, 'register', 201);
+      return startSession(req, res, result.user, 'register', 201, {
+        verification: result.verification ?? null,
+      });
     },
 
     login: async (req, res) => {
@@ -74,6 +91,57 @@ function buildAuthController({ authService }) {
       return startSession(req, res, result.user, `oauth_${provider}`, 200);
     },
 
+    resendVerification: async (req, res) => {
+      const result = await authService.resendVerification({ userId: req.session?.userId });
+      if (!result.ok) {
+        logAuthEvent(req, 'verify_resend', 'failure', { code: result.code });
+        return sendError(res, result.status, result.code, result.message);
+      }
+      logAuthEvent(req, 'verify_resend', 'success', { userId: req.session?.userId });
+      return sendSuccess(res, 200, {
+        user: result.user,
+        verification: result.verification,
+        csrfToken: getOrCreateCsrfToken(req),
+        session: buildSessionMeta(req, result.user),
+      });
+    },
+
+    verifyEmail: async (req, res) => {
+      const token = req.body?.token;
+      const result = await authService.verifyEmailToken({ token });
+      if (!result.ok) {
+        logAuthEvent(req, 'verify_email', 'failure', { code: result.code });
+        return sendError(res, result.status, result.code, result.message);
+      }
+
+      if (req.session?.userId && String(req.session.userId) === String(result.user.id)) {
+        req.session.role = result.user.role;
+      }
+
+      logAuthEvent(req, 'verify_email', 'success', { userId: result.user.id });
+      return sendSuccess(res, 200, {
+        user: result.user,
+        csrfToken: getOrCreateCsrfToken(req),
+        session: buildSessionMeta(req, result.user),
+      });
+    },
+
+    listUsers: async (_req, res) => {
+      const users = await authService.listUsersForAdmin();
+      return sendSuccess(res, 200, { users });
+    },
+
+    updateUserByAdmin: async (req, res) => {
+      const result = await authService.updateUserByAdmin(req.params.userId, req.body ?? {}, {
+        id: req.session?.userId,
+        role: req.session?.role,
+      });
+      if (!result.ok) {
+        return sendError(res, result.status, result.code, result.message);
+      }
+      return sendSuccess(res, 200, { user: result.user });
+    },
+
     getOAuthProviders: async (_req, res) => sendSuccess(res, 200, { providers: authService.getOAuthProviders?.() ?? {} }),
 
     logout: async (req, res) => {
@@ -88,6 +156,7 @@ function buildAuthController({ authService }) {
         return sendSuccess(res, 200, {
           user: null,
           csrfToken: null,
+          session: null,
         });
       });
     },

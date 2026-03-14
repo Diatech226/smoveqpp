@@ -16,9 +16,11 @@ import {
   AlertTriangle,
   RotateCcw,
   Archive,
+  Users,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import type { AppUser } from '../../utils/securityPolicy';
 import { blogRepository, BlogRepositoryError } from '../../repositories/blogRepository';
 import { cmsRepository } from '../../repositories/cmsRepository';
 import { mediaRepository } from '../../repositories/mediaRepository';
@@ -112,7 +114,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
 const SETTINGS_STORAGE_KEY = 'smove_cms_settings';
 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
-  const { user, logout, canAccessCMS } = useAuth();
+  const { user, logout, canAccessCMS, fetchAdminUsers, updateAdminUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sectionBusy, setSectionBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
@@ -158,6 +160,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const canReviewContent = user?.role === 'admin' || user?.role === 'editor';
   const canPublishContent = user?.role === 'admin' || user?.role === 'editor';
   const [editorialAnalytics, setEditorialAnalytics] = useState<EditorialAnalytics | null>(null);
+  const [adminUsers, setAdminUsers] = useState<AppUser[]>([]);
+  const [adminUsersLoading, setAdminUsersLoading] = useState(false);
+  const [adminUsersError, setAdminUsersError] = useState('');
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -234,6 +240,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     { id: 'projects', label: 'Projets', icon: FolderOpen },
     { id: 'blog', label: 'Blog', icon: FileText },
     { id: 'media', label: 'Médiathèque', icon: ImageIcon },
+    { id: 'users', label: 'Utilisateurs', icon: Users },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
 
@@ -845,6 +852,40 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     );
   };
 
+  const loadAdminUsers = async () => {
+    setAdminUsersLoading(true);
+    setAdminUsersError('');
+    try {
+      const users = await fetchAdminUsers();
+      setAdminUsers(users);
+    } catch (error) {
+      setAdminUsersError(error instanceof Error ? error.message : 'Impossible de charger les utilisateurs.');
+    } finally {
+      setAdminUsersLoading(false);
+    }
+  };
+
+  const patchAdminUser = async (targetUserId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>) => {
+    setUpdatingUserId(targetUserId);
+    try {
+      const result = await updateAdminUser(targetUserId, patch);
+      if (!result.success) {
+        setAdminUsersError(result.error ?? 'Mise à jour impossible.');
+        return;
+      }
+      await loadAdminUsers();
+      showSuccess('Utilisateur mis à jour.');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (currentSection === 'users' && canAccessCMS) {
+      void loadAdminUsers();
+    }
+  }, [currentSection, canAccessCMS]);
+
   if (!canAccessCMS) {
     return (
       <div className="min-h-screen bg-[#f5f9fa] flex items-center justify-center px-6">
@@ -1070,6 +1111,65 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   <div key={file.id} className="rounded-[12px] border border-[#eef3f5] p-4">
                     <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{file.name}</p>
                     <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">{file.type} • {Math.round(file.size / 1024)} KB</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </AdminPanel>
+        </div>
+      );
+    }
+
+    if (currentSection === 'users') {
+      return (
+        <div className="space-y-6">
+          <AdminPageHeader title="Utilisateurs" subtitle="Gestion basique des comptes (rôle, statut, vérification)." />
+          {adminUsersError ? <AdminErrorState label={adminUsersError} /> : null}
+          {adminUsersLoading ? <AdminLoadingState label="Chargement des utilisateurs..." /> : null}
+          <AdminPanel title="Comptes">
+            {adminUsers.length === 0 ? (
+              <AdminEmptyState label="Aucun utilisateur trouvé." />
+            ) : (
+              <div className="space-y-3">
+                {adminUsers.map((entry) => (
+                  <div key={entry.id} className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{entry.name}</p>
+                        <p className="text-[13px] text-[#6f7f85]">{entry.email}</p>
+                      </div>
+                      <div className="text-[12px] text-[#7b868c]">{entry.authProvider ?? 'local'} • {entry.emailVerified ? 'vérifié' : 'non vérifié'}</div>
+                    </div>
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      <select
+                        value={entry.role}
+                        disabled={updatingUserId === entry.id}
+                        onChange={(event) => void patchAdminUser(entry.id, { role: event.target.value as AppUser['role'] })}
+                        className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
+                      >
+                        {['admin', 'editor', 'author', 'viewer', 'client'].map((role) => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={entry.accountStatus ?? 'active'}
+                        disabled={updatingUserId === entry.id}
+                        onChange={(event) => void patchAdminUser(entry.id, { accountStatus: event.target.value as AppUser['accountStatus'] })}
+                        className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
+                      >
+                        {['active', 'invited', 'suspended'].map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={updatingUserId === entry.id}
+                        onClick={() => void patchAdminUser(entry.id, { emailVerified: !entry.emailVerified })}
+                        className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
+                      >
+                        {entry.emailVerified ? 'Marquer non vérifié' : 'Marquer vérifié'}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

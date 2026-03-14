@@ -10,7 +10,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register, registrationEnabled, cmsEnabled, authError } = useAuth();
+  const { register, registrationEnabled, cmsEnabled, authError, authNotice } = useAuth();
   const isFormDisabled = loading || !registrationEnabled || !cmsEnabled;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,6 +187,18 @@ export default function RegisterPage() {
               </p>
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-amber-700">
                 L’inscription publique est actuellement désactivée pour cet environnement.
+              </p>
+            </motion.div>
+          )}
+
+          {authNotice && (
+            <motion.div
+              className="bg-emerald-50 border border-emerald-200 rounded-[12px] p-4 mb-4"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-emerald-700">
+                {authNotice}
               </p>
             </motion.div>
           )}

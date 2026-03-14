@@ -2,10 +2,27 @@ import { RUNTIME_CONFIG } from '../config/runtimeConfig';
 import { logWarn } from './observability';
 import type { AppUser } from './securityPolicy';
 
+interface SessionMeta {
+  sessionId?: string | null;
+  authenticatedAt?: string | null;
+  lastActivityAt?: string | null;
+  authProvider?: string | null;
+  role?: string | null;
+}
+
+interface VerificationMeta {
+  emailDeliveryReady?: boolean;
+  expiresAt?: string | Date | null;
+  devToken?: string;
+}
+
 interface AuthApiPayload {
   user?: AppUser | null;
   csrfToken?: string | null;
   providers?: Record<string, { enabled: boolean }>;
+  session?: SessionMeta | null;
+  verification?: VerificationMeta | null;
+  users?: AppUser[];
 }
 
 interface AuthApiError {
@@ -21,8 +38,11 @@ interface AuthApiResponse {
 
 export interface AuthResult {
   user: AppUser | null;
+  users?: AppUser[];
   csrfToken: string | null;
   providers?: Record<string, { enabled: boolean }>;
+  session?: SessionMeta | null;
+  verification?: VerificationMeta | null;
   success: boolean;
   errorMessage: string | null;
   errorCode: string | null;
@@ -41,6 +61,9 @@ function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'AUTH_OFFLINE') return 'Connexion indisponible. Vérifiez votre réseau.';
   if (code === 'REGISTRATION_DISABLED') return 'Inscription publique désactivée.';
   if (code === 'EMAIL_ALREADY_EXISTS') return 'Un compte existe déjà avec cet email.';
+  if (code === 'EMAIL_ALREADY_VERIFIED') return 'Votre email est déjà vérifié.';
+  if (code === 'INVALID_VERIFICATION_TOKEN') return 'Le lien de vérification est invalide.';
+  if (code === 'VERIFICATION_TOKEN_EXPIRED') return 'Le lien de vérification a expiré. Demandez-en un nouveau.';
   if (code === 'VALIDATION_ERROR') return 'Vérifiez les champs saisis.';
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
   return 'Erreur d’authentification.';
@@ -55,8 +78,11 @@ export function normalizeAuthPayload(payload: AuthApiResponse | null, status: nu
 
   return {
     user: data?.user ?? null,
+    users: data?.users,
     csrfToken: data?.csrfToken ?? null,
     providers: data?.providers,
+    session: data?.session,
+    verification: data?.verification,
     success,
     errorCode,
     errorMessage: success ? null : explicitMessage ?? fallbackErrorMessage(errorCode, status),
@@ -67,8 +93,11 @@ export function normalizeAuthPayload(payload: AuthApiResponse | null, status: nu
 function networkFailure(errorCode: string): AuthResult {
   return {
     user: null,
+    users: undefined,
     csrfToken: null,
     providers: undefined,
+    session: null,
+    verification: null,
     success: false,
     errorCode,
     errorMessage: fallbackErrorMessage(errorCode, 0),
@@ -139,7 +168,6 @@ export function loginWithApi(email: string, password: string, csrfToken?: string
   return requestAuth('/login', { method: 'POST', body: JSON.stringify({ email, password }) }, csrfToken);
 }
 
-
 export function registerWithApi(email: string, password: string, name: string, csrfToken?: string | null): Promise<AuthResult> {
   return requestAuth('/register', { method: 'POST', body: JSON.stringify({ email, password, name }) }, csrfToken);
 }
@@ -154,6 +182,26 @@ export function oauthLoginWithApi(
   csrfToken?: string | null,
 ): Promise<AuthResult> {
   return requestAuth(`/oauth/${provider}`, { method: 'POST', body: JSON.stringify(payload) }, csrfToken);
+}
+
+export function verifyEmailWithApi(token: string, csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/verify-email', { method: 'POST', body: JSON.stringify({ token }) }, csrfToken);
+}
+
+export function resendVerificationWithApi(csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/verify-email/resend', { method: 'POST' }, csrfToken);
+}
+
+export function fetchAdminUsers(csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/admin/users', { method: 'GET' }, csrfToken);
+}
+
+export function updateAdminUserWithApi(
+  userId: string,
+  patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>,
+  csrfToken?: string | null,
+): Promise<AuthResult> {
+  return requestAuth(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify(patch) }, csrfToken);
 }
 
 export function logoutWithApi(csrfToken?: string | null): Promise<AuthResult> {

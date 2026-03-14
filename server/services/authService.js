@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const { normalizeEmail } = require('../models/User');
-const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED } = require('../config/env');
+const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED, isProduction } = require('../config/env');
+
+const EMAIL_VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24;
 
 let bcryptLib = null;
 try {
@@ -31,6 +33,29 @@ async function verifyPassword(password, storedHash) {
   return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(compare, 'hex'));
 }
 
+function hashVerificationToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+function createEmailVerificationToken() {
+  const token = crypto.randomBytes(32).toString('hex');
+  return {
+    token,
+    tokenHash: hashVerificationToken(token),
+    expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_MS),
+  };
+}
+
+function buildVerificationMeta(user) {
+  const expiresAt = user.emailVerificationTokenExpiresAt ?? null;
+  const pending = !user.emailVerified && !!user.emailVerificationTokenHash && (!expiresAt || new Date(expiresAt) > new Date());
+  return {
+    emailVerified: Boolean(user.emailVerified),
+    verificationPending: pending,
+    verificationMethod: user.authProvider === 'local' ? 'email_token' : 'provider_trust',
+  };
+}
+
 function sanitizeUser(user) {
   if (!user) return null;
   return {
@@ -42,6 +67,7 @@ function sanitizeUser(user) {
     accountStatus: user.accountStatus ?? 'active',
     authProvider: user.authProvider ?? 'local',
     providerId: user.providerId ?? null,
+    ...buildVerificationMeta(user),
     lastLoginAt: user.lastLoginAt ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
@@ -76,6 +102,9 @@ class AuthService {
       accountStatus: 'active',
       authProvider: 'local',
       providerId: null,
+      emailVerified: true,
+      emailVerificationTokenHash: null,
+      emailVerificationTokenExpiresAt: null,
     });
 
     return { ok: true, created: true, user: sanitizeUser(user) };
@@ -104,6 +133,8 @@ class AuthService {
     }
 
     const passwordHash = await hashPassword(password);
+    const verification = createEmailVerificationToken();
+
     let user;
     try {
       user = await this.userRepository.create({
@@ -115,6 +146,9 @@ class AuthService {
         accountStatus: 'active',
         authProvider: 'local',
         providerId: null,
+        emailVerified: false,
+        emailVerificationTokenHash: verification.tokenHash,
+        emailVerificationTokenExpiresAt: verification.expiresAt,
       });
     } catch (error) {
       if (error?.code === 11000) {
@@ -123,7 +157,15 @@ class AuthService {
       throw error;
     }
 
-    return { ok: true, user: sanitizeUser(user) };
+    return {
+      ok: true,
+      user: sanitizeUser(user),
+      verification: {
+        emailDeliveryReady: isProduction,
+        expiresAt: verification.expiresAt,
+        ...(isProduction ? {} : { devToken: verification.token }),
+      },
+    };
   }
 
   async login(payload) {
@@ -170,6 +212,9 @@ class AuthService {
       role: OAUTH_DEFAULT_ROLE,
       status: 'client',
       accountStatus: 'active',
+      emailVerified: true,
+      emailVerificationTokenHash: null,
+      emailVerificationTokenExpiresAt: null,
     });
 
     if (user.accountStatus === 'suspended') {
@@ -178,6 +223,99 @@ class AuthService {
 
     const updatedUser = await this.userRepository.updateLastLoginAt(user.id, new Date());
     return { ok: true, user: sanitizeUser(updatedUser ?? user) };
+  }
+
+  async resendVerification({ userId }) {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      return { ok: false, status: 404, code: 'USER_NOT_FOUND', message: 'User not found' };
+    }
+
+    if (user.emailVerified) {
+      return { ok: false, status: 409, code: 'EMAIL_ALREADY_VERIFIED', message: 'Email already verified' };
+    }
+
+    const verification = createEmailVerificationToken();
+    const updated = await this.userRepository.setEmailVerificationToken(user.id, {
+      tokenHash: verification.tokenHash,
+      expiresAt: verification.expiresAt,
+    });
+
+    return {
+      ok: true,
+      user: sanitizeUser(updated ?? user),
+      verification: {
+        emailDeliveryReady: isProduction,
+        expiresAt: verification.expiresAt,
+        ...(isProduction ? {} : { devToken: verification.token }),
+      },
+    };
+  }
+
+  async verifyEmailToken({ token }) {
+    const tokenHash = hashVerificationToken(token);
+    const user = await this.userRepository.findByEmailVerificationTokenHash(tokenHash);
+    if (!user) {
+      return { ok: false, status: 400, code: 'INVALID_VERIFICATION_TOKEN', message: 'Verification token is invalid' };
+    }
+
+    if (user.emailVerified) {
+      return { ok: false, status: 409, code: 'EMAIL_ALREADY_VERIFIED', message: 'Email already verified' };
+    }
+
+    if (!user.emailVerificationTokenExpiresAt || new Date(user.emailVerificationTokenExpiresAt) < new Date()) {
+      return { ok: false, status: 400, code: 'VERIFICATION_TOKEN_EXPIRED', message: 'Verification token is expired' };
+    }
+
+    const updated = await this.userRepository.markEmailVerified(user.id);
+    return { ok: true, user: sanitizeUser(updated ?? user) };
+  }
+
+  async listUsersForAdmin() {
+    const users = await this.userRepository.listUsers();
+    return users.map((user) => sanitizeUser(user));
+  }
+
+  async updateUserByAdmin(targetUserId, payload, actor) {
+    const user = await this.userRepository.findById(targetUserId);
+    if (!user) {
+      return { ok: false, status: 404, code: 'USER_NOT_FOUND', message: 'User not found' };
+    }
+
+    const patch = {};
+
+    if (typeof payload.accountStatus === 'string') {
+      if (!['active', 'invited', 'suspended'].includes(payload.accountStatus)) {
+        return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'Invalid account status' };
+      }
+      patch.accountStatus = payload.accountStatus;
+    }
+
+    if (typeof payload.role === 'string') {
+      if (!['admin', 'editor', 'author', 'viewer', 'client'].includes(payload.role)) {
+        return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'Invalid role' };
+      }
+      if (String(actor?.id) === String(user.id) && payload.role !== user.role) {
+        return { ok: false, status: 400, code: 'ADMIN_SELF_ROLE_CHANGE_FORBIDDEN', message: 'Cannot change own role' };
+      }
+      patch.role = payload.role;
+      patch.status = ['admin', 'editor', 'author', 'viewer'].includes(payload.role) ? 'staff' : 'client';
+    }
+
+    if (typeof payload.emailVerified === 'boolean') {
+      patch.emailVerified = payload.emailVerified;
+      if (payload.emailVerified) {
+        patch.emailVerificationTokenHash = null;
+        patch.emailVerificationTokenExpiresAt = null;
+      }
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'No valid fields to update' };
+    }
+
+    const updated = await this.userRepository.updateUser(user.id, patch);
+    return { ok: true, user: sanitizeUser(updated ?? user) };
   }
 
   getOAuthProviders() {
@@ -194,4 +332,11 @@ class AuthService {
   }
 }
 
-module.exports = { AuthService, sanitizeUser, hashPassword, verifyPassword };
+module.exports = {
+  AuthService,
+  sanitizeUser,
+  hashPassword,
+  verifyPassword,
+  hashVerificationToken,
+  createEmailVerificationToken,
+};

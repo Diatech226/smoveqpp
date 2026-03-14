@@ -335,3 +335,25 @@ This iteration is intentionally constrained:
 ### Deferred to Iteration 7
 - Expand `Mon compte` with client-relevant profile/preferences/history modules backed by persistent APIs.
 - Add browser e2e tests for full role-based auth journeys (public → login/register → role destination, CMS-intent preservation).
+
+## Iteration 6 execution update (implemented)
+
+### Identity verification and lifecycle readiness
+- Added first-class email verification state to the user identity model (`emailVerified`, pending-token metadata) and propagated this state through auth/session responses.
+- Implemented token-based verification operations (`verify-email`, `verify-email/resend`) with production-aware delivery signaling and explicit dev-token fallback for non-production environments.
+- Clarified identity semantics across role, account status, auth provider, and verification fields in the frontend contract.
+
+### Session visibility and trust signals
+- Extended session payloads with operational metadata (`sessionId`, authenticated timestamp, last activity marker, auth provider/role context).
+- Surfaced session and verification state in account UI, with explicit account-security actions and user-facing success/failure notices.
+- Standardized account/security feedback behavior across login, register, verification, and logout flows.
+
+### Admin user-management baseline
+- Added admin-authenticated user operations endpoints for listing users and updating safe account fields.
+- Introduced CMS “Utilisateurs” section for role/status/verification visibility and controlled updates.
+- Preserved backend role authority and blocked insecure self-role privilege transitions.
+
+### Deferred to next iteration
+- Replace dev-token fallback with full transactional email provider integration + audit trail.
+- Add account password/session revocation flows after sensitive identity actions.
+- Expand admin moderation guardrails (reason codes, actor audit events, bulk operations).

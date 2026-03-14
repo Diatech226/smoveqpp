@@ -20,6 +20,9 @@ function normalizeUserInput(input) {
       : (ACCOUNT_STATUSES.includes(input.status) ? input.status : 'active'),
     authProvider: AUTH_PROVIDERS.includes(input.authProvider) ? input.authProvider : 'local',
     providerId: input.providerId ? String(input.providerId) : null,
+    emailVerified: Boolean(input.emailVerified),
+    emailVerificationTokenHash: input.emailVerificationTokenHash ? String(input.emailVerificationTokenHash) : null,
+    emailVerificationTokenExpiresAt: input.emailVerificationTokenExpiresAt ?? null,
     lastLoginAt: input.lastLoginAt ?? null,
     createdAt: input.createdAt ?? new Date(),
     updatedAt: input.updatedAt ?? new Date(),
@@ -80,6 +83,19 @@ function createUserModel(mongoose) {
       },
       providerId: {
         type: String,
+        default: null,
+      },
+      emailVerified: {
+        type: Boolean,
+        default: false,
+        index: true,
+      },
+      emailVerificationTokenHash: {
+        type: String,
+        default: null,
+      },
+      emailVerificationTokenExpiresAt: {
+        type: Date,
         default: null,
       },
       lastLoginAt: {

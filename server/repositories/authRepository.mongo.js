@@ -13,6 +13,9 @@ function mapMongoUser(doc) {
     accountStatus,
     authProvider: doc.authProvider,
     providerId: doc.providerId ?? null,
+    emailVerified: Boolean(doc.emailVerified),
+    emailVerificationTokenHash: doc.emailVerificationTokenHash ?? null,
+    emailVerificationTokenExpiresAt: doc.emailVerificationTokenExpiresAt ?? null,
     lastLoginAt: doc.lastLoginAt ?? null,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
@@ -34,6 +37,9 @@ class MongoAuthRepository {
       accountStatus: input.accountStatus,
       authProvider: input.authProvider ?? 'local',
       providerId: input.providerId ?? null,
+      emailVerified: Boolean(input.emailVerified),
+      emailVerificationTokenHash: input.emailVerificationTokenHash ?? null,
+      emailVerificationTokenExpiresAt: input.emailVerificationTokenExpiresAt ?? null,
     });
 
     return mapMongoUser(user);
@@ -49,9 +55,19 @@ class MongoAuthRepository {
     return mapMongoUser(user);
   }
 
+  async findByEmailVerificationTokenHash(tokenHash) {
+    const user = await this.UserModel.findOne({ emailVerificationTokenHash: String(tokenHash) }).exec();
+    return mapMongoUser(user);
+  }
+
   async findById(id) {
     const user = await this.UserModel.findById(id).exec();
     return mapMongoUser(user);
+  }
+
+  async listUsers() {
+    const docs = await this.UserModel.find({}).sort({ createdAt: -1 }).exec();
+    return docs.map((doc) => mapMongoUser(doc));
   }
 
   async existsByEmail(email) {
@@ -67,6 +83,9 @@ class MongoAuthRepository {
     role = 'viewer',
     status = 'client',
     accountStatus = 'active',
+    emailVerified = true,
+    emailVerificationTokenHash = null,
+    emailVerificationTokenExpiresAt = null,
   }) {
     const user = await this.UserModel.findOneAndUpdate(
       {
@@ -80,6 +99,9 @@ class MongoAuthRepository {
           providerId: String(providerId),
           status,
           accountStatus,
+          emailVerified,
+          emailVerificationTokenHash,
+          emailVerificationTokenExpiresAt,
           updatedAt: new Date(),
         },
         $setOnInsert: {
@@ -102,6 +124,54 @@ class MongoAuthRepository {
       {
         $set: {
           lastLoginAt: date,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+  async setEmailVerificationToken(id, { tokenHash, expiresAt }) {
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          emailVerificationTokenHash: String(tokenHash),
+          emailVerificationTokenExpiresAt: expiresAt,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+  async markEmailVerified(id) {
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          emailVerified: true,
+          emailVerificationTokenHash: null,
+          emailVerificationTokenExpiresAt: null,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+  async updateUser(id, patch) {
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          ...patch,
           updatedAt: new Date(),
         },
       },
