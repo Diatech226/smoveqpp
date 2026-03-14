@@ -1,5 +1,13 @@
+function normalizeHttpStatus(status, fallback = 500) {
+  const code = Number(status);
+  if (Number.isInteger(code) && code >= 100 && code <= 599) {
+    return code;
+  }
+  return fallback;
+}
+
 function sendSuccess(res, status, data = {}) {
-  return res.status(status).json({
+  return res.status(normalizeHttpStatus(status, 200)).json({
     success: true,
     data,
     error: null,
@@ -7,7 +15,7 @@ function sendSuccess(res, status, data = {}) {
 }
 
 function sendError(res, status, code, message, details = null) {
-  return res.status(status).json({
+  return res.status(normalizeHttpStatus(status, 500)).json({
     success: false,
     data: null,
     error: {
@@ -18,4 +26,4 @@ function sendError(res, status, code, message, details = null) {
   });
 }
 
-module.exports = { sendSuccess, sendError };
+module.exports = { sendSuccess, sendError, normalizeHttpStatus };

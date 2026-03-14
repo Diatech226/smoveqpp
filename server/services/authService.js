@@ -39,6 +39,7 @@ function sanitizeUser(user) {
     name: user.name,
     role: user.role,
     status: user.status,
+    accountStatus: user.accountStatus ?? 'active',
     authProvider: user.authProvider ?? 'local',
     providerId: user.providerId ?? null,
     lastLoginAt: user.lastLoginAt ?? null,
@@ -71,7 +72,8 @@ class AuthService {
       name: String(name ?? 'Administrator').trim() || 'Administrator',
       passwordHash,
       role: 'admin',
-      status: 'active',
+      status: 'staff',
+      accountStatus: 'active',
       authProvider: 'local',
       providerId: null,
     });
@@ -108,8 +110,9 @@ class AuthService {
         email,
         name,
         passwordHash,
-        role: 'author',
-        status: 'active',
+        role: 'viewer',
+        status: 'client',
+        accountStatus: 'active',
         authProvider: 'local',
         providerId: null,
       });
@@ -145,7 +148,7 @@ class AuthService {
       return { ok: false, status: 401, code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', reason: 'password_mismatch' };
     }
 
-    if (user.status === 'suspended') {
+    if (user.accountStatus === 'suspended') {
       return { ok: false, status: 403, code: 'ACCOUNT_SUSPENDED', message: 'Account suspended' };
     }
 
@@ -165,10 +168,11 @@ class AuthService {
       authProvider,
       providerId,
       role: OAUTH_DEFAULT_ROLE,
-      status: 'active',
+      status: 'client',
+      accountStatus: 'active',
     });
 
-    if (user.status === 'suspended') {
+    if (user.accountStatus === 'suspended') {
       return { ok: false, status: 403, code: 'ACCOUNT_SUSPENDED', message: 'Account suspended' };
     }
 
@@ -183,7 +187,7 @@ class AuthService {
   async getSessionUser(sessionUserId) {
     if (!sessionUserId) return null;
     const user = await this.userRepository.findById(sessionUserId);
-    if (!user || user.status === 'suspended') {
+    if (!user || user.accountStatus === 'suspended') {
       return null;
     }
     return sanitizeUser(user);

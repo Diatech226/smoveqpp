@@ -2,6 +2,7 @@ const { createUserModel, normalizeEmail } = require('../models/User');
 
 function mapMongoUser(doc) {
   if (!doc) return null;
+  const accountStatus = doc.accountStatus ?? (['active', 'invited', 'suspended'].includes(doc.status) ? doc.status : 'active');
   return {
     id: String(doc._id),
     email: doc.email,
@@ -9,6 +10,7 @@ function mapMongoUser(doc) {
     name: doc.name,
     role: doc.role,
     status: doc.status,
+    accountStatus,
     authProvider: doc.authProvider,
     providerId: doc.providerId ?? null,
     lastLoginAt: doc.lastLoginAt ?? null,
@@ -29,6 +31,7 @@ class MongoAuthRepository {
       name: input.name,
       role: input.role,
       status: input.status,
+      accountStatus: input.accountStatus,
       authProvider: input.authProvider ?? 'local',
       providerId: input.providerId ?? null,
     });
@@ -56,7 +59,15 @@ class MongoAuthRepository {
     return count > 0;
   }
 
-  async upsertOAuthUser({ email, name, authProvider, providerId, role = 'viewer', status = 'active' }) {
+  async upsertOAuthUser({
+    email,
+    name,
+    authProvider,
+    providerId,
+    role = 'viewer',
+    status = 'client',
+    accountStatus = 'active',
+  }) {
     const user = await this.UserModel.findOneAndUpdate(
       {
         $or: [{ email: normalizeEmail(email) }, { authProvider, providerId: String(providerId) }],
@@ -68,6 +79,7 @@ class MongoAuthRepository {
           authProvider,
           providerId: String(providerId),
           status,
+          accountStatus,
           updatedAt: new Date(),
         },
         $setOnInsert: {

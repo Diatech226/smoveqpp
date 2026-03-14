@@ -62,6 +62,8 @@ describe('AuthService', () => {
 
     expect(result.ok).toBe(true);
     expect(result.user?.email).toBe('new@x.com');
+    expect(result.user?.status).toBe('client');
+    expect(result.user?.role).toBe('viewer');
     expect(users[0].passwordHash).toBeTruthy();
   });
 
@@ -135,7 +137,7 @@ describe('AuthService', () => {
 
   it('suspended user login is refused', async () => {
     await service.seedAdminFromEnv({ email: 's@x.com', password: 'password123', name: 'S' });
-    users[0].status = 'suspended';
+    users[0].accountStatus = 'suspended';
     const result = await service.login({ email: 's@x.com', password: 'password123' });
     expect(result.ok).toBe(false);
     expect(result.code).toBe('ACCOUNT_SUSPENDED');
