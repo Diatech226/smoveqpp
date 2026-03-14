@@ -10,6 +10,11 @@ export interface AppUser {
   authProvider?: 'local' | 'google' | 'facebook';
 }
 
+const USER_ROLES: UserRole[] = ['admin', 'editor', 'author', 'viewer', 'client'];
+const USER_STATUSES: NonNullable<AppUser['status']>[] = ['client', 'staff'];
+const ACCOUNT_STATUSES: NonNullable<AppUser['accountStatus']>[] = ['active', 'invited', 'suspended'];
+const AUTH_PROVIDERS: NonNullable<AppUser['authProvider']>[] = ['local', 'google', 'facebook'];
+
 export type CmsAccessDecision = 'allow' | 'disabled' | 'unauthenticated' | 'forbidden';
 
 export interface CmsAccessInput {
@@ -47,16 +52,47 @@ export function evaluateCmsAccess(input: CmsAccessInput): CmsAccessDecision {
 }
 
 export function resolveTrustedSessionUser(serverUser: AppUser | null, _clientStoredUser?: unknown): AppUser | null {
-  return serverUser;
+  if (!serverUser || typeof serverUser !== 'object') {
+    return null;
+  }
+
+  const role = USER_ROLES.includes(serverUser.role) ? serverUser.role : 'client';
+
+  return {
+    id: String(serverUser.id ?? ''),
+    email: String(serverUser.email ?? ''),
+    name: String(serverUser.name ?? ''),
+    role,
+    status: USER_STATUSES.includes(serverUser.status ?? 'client') ? serverUser.status : 'client',
+    accountStatus: ACCOUNT_STATUSES.includes(serverUser.accountStatus ?? 'active') ? serverUser.accountStatus : 'active',
+    authProvider: AUTH_PROVIDERS.includes(serverUser.authProvider ?? 'local') ? serverUser.authProvider : 'local',
+  };
 }
 
 
-export function resolvePostLoginRoute(cmsEnabled: boolean, user: AppUser | null): 'cms-dashboard' | 'home' {
+export type PostLoginRoute = 'cms-dashboard' | 'home' | 'account' | 'cms-forbidden';
+
+export function resolvePostLoginRoute(cmsEnabled: boolean, user: AppUser | null, intendedRoute?: string | null): PostLoginRoute {
   const decision = evaluateCmsAccess({
     cmsEnabled,
     isAuthenticated: Boolean(user),
     user,
   });
 
-  return decision === 'allow' ? 'cms-dashboard' : 'home';
+  if (decision === 'allow') {
+    if (intendedRoute?.startsWith('cms-')) {
+      return 'cms-dashboard';
+    }
+    return 'cms-dashboard';
+  }
+
+  if (intendedRoute?.startsWith('cms-')) {
+    return 'cms-forbidden';
+  }
+
+  if (user) {
+    return 'account';
+  }
+
+  return 'home';
 }

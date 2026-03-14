@@ -12,6 +12,7 @@ export type AppRoute =
   | 'apropos'
   | 'login'
   | 'register'
+  | 'account'
   | 'cms-dashboard'
   | 'cms-unavailable'
   | 'cms-forbidden'
@@ -31,6 +32,7 @@ export type ResolvedPage =
   | 'apropos'
   | 'login'
   | 'register'
+  | 'account'
   | 'cms-dashboard'
   | 'cms-unavailable'
   | 'cms-forbidden'
@@ -43,6 +45,7 @@ export interface AuthRoutingState {
   canAccessCMS: boolean;
   cmsEnabled: boolean;
   registrationEnabled: boolean;
+  postLoginRoute: ResolvedPage;
 }
 
 export interface RouteResolution {

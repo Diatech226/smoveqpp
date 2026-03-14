@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AuthRoutingState, ResolvedPage } from './navigationTypes';
-import { resolveRoute } from './routeResolver';
+import { parseHashRoute, resolveRoute } from './routeResolver';
+import { isCmsRoute } from './guards';
 import { logDebug } from '../utils/observability';
 
 interface HashNavigationState {
   currentPage: ResolvedPage;
 }
+
+const POST_AUTH_ROUTE_KEY = 'smove.postAuthRoute';
 
 export function useHashNavigation(auth: AuthRoutingState): HashNavigationState {
   const [currentPage, setCurrentPage] = useState<ResolvedPage>('home');
@@ -13,6 +16,7 @@ export function useHashNavigation(auth: AuthRoutingState): HashNavigationState {
 
   useEffect(() => {
     const syncFromHash = () => {
+      const requestedRoute = parseHashRoute(window.location.hash);
       const resolution = resolveRoute(window.location.hash, auth);
       setCurrentPage(resolution.page);
       logDebug({
@@ -20,10 +24,15 @@ export function useHashNavigation(auth: AuthRoutingState): HashNavigationState {
         event: 'hash_resolved',
         details: {
           hash: window.location.hash,
+          requestedRoute,
           page: resolution.page,
           normalizedHash: resolution.normalizedHash ?? null,
         },
       });
+
+      if (!auth.isAuthenticated && isCmsRoute(requestedRoute) && resolution.page === 'login') {
+        window.sessionStorage.setItem(POST_AUTH_ROUTE_KEY, requestedRoute);
+      }
 
       if (resolution.normalizedHash && window.location.hash !== `#${resolution.normalizedHash}`) {
         window.location.hash = resolution.normalizedHash;

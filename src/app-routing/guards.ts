@@ -15,6 +15,10 @@ export function resolveAuthPageGuard(route: AppRoute, auth: AuthRoutingState): R
     return 'cms-unavailable';
   }
 
+  if (auth.isAuthenticated) {
+    return auth.postLoginRoute;
+  }
+
   if (route === 'register' && !auth.registrationEnabled) {
     return 'login';
   }

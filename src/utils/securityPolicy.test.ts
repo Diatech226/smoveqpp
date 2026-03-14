@@ -64,25 +64,31 @@ describe('resolveTrustedSessionUser', () => {
     expect(resolveTrustedSessionUser(null, forgedClientUser)).toBeNull();
   });
 
-  it('returns server-validated session user', () => {
+  it('returns sanitized server-validated session user', () => {
     const serverUser: AppUser = {
       id: '1',
       email: 'admin@company.test',
       name: 'Company Admin',
       role: 'admin',
+      status: 'staff',
+      accountStatus: 'active',
+      authProvider: 'local',
     };
 
     expect(resolveTrustedSessionUser(serverUser, null)).toEqual(serverUser);
   });
 });
 
-
 describe('resolvePostLoginRoute', () => {
   it('routes admins to cms dashboard', () => {
     expect(resolvePostLoginRoute(true, { id: '1', email: 'admin@test.com', name: 'Admin', role: 'admin' })).toBe('cms-dashboard');
   });
 
-  it('routes clients to home', () => {
-    expect(resolvePostLoginRoute(true, { id: '2', email: 'client@test.com', name: 'Client', role: 'client' })).toBe('home');
+  it('routes clients to account', () => {
+    expect(resolvePostLoginRoute(true, { id: '2', email: 'client@test.com', name: 'Client', role: 'client' })).toBe('account');
+  });
+
+  it('routes clients to forbidden only when they explicitly requested cms', () => {
+    expect(resolvePostLoginRoute(true, { id: '2', email: 'client@test.com', name: 'Client', role: 'client' }, 'cms-dashboard')).toBe('cms-forbidden');
   });
 });

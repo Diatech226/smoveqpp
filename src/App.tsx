@@ -12,6 +12,7 @@ function AppContent() {
     canAccessCMS,
     cmsEnabled,
     registrationEnabled,
+    postLoginRoute,
   } = useAuth();
   const [cmsSection, setCmsSection] = useState('overview');
 
@@ -21,6 +22,7 @@ function AppContent() {
     canAccessCMS,
     cmsEnabled,
     registrationEnabled,
+    postLoginRoute,
   });
 
   const shouldHideScrollToTop =
