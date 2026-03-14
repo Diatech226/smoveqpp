@@ -3,6 +3,7 @@ import { blogRepository, BlogRepositoryError } from './blogRepository';
 import { mediaRepository } from './mediaRepository';
 import { projectRepository } from './projectRepository';
 import { cmsRepository } from './cmsRepository';
+import { pageContentRepository } from './pageContentRepository';
 import type { BlogPost, MediaFile } from '../domain/contentSchemas';
 import { toMediaReference } from '../features/blog/mediaReference';
 
@@ -137,6 +138,10 @@ describe('mediaRepository', () => {
       uploadedDate: new Date().toISOString(),
       uploadedBy: 'admin',
       alt: 'hero',
+      title: 'Hero image',
+      label: 'Homepage hero',
+      source: 'test-seed',
+      metadata: { origin: 'unit-test' },
       tags: ['homepage'],
     };
 
@@ -144,6 +149,8 @@ describe('mediaRepository', () => {
 
     expect(mediaRepository.getById('media-1')?.name).toBe('hero.jpg');
     expect(mediaRepository.getById('media-1')?.caption).toBe('hero');
+    expect(mediaRepository.getById('media-1')?.title).toBe('Hero image');
+    expect(mediaRepository.getById('media-1')?.source).toBe('test-seed');
   });
 });
 
@@ -172,5 +179,22 @@ describe('projectRepository and cmsRepository', () => {
     expect(stats.projectCount).toBe(projectRepository.getAll().length);
     expect(stats.blogPostCount).toBe(blogRepository.getAll().length);
     expect(stats.mediaCount).toBe(mediaRepository.getAll().length);
+  });
+});
+
+
+describe('pageContentRepository', () => {
+  it('persists centralized home page editable content', () => {
+    const current = pageContentRepository.getHomePageContent();
+    const saved = pageContentRepository.saveHomePageContent({
+      ...current,
+      heroTitleLine1: 'Titre CMS',
+      heroTitleLine2: 'Piloté par le CMS',
+      aboutImage: 'media:asset-home',
+    });
+
+    expect(saved.heroTitleLine1).toBe('Titre CMS');
+    expect(pageContentRepository.getHomePageContent().heroTitleLine2).toBe('Piloté par le CMS');
+    expect(pageContentRepository.getHomePageContent().aboutImage).toBe('media:asset-home');
   });
 });

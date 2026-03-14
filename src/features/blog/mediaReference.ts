@@ -31,7 +31,7 @@ export function resolveBlogMediaReference(reference: string | undefined, fallbac
         reference: normalizedReference,
         src: media.url,
         alt: normalizeText(media.alt, fallbackAlt),
-        caption: normalizeText(media.caption, media.name),
+        caption: normalizeText(media.caption, media.title || media.name),
         isMediaAsset: true,
         isFallback: false,
       };

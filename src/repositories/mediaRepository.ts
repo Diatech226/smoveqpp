@@ -13,13 +13,25 @@ export interface MediaUploadInput {
   tags?: string[];
 }
 
-const normalizeMedia = (file: MediaFile): MediaFile => ({
-  ...file,
-  name: file.name.trim(),
-  alt: file.alt?.trim() || file.name.trim(),
-  caption: file.caption?.trim() || file.alt?.trim() || file.name.trim(),
-  tags: file.tags.map((tag) => tag.trim()).filter(Boolean),
-});
+const normalizeMedia = (file: MediaFile): MediaFile => {
+  const normalizedName = file.name.trim();
+  const normalizedAlt = file.alt?.trim() || normalizedName;
+  const nowIso = new Date().toISOString();
+
+  return {
+    ...file,
+    name: normalizedName,
+    title: file.title?.trim() || normalizedName,
+    label: file.label?.trim() || normalizedName,
+    alt: normalizedAlt,
+    caption: file.caption?.trim() || normalizedAlt || normalizedName,
+    tags: file.tags.map((tag) => tag.trim()).filter(Boolean),
+    source: file.source?.trim() || 'local-storage',
+    metadata: file.metadata || {},
+    createdAt: file.createdAt || file.uploadedDate || nowIso,
+    updatedAt: file.updatedAt || nowIso,
+  };
+};
 
 export interface MediaRepository {
   getAll(): MediaFile[];
@@ -91,8 +103,14 @@ class LocalMediaRepository implements MediaRepository {
           uploadedDate: new Date().toISOString(),
           uploadedBy: data.uploadedBy,
           alt: data.alt || data.name,
+          title: data.name,
+          label: data.name,
           caption: data.caption || data.alt || data.name,
           tags: data.tags || [],
+          source: 'local-upload',
+          metadata: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         };
 
         if (!isMediaFile(mediaFile)) {

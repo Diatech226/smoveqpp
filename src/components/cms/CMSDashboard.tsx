@@ -25,6 +25,8 @@ import { blogRepository, BlogRepositoryError } from '../../repositories/blogRepo
 import { cmsRepository } from '../../repositories/cmsRepository';
 import { mediaRepository } from '../../repositories/mediaRepository';
 import { projectRepository } from '../../repositories/projectRepository';
+import { pageContentRepository } from '../../repositories/pageContentRepository';
+import { defaultHomePageContent, type HomePageContentSettings } from '../../data/pageContentSeed';
 import {
   deleteBackendBlogPost,
   fetchBackendBlogPosts,
@@ -153,9 +155,19 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [projectEditorMode, setProjectEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [projectForm, setProjectForm] = useState<ProjectFormState>(EMPTY_PROJECT_FORM);
   const [projectFormErrors, setProjectFormErrors] = useState<Partial<Record<keyof ProjectFormState, string>>>({});
-  const mediaFiles = useMemo(() => mediaRepository.getAll(), []);
+  const [mediaQuery, setMediaQuery] = useState('');
+  const [selectedMediaId, setSelectedMediaId] = useState<string>('');
+  const [homeContentForm, setHomeContentForm] = useState<HomePageContentSettings>(() => pageContentRepository.getHomePageContent());
+  const [homeContentSaving, setHomeContentSaving] = useState(false);
+  const [homeContentError, setHomeContentError] = useState('');
+  const mediaFiles = useMemo(() => mediaRepository.getAll(), [feedback]);
   const cmsStats = useMemo(() => cmsRepository.getStats(), [posts, mediaFiles.length, projects.length]);
   const canDeleteContent = user?.role === 'admin';
+  const filteredMediaFiles = useMemo(() => {
+    if (!mediaQuery.trim()) return mediaFiles;
+    return mediaRepository.search(mediaQuery.trim());
+  }, [mediaFiles, mediaQuery]);
+  const selectedMedia = useMemo(() => mediaRepository.getById(selectedMediaId), [selectedMediaId, mediaFiles]);
   const canEditContent = user?.role === 'admin' || user?.role === 'editor' || user?.role === 'author';
   const canReviewContent = user?.role === 'admin' || user?.role === 'editor';
   const canPublishContent = user?.role === 'admin' || user?.role === 'editor';
@@ -242,6 +254,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     { id: 'projects', label: 'Projets', icon: FolderOpen },
     { id: 'blog', label: 'Blog', icon: FileText },
     { id: 'media', label: 'Médiathèque', icon: ImageIcon },
+    { id: 'content', label: 'Contenus pages', icon: FileText },
     { id: 'users', label: 'Utilisateurs', icon: Users },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
@@ -501,6 +514,28 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setSettingsSaving(false);
       showSuccess('Paramètres enregistrés avec succès.');
     }, 300);
+  };
+
+  const saveHomePageContent = () => {
+    if (!homeContentForm.heroTitleLine1.trim() || !homeContentForm.heroTitleLine2.trim()) {
+      setHomeContentError('Le titre hero doit être renseigné.');
+      return;
+    }
+
+    setHomeContentSaving(true);
+    setHomeContentError('');
+
+    setTimeout(() => {
+      const saved = pageContentRepository.saveHomePageContent(homeContentForm);
+      setHomeContentForm(saved);
+      setHomeContentSaving(false);
+      showSuccess('Contenu de page enregistré et centralisé dans le CMS.');
+    }, 250);
+  };
+
+  const resetHomePageContent = () => {
+    setHomeContentForm(pageContentRepository.getHomePageContent() || defaultHomePageContent);
+    setHomeContentError('');
   };
 
   const retryLoadPosts = async () => {
@@ -1117,24 +1152,82 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         </div>
       );
     }
-
     if (currentSection === 'media') {
       return (
         <div className="space-y-6">
-          <AdminPageHeader title="Médiathèque" subtitle="Fichiers validés et prêts à être utilisés dans le contenu." />
-          <AdminPanel title="Ressources médias">
-            {mediaFiles.length === 0 ? (
-              <AdminEmptyState label="Aucun média disponible. Importez une ressource pour démarrer." />
-            ) : (
-              <div className="grid md:grid-cols-2 gap-3">
-                {mediaFiles.slice(0, 6).map((file) => (
-                  <div key={file.id} className="rounded-[12px] border border-[#eef3f5] p-4">
-                    <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{file.name}</p>
-                    <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">{file.type} • {Math.round(file.size / 1024)} KB</p>
-                  </div>
-                ))}
-              </div>
-            )}
+          <AdminPageHeader title="Médiathèque" subtitle="Fichiers validés et prêts à être utilisés dans le contenu CMS." />
+          <AdminActionBar>
+            <input value={mediaQuery} onChange={(event) => setMediaQuery(event.target.value)} placeholder="Rechercher un média (nom, alt, tag)…" className="w-full max-w-[420px] rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]" />
+            <button type="button" onClick={() => { setMediaQuery(''); setSelectedMediaId(''); }} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] text-[14px]">Réinitialiser</button>
+          </AdminActionBar>
+          <div className="grid lg:grid-cols-[2fr_1fr] gap-4">
+            <AdminPanel title="Ressources médias">
+              {filteredMediaFiles.length === 0 ? (
+                <AdminEmptyState label="Aucun média correspondant. Ajoutez des ressources ou modifiez la recherche." />
+              ) : (
+                <div className="grid md:grid-cols-2 gap-3">
+                  {filteredMediaFiles.map((file) => (
+                    <button type="button" key={file.id} onClick={() => setSelectedMediaId(file.id)} className={`rounded-[12px] border p-4 text-left ${selectedMediaId === file.id ? 'border-[#00b3e8] bg-[#f0fbff]' : 'border-[#eef3f5]'}`}>
+                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{file.label || file.name}</p>
+                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">{file.type} • {Math.round(file.size / 1024)} KB</p>
+                      <p className="text-[12px] text-[#8a969b] mt-1">{file.alt || 'alt non renseigné'}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </AdminPanel>
+            <AdminPanel title="Détails du média">
+              {!selectedMedia ? (
+                <AdminEmptyState label="Sélectionnez une ressource pour voir son contrat d’asset." />
+              ) : (
+                <div className="space-y-2 text-[14px] text-[#4b5a60]">
+                  <p><span className="font-semibold">ID:</span> {selectedMedia.id}</p>
+                  <p><span className="font-semibold">Source:</span> {selectedMedia.source || 'local-storage'}</p>
+                  <p><span className="font-semibold">Alt:</span> {selectedMedia.alt || '—'}</p>
+                  <p><span className="font-semibold">Titre:</span> {selectedMedia.title || selectedMedia.name}</p>
+                  <p><span className="font-semibold">Créé:</span> {selectedMedia.createdAt || selectedMedia.uploadedDate}</p>
+                  <p><span className="font-semibold">Mis à jour:</span> {selectedMedia.updatedAt || selectedMedia.uploadedDate}</p>
+                  <div className="pt-1"><code className="text-[12px] bg-[#f5f9fa] px-2 py-1 rounded">media:{selectedMedia.id}</code></div>
+                </div>
+              )}
+            </AdminPanel>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentSection === 'content') {
+      return (
+        <div className="space-y-6">
+          <AdminPageHeader title="Contenus pages" subtitle="Sections éditables centralisées pour la page d’accueil." />
+          {homeContentError ? <AdminErrorState label={homeContentError} /> : null}
+          <AdminActionBar>
+            <button type="button" onClick={saveHomePageContent} disabled={homeContentSaving || !canEditContent} className="px-3 py-2 rounded-[10px] bg-[#273a41] text-white disabled:opacity-60">{homeContentSaving ? 'Sauvegarde…' : 'Enregistrer'}</button>
+            <button type="button" onClick={resetHomePageContent} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px]">Recharger</button>
+          </AdminActionBar>
+          <AdminPanel title="Hero">
+            <div className="grid md:grid-cols-2 gap-3">
+              <input value={homeContentForm.heroBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBadge: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Badge hero" />
+              <input value={homeContentForm.heroTitleLine1} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroTitleLine1: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre ligne 1" />
+              <input value={homeContentForm.heroTitleLine2} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroTitleLine2: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre ligne 2" />
+              <input value={homeContentForm.heroPrimaryCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroPrimaryCtaLabel: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA principal" />
+              <input value={homeContentForm.heroSecondaryCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroSecondaryCtaLabel: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA secondaire" />
+              <textarea value={homeContentForm.heroDescription} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroDescription: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[90px]" placeholder="Description hero" />
+            </div>
+          </AdminPanel>
+          <AdminPanel title="Services + À propos">
+            <div className="grid md:grid-cols-2 gap-3">
+              <input value={homeContentForm.servicesIntroTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, servicesIntroTitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre section services" />
+              <input value={homeContentForm.servicesIntroSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, servicesIntroSubtitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Sous-titre services" />
+              <input value={homeContentForm.aboutBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutBadge: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Badge à propos" />
+              <input value={homeContentForm.aboutTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutTitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre à propos" />
+              <textarea value={homeContentForm.aboutParagraphOne} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphOne: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[90px]" placeholder="Paragraphe 1" />
+              <textarea value={homeContentForm.aboutParagraphTwo} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphTwo: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[90px]" placeholder="Paragraphe 2" />
+              <select value={homeContentForm.aboutImage} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutImage: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2">
+                <option value="">Image about par défaut</option>
+                {mediaFiles.map((file) => (<option key={file.id} value={`media:${file.id}`}>{file.label || file.name}</option>))}
+              </select>
+            </div>
           </AdminPanel>
         </div>
       );

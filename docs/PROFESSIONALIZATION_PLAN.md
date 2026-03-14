@@ -382,3 +382,25 @@ This iteration is intentionally constrained:
 - Persistent audit store (DB-backed) with filtering/export support.
 - Full frontend UX for self-service password reset pages and invite/deactivation lifecycle.
 - Fine-grained admin policy model (multi-admin approvals for destructive account operations).
+
+## Iteration 4 execution update (implemented)
+
+### Media library / asset foundation
+- Introduced a canonicalized media asset contract (id, type, url, alt/title/label, metadata, source, createdAt/updatedAt) while preserving legacy compatibility fields used by existing UI paths.
+- Strengthened media repository normalization so assets are consistently read/written through one repository path, including safe defaults for textual metadata and provider/source attribution.
+- Upgraded CMS media section from static list to operational library basics (search, selection, asset detail panel, stable media reference key).
+
+### Centralized editable page-content contracts
+- Added a dedicated page-content repository contract for mutable homepage content sections (hero, services intro, about copy, about media reference).
+- Seeded centralized defaults aligned with current live output to preserve visual stability.
+- Connected homepage rendering to this repository contract so mutable page copy is no longer only hardcoded in presentation components.
+
+### CMS-controlled page content harmonization
+- Added a CMS “Contenus pages” section to edit and save centralized homepage content in one admin workflow.
+- Added CMS-side media reference selection (`media:<id>`) for about-page image assignment, aligning page content edits with media library assets.
+- Kept blog UI/output unchanged while improving reusable CMS editing and state patterns for non-blog content.
+
+### Deferred to Iteration 5
+- Add first-class media upload/storage provider integration (beyond local in-browser payloads) and dimensions extraction pipeline.
+- Expand centralized page-content contracts to additional sections/pages (contact/service landing CTA blocks, global SEO-like mutable fields).
+- Add migration tooling for legacy content fragments and stronger cross-content referential integrity checks.

@@ -1,9 +1,12 @@
 import { motion } from 'motion/react';
+import { useMemo } from 'react';
 import { Palette, Code, Megaphone, Video, Box, ArrowRight, Calendar, User } from 'lucide-react';
 import Hero3DEnhanced from '../../../components/Hero3DEnhanced';
 import Footer from '../../../components/Footer';
 import ProjectsSection from '../../../components/ProjectsSection';
 import { ImageWithFallback } from '../../../components/figma/ImageWithFallback';
+import { pageContentRepository } from '../../../repositories/pageContentRepository';
+import { resolveBlogMediaReference } from '../../blog/mediaReference';
 
 const servicesData = [
   {
@@ -73,10 +76,20 @@ const blogPosts = [
 ];
 
 function HomePageContent() {
+  const homeContent = useMemo(() => pageContentRepository.getHomePageContent(), []);
+  const aboutMedia = resolveBlogMediaReference(homeContent.aboutImage, 'SMOVE Team');
+
   return (
     <div className="relative" style={{ position: 'relative' }}>
       {/* Hero Section with 3D Effect */}
-      <Hero3DEnhanced />
+      <Hero3DEnhanced
+        badgeLabel={homeContent.heroBadge}
+        titleLine1={homeContent.heroTitleLine1}
+        titleLine2={homeContent.heroTitleLine2}
+        description={homeContent.heroDescription}
+        primaryCtaLabel={homeContent.heroPrimaryCtaLabel}
+        secondaryCtaLabel={homeContent.heroSecondaryCtaLabel}
+      />
 
       {/* Services Section */}
       <motion.section
@@ -103,10 +116,10 @@ function HomePageContent() {
               NOS SERVICES
             </motion.div>
             <h2 className="font-['ABeeZee:Regular',sans-serif] text-[48px] md:text-[72px] text-[#273a41] mb-6">
-              Ce que nous faisons
+              {homeContent.servicesIntroTitle}
             </h2>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-[#38484e] max-w-3xl mx-auto">
-              Des solutions digitales complètes pour propulser votre entreprise vers le succès
+              {homeContent.servicesIntroSubtitle}
             </p>
           </motion.div>
 
@@ -210,9 +223,9 @@ function HomePageContent() {
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 <ImageWithFallback
-                  src=""
+                  src={aboutMedia.isMediaAsset ? aboutMedia.src : ""}
                   alt="SMOVE Team"
-                  query="creative team working office african"
+                  query={aboutMedia.src}
                   className="w-full h-full object-cover"
                 />
               </motion.div>
@@ -242,19 +255,19 @@ function HomePageContent() {
                 className="inline-block bg-[#34c759]/10 text-[#34c759] px-6 py-3 rounded-full font-['Abhaya_Libre:Bold',sans-serif] text-[14px] mb-6"
                 whileHover={{ scale: 1.05 }}
               >
-                À PROPOS DE NOUS
+                {homeContent.aboutBadge}
               </motion.div>
 
               <h2 className="font-['ABeeZee:Regular',sans-serif] text-[48px] md:text-[64px] text-[#273a41] mb-6 leading-tight">
-                Innovation & Excellence Digitale
+                {homeContent.aboutTitle}
               </h2>
 
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[18px] text-[#38484e] mb-6 leading-relaxed">
-                SMOVE Communication est une agence digitale basée en Côte d'Ivoire, spécialisée dans la création de solutions digitales innovantes. Nous accompagnons les entreprises dans leur transformation digitale avec passion et expertise.
+                {homeContent.aboutParagraphOne}
               </p>
 
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[18px] text-[#38484e] mb-8 leading-relaxed">
-                Notre équipe de professionnels talentueux combine créativité, technologie et stratégie pour créer des expériences digitales qui marquent les esprits et génèrent des résultats mesurables.
+                {homeContent.aboutParagraphTwo}
               </p>
 
               {/* Stats */}
@@ -392,7 +405,7 @@ function HomePageContent() {
                 <div className="aspect-video overflow-hidden">
                   <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.6 }}>
                     <ImageWithFallback
-                      src=""
+                      src={aboutMedia.isMediaAsset ? aboutMedia.src : ""}
                       alt={post.title}
                       query={post.image}
                       className="w-full h-full object-cover"
