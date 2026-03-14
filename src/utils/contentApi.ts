@@ -27,6 +27,16 @@ export interface EditorialAnalytics {
   recentlyUpdated: Array<{ id: string; title: string; status: BlogPost['status']; publishedDate: string }>;
 }
 
+
+export interface MediaUploadPayload {
+  filename: string;
+  title?: string;
+  dataUrl: string;
+  alt?: string;
+  caption?: string;
+  tags?: string[];
+}
+
 export interface CmsSettings {
   siteTitle: string;
   supportEmail: string;
@@ -130,6 +140,15 @@ export async function deleteBackendProject(id: string): Promise<void> {
 export async function fetchBackendMediaFiles(): Promise<MediaFile[]> {
   const body = await request<{ mediaFiles: MediaFile[] }>('/media');
   return body.data?.mediaFiles || [];
+}
+
+
+export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promise<MediaFile> {
+  const body = await request<{ mediaFile: MediaFile }>('/media/upload', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return body.data!.mediaFile;
 }
 
 export async function saveBackendMediaFile(mediaFile: MediaFile): Promise<MediaFile> {

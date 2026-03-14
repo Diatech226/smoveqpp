@@ -48,7 +48,9 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 
 ### Data/persistence
 - Auth repository supports MongoDB or in-memory fallback.
-- Content API uses a file-backed repository (`server/data/content.json`) for blog, projects, media metadata, page content, and CMS settings.
+- Content API uses a file-backed repository (`server/data/content.json`) for blog, projects, media metadata, page content, and CMS settings with schema-versioned migration normalization (`schemaVersion`, `migrationHistory`).
+- Auth/content audit events are durably persisted in `server/data/audit-log.json` and available via admin audit endpoints.
+- Media uploads now support backend persistence to local disk (`server/data/uploads`) via `/api/v1/content/media/upload` with MIME/size validation.
 - Frontend repositories remain available for controlled fallback/compatibility when backend is unavailable.
 
 ### Testing/automation
@@ -130,6 +132,14 @@ npm run dev:server
 - `MONGO_URI`
 - `MONGO_DB_NAME`
 
+### Content/media durability
+- `CONTENT_SCHEMA_VERSION`
+- `MEDIA_UPLOAD_DIR`
+- `MEDIA_PUBLIC_BASE_PATH`
+- `MEDIA_MAX_UPLOAD_BYTES`
+- `MEDIA_ALLOWED_MIME_TYPES`
+
+
 ### OAuth
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
 - `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_CALLBACK_URL`
@@ -178,4 +188,16 @@ npm run typecheck
 npm run test
 # optional (after adding @playwright/test in your environment): npx playwright test tests/e2e/critical-flows.spec.ts
 npm run build
+npm run ops:backup
+npm run ops:verify-integrity
+# restore from a backup folder
+npm run ops:restore -- server/backups/backup-<timestamp>
 ```
+
+## Deployment and recovery runbooks
+
+- Deployment checklist: `docs/runbooks/DEPLOYMENT_CHECKLIST.md`
+- Rollback checklist: `docs/runbooks/ROLLBACK_CHECKLIST.md`
+- Auth/content recovery guide: `docs/runbooks/AUTH_AND_CONTENT_RECOVERY.md`
+
+These runbooks define the operational path for backup, restore, media recovery, and auth/content incident handling.

@@ -1,10 +1,20 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
-const { FRONTEND_ORIGIN, API_ORIGIN, isProduction } = require('./config/env');
+const {
+  FRONTEND_ORIGIN,
+  API_ORIGIN,
+  isProduction,
+  MEDIA_UPLOAD_DIR,
+  MEDIA_PUBLIC_BASE_PATH,
+  MEDIA_MAX_UPLOAD_BYTES,
+  MEDIA_ALLOWED_MIME_TYPES,
+} = require('./config/env');
 const { createSessionMiddleware, createCorsOptions } = require('./config/session');
 const { exposeCsrfToken } = require('./middleware/csrf');
 const { MemoryAuthRepository } = require('./repositories/authRepository.memory');
@@ -18,6 +28,10 @@ const { sendError } = require('./utils/apiResponse');
 const { FileContentRepository } = require('./repositories/contentRepository.file');
 const { ContentService } = require('./services/contentService');
 const { createOAuthConfig } = require('./config/passport');
+const { FileAuditRepository } = require('./repositories/auditRepository.file');
+const { AuditService } = require('./services/auditService');
+const { setAuthAuditService } = require('./utils/authLogger');
+const { LocalDiskMediaStorage } = require('./services/mediaStorageService');
 const { logInfo, logError } = require('./utils/logger');
 
 const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
@@ -73,6 +87,19 @@ function createApp(deps = {}) {
   const contentRepository = deps.contentRepository ?? new FileContentRepository();
   const contentService = deps.contentService ?? new ContentService({ contentRepository });
 
+  const auditRepository = deps.auditRepository ?? new FileAuditRepository();
+  const auditService = deps.auditService ?? new AuditService({ auditRepository });
+  setAuthAuditService(auditService);
+
+  const mediaStorage =
+    deps.mediaStorage ??
+    new LocalDiskMediaStorage({
+      uploadRootDir: MEDIA_UPLOAD_DIR,
+      publicBasePath: MEDIA_PUBLIC_BASE_PATH,
+      maxUploadBytes: MEDIA_MAX_UPLOAD_BYTES,
+      allowedMimeTypes: MEDIA_ALLOWED_MIME_TYPES,
+    });
+
   const sessionInit = deps.sessionInit ?? createSessionMiddleware();
 
   app.use((req, res, next) => {
@@ -104,8 +131,13 @@ function createApp(deps = {}) {
 
   app.use(cors(createCorsOptions()));
   app.use(cookieParser());
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
   app.use(sessionInit.middleware);
+
+  if (!fs.existsSync(MEDIA_UPLOAD_DIR)) {
+    fs.mkdirSync(MEDIA_UPLOAD_DIR, { recursive: true });
+  }
+  app.use(MEDIA_PUBLIC_BASE_PATH, express.static(path.resolve(MEDIA_UPLOAD_DIR)));
   app.use(exposeCsrfToken);
 
   app.get('/api/v1/health', (_req, res) => {
@@ -131,9 +163,9 @@ function createApp(deps = {}) {
   });
 
   app.use('/api/v1/auth', createAuthRoutes({ authController }));
-  app.use('/api/v1/content', createContentRoutes({ contentService }));
+  app.use('/api/v1/content', createContentRoutes({ contentService, auditService, mediaStorage }));
   app.use('/api/auth', createAuthRoutes({ authController }));
-  app.use('/api/content', createContentRoutes({ contentService }));
+  app.use('/api/content', createContentRoutes({ contentService, auditService, mediaStorage }));
 
   app.use((err, req, res, _next) => {
     logError('api_unhandled_error', {

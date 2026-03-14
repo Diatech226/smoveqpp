@@ -75,6 +75,9 @@
     "verify": "npm run lint && npm run typecheck && npm run test",
     "dev:client": "vite",
     "preview": "vite preview",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "ops:backup": "node scripts/backup-content.js",
+    "ops:restore": "node scripts/restore-content.js",
+    "ops:verify-integrity": "node scripts/verify-content-integrity.js"
   }
 }
