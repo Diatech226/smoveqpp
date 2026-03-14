@@ -9,6 +9,7 @@ const baseAuth: AuthRoutingState = {
   canAccessCMS: false,
   cmsEnabled: true,
   registrationEnabled: true,
+  postLoginRoute: 'account',
 };
 
 describe('routeResolver', () => {
@@ -32,6 +33,14 @@ describe('routeResolver', () => {
     expect(resolution.page).toBe('home');
   });
 
+
+  it('protects account route for unauthenticated users', () => {
+    const resolution = resolveRoute('#account', baseAuth);
+
+    expect(resolution.page).toBe('login');
+    expect(resolution.normalizedHash).toBe('login');
+  });
+
   it('redirects cms routes to login when unauthenticated', () => {
     const resolution = resolveRoute('#cms-dashboard', baseAuth);
 
@@ -41,6 +50,15 @@ describe('routeResolver', () => {
 });
 
 describe('guards', () => {
+  it('redirects authenticated user away from login/register', () => {
+    const decision = resolveAuthPageGuard('login', {
+      ...baseAuth,
+      isAuthenticated: true,
+      postLoginRoute: 'cms-dashboard',
+    });
+
+    expect(decision).toBe('cms-dashboard');
+  });
 
   it('allows register when registration is enabled', () => {
     const decision = resolveAuthPageGuard('register', {

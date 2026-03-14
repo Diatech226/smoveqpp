@@ -172,7 +172,7 @@ export default function RegisterPage() {
               Inscription
             </h1>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#9ba1a4]">
-              Créez votre compte pour accéder au CMS
+              Créez votre compte client (accès CMS réservé aux admins)
             </p>
           </motion.div>
 

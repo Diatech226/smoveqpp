@@ -14,6 +14,7 @@ import {
   resolveTrustedSessionUser,
   SECURITY_FLAGS,
   type AppUser,
+  type PostLoginRoute,
 } from '../utils/securityPolicy';
 import { clearLegacyAuthArtifacts } from '../repositories/authArtifactsRepository';
 import { logError, logInfo, logWarn } from '../utils/observability';
@@ -26,7 +27,7 @@ interface OAuthProviderState {
 export interface AuthActionResult {
   success: boolean;
   error: string | null;
-  destination: 'cms-dashboard' | 'home' | null;
+  destination: PostLoginRoute | null;
 }
 
 interface AuthContextType {
@@ -42,6 +43,7 @@ interface AuthContextType {
   registrationEnabled: boolean;
   canAccessCMS: boolean;
   oauthProviders: OAuthProviderState;
+  postLoginRoute: PostLoginRoute;
 }
 
 const SAFE_FALLBACK_CONTEXT: AuthContextType = {
@@ -57,9 +59,11 @@ const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   registrationEnabled: false,
   canAccessCMS: false,
   oauthProviders: { google: false, facebook: false },
+  postLoginRoute: 'home',
 };
 
 const AuthContext = createContext<AuthContextType>(SAFE_FALLBACK_CONTEXT);
+const POST_AUTH_ROUTE_KEY = 'smove.postAuthRoute';
 
 function resolveAuthActionError(result: AuthResult): string | null {
   if (result.success) return null;
@@ -69,6 +73,16 @@ function resolveAuthActionError(result: AuthResult): string | null {
 
 function shouldResetSession(result: AuthResult): boolean {
   return result.errorCode === 'SESSION_UNAUTHORIZED' || result.errorCode === 'INVALID_CSRF';
+}
+
+function getPostAuthIntentRoute(): string | null {
+  const intent = window.sessionStorage.getItem(POST_AUTH_ROUTE_KEY);
+  if (!intent) {
+    return null;
+  }
+
+  window.sessionStorage.removeItem(POST_AUTH_ROUTE_KEY);
+  return intent;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -88,6 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       user,
     }) === 'allow';
+
+  const postLoginRoute = resolvePostLoginRoute(cmsEnabled, user);
 
   useEffect(() => {
     let isActive = true;
@@ -166,10 +182,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logInfo({ scope: 'auth_context', event: 'login_succeeded' });
     }
 
+    const intendedRoute = result.success ? getPostAuthIntentRoute() : null;
+
     return {
       success: !!trustedUser,
       error: resolveAuthActionError(result),
-      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser, intendedRoute) : null,
     };
   };
 
@@ -182,10 +200,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
     setAuthError(resolveAuthActionError(result));
+    const intendedRoute = result.success ? getPostAuthIntentRoute() : null;
     return {
       success: !!trustedUser,
       error: resolveAuthActionError(result),
-      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser, intendedRoute) : null,
     };
   };
 
@@ -210,10 +229,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logInfo({ scope: 'auth_context', event: 'register_succeeded' });
     }
 
+    const intendedRoute = result.success ? getPostAuthIntentRoute() : null;
+
     return {
       success: !!trustedUser,
       error: resolveAuthActionError(result),
-      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser, intendedRoute) : null,
     };
   };
 
@@ -242,8 +263,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       registrationEnabled,
       canAccessCMS,
       oauthProviders,
+      postLoginRoute,
     }),
-    [user, authError, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS, oauthProviders],
+    [user, authError, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS, oauthProviders, postLoginRoute],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

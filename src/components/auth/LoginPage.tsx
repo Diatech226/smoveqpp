@@ -169,7 +169,7 @@ export default function LoginPage() {
               Connexion
             </h1>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#9ba1a4]">
-              Accédez à votre espace CMS
+              Connectez-vous à votre compte (CMS pour les admins)
             </p>
           </motion.div>
 

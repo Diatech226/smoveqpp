@@ -1,4 +1,4 @@
-import { Home, Info, Briefcase, FolderOpen, BookOpen, Mail, LayoutDashboard, LogIn } from 'lucide-react';
+import { Home, Info, Briefcase, FolderOpen, BookOpen, Mail, LayoutDashboard, LogIn, UserCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
 import { motion } from 'motion/react';
@@ -14,6 +14,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
   const currentHash = window.location.hash.slice(1) || 'home';
   const showAuthActions = cmsEnabled && !isAuthenticated;
   const showDashboardAction = cmsEnabled && canAccessCMS;
+  const showAccountAction = isAuthenticated && !canAccessCMS;
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string, sectionId?: string) => {
     e.preventDefault();
@@ -147,6 +148,18 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                   </span>
                 </div>
 
+                {showAccountAction && (
+                  <motion.a
+                    href="#account"
+                    className="flex items-center gap-2 bg-[#00b3e8] text-white px-5 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <UserCircle2 size={20} />
+                    Mon compte
+                  </motion.a>
+                )}
+
                 {showDashboardAction && (
                   <motion.a
                     href="#cms-dashboard"
@@ -237,16 +250,30 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                   </a>
                 )}
               </>
-            ) : showDashboardAction ? (
-              <a
-                href="#cms-dashboard"
-                className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-[#a855f7] border-2 border-[#a855f7] font-['Abhaya_Libre:Bold',sans-serif]"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <LayoutDashboard size={20} />
-                <span>Dashboard</span>
-              </a>
-            ) : null}
+            ) : (
+              <>
+                {showAccountAction && (
+                  <a
+                    href="#account"
+                    className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-white/10 border-2 border-white/30 font-['Abhaya_Libre:Bold',sans-serif]"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <UserCircle2 size={20} />
+                    <span>Mon compte</span>
+                  </a>
+                )}
+                {showDashboardAction && (
+                  <a
+                    href="#cms-dashboard"
+                    className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-[#a855f7] border-2 border-[#a855f7] font-['Abhaya_Libre:Bold',sans-serif]"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <LayoutDashboard size={20} />
+                    <span>Dashboard</span>
+                  </a>
+                )}
+              </>
+            )}
 
             <a
               href="#contact"

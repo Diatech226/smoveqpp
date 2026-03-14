@@ -9,6 +9,7 @@ import ProjectsPage from '../../components/ProjectsPage';
 import ProjectDetailPage from '../../components/ProjectDetailPage';
 import LoginPage from '../../components/auth/LoginPage';
 import RegisterPage from '../../components/auth/RegisterPage';
+import AccountPage from '../../components/auth/AccountPage';
 import CMSDashboard from '../../components/cms/CMSDashboard';
 import APropos from '../../imports/APropos';
 import HomePageContent from '../marketing/home/HomePageContent';
@@ -67,6 +68,10 @@ export default function AppPageRenderer({
       );
     }
     return <RegisterPage />;
+  }
+
+  if (currentPage === 'account') {
+    return <AccountPage />;
   }
 
   if (currentPage === 'cms-dashboard') {

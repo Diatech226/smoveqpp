@@ -316,3 +316,22 @@ This iteration is intentionally constrained:
 - Migrate projects/media metadata CRUD to the same backend content service and remove remaining local-storage-first write paths.
 - Add audit metadata (reviewer, timestamps, transition actor) and review comments for collaborative moderation.
 - Add browser e2e coverage for author/editor/admin review + publish permissions matrix.
+
+## Iteration 6 execution update (implemented)
+
+### Post-auth product coherence by role
+- Implemented deterministic post-login routing by role so admin/staff users land in CMS while non-admin authenticated users land in a dedicated non-admin destination (`#account`) instead of being funneled into CMS-only flows.
+- Added explicit intent preservation for CMS access attempts: unauthenticated users requesting `#cms-*` are redirected to login and, after auth, routed according to permission (admin to dashboard, client to clear forbidden state).
+- Prevented authenticated users from re-entering login/register dead-ends by redirecting those routes to their role-aware destination.
+
+### Session/user-shape hardening for access decisions
+- Hardened frontend session user normalization to enforce trusted role/status/account/auth-provider defaults before permission checks.
+- Kept backend role/status/account separation intact (`role` for authorization, status/account fields for lifecycle) and aligned frontend guard behavior to role-based access decisions.
+
+### Foundation for future client authenticated area
+- Added a lightweight `Mon compte` authenticated page as a coherent non-admin destination without introducing a large customer portal.
+- Extended global navigation with role-aware account/dashboard actions while keeping blog UI and public site visual identity unchanged.
+
+### Deferred to Iteration 7
+- Expand `Mon compte` with client-relevant profile/preferences/history modules backed by persistent APIs.
+- Add browser e2e tests for full role-based auth journeys (public → login/register → role destination, CMS-intent preservation).

@@ -2,7 +2,8 @@ import { HOME_SECTIONS, isCmsRoute, resolveAuthPageGuard, resolveCmsRouteGuard }
 import type { AppRoute, AuthRoutingState, RouteResolution } from './navigationTypes';
 
 export function parseHashRoute(hash: string): AppRoute {
-  return (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';
+  const rawRoute = (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';
+  return rawRoute.split('?')[0] as AppRoute;
 }
 
 export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolution {
@@ -23,6 +24,30 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
       page,
       sectionToScroll: null,
       normalizedHash: page,
+    };
+  }
+
+
+  if (route === 'account') {
+    if (!auth.isAuthReady) {
+      return {
+        page: 'auth-loading',
+        sectionToScroll: null,
+        normalizedHash: 'auth-loading',
+      };
+    }
+
+    if (!auth.isAuthenticated) {
+      return {
+        page: 'login',
+        sectionToScroll: null,
+        normalizedHash: 'login',
+      };
+    }
+
+    return {
+      page: 'account',
+      sectionToScroll: null,
     };
   }
 
