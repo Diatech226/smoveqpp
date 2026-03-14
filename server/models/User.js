@@ -1,4 +1,4 @@
-const USER_ROLES = ['admin', 'editor', 'author', 'viewer'];
+const USER_ROLES = ['admin', 'editor', 'author', 'viewer', 'client'];
 const USER_STATUSES = ['client', 'staff'];
 const ACCOUNT_STATUSES = ['active', 'invited', 'suspended'];
 const AUTH_PROVIDERS = ['local', 'google', 'facebook'];
@@ -13,7 +13,7 @@ function normalizeUserInput(input) {
     email: normalizeEmail(input.email),
     passwordHash: input.passwordHash ? String(input.passwordHash) : null,
     name: String(input.name ?? '').trim(),
-    role: USER_ROLES.includes(input.role) ? input.role : 'viewer',
+    role: USER_ROLES.includes(input.role) ? input.role : 'client',
     status: USER_STATUSES.includes(input.status) ? input.status : 'client',
     accountStatus: ACCOUNT_STATUSES.includes(input.accountStatus)
       ? input.accountStatus
@@ -57,7 +57,7 @@ function createUserModel(mongoose) {
       role: {
         type: String,
         enum: USER_ROLES,
-        default: 'viewer',
+        default: 'client',
         index: true,
       },
       status: {

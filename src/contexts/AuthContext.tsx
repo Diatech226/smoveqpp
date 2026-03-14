@@ -10,6 +10,7 @@ import {
 } from '../utils/authApi';
 import {
   evaluateCmsAccess,
+  resolvePostLoginRoute,
   resolveTrustedSessionUser,
   SECURITY_FLAGS,
   type AppUser,
@@ -25,6 +26,7 @@ interface OAuthProviderState {
 export interface AuthActionResult {
   success: boolean;
   error: string | null;
+  destination: 'cms-dashboard' | 'home' | null;
 }
 
 interface AuthContextType {
@@ -45,9 +47,9 @@ interface AuthContextType {
 const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   user: null,
   authError: null,
-  login: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.' }),
-  loginWithOAuth: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.' }),
-  register: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.' }),
+  login: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
+  loginWithOAuth: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
+  register: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
   logout: async () => undefined,
   isAuthenticated: false,
   isAuthReady: true,
@@ -146,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<AuthActionResult> => {
     if (!cmsEnabled) {
       setAuthError('Le CMS est désactivé.');
-      return { success: false, error: 'Le CMS est désactivé.' };
+      return { success: false, error: 'Le CMS est désactivé.', destination: null };
     }
 
     const result = await loginWithApi(email, password, csrfToken);
@@ -164,7 +166,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logInfo({ scope: 'auth_context', event: 'login_succeeded' });
     }
 
-    return { success: !!trustedUser, error: resolveAuthActionError(result) };
+    return {
+      success: !!trustedUser,
+      error: resolveAuthActionError(result),
+      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+    };
   };
 
   const loginWithOAuth = async (
@@ -176,13 +182,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
     setAuthError(resolveAuthActionError(result));
-    return { success: !!trustedUser, error: resolveAuthActionError(result) };
+    return {
+      success: !!trustedUser,
+      error: resolveAuthActionError(result),
+      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+    };
   };
 
   const register = async (email: string, password: string, name: string): Promise<AuthActionResult> => {
     if (!cmsEnabled) {
       setAuthError('Le CMS est désactivé.');
-      return { success: false, error: 'Le CMS est désactivé.' };
+      return { success: false, error: 'Le CMS est désactivé.', destination: null };
     }
 
     const result = await registerWithApi(email, password, name, csrfToken);
@@ -200,7 +210,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logInfo({ scope: 'auth_context', event: 'register_succeeded' });
     }
 
-    return { success: !!trustedUser, error: resolveAuthActionError(result) };
+    return {
+      success: !!trustedUser,
+      error: resolveAuthActionError(result),
+      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+    };
   };
 
   const logout = async () => {

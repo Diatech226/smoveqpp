@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   evaluateCmsAccess,
+  resolvePostLoginRoute,
   resolveTrustedSessionUser,
   type AppUser,
 } from './securityPolicy';
@@ -36,7 +37,7 @@ describe('evaluateCmsAccess', () => {
     ).toBe('allow');
   });
 
-  it('denies viewer role for cms', () => {
+  it('denies viewer and client roles for cms', () => {
     const decision = evaluateCmsAccess({
       cmsEnabled: true,
       isAuthenticated: true,
@@ -44,6 +45,10 @@ describe('evaluateCmsAccess', () => {
     });
 
     expect(decision).toBe('forbidden');
+
+    expect(
+      evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'client' } }),
+    ).toBe('forbidden');
   });
 });
 
@@ -68,5 +73,16 @@ describe('resolveTrustedSessionUser', () => {
     };
 
     expect(resolveTrustedSessionUser(serverUser, null)).toEqual(serverUser);
+  });
+});
+
+
+describe('resolvePostLoginRoute', () => {
+  it('routes admins to cms dashboard', () => {
+    expect(resolvePostLoginRoute(true, { id: '1', email: 'admin@test.com', name: 'Admin', role: 'admin' })).toBe('cms-dashboard');
+  });
+
+  it('routes clients to home', () => {
+    expect(resolvePostLoginRoute(true, { id: '2', email: 'client@test.com', name: 'Client', role: 'client' })).toBe('home');
   });
 });

@@ -51,7 +51,7 @@ export default function RegisterPage() {
     const result = await register(email, password, name);
 
     if (result.success) {
-      window.location.hash = 'cms-dashboard';
+      window.location.hash = result.destination ?? 'home';
     } else {
       setError(result.error ?? authError ?? 'Cet email est déjà utilisé');
     }
