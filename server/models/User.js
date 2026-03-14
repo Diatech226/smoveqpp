@@ -1,5 +1,6 @@
 const USER_ROLES = ['admin', 'editor', 'author', 'viewer'];
-const USER_STATUSES = ['active', 'invited', 'suspended'];
+const USER_STATUSES = ['client', 'staff'];
+const ACCOUNT_STATUSES = ['active', 'invited', 'suspended'];
 const AUTH_PROVIDERS = ['local', 'google', 'facebook'];
 
 function normalizeEmail(email) {
@@ -13,7 +14,10 @@ function normalizeUserInput(input) {
     passwordHash: input.passwordHash ? String(input.passwordHash) : null,
     name: String(input.name ?? '').trim(),
     role: USER_ROLES.includes(input.role) ? input.role : 'viewer',
-    status: USER_STATUSES.includes(input.status) ? input.status : 'active',
+    status: USER_STATUSES.includes(input.status) ? input.status : 'client',
+    accountStatus: ACCOUNT_STATUSES.includes(input.accountStatus)
+      ? input.accountStatus
+      : (ACCOUNT_STATUSES.includes(input.status) ? input.status : 'active'),
     authProvider: AUTH_PROVIDERS.includes(input.authProvider) ? input.authProvider : 'local',
     providerId: input.providerId ? String(input.providerId) : null,
     lastLoginAt: input.lastLoginAt ?? null,
@@ -59,6 +63,12 @@ function createUserModel(mongoose) {
       status: {
         type: String,
         enum: USER_STATUSES,
+        default: 'client',
+        index: true,
+      },
+      accountStatus: {
+        type: String,
+        enum: ACCOUNT_STATUSES,
         default: 'active',
         index: true,
       },
@@ -99,4 +109,12 @@ function createUserModel(mongoose) {
   return mongoose.model('User', schema);
 }
 
-module.exports = { USER_ROLES, USER_STATUSES, AUTH_PROVIDERS, normalizeEmail, normalizeUserInput, createUserModel };
+module.exports = {
+  USER_ROLES,
+  USER_STATUSES,
+  ACCOUNT_STATUSES,
+  AUTH_PROVIDERS,
+  normalizeEmail,
+  normalizeUserInput,
+  createUserModel,
+};

@@ -5,7 +5,8 @@ export interface AppUser {
   email: string;
   name: string;
   role: UserRole;
-  status?: 'active' | 'invited' | 'suspended';
+  status?: 'client' | 'staff';
+  accountStatus?: 'active' | 'invited' | 'suspended';
   authProvider?: 'local' | 'google' | 'facebook';
 }
 
