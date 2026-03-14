@@ -1,18 +1,161 @@
-# Digital Communication Web App
+# SMOVE Web App
 
-This is a code bundle for Digital Communication Web App. The original project is available at https://www.figma.com/design/28YTiYq2TOfPd8DQLSLebr/Digital-Communication-Web-App.
+SMOVE is a React + Express web application that combines:
+- a public marketing site,
+- a public blog rendering path,
+- and an authenticated CMS/admin workspace for editorial/content operations.
 
-## Running the code
+The codebase currently targets **pre-production maturity**: architecture and security baselines are in place, but several durability and operational gaps remain before production release.
 
-1. Install dependencies:
-   ```bash
-   npm i
-   ```
-2. Create your local environment file:
-   ```bash
-   cp .env.example .env.local
-   ```
-3. Start frontend + backend together:
-   ```bash
-   npm run dev
-   ```
+## Main capabilities
+
+### Public site
+- Hash-based navigation for home, services, projects, portfolio, blog, and about pages.
+- Animated marketing pages and reusable shell components.
+
+### Authentication and account
+- Session-based auth (cookie + CSRF token).
+- Local login/register flows.
+- OAuth login API wiring for Google/Facebook (provider credentials required).
+- Email verification API + account page actions (resend/verify token).
+- Account page with role/status/provider/verification visibility.
+
+### CMS/admin workspace
+- CMS access for `admin`, `editor`, `author` roles.
+- Sections in dashboard: overview, projects, blog, media, page content, users, settings.
+- Role-aware editorial actions (e.g., publish restrictions for author role).
+- Admin user management and auth audit-event visibility.
+
+### Blog/content path
+- Public blog page renders canonicalized **published** posts.
+- Backend supports blog status lifecycle (`draft`, `in_review`, `published`, `archived`) and editorial analytics.
+- CMS blog editor can save, transition, and delete posts (with backend-first attempt and local fallback behavior in UI).
+
+## Current stack
+
+### Frontend
+- React 18 + Vite + TypeScript
+- Motion (`motion/react`) for animation
+- Lucide icons + utility components
+- Hash routing with custom resolver/guards (`src/app-routing`)
+
+### Backend
+- Node.js + Express
+- Session auth with `express-session`
+- CSRF middleware and auth rate limiting
+- RBAC permission model (`admin`, `editor`, `author`, `viewer`, `client`)
+- Helmet + CORS + cookie parsing
+
+### Data/persistence
+- Auth repository supports MongoDB or in-memory fallback.
+- Content API currently uses file-backed repository (`server/data/content.json`).
+- Frontend repositories also use localStorage for several CMS-facing stores.
+
+### Testing/automation
+- Vitest unit/integration tests (frontend + selected server modules)
+- Node smoke script for auth flow (`scripts/test-auth-smoke.js`)
+- GitHub Actions quality/security workflows
+
+## Local development
+
+### 1) Install
+```bash
+npm install
+```
+
+### 2) Configure environment
+```bash
+cp .env.example .env.local
+```
+
+### 3) Run app (frontend + backend)
+```bash
+npm run dev
+```
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:3001`
+
+### Alternative run commands
+```bash
+npm run dev:client
+npm run dev:server
+```
+
+## Auth behavior locally
+
+- The frontend bootstraps auth state from `GET /api/v1/auth/session`.
+- CSRF token from session payload is sent on state-changing auth requests.
+- CMS route access is guarded by both frontend checks and backend RBAC.
+- If Mongo is unavailable (or dependencies are missing in `auto` mode), auth can fall back to in-memory users.
+
+## MongoDB requirements and seeding
+
+- `AUTH_STORAGE_MODE` controls auth storage strategy:
+  - `mongo`: require MongoDB connection.
+  - `auto`: use MongoDB when available; otherwise fallback.
+  - `memory`: always in-memory (non-persistent).
+- Optional admin seeding on startup:
+  - `SEED_ADMIN_ON_START=true`
+  - `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`
+
+## Environment variables (important)
+
+### Frontend
+- `VITE_API_BASE_URL` (default `/api/v1`)
+- `VITE_REQUEST_TIMEOUT_MS`
+- `VITE_ENABLE_CMS`
+- `VITE_ENABLE_REGISTRATION`
+
+### Backend core
+- `API_PORT`
+- `FRONTEND_ORIGIN`
+- `API_ORIGIN`
+- `SESSION_SECRET` (**must be strong in production**)
+
+### Auth/session/security
+- `AUTH_STORAGE_MODE`
+- `SESSION_TTL_SECONDS`
+- `PASSWORD_HASH_ROUNDS`
+- `AUTH_RATE_LIMIT_MAX`
+- `AUTH_RATE_LIMIT_WINDOW_MS`
+- `PUBLIC_REGISTRATION_ENABLED`
+
+### MongoDB
+- `MONGO_URI`
+- `MONGO_DB_NAME`
+
+### OAuth
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
+- `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_CALLBACK_URL`
+- `OAUTH_DEFAULT_ROLE`
+
+### Email
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`
+- `EMAIL_FROM`
+- `APP_BASE_URL`
+
+## Current maturity notes
+
+- The app has good structural foundations but is still **pre-production**.
+- Auth durability is not guaranteed unless Mongo/session-store dependencies and configuration are enforced.
+- Content persistence is split across backend file storage and frontend localStorage repositories.
+- Backend password-reset endpoints exist, but dedicated frontend reset-password pages are not yet wired.
+- Existing lint/typecheck scripts are lightweight smoke checks, not full static-analysis gates.
+
+## Production notes (concise)
+
+Before production release, prioritize:
+1. Hard fail on non-persistent auth/session mode in production.
+2. Unify CMS content persistence under one authoritative backend model.
+3. Complete account lifecycle UI (password reset flow).
+4. Add real observability (metrics/log correlation/alerts).
+5. Strengthen CI with full lint/typecheck and browser E2E critical flows.
+
+## Useful commands
+
+```bash
+npm run dev
+npm run verify
+npm run test
+npm run build
+```
