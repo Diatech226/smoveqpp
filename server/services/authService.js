@@ -102,15 +102,23 @@ class AuthService {
     }
 
     const passwordHash = await hashPassword(password);
-    const user = await this.userRepository.create({
-      email,
-      name,
-      passwordHash,
-      role: 'viewer',
-      status: 'active',
-      authProvider: 'local',
-      providerId: null,
-    });
+    let user;
+    try {
+      user = await this.userRepository.create({
+        email,
+        name,
+        passwordHash,
+        role: 'author',
+        status: 'active',
+        authProvider: 'local',
+        providerId: null,
+      });
+    } catch (error) {
+      if (error?.code === 11000) {
+        return { ok: false, status: 409, code: 'EMAIL_ALREADY_EXISTS', message: 'An account already exists with this email' };
+      }
+      throw error;
+    }
 
     return { ok: true, user: sanitizeUser(user) };
   }

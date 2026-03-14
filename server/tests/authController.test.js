@@ -77,6 +77,27 @@ describe('auth controller session and logout', () => {
     expect(res.statusCode).toBe(403);
   });
 
+
+  it('login endpoint starts session on success', async () => {
+    const authController = buildAuthController({
+      authService: {
+        login: async () => ({
+          ok: true,
+          user: { id: 'u2', email: 'login@test.com', role: 'author', status: 'active' },
+        }),
+      },
+    });
+
+    const req = { session: createSession(), body: { email: 'login@test.com' }, method: 'POST', originalUrl: '/login' };
+    const res = createRes();
+
+    await authController.login(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.user.email).toBe('login@test.com');
+    expect(req.session.userId).toBe('u2');
+  });
+
   it('logout destroys session cleanly', async () => {
     const authController = buildAuthController({ authService: {} });
     const req = { session: createSession(), method: 'POST', originalUrl: '/logout' };

@@ -57,6 +57,22 @@ describe('normalizeAuthPayload', () => {
     expect(result.errorMessage).toBe('Un compte existe déjà avec cet email.');
   });
 
+
+  it('maps validation errors to localized fallback message', () => {
+    const result = normalizeAuthPayload(
+      {
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+        },
+      },
+      400,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe('Vérifiez les champs saisis.');
+  });
+
   it('provides fallback message when payload is malformed', () => {
     const result = normalizeAuthPayload(null, 500);
 

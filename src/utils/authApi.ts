@@ -41,6 +41,7 @@ function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'AUTH_OFFLINE') return 'Connexion indisponible. Vérifiez votre réseau.';
   if (code === 'REGISTRATION_DISABLED') return 'Inscription publique désactivée.';
   if (code === 'EMAIL_ALREADY_EXISTS') return 'Un compte existe déjà avec cet email.';
+  if (code === 'VALIDATION_ERROR') return 'Vérifiez les champs saisis.';
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
   return 'Erreur d’authentification.';
 }

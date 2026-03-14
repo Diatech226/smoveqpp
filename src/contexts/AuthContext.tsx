@@ -22,12 +22,17 @@ interface OAuthProviderState {
   facebook: boolean;
 }
 
+export interface AuthActionResult {
+  success: boolean;
+  error: string | null;
+}
+
 interface AuthContextType {
   user: AppUser | null;
   authError: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  loginWithOAuth: (provider: 'google' | 'facebook', payload: { email: string; name: string; providerId: string }) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<AuthActionResult>;
+  loginWithOAuth: (provider: 'google' | 'facebook', payload: { email: string; name: string; providerId: string }) => Promise<AuthActionResult>;
+  register: (email: string, password: string, name: string) => Promise<AuthActionResult>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAuthReady: boolean;
@@ -40,9 +45,9 @@ interface AuthContextType {
 const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   user: null,
   authError: null,
-  login: async () => false,
-  loginWithOAuth: async () => false,
-  register: async () => false,
+  login: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.' }),
+  loginWithOAuth: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.' }),
+  register: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.' }),
   logout: async () => undefined,
   isAuthenticated: false,
   isAuthReady: true,
@@ -138,10 +143,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [cmsEnabled]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<AuthActionResult> => {
     if (!cmsEnabled) {
       setAuthError('Le CMS est désactivé.');
-      return false;
+      return { success: false, error: 'Le CMS est désactivé.' };
     }
 
     const result = await loginWithApi(email, password, csrfToken);
@@ -159,25 +164,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logInfo({ scope: 'auth_context', event: 'login_succeeded' });
     }
 
-    return !!trustedUser;
+    return { success: !!trustedUser, error: resolveAuthActionError(result) };
   };
 
   const loginWithOAuth = async (
     provider: 'google' | 'facebook',
     payload: { email: string; name: string; providerId: string },
-  ): Promise<boolean> => {
+  ): Promise<AuthActionResult> => {
     const result = await oauthLoginWithApi(provider, payload, csrfToken);
     setCsrfToken(result.csrfToken);
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
     setAuthError(resolveAuthActionError(result));
-    return !!trustedUser;
+    return { success: !!trustedUser, error: resolveAuthActionError(result) };
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string): Promise<AuthActionResult> => {
     if (!cmsEnabled) {
       setAuthError('Le CMS est désactivé.');
-      return false;
+      return { success: false, error: 'Le CMS est désactivé.' };
     }
 
     const result = await registerWithApi(email, password, name, csrfToken);
@@ -195,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logInfo({ scope: 'auth_context', event: 'register_succeeded' });
     }
 
-    return !!trustedUser;
+    return { success: !!trustedUser, error: resolveAuthActionError(result) };
   };
 
   const logout = async () => {

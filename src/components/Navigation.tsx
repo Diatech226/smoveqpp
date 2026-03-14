@@ -10,7 +10,7 @@ interface NavigationProps {
 
 export default function Navigation({ currentPath = '/' }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, isAuthenticated, cmsEnabled, canAccessCMS } = useAuth();
+  const { user, isAuthenticated, cmsEnabled, canAccessCMS, registrationEnabled } = useAuth();
   const currentHash = window.location.hash.slice(1) || 'home';
   const showAuthActions = cmsEnabled && !isAuthenticated;
   const showDashboardAction = cmsEnabled && canAccessCMS;
@@ -122,6 +122,16 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                   <LogIn size={18} />
                   Se connecter
                 </motion.a>
+                {registrationEnabled && (
+                  <motion.a
+                    href="#register"
+                    className="flex items-center gap-2 bg-gradient-to-r from-[#34c759] to-[#2da84a] text-white px-4 py-2 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Créer un compte
+                  </motion.a>
+                )}
               </>
             ) : isAuthenticated ? (
               <>
@@ -217,6 +227,15 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                   <LogIn size={20} />
                   <span>Se connecter</span>
                 </a>
+                {registrationEnabled && (
+                  <a
+                    href="#register"
+                    className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-[#34c759] border-2 border-[#34c759] font-['Abhaya_Libre:Bold',sans-serif]"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <span>Créer un compte</span>
+                  </a>
+                )}
               </>
             ) : showDashboardAction ? (
               <a

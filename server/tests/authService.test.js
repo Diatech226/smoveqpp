@@ -65,6 +65,16 @@ describe('AuthService', () => {
     expect(users[0].passwordHash).toBeTruthy();
   });
 
+
+  it('register rejects invalid payload when enabled', async () => {
+    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
+
+    const result = await registerEnabledService.register({ email: 'bad@x.com', password: 'short', name: '' });
+
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('VALIDATION_ERROR');
+  });
+
   it('register rejects duplicate email when enabled', async () => {
     const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
 
@@ -94,6 +104,18 @@ describe('AuthService', () => {
     expect(seed.created).toBe(true);
     expect(users[0].email).toBe('admin@example.com');
     expect(login.ok).toBe(true);
+  });
+
+
+  it('user registered through public flow can log in', async () => {
+    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
+
+    const registration = await registerEnabledService.register({ email: 'flow@x.com', password: 'password123', name: 'Flow User' });
+    const login = await registerEnabledService.login({ email: 'flow@x.com', password: 'password123' });
+
+    expect(registration.ok).toBe(true);
+    expect(login.ok).toBe(true);
+    expect(login.user?.email).toBe('flow@x.com');
   });
 
   it('valid login succeeds and updates lastLoginAt', async () => {

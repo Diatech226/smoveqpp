@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, loginWithOAuth, oauthProviders, cmsEnabled, authError } = useAuth();
+  const { login, loginWithOAuth, oauthProviders, cmsEnabled, registrationEnabled, authError } = useAuth();
 
 
   const handleOAuth = async (provider: 'google' | 'facebook') => {
@@ -16,16 +16,16 @@ export default function LoginPage() {
     const mockEmail = window.prompt(`Email ${provider}`);
     if (!mockEmail) return;
 
-    const success = await loginWithOAuth(provider, {
+    const result = await loginWithOAuth(provider, {
       email: mockEmail,
       name: mockEmail.split('@')[0],
       providerId: `${provider}-${mockEmail}`
     });
 
-    if (success) {
+    if (result.success) {
       window.location.hash = 'cms-dashboard';
     } else {
-      setError(authError ?? `Connexion ${provider} impossible`);
+      setError(result.error ?? authError ?? `Connexion ${provider} impossible`);
     }
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,12 +45,12 @@ export default function LoginPage() {
       return;
     }
 
-    const success = await login(email, password);
-    
-    if (success) {
+    const result = await login(email, password);
+
+    if (result.success) {
       window.location.hash = 'cms-dashboard';
     } else {
-      setError(authError ?? 'Email ou mot de passe incorrect');
+      setError(result.error ?? authError ?? 'Email ou mot de passe incorrect');
     }
     
     setLoading(false);
@@ -305,6 +305,17 @@ export default function LoginPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
+            {registrationEnabled && (
+              <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
+                Pas encore de compte?{' '}
+                <a
+                  href="#register"
+                  className="text-[#34c759] font-['Abhaya_Libre:Bold',sans-serif] hover:underline"
+                >
+                  Créer un compte
+                </a>
+              </p>
+            )}
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
               <a
                 href="#home"
