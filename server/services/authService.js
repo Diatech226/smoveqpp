@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { normalizeEmail } = require('../models/User');
-const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED } = require('../config/env');
+const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED, isProduction } = require('../config/env');
 
 const EMAIL_VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24;
 const PASSWORD_RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
@@ -18,6 +18,10 @@ async function hashPassword(password) {
     return bcryptLib.hash(password, PASSWORD_HASH_ROUNDS);
   }
 
+  if (isProduction) {
+    throw new Error('bcryptjs dependency is required in production for password hashing.');
+  }
+
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
   return `${salt}:${hash}`;
@@ -26,6 +30,10 @@ async function hashPassword(password) {
 async function verifyPassword(password, storedHash) {
   if (bcryptLib) {
     return bcryptLib.compare(password, storedHash);
+  }
+
+  if (isProduction) {
+    throw new Error('bcryptjs dependency is required in production for password verification.');
   }
 
   const [salt, hash] = String(storedHash).split(':');

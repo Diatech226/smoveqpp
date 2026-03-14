@@ -8,6 +8,7 @@ const {
   ADMIN_PASSWORD,
   ADMIN_NAME,
   AUTH_STORAGE_MODE,
+  SESSION_STORE_MODE,
   PUBLIC_REGISTRATION_ENABLED,
   SMTP_HOST,
   SMTP_PORT,
@@ -16,12 +17,14 @@ const {
   SMTP_PASS,
   EMAIL_FROM,
   APP_BASE_URL,
+  isProduction,
 } = require('./config/env');
 const { MongoAuthRepository } = require('./repositories/authRepository.mongo');
 const { MemoryAuthRepository } = require('./repositories/authRepository.memory');
 const { AuthService } = require('./services/authService');
 const { createOAuthConfig } = require('./config/passport');
 const { EmailService } = require('./services/emailService');
+const { logInfo, logWarn, logError } = require('./utils/logger');
 
 async function bootstrap() {
   validateCriticalEnv();
@@ -30,6 +33,11 @@ async function bootstrap() {
   const mongoose = getMongoose();
   const mongoState = getMongoConnectionState();
   const usingMongoAuth = Boolean(mongoose);
+
+  if (!usingMongoAuth && (isProduction || AUTH_STORAGE_MODE === 'mongo')) {
+    throw new Error(`[auth] MongoDB auth repository unavailable (reason=${mongoState.reason}).`);
+  }
+
   const userRepository = usingMongoAuth ? new MongoAuthRepository({ mongoose }) : new MemoryAuthRepository();
   const oauthConfig = createOAuthConfig();
   const emailService = new EmailService({
@@ -50,15 +58,14 @@ async function bootstrap() {
     emailService,
   });
 
-  if (usingMongoAuth) {
-    console.log('[auth] MongoDB connected');
-  } else {
-    console.warn(`[auth] using in-memory auth fallback (reason=${mongoState.reason})`);
-  }
-
-  console.log(`[auth] storage_mode=${usingMongoAuth ? 'mongo' : 'memory'} (AUTH_STORAGE_MODE=${AUTH_STORAGE_MODE})`);
-  console.log(`[auth] public_registration=${PUBLIC_REGISTRATION_ENABLED ? 'enabled' : 'disabled'}`);
-  console.log(`[auth] email_delivery=${emailService.isDeliveryReady() ? 'smtp' : 'dev-fallback'}`);
+  logInfo('bootstrap_auth_storage', {
+    storageMode: usingMongoAuth ? 'mongo' : 'memory',
+    configuredAuthStorageMode: AUTH_STORAGE_MODE,
+    configuredSessionStoreMode: SESSION_STORE_MODE,
+    mongoState: mongoState.reason,
+    publicRegistrationEnabled: PUBLIC_REGISTRATION_ENABLED,
+    emailDeliveryMode: emailService.isDeliveryReady() ? 'smtp' : 'dev-fallback',
+  });
 
   if (SEED_ADMIN_ON_START) {
     const seedResult = await authService.seedAdminFromEnv({
@@ -68,23 +75,23 @@ async function bootstrap() {
     });
 
     if (!seedResult.ok) {
-      console.warn('[auth] admin seed skipped');
+      logWarn('bootstrap_admin_seed_skipped', { reason: seedResult.reason ?? 'unknown' });
     } else if (seedResult.created) {
-      console.log('[auth] admin seeded');
+      logInfo('bootstrap_admin_seeded');
     } else {
-      console.log('[auth] admin already exists');
+      logInfo('bootstrap_admin_exists');
     }
   } else {
-    console.log('[auth] admin seed skipped');
+    logInfo('bootstrap_admin_seed_disabled');
   }
 
   const app = createApp({ authService });
   app.listen(API_PORT, () => {
-    console.log(`Auth server listening on http://localhost:${API_PORT}`);
+    logInfo('bootstrap_server_started', { port: API_PORT });
   });
 }
 
 bootstrap().catch((error) => {
-  console.error('[bootstrap] failed:', error);
+  logError('bootstrap_failed', { message: error?.message });
   process.exit(1);
 });

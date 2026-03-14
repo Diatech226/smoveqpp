@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { logWarn } = require('../utils/logger');
 
 const DATA_PATH = path.join(__dirname, '..', 'data', 'content.json');
 
@@ -33,7 +34,8 @@ function readState() {
       pageContent: parsed.pageContent && typeof parsed.pageContent === 'object' ? parsed.pageContent : null,
       settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : null,
     };
-  } catch {
+  } catch (error) {
+    logWarn('content_repository_read_failed', { message: error?.message, path: DATA_PATH });
     return { ...defaultState };
   }
 }

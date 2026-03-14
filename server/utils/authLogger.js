@@ -1,3 +1,5 @@
+const { logInfo, logWarn } = require('./logger');
+
 const MAX_AUDIT_EVENTS = 400;
 const authAuditEvents = [];
 
@@ -29,6 +31,7 @@ function logAuthEvent(req, event, outcome, meta = {}) {
     method: req.method,
     path: req.originalUrl,
     userId: req.session?.userId ?? null,
+    requestId: req.requestId ?? null,
     ...sanitizeMeta(meta),
   };
 
@@ -37,12 +40,11 @@ function logAuthEvent(req, event, outcome, meta = {}) {
     authAuditEvents.splice(0, authAuditEvents.length - MAX_AUDIT_EVENTS);
   }
 
-  const line = `[auth] ${JSON.stringify(payload)}`;
   if (outcome === 'failure') {
-    console.warn(line);
+    logWarn('auth_event', payload);
     return;
   }
-  console.info(line);
+  logInfo('auth_event', payload);
 }
 
 function listAuthAuditEvents({ limit = 100 } = {}) {
