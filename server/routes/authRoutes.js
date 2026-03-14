@@ -16,6 +16,9 @@ function createAuthRoutes({ authController }) {
   router.post('/register', limiter, requireCsrf, authController.register);
   router.post('/login', limiter, requireCsrf, authController.login);
   router.post('/oauth/:provider', limiter, requireCsrf, authController.oauthLogin);
+  router.patch('/profile', requireCsrf, authController.updateProfile);
+  router.post('/forgot-password', limiter, requireCsrf, authController.forgotPassword);
+  router.post('/reset-password', limiter, requireCsrf, authController.resetPassword);
   router.post('/logout', requireCsrf, authController.logout);
 
   return router;

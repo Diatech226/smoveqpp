@@ -86,6 +86,14 @@ function createUserModel(mongoose) {
         type: Date,
         default: null,
       },
+      passwordResetTokenHash: {
+        type: String,
+        default: null,
+      },
+      passwordResetTokenExpiresAt: {
+        type: Date,
+        default: null,
+      },
     },
     {
       timestamps: true,
@@ -95,6 +103,7 @@ function createUserModel(mongoose) {
 
   schema.index({ email: 1 }, { unique: true });
   schema.index({ authProvider: 1, providerId: 1 }, { unique: true, sparse: true });
+  schema.index({ passwordResetTokenHash: 1 }, { sparse: true });
 
   schema.pre('validate', function normalizeBeforeValidate(next) {
     if (this.email) {

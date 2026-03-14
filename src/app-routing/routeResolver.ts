@@ -2,7 +2,8 @@ import { HOME_SECTIONS, isCmsRoute, resolveAuthPageGuard, resolveCmsRouteGuard }
 import type { AppRoute, AuthRoutingState, RouteResolution } from './navigationTypes';
 
 export function parseHashRoute(hash: string): AppRoute {
-  return (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';
+  const raw = (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';
+  return raw.split('?')[0] || 'home';
 }
 
 export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolution {
@@ -49,6 +50,9 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     'portfolio',
     'blog',
     'apropos',
+    'account',
+    'forgot-password',
+    'reset-password',
     'cms-unavailable',
     'cms-forbidden',
     'auth-loading',

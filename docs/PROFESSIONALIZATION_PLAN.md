@@ -316,3 +316,25 @@ This iteration is intentionally constrained:
 - Migrate projects/media metadata CRUD to the same backend content service and remove remaining local-storage-first write paths.
 - Add audit metadata (reviewer, timestamps, transition actor) and review comments for collaborative moderation.
 - Add browser e2e coverage for author/editor/admin review + publish permissions matrix.
+
+## Iteration 7 execution update (implemented)
+
+### Account management completeness
+- Added a dedicated authenticated `#account` route and page for client profile basics (name/email) with safe inline validation and explicit success/error feedback.
+- Added backend profile update endpoint with session-bound identity updates only, preserving role/permission separation.
+- Ensured profile updates refresh trusted session user payload to avoid stale account identity in UI.
+
+### Password recovery and reset hardening
+- Implemented `forgot-password` and `reset-password` backend flows with hashed reset tokens, expiration handling, and non-enumerating recovery responses.
+- Added frontend forgot/reset pages aligned with current auth visual language and clear validation/error states.
+- Added a safe development-mode token exposure path for local reset flow validation when outbound email infrastructure is unavailable.
+
+### OAuth and session coherence
+- Hardened OAuth provider behavior so disabled providers are not shown in login UI and provider-unavailable calls fail deterministically.
+- Preserved role-aware post-login routing and aligned session user shape after local login, OAuth login, profile update, and password reset.
+
+### Deferred to Iteration 8
+- Authenticated in-session password change flow (current password + new password).
+- Linked OAuth providers management in account settings.
+- Production email provider integration for password reset delivery.
+- Extended account preferences (notifications, locale, profile metadata).

@@ -14,6 +14,8 @@ function mapMongoUser(doc) {
     authProvider: doc.authProvider,
     providerId: doc.providerId ?? null,
     lastLoginAt: doc.lastLoginAt ?? null,
+    passwordResetTokenHash: doc.passwordResetTokenHash ?? null,
+    passwordResetTokenExpiresAt: doc.passwordResetTokenExpiresAt ?? null,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -34,6 +36,8 @@ class MongoAuthRepository {
       accountStatus: input.accountStatus,
       authProvider: input.authProvider ?? 'local',
       providerId: input.providerId ?? null,
+      passwordResetTokenHash: input.passwordResetTokenHash ?? null,
+      passwordResetTokenExpiresAt: input.passwordResetTokenExpiresAt ?? null,
     });
 
     return mapMongoUser(user);
@@ -91,6 +95,79 @@ class MongoAuthRepository {
         upsert: true,
         new: true,
       },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+
+
+  async updateProfile(id, updates) {
+    const patch = {};
+    if (typeof updates.name === 'string') patch.name = String(updates.name).trim();
+    if (typeof updates.email === 'string') patch.email = normalizeEmail(updates.email);
+
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          ...patch,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+  async findByPasswordResetTokenHash(tokenHash) {
+    const user = await this.UserModel.findOne({ passwordResetTokenHash: tokenHash }).exec();
+    return mapMongoUser(user);
+  }
+
+  async setPasswordResetToken(id, tokenHash, expiresAt) {
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          passwordResetTokenHash: tokenHash,
+          passwordResetTokenExpiresAt: expiresAt,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+  async clearPasswordResetToken(id) {
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          passwordResetTokenHash: null,
+          passwordResetTokenExpiresAt: null,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+  async updatePassword(id, passwordHash) {
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          passwordHash: String(passwordHash),
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
     ).exec();
 
     return mapMongoUser(user);

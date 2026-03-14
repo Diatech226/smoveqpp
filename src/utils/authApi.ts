@@ -6,6 +6,9 @@ interface AuthApiPayload {
   user?: AppUser | null;
   csrfToken?: string | null;
   providers?: Record<string, { enabled: boolean }>;
+  accepted?: boolean;
+  resetToken?: string | null;
+  expiresAt?: string | null;
 }
 
 interface AuthApiError {
@@ -23,6 +26,9 @@ export interface AuthResult {
   user: AppUser | null;
   csrfToken: string | null;
   providers?: Record<string, { enabled: boolean }>;
+  accepted?: boolean;
+  resetToken?: string | null;
+  expiresAt?: string | null;
   success: boolean;
   errorMessage: string | null;
   errorCode: string | null;
@@ -42,6 +48,8 @@ function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'REGISTRATION_DISABLED') return 'Inscription publique désactivée.';
   if (code === 'EMAIL_ALREADY_EXISTS') return 'Un compte existe déjà avec cet email.';
   if (code === 'VALIDATION_ERROR') return 'Vérifiez les champs saisis.';
+  if (code === 'RESET_TOKEN_INVALID') return 'Le lien de réinitialisation est invalide ou expiré.';
+  if (code === 'OAUTH_PROVIDER_UNAVAILABLE') return 'Ce fournisseur OAuth est indisponible.';
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
   return 'Erreur d’authentification.';
 }
@@ -57,6 +65,9 @@ export function normalizeAuthPayload(payload: AuthApiResponse | null, status: nu
     user: data?.user ?? null,
     csrfToken: data?.csrfToken ?? null,
     providers: data?.providers,
+    accepted: data?.accepted,
+    resetToken: data?.resetToken ?? null,
+    expiresAt: data?.expiresAt ?? null,
     success,
     errorCode,
     errorMessage: success ? null : explicitMessage ?? fallbackErrorMessage(errorCode, status),
@@ -69,6 +80,9 @@ function networkFailure(errorCode: string): AuthResult {
     user: null,
     csrfToken: null,
     providers: undefined,
+    accepted: false,
+    resetToken: null,
+    expiresAt: null,
     success: false,
     errorCode,
     errorMessage: fallbackErrorMessage(errorCode, 0),
@@ -105,7 +119,10 @@ async function requestAuth(path: string, init: RequestInit = {}, csrfToken?: str
     if (response.status === 401 && !normalized.errorCode) {
       return {
         ...normalized,
-        success: false,
+        accepted: false,
+    resetToken: null,
+    expiresAt: null,
+    success: false,
         errorCode: 'SESSION_UNAUTHORIZED',
         errorMessage: fallbackErrorMessage('SESSION_UNAUTHORIZED', 401),
       };
@@ -158,4 +175,17 @@ export function oauthLoginWithApi(
 
 export function logoutWithApi(csrfToken?: string | null): Promise<AuthResult> {
   return requestAuth('/logout', { method: 'POST' }, csrfToken);
+}
+
+
+export function updateProfileWithApi(payload: { name: string; email?: string }, csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/profile', { method: 'PATCH', body: JSON.stringify(payload) }, csrfToken);
+}
+
+export function forgotPasswordWithApi(email: string, csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }, csrfToken);
+}
+
+export function resetPasswordWithApi(token: string, password: string, csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }, csrfToken);
 }

@@ -32,6 +32,15 @@ describe('routeResolver', () => {
     expect(resolution.page).toBe('home');
   });
 
+
+
+  it('redirects account route to login when unauthenticated', () => {
+    const resolution = resolveRoute('#account', baseAuth);
+
+    expect(resolution.page).toBe('login');
+    expect(resolution.normalizedHash).toBe('login');
+  });
+
   it('redirects cms routes to login when unauthenticated', () => {
     const resolution = resolveRoute('#cms-dashboard', baseAuth);
 
@@ -49,6 +58,18 @@ describe('guards', () => {
     });
 
     expect(decision).toBe('register');
+  });
+
+
+
+  it('allows account when authenticated', () => {
+    const decision = resolveAuthPageGuard('account', {
+      ...baseAuth,
+      isAuthenticated: true,
+      isAuthReady: true,
+    });
+
+    expect(decision).toBe('account');
   });
 
   it('denies register when registration is disabled', () => {

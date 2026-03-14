@@ -76,6 +76,53 @@ function buildAuthController({ authService }) {
 
     getOAuthProviders: async (_req, res) => sendSuccess(res, 200, { providers: authService.getOAuthProviders?.() ?? {} }),
 
+
+    updateProfile: async (req, res) => {
+      const result = await authService.updateProfile(req.session?.userId, req.body ?? {});
+      if (!result.ok) {
+        logAuthEvent(req, 'profile_update', 'failure', { code: result.code });
+        return sendError(res, result.status, result.code, result.message);
+      }
+
+      req.session.role = result.user.role;
+      logAuthEvent(req, 'profile_update', 'success', { userId: result.user.id });
+      return sendSuccess(res, 200, {
+        user: result.user,
+        csrfToken: getOrCreateCsrfToken(req),
+      });
+    },
+
+    forgotPassword: async (req, res) => {
+      const result = await authService.requestPasswordReset(req.body ?? {});
+      if (!result.ok) {
+        logAuthEvent(req, 'forgot_password', 'failure', { code: result.code });
+        return sendError(res, result.status, result.code, result.message);
+      }
+
+      const data = {
+        accepted: true,
+        csrfToken: getOrCreateCsrfToken(req),
+      };
+
+      if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+        data.resetToken = result.resetToken ?? null;
+        data.expiresAt = result.expiresAt ?? null;
+      }
+
+      logAuthEvent(req, 'forgot_password', 'success');
+      return sendSuccess(res, 200, data);
+    },
+
+    resetPassword: async (req, res) => {
+      const result = await authService.resetPassword(req.body ?? {});
+      if (!result.ok) {
+        logAuthEvent(req, 'reset_password', 'failure', { code: result.code });
+        return sendError(res, result.status, result.code, result.message);
+      }
+
+      return startSession(req, res, result.user, 'reset_password', 200);
+    },
+
     logout: async (req, res) => {
       req.session.destroy((error) => {
         if (error) {

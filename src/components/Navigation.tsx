@@ -1,4 +1,4 @@
-import { Home, Info, Briefcase, FolderOpen, BookOpen, Mail, LayoutDashboard, LogIn } from 'lucide-react';
+import { Home, Info, Briefcase, FolderOpen, BookOpen, Mail, LayoutDashboard, LogIn, UserCog } from 'lucide-react';
 import { useState } from 'react';
 import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
 import { motion } from 'motion/react';
@@ -147,6 +147,16 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                   </span>
                 </div>
 
+                <motion.a
+                  href="#account"
+                  className="flex items-center gap-2 text-[#273a41] px-4 py-2 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px] hover:bg-[#f5f9fa] transition-colors border border-[#d8e4e8]"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <UserCog size={18} />
+                  Mon compte
+                </motion.a>
+
                 {showDashboardAction && (
                   <motion.a
                     href="#cms-dashboard"
@@ -237,16 +247,29 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                   </a>
                 )}
               </>
-            ) : showDashboardAction ? (
-              <a
-                href="#cms-dashboard"
-                className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-[#a855f7] border-2 border-[#a855f7] font-['Abhaya_Libre:Bold',sans-serif]"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <LayoutDashboard size={20} />
-                <span>Dashboard</span>
-              </a>
+            ) : isAuthenticated ? (
+              <>
+                <a
+                  href="#account"
+                  className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-white/10 border-2 border-white/30 font-['Abhaya_Libre:Bold',sans-serif]"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <UserCog size={20} />
+                  <span>Mon compte</span>
+                </a>
+                {showDashboardAction && (
+                  <a
+                    href="#cms-dashboard"
+                    className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-[#a855f7] border-2 border-[#a855f7] font-['Abhaya_Libre:Bold',sans-serif]"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <LayoutDashboard size={20} />
+                    <span>Dashboard</span>
+                  </a>
+                )}
+              </>
             ) : null}
+
 
             <a
               href="#contact"

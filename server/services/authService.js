@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const { normalizeEmail } = require('../models/User');
 const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED } = require('../config/env');
 
+const PASSWORD_RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
+
 let bcryptLib = null;
 try {
   // eslint-disable-next-line global-require
@@ -18,6 +20,10 @@ async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
   return `${salt}:${hash}`;
+}
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
 }
 
 async function verifyPassword(password, storedHash) {
@@ -162,6 +168,10 @@ class AuthService {
       return { ok: false, status: 400, code: 'OAUTH_PROFILE_INVALID', message: 'Invalid OAuth profile' };
     }
 
+    if (!this.oauthProviders?.[authProvider]?.enabled) {
+      return { ok: false, status: 503, code: 'OAUTH_PROVIDER_UNAVAILABLE', message: 'OAuth provider unavailable' };
+    }
+
     const user = await this.userRepository.upsertOAuthUser({
       email: normalizedEmail,
       name: String(name ?? normalizedEmail.split('@')[0]).trim(),
@@ -182,6 +192,76 @@ class AuthService {
 
   getOAuthProviders() {
     return this.oauthProviders;
+  }
+
+  async updateProfile(sessionUserId, payload) {
+    const user = await this.userRepository.findById(sessionUserId);
+    if (!user) {
+      return { ok: false, status: 401, code: 'SESSION_UNAUTHORIZED', message: 'Session invalid' };
+    }
+
+    const name = String(payload.name ?? '').trim();
+    if (!name) {
+      return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'name is required' };
+    }
+
+    const updates = { name };
+
+    if (typeof payload.email === 'string' && payload.email.trim()) {
+      const newEmail = normalizeEmail(payload.email);
+      if (newEmail !== user.email) {
+        const exists = await this.userRepository.existsByEmail(newEmail);
+        if (exists) {
+          return { ok: false, status: 409, code: 'EMAIL_ALREADY_EXISTS', message: 'An account already exists with this email' };
+        }
+        updates.email = newEmail;
+      }
+    }
+
+    const updated = await this.userRepository.updateProfile(user.id, updates);
+    return { ok: true, user: sanitizeUser(updated ?? user) };
+  }
+
+  async requestPasswordReset(payload) {
+    const email = normalizeEmail(payload.email);
+    if (!email) {
+      return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'email is required' };
+    }
+
+    const user = await this.userRepository.findByEmailWithPassword(email);
+    if (!user || user.accountStatus === 'suspended') {
+      return { ok: true, masked: true };
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashResetToken(rawToken);
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS);
+    await this.userRepository.setPasswordResetToken(user.id, tokenHash, expiresAt);
+
+    return { ok: true, masked: true, resetToken: rawToken, expiresAt };
+  }
+
+  async resetPassword(payload) {
+    const token = String(payload.token ?? '').trim();
+    const password = String(payload.password ?? '');
+
+    if (!token || !password || password.length < 8) {
+      return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'token and valid password are required' };
+    }
+
+    const tokenHash = hashResetToken(token);
+    const user = await this.userRepository.findByPasswordResetTokenHash(tokenHash);
+
+    if (!user || !user.passwordResetTokenExpiresAt || new Date(user.passwordResetTokenExpiresAt).getTime() < Date.now()) {
+      return { ok: false, status: 400, code: 'RESET_TOKEN_INVALID', message: 'Reset token is invalid or expired' };
+    }
+
+    const passwordHash = await hashPassword(password);
+    await this.userRepository.updatePassword(user.id, passwordHash);
+    await this.userRepository.clearPasswordResetToken(user.id);
+
+    const updated = await this.userRepository.findById(user.id);
+    return { ok: true, user: sanitizeUser(updated ?? user) };
   }
 
   async getSessionUser(sessionUserId) {

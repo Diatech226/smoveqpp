@@ -279,24 +279,30 @@ export default function LoginPage() {
             </motion.button>
           </form>
 
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              disabled={!oauthProviders.google || loading}
-              onClick={() => handleOAuth('google')}
-              className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
-            >
-              Continuer avec Google
-            </button>
-            <button
-              type="button"
-              disabled={!oauthProviders.facebook || loading}
-              onClick={() => handleOAuth('facebook')}
-              className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
-            >
-              Continuer avec Facebook
-            </button>
-          </div>
+          {(oauthProviders.google || oauthProviders.facebook) && (
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {oauthProviders.google && (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleOAuth('google')}
+                  className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
+                >
+                  Continuer avec Google
+                </button>
+              )}
+              {oauthProviders.facebook && (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => handleOAuth('facebook')}
+                  className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
+                >
+                  Continuer avec Facebook
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Footer Links */}
           <motion.div
@@ -316,6 +322,9 @@ export default function LoginPage() {
                 </a>
               </p>
             )}
+            <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
+              <a href="#forgot-password" className="text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] hover:underline">Mot de passe oublié ?</a>
+            </p>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
               <a
                 href="#home"

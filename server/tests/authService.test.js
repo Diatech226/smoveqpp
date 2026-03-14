@@ -38,6 +38,34 @@ describe('AuthService', () => {
         users.push(user);
         return user;
       },
+      updateProfile: async (id, updates) => {
+        const user = users.find((u) => u.id === String(id));
+        if (!user) return null;
+        Object.assign(user, updates);
+        user.updatedAt = new Date();
+        return user;
+      },
+      findByPasswordResetTokenHash: async (tokenHash) => users.find((u) => u.passwordResetTokenHash === tokenHash) ?? null,
+      setPasswordResetToken: async (id, tokenHash, expiresAt) => {
+        const user = users.find((u) => u.id === String(id));
+        if (!user) return null;
+        user.passwordResetTokenHash = tokenHash;
+        user.passwordResetTokenExpiresAt = expiresAt;
+        return user;
+      },
+      clearPasswordResetToken: async (id) => {
+        const user = users.find((u) => u.id === String(id));
+        if (!user) return null;
+        user.passwordResetTokenHash = null;
+        user.passwordResetTokenExpiresAt = null;
+        return user;
+      },
+      updatePassword: async (id, passwordHash) => {
+        const user = users.find((u) => u.id === String(id));
+        if (!user) return null;
+        user.passwordHash = passwordHash;
+        return user;
+      },
       updateLastLoginAt: async (id, date) => {
         const user = users.find((u) => u.id === String(id));
         if (!user) return null;

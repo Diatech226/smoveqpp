@@ -9,6 +9,9 @@ import ProjectsPage from '../../components/ProjectsPage';
 import ProjectDetailPage from '../../components/ProjectDetailPage';
 import LoginPage from '../../components/auth/LoginPage';
 import RegisterPage from '../../components/auth/RegisterPage';
+import AccountPage from '../../components/auth/AccountPage';
+import ForgotPasswordPage from '../../components/auth/ForgotPasswordPage';
+import ResetPasswordPage from '../../components/auth/ResetPasswordPage';
 import CMSDashboard from '../../components/cms/CMSDashboard';
 import APropos from '../../imports/APropos';
 import HomePageContent from '../marketing/home/HomePageContent';
@@ -67,6 +70,28 @@ export default function AppPageRenderer({
       );
     }
     return <RegisterPage />;
+  }
+
+
+  if (currentPage === 'account') {
+    return (
+      <SectionErrorBoundary scope="account">
+        <>
+          <Navigation currentPath="/account" />
+          <div className="pt-20">
+            <AccountPage />
+          </div>
+        </>
+      </SectionErrorBoundary>
+    );
+  }
+
+  if (currentPage === 'forgot-password') {
+    return <ForgotPasswordPage />;
+  }
+
+  if (currentPage === 'reset-password') {
+    return <ResetPasswordPage />;
   }
 
   if (currentPage === 'cms-dashboard') {

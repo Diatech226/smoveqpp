@@ -73,6 +73,23 @@ describe('normalizeAuthPayload', () => {
     expect(result.errorMessage).toBe('Vérifiez les champs saisis.');
   });
 
+
+
+  it('maps reset token errors to localized fallback message', () => {
+    const result = normalizeAuthPayload(
+      {
+        success: false,
+        error: {
+          code: 'RESET_TOKEN_INVALID',
+        },
+      },
+      400,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe('Le lien de réinitialisation est invalide ou expiré.');
+  });
+
   it('provides fallback message when payload is malformed', () => {
     const result = normalizeAuthPayload(null, 500);
 

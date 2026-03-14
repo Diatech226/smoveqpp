@@ -7,12 +7,18 @@ export function isCmsRoute(route: AppRoute): boolean {
 }
 
 export function resolveAuthPageGuard(route: AppRoute, auth: AuthRoutingState): ResolvedPage | null {
-  if (route !== 'login' && route !== 'register') {
+  if (!['login', 'register', 'forgot-password', 'reset-password', 'account'].includes(route)) {
     return null;
   }
 
   if (!auth.cmsEnabled) {
     return 'cms-unavailable';
+  }
+
+  if (route === 'account') {
+    if (!auth.isAuthReady) return 'auth-loading';
+    if (!auth.isAuthenticated) return 'login';
+    return 'account';
   }
 
   if (route === 'register' && !auth.registrationEnabled) {

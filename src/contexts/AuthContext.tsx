@@ -2,10 +2,13 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   fetchOAuthProviders,
   fetchServerSession,
+  forgotPasswordWithApi,
   loginWithApi,
   logoutWithApi,
   oauthLoginWithApi,
   registerWithApi,
+  resetPasswordWithApi,
+  updateProfileWithApi,
   type AuthResult,
 } from '../utils/authApi';
 import {
@@ -36,6 +39,10 @@ interface AuthContextType {
   loginWithOAuth: (provider: 'google' | 'facebook', payload: { email: string; name: string; providerId: string }) => Promise<AuthActionResult>;
   register: (email: string, password: string, name: string) => Promise<AuthActionResult>;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
+  updateProfile: (payload: { name: string; email?: string }) => Promise<AuthActionResult>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; error: string | null; resetToken?: string | null }>;
+  resetPassword: (token: string, password: string) => Promise<AuthActionResult>;
   isAuthenticated: boolean;
   isAuthReady: boolean;
   cmsEnabled: boolean;
@@ -51,6 +58,10 @@ const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   loginWithOAuth: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
   register: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
   logout: async () => undefined,
+  refreshSession: async () => undefined,
+  updateProfile: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
+  forgotPassword: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.' }),
+  resetPassword: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
   isAuthenticated: false,
   isAuthReady: true,
   cmsEnabled: false,
@@ -145,6 +156,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [cmsEnabled]);
 
+
+  const refreshSession = async () => {
+    const session = await fetchServerSession(csrfToken);
+    setCsrfToken(session.csrfToken);
+    setUser(resolveTrustedSessionUser(session.user));
+    setAuthError(resolveAuthActionError(session));
+  };
+
   const login = async (email: string, password: string): Promise<AuthActionResult> => {
     if (!cmsEnabled) {
       setAuthError('Le CMS est désactivé.');
@@ -217,6 +236,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
+
+  const updateProfile = async (payload: { name: string; email?: string }): Promise<AuthActionResult> => {
+    const result = await updateProfileWithApi(payload, csrfToken);
+    setCsrfToken(result.csrfToken);
+    const trustedUser = resolveTrustedSessionUser(result.user);
+    setUser(trustedUser);
+    setAuthError(resolveAuthActionError(result));
+
+    return {
+      success: !!trustedUser && result.success,
+      error: resolveAuthActionError(result),
+      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+    };
+  };
+
+  const forgotPassword = async (email: string): Promise<{ success: boolean; error: string | null; resetToken?: string | null }> => {
+    const result = await forgotPasswordWithApi(email, csrfToken);
+    if (result.csrfToken) setCsrfToken(result.csrfToken);
+    return {
+      success: result.success,
+      error: resolveAuthActionError(result),
+      resetToken: result.resetToken ?? null,
+    };
+  };
+
+  const resetPassword = async (token: string, password: string): Promise<AuthActionResult> => {
+    const result = await resetPasswordWithApi(token, password, csrfToken);
+    setCsrfToken(result.csrfToken);
+    const trustedUser = resolveTrustedSessionUser(result.user);
+    setUser(trustedUser);
+    setAuthError(resolveAuthActionError(result));
+
+    return {
+      success: !!trustedUser && result.success,
+      error: resolveAuthActionError(result),
+      destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+    };
+  };
+
   const logout = async () => {
     const result = await logoutWithApi(csrfToken);
     setUser(null);
@@ -236,6 +294,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginWithOAuth,
       register,
       logout,
+      refreshSession,
+      updateProfile,
+      forgotPassword,
+      resetPassword,
       isAuthenticated,
       isAuthReady,
       cmsEnabled,
