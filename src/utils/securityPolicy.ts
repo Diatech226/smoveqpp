@@ -8,12 +8,16 @@ export interface AppUser {
   status?: 'client' | 'staff';
   accountStatus?: 'active' | 'invited' | 'suspended';
   authProvider?: 'local' | 'google' | 'facebook';
+  emailVerified?: boolean;
+  verificationPending?: boolean;
+  verificationMethod?: 'email_token' | 'provider_trust';
 }
 
 const USER_ROLES: UserRole[] = ['admin', 'editor', 'author', 'viewer', 'client'];
 const USER_STATUSES: NonNullable<AppUser['status']>[] = ['client', 'staff'];
 const ACCOUNT_STATUSES: NonNullable<AppUser['accountStatus']>[] = ['active', 'invited', 'suspended'];
 const AUTH_PROVIDERS: NonNullable<AppUser['authProvider']>[] = ['local', 'google', 'facebook'];
+const VERIFICATION_METHODS: NonNullable<AppUser['verificationMethod']>[] = ['email_token', 'provider_trust'];
 
 export type CmsAccessDecision = 'allow' | 'disabled' | 'unauthenticated' | 'forbidden';
 
@@ -66,6 +70,9 @@ export function resolveTrustedSessionUser(serverUser: AppUser | null, _clientSto
     status: USER_STATUSES.includes(serverUser.status ?? 'client') ? serverUser.status : 'client',
     accountStatus: ACCOUNT_STATUSES.includes(serverUser.accountStatus ?? 'active') ? serverUser.accountStatus : 'active',
     authProvider: AUTH_PROVIDERS.includes(serverUser.authProvider ?? 'local') ? serverUser.authProvider : 'local',
+    emailVerified: Boolean(serverUser.emailVerified),
+    verificationPending: Boolean(serverUser.verificationPending),
+    verificationMethod: VERIFICATION_METHODS.includes(serverUser.verificationMethod ?? 'email_token') ? serverUser.verificationMethod : 'email_token',
   };
 }
 

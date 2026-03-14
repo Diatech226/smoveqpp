@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, loginWithOAuth, oauthProviders, cmsEnabled, registrationEnabled, authError } = useAuth();
+  const { login, loginWithOAuth, oauthProviders, cmsEnabled, registrationEnabled, authError, authNotice } = useAuth();
 
 
   const handleOAuth = async (provider: 'google' | 'facebook') => {
@@ -192,6 +192,18 @@ export default function LoginPage() {
               </p>
             )}
           </motion.div>
+
+          {authNotice && (
+            <motion.div
+              className="bg-emerald-50 border border-emerald-200 rounded-[12px] p-4 mb-4"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-emerald-700">
+                {authNotice}
+              </p>
+            </motion.div>
+          )}
 
           {/* Error Message */}
           {error && (

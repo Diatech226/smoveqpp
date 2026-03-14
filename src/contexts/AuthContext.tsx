@@ -1,11 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
+  fetchAdminUsers,
   fetchOAuthProviders,
   fetchServerSession,
   loginWithApi,
   logoutWithApi,
   oauthLoginWithApi,
   registerWithApi,
+  resendVerificationWithApi,
+  updateAdminUserWithApi,
+  verifyEmailWithApi,
   type AuthResult,
 } from '../utils/authApi';
 import {
@@ -28,14 +32,29 @@ export interface AuthActionResult {
   success: boolean;
   error: string | null;
   destination: PostLoginRoute | null;
+  infoMessage?: string | null;
+}
+
+interface AuthSessionState {
+  sessionId: string | null;
+  authenticatedAt: string | null;
+  lastActivityAt: string | null;
+  authProvider: string | null;
+  role: string | null;
 }
 
 interface AuthContextType {
   user: AppUser | null;
   authError: string | null;
+  authNotice: string | null;
   login: (email: string, password: string) => Promise<AuthActionResult>;
   loginWithOAuth: (provider: 'google' | 'facebook', payload: { email: string; name: string; providerId: string }) => Promise<AuthActionResult>;
   register: (email: string, password: string, name: string) => Promise<AuthActionResult>;
+  verifyEmail: (token: string) => Promise<AuthActionResult>;
+  resendVerification: () => Promise<AuthActionResult>;
+  fetchAdminUsers: () => Promise<AppUser[]>;
+  updateAdminUser: (userId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>) => Promise<AuthActionResult>;
+  clearAuthNotice: () => void;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAuthReady: boolean;
@@ -44,14 +63,21 @@ interface AuthContextType {
   canAccessCMS: boolean;
   oauthProviders: OAuthProviderState;
   postLoginRoute: PostLoginRoute;
+  sessionState: AuthSessionState | null;
 }
 
 const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   user: null,
   authError: null,
+  authNotice: null,
   login: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
   loginWithOAuth: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
   register: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
+  verifyEmail: async () => ({ success: false, error: 'Vérification indisponible. Réessayez.', destination: null }),
+  resendVerification: async () => ({ success: false, error: 'Vérification indisponible. Réessayez.', destination: null }),
+  fetchAdminUsers: async () => [],
+  updateAdminUser: async () => ({ success: false, error: 'Mise à jour indisponible. Réessayez.', destination: null }),
+  clearAuthNotice: () => undefined,
   logout: async () => undefined,
   isAuthenticated: false,
   isAuthReady: true,
@@ -60,6 +86,7 @@ const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   canAccessCMS: false,
   oauthProviders: { google: false, facebook: false },
   postLoginRoute: 'home',
+  sessionState: null,
 };
 
 const AuthContext = createContext<AuthContextType>(SAFE_FALLBACK_CONTEXT);
@@ -85,12 +112,33 @@ function getPostAuthIntentRoute(): string | null {
   return intent;
 }
 
+function resolveSessionState(result: AuthResult): AuthSessionState | null {
+  if (!result.session) return null;
+  return {
+    sessionId: result.session.sessionId ?? null,
+    authenticatedAt: result.session.authenticatedAt ?? null,
+    lastActivityAt: result.session.lastActivityAt ?? null,
+    authProvider: result.session.authProvider ?? null,
+    role: result.session.role ?? null,
+  };
+}
+
+function resolveVerificationNotice(result: AuthResult): string | null {
+  if (!result.verification) return null;
+  if (result.verification.emailDeliveryReady === false && result.verification.devToken) {
+    return `Dev: lien de vérification disponible avec le token ${result.verification.devToken}`;
+  }
+  return 'Un email de vérification a été envoyé.';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [oauthProviders, setOauthProviders] = useState<OAuthProviderState>({ google: false, facebook: false });
+  const [sessionState, setSessionState] = useState<AuthSessionState | null>(null);
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
   const registrationEnabled = SECURITY_FLAGS.registrationEnabled;
@@ -116,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setCsrfToken(null);
           setAuthError(null);
+          setSessionState(null);
           setIsAuthReady(true);
           return;
         }
@@ -125,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setCsrfToken(session.csrfToken);
         setUser(resolveTrustedSessionUser(session.user));
+        setSessionState(resolveSessionState(session));
         setAuthError(resolveAuthActionError(session));
 
         const providers = await fetchOAuthProviders(session.csrfToken);
@@ -146,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isActive) return;
         setUser(null);
         setAuthError('Session indisponible. Le site reste accessible.');
+        setSessionState(null);
         logError({ scope: 'auth_context', event: 'session_bootstrap_exception', error });
       } finally {
         if (isActive) {
@@ -169,9 +220,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const result = await loginWithApi(email, password, csrfToken);
     setCsrfToken(result.csrfToken);
+    setSessionState(resolveSessionState(result));
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
     setAuthError(resolveAuthActionError(result));
+    setAuthNotice(result.success ? 'Connexion réussie.' : null);
 
     if (!result.success) {
       logWarn({ scope: 'auth_context', event: 'login_failed', details: { errorCode: result.errorCode, status: result.status } });
@@ -187,6 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {
       success: !!trustedUser,
       error: resolveAuthActionError(result),
+      infoMessage: result.success ? 'Connexion réussie.' : null,
       destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser, intendedRoute) : null,
     };
   };
@@ -197,13 +251,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<AuthActionResult> => {
     const result = await oauthLoginWithApi(provider, payload, csrfToken);
     setCsrfToken(result.csrfToken);
+    setSessionState(resolveSessionState(result));
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
     setAuthError(resolveAuthActionError(result));
+    setAuthNotice(result.success ? `Connexion ${provider} réussie.` : null);
     const intendedRoute = result.success ? getPostAuthIntentRoute() : null;
     return {
       success: !!trustedUser,
       error: resolveAuthActionError(result),
+      infoMessage: result.success ? `Connexion ${provider} réussie.` : null,
       destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser, intendedRoute) : null,
     };
   };
@@ -216,9 +273,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const result = await registerWithApi(email, password, name, csrfToken);
     setCsrfToken(result.csrfToken);
+    setSessionState(resolveSessionState(result));
     const trustedUser = resolveTrustedSessionUser(result.user);
     setUser(trustedUser);
     setAuthError(resolveAuthActionError(result));
+
+    const verificationNotice = result.success ? (resolveVerificationNotice(result) ?? 'Compte créé. Vérifiez votre email.') : null;
+    setAuthNotice(verificationNotice);
 
     if (!result.success) {
       logWarn({ scope: 'auth_context', event: 'register_failed', details: { errorCode: result.errorCode, status: result.status } });
@@ -234,7 +295,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {
       success: !!trustedUser,
       error: resolveAuthActionError(result),
+      infoMessage: verificationNotice,
       destination: trustedUser ? resolvePostLoginRoute(cmsEnabled, trustedUser, intendedRoute) : null,
+    };
+  };
+
+  const verifyEmail = async (token: string): Promise<AuthActionResult> => {
+    const result = await verifyEmailWithApi(token, csrfToken);
+    setCsrfToken(result.csrfToken);
+    setSessionState(resolveSessionState(result));
+    const trustedUser = resolveTrustedSessionUser(result.user ?? user);
+    setUser(trustedUser);
+    setAuthError(resolveAuthActionError(result));
+    const infoMessage = result.success ? 'Adresse email vérifiée avec succès.' : null;
+    setAuthNotice(infoMessage);
+
+    return {
+      success: result.success,
+      error: resolveAuthActionError(result),
+      infoMessage,
+      destination: result.success ? resolvePostLoginRoute(cmsEnabled, trustedUser) : null,
+    };
+  };
+
+  const resendVerification = async (): Promise<AuthActionResult> => {
+    const result = await resendVerificationWithApi(csrfToken);
+    setCsrfToken(result.csrfToken);
+    setSessionState(resolveSessionState(result));
+    const trustedUser = resolveTrustedSessionUser(result.user ?? user);
+    setUser(trustedUser);
+    setAuthError(resolveAuthActionError(result));
+    const infoMessage = result.success ? (resolveVerificationNotice(result) ?? 'Nouveau lien de vérification envoyé.') : null;
+    setAuthNotice(infoMessage);
+
+    return {
+      success: result.success,
+      error: resolveAuthActionError(result),
+      infoMessage,
+      destination: null,
+    };
+  };
+
+  const fetchAdminUsersSafe = async () => {
+    const result = await fetchAdminUsers(csrfToken);
+    if (!result.success || !result.users) {
+      throw new Error(result.errorMessage ?? 'Impossible de charger les utilisateurs.');
+    }
+    return result.users.map((entry) => resolveTrustedSessionUser(entry)).filter(Boolean) as AppUser[];
+  };
+
+  const updateAdminUser = async (
+    userId: string,
+    patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>,
+  ): Promise<AuthActionResult> => {
+    const result = await updateAdminUserWithApi(userId, patch, csrfToken);
+    setCsrfToken(result.csrfToken ?? csrfToken);
+    if (result.user && user?.id === result.user.id) {
+      setUser(resolveTrustedSessionUser(result.user));
+    }
+    setAuthError(resolveAuthActionError(result));
+    const infoMessage = result.success ? 'Compte utilisateur mis à jour.' : null;
+    setAuthNotice(infoMessage);
+    return {
+      success: result.success,
+      error: resolveAuthActionError(result),
+      infoMessage,
+      destination: null,
     };
   };
 
@@ -242,7 +368,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await logoutWithApi(csrfToken);
     setUser(null);
     setCsrfToken(result.csrfToken);
+    setSessionState(null);
     setAuthError(resolveAuthActionError(result));
+    setAuthNotice(result.success ? 'Vous êtes déconnecté.' : null);
 
     if (!result.success) {
       logWarn({ scope: 'auth_context', event: 'logout_failed', details: { errorCode: result.errorCode, status: result.status } });
@@ -253,9 +381,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       authError,
+      authNotice,
       login,
       loginWithOAuth,
       register,
+      verifyEmail,
+      resendVerification,
+      fetchAdminUsers: fetchAdminUsersSafe,
+      updateAdminUser,
+      clearAuthNotice: () => setAuthNotice(null),
       logout,
       isAuthenticated,
       isAuthReady,
@@ -264,8 +398,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canAccessCMS,
       oauthProviders,
       postLoginRoute,
+      sessionState,
     }),
-    [user, authError, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS, oauthProviders, postLoginRoute],
+    [
+      user,
+      authError,
+      authNotice,
+      isAuthenticated,
+      isAuthReady,
+      cmsEnabled,
+      registrationEnabled,
+      canAccessCMS,
+      oauthProviders,
+      postLoginRoute,
+      sessionState,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
