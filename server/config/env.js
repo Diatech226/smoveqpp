@@ -45,7 +45,7 @@ const AUTH_STORAGE_MODE = ['auto', 'mongo', 'memory'].includes(process.env.AUTH_
 
 const PUBLIC_REGISTRATION_ENABLED = parseBoolean(
   process.env.PUBLIC_REGISTRATION_ENABLED ?? process.env.VITE_ENABLE_REGISTRATION,
-  false,
+  true,
 );
 
 function assertSessionSecretStrength() {

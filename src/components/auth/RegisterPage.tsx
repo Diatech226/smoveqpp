@@ -48,12 +48,12 @@ export default function RegisterPage() {
       return;
     }
 
-    const success = await register(email, password, name);
-    
-    if (success) {
+    const result = await register(email, password, name);
+
+    if (result.success) {
       window.location.hash = 'cms-dashboard';
     } else {
-      setError(authError ?? 'Cet email est déjà utilisé');
+      setError(result.error ?? authError ?? 'Cet email est déjà utilisé');
     }
     
     setLoading(false);
@@ -172,7 +172,7 @@ export default function RegisterPage() {
               Inscription
             </h1>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#9ba1a4]">
-              Demandez un accès au CMS
+              Créez votre compte pour accéder au CMS
             </p>
           </motion.div>
 
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                 Inscription indisponible
               </p>
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-amber-700">
-                L’inscription publique est désactivée par défaut pour protéger l’accès CMS.
+                L’inscription publique est actuellement désactivée pour cet environnement.
               </p>
             </motion.div>
           )}
@@ -272,7 +272,7 @@ export default function RegisterPage() {
                 />
               </div>
               <p className="mt-1 font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">
-                Minimum 6 caractères
+                Minimum 8 caractères
               </p>
             </motion.div>
 
