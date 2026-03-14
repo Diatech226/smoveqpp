@@ -1,6 +1,6 @@
 const { getOrCreateCsrfToken } = require('../middleware/csrf');
 const { sendSuccess, sendError } = require('../utils/apiResponse');
-const { logAuthEvent } = require('../utils/authLogger');
+const { logAuthEvent, listAuthAuditEvents } = require('../utils/authLogger');
 
 function buildSessionMeta(req, user) {
   return {
@@ -126,8 +126,40 @@ function buildAuthController({ authService }) {
       });
     },
 
-    listUsers: async (_req, res) => {
+
+    requestPasswordReset: async (req, res) => {
+      const result = await authService.requestPasswordReset({ email: req.body?.email });
+      if (!result.ok) {
+        logAuthEvent(req, 'password_reset_request', 'failure', { code: result.code });
+        return sendError(res, result.status, result.code, result.message);
+      }
+
+      logAuthEvent(req, 'password_reset_request', 'success', { requested: Boolean(req.body?.email) });
+      return sendSuccess(res, 200, {
+        reset: {
+          emailDeliveryReady: result.emailDeliveryReady,
+          expiresAt: result.expiresAt ?? null,
+          devToken: result.devToken ?? null,
+          devPreviewUrl: result.devPreviewUrl ?? null,
+        },
+        csrfToken: getOrCreateCsrfToken(req),
+      });
+    },
+
+    confirmPasswordReset: async (req, res) => {
+      const result = await authService.resetPasswordWithToken({ token: req.body?.token, password: req.body?.password });
+      if (!result.ok) {
+        logAuthEvent(req, 'password_reset_confirm', 'failure', { code: result.code });
+        return sendError(res, result.status, result.code, result.message);
+      }
+
+      logAuthEvent(req, 'password_reset_confirm', 'success', { userId: result.user?.id ?? null });
+      return sendSuccess(res, 200, { user: result.user, csrfToken: getOrCreateCsrfToken(req) });
+    },
+
+    listUsers: async (req, res) => {
       const users = await authService.listUsersForAdmin();
+      logAuthEvent(req, 'admin_users_list', 'success', { count: users.length });
       return sendSuccess(res, 200, { users });
     },
 
@@ -137,9 +169,17 @@ function buildAuthController({ authService }) {
         role: req.session?.role,
       });
       if (!result.ok) {
+        logAuthEvent(req, 'admin_user_update', 'failure', { code: result.code, targetUserId: req.params.userId });
         return sendError(res, result.status, result.code, result.message);
       }
+      logAuthEvent(req, 'admin_user_update', 'success', { targetUserId: req.params.userId });
       return sendSuccess(res, 200, { user: result.user });
+    },
+
+    listAuditEvents: async (req, res) => {
+      const events = listAuthAuditEvents({ limit: req.query?.limit });
+      logAuthEvent(req, 'admin_audit_list', 'success', { count: events.length });
+      return sendSuccess(res, 200, { events });
     },
 
     getOAuthProviders: async (_req, res) => sendSuccess(res, 200, { providers: authService.getOAuthProviders?.() ?? {} }),

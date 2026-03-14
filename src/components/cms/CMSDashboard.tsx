@@ -19,7 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth, type AuthAuditEvent } from '../../contexts/AuthContext';
 import type { AppUser } from '../../utils/securityPolicy';
 import { blogRepository, BlogRepositoryError } from '../../repositories/blogRepository';
 import { cmsRepository } from '../../repositories/cmsRepository';
@@ -114,7 +114,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
 const SETTINGS_STORAGE_KEY = 'smove_cms_settings';
 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
-  const { user, logout, canAccessCMS, fetchAdminUsers, updateAdminUser } = useAuth();
+  const { user, logout, canAccessCMS, fetchAdminUsers, fetchAdminAuditEvents, updateAdminUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sectionBusy, setSectionBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
@@ -164,6 +164,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [adminUsersLoading, setAdminUsersLoading] = useState(false);
   const [adminUsersError, setAdminUsersError] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [auditEvents, setAuditEvents] = useState<AuthAuditEvent[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -865,6 +867,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
+  const loadAuditEvents = async () => {
+    setAuditLoading(true);
+    try {
+      const events = await fetchAdminAuditEvents();
+      setAuditEvents(events);
+    } catch (error) {
+      setAdminUsersError(error instanceof Error ? error.message : 'Impossible de charger les événements d’audit.');
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
   const patchAdminUser = async (targetUserId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>) => {
     setUpdatingUserId(targetUserId);
     try {
@@ -874,6 +888,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         return;
       }
       await loadAdminUsers();
+      if (user?.role === 'admin') {
+        await loadAuditEvents();
+      }
       showSuccess('Utilisateur mis à jour.');
     } finally {
       setUpdatingUserId(null);
@@ -883,8 +900,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   useEffect(() => {
     if (currentSection === 'users' && canAccessCMS) {
       void loadAdminUsers();
+      if (user?.role === 'admin') {
+        void loadAuditEvents();
+      }
     }
-  }, [currentSection, canAccessCMS]);
+  }, [currentSection, canAccessCMS, user?.role]);
 
   if (!canAccessCMS) {
     return (
@@ -1123,9 +1143,31 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (currentSection === 'users') {
       return (
         <div className="space-y-6">
-          <AdminPageHeader title="Utilisateurs" subtitle="Gestion basique des comptes (rôle, statut, vérification)." />
+          <AdminPageHeader
+            title="Utilisateurs"
+            subtitle="Gestion des comptes (rôle, statut, fournisseur, vérification) avec traçabilité d’audit."
+            actions={
+              <button
+                type="button"
+                onClick={() => {
+                  void loadAdminUsers();
+                  if (user?.role === 'admin') {
+                    void loadAuditEvents();
+                  }
+                }}
+                className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] text-[14px]"
+              >
+                Rafraîchir
+              </button>
+            }
+          />
           {adminUsersError ? <AdminErrorState label={adminUsersError} /> : null}
           {adminUsersLoading ? <AdminLoadingState label="Chargement des utilisateurs..." /> : null}
+          {user?.role !== 'admin' ? (
+            <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-4 text-amber-800 text-[14px]">
+              Les modifications de rôle et suspension sont réservées aux administrateurs.
+            </div>
+          ) : null}
           <AdminPanel title="Comptes">
             {adminUsers.length === 0 ? (
               <AdminEmptyState label="Aucun utilisateur trouvé." />
@@ -1143,7 +1185,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     <div className="grid sm:grid-cols-3 gap-2">
                       <select
                         value={entry.role}
-                        disabled={updatingUserId === entry.id}
+                        disabled={updatingUserId === entry.id || user?.role !== 'admin' || user?.id === entry.id}
                         onChange={(event) => void patchAdminUser(entry.id, { role: event.target.value as AppUser['role'] })}
                         className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
                       >
@@ -1153,7 +1195,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       </select>
                       <select
                         value={entry.accountStatus ?? 'active'}
-                        disabled={updatingUserId === entry.id}
+                        disabled={updatingUserId === entry.id || user?.role !== 'admin' || user?.id === entry.id}
                         onChange={(event) => void patchAdminUser(entry.id, { accountStatus: event.target.value as AppUser['accountStatus'] })}
                         className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
                       >
@@ -1163,7 +1205,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       </select>
                       <button
                         type="button"
-                        disabled={updatingUserId === entry.id}
+                        disabled={updatingUserId === entry.id || user?.role !== 'admin'}
                         onClick={() => void patchAdminUser(entry.id, { emailVerified: !entry.emailVerified })}
                         className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
                       >
@@ -1175,6 +1217,25 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               </div>
             )}
           </AdminPanel>
+          {user?.role === 'admin' ? (
+            <AdminPanel title="Journal d’audit (identité)">
+              {auditLoading ? <AdminLoadingState label="Chargement du journal d’audit..." /> : null}
+              {!auditLoading && auditEvents.length === 0 ? <AdminEmptyState label="Aucun événement disponible." /> : null}
+              {!auditLoading && auditEvents.length > 0 ? (
+                <div className="space-y-2">
+                  {auditEvents.slice(0, 20).map((event, index) => (
+                    <div key={`${String(event.at ?? index)}-${index}`} className="rounded-[10px] border border-[#eef3f5] px-3 py-2 text-[13px] text-[#4b5a60]">
+                      <span className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{String(event.event ?? 'event')}</span>
+                      {' · '}
+                      <span>{String(event.outcome ?? 'unknown')}</span>
+                      {' · '}
+                      <span>{event.at ? new Date(String(event.at)).toLocaleString('fr-FR') : 'n/a'}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </AdminPanel>
+          ) : null}
         </div>
       );
     }

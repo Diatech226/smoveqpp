@@ -17,6 +17,8 @@ function mapMongoUser(doc) {
     emailVerificationTokenHash: doc.emailVerificationTokenHash ?? null,
     emailVerificationTokenExpiresAt: doc.emailVerificationTokenExpiresAt ?? null,
     lastLoginAt: doc.lastLoginAt ?? null,
+    passwordResetTokenHash: doc.passwordResetTokenHash ?? null,
+    passwordResetTokenExpiresAt: doc.passwordResetTokenExpiresAt ?? null,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -57,6 +59,11 @@ class MongoAuthRepository {
 
   async findByEmailVerificationTokenHash(tokenHash) {
     const user = await this.UserModel.findOne({ emailVerificationTokenHash: String(tokenHash) }).exec();
+    return mapMongoUser(user);
+  }
+
+  async findByPasswordResetTokenHash(tokenHash) {
+    const user = await this.UserModel.findOne({ passwordResetTokenHash: String(tokenHash) }).exec();
     return mapMongoUser(user);
   }
 
@@ -157,6 +164,40 @@ class MongoAuthRepository {
           emailVerified: true,
           emailVerificationTokenHash: null,
           emailVerificationTokenExpiresAt: null,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+
+  async setPasswordResetToken(id, { tokenHash, expiresAt }) {
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          passwordResetTokenHash: String(tokenHash),
+          passwordResetTokenExpiresAt: expiresAt,
+          updatedAt: new Date(),
+        },
+      },
+      { new: true },
+    ).exec();
+
+    return mapMongoUser(user);
+  }
+
+  async resetPasswordByToken(id, { passwordHash }) {
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          passwordHash,
+          passwordResetTokenHash: null,
+          passwordResetTokenExpiresAt: null,
           updatedAt: new Date(),
         },
       },

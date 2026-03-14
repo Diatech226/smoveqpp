@@ -23,6 +23,7 @@ interface AuthApiPayload {
   session?: SessionMeta | null;
   verification?: VerificationMeta | null;
   users?: AppUser[];
+  events?: Array<Record<string, unknown>>;
 }
 
 interface AuthApiError {
@@ -39,6 +40,7 @@ interface AuthApiResponse {
 export interface AuthResult {
   user: AppUser | null;
   users?: AppUser[];
+  events?: Array<Record<string, unknown>>;
   csrfToken: string | null;
   providers?: Record<string, { enabled: boolean }>;
   session?: SessionMeta | null;
@@ -65,6 +67,8 @@ function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'INVALID_VERIFICATION_TOKEN') return 'Le lien de vérification est invalide.';
   if (code === 'VERIFICATION_TOKEN_EXPIRED') return 'Le lien de vérification a expiré. Demandez-en un nouveau.';
   if (code === 'VALIDATION_ERROR') return 'Vérifiez les champs saisis.';
+  if (code === 'ACCOUNT_SUSPENDED') return 'Votre compte est suspendu. Contactez le support.';
+  if (code === 'FORBIDDEN_ROLE_CHANGE') return 'Seuls les administrateurs peuvent modifier les rôles.';
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
   return 'Erreur d’authentification.';
 }
@@ -79,6 +83,7 @@ export function normalizeAuthPayload(payload: AuthApiResponse | null, status: nu
   return {
     user: data?.user ?? null,
     users: data?.users,
+    events: data?.events,
     csrfToken: data?.csrfToken ?? null,
     providers: data?.providers,
     session: data?.session,
@@ -206,4 +211,16 @@ export function updateAdminUserWithApi(
 
 export function logoutWithApi(csrfToken?: string | null): Promise<AuthResult> {
   return requestAuth('/logout', { method: 'POST' }, csrfToken);
+}
+
+export function fetchAuthAuditEvents(csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/admin/audit-events', { method: 'GET' }, csrfToken);
+}
+
+export function requestPasswordResetWithApi(email: string, csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/password-reset/request', { method: 'POST', body: JSON.stringify({ email }) }, csrfToken);
+}
+
+export function confirmPasswordResetWithApi(token: string, password: string, csrfToken?: string | null): Promise<AuthResult> {
+  return requestAuth('/password-reset/confirm', { method: 'POST', body: JSON.stringify({ token, password }) }, csrfToken);
 }

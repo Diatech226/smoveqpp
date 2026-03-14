@@ -93,5 +93,12 @@ module.exports = {
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID ?? '',
   FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET ?? '',
   FACEBOOK_CALLBACK_URL: process.env.FACEBOOK_CALLBACK_URL ?? `${process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`}${FACEBOOK_CALLBACK_PATH}`,
+  SMTP_HOST: process.env.SMTP_HOST ?? '',
+  SMTP_PORT: parseIntOrDefault(process.env.SMTP_PORT, 587),
+  SMTP_SECURE: parseBoolean(process.env.SMTP_SECURE, false),
+  SMTP_USER: process.env.SMTP_USER ?? '',
+  SMTP_PASS: process.env.SMTP_PASS ?? '',
+  EMAIL_FROM: process.env.EMAIL_FROM ?? 'noreply@localhost',
+  APP_BASE_URL: process.env.APP_BASE_URL ?? process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
   validateCriticalEnv,
 };

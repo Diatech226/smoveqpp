@@ -1,8 +1,9 @@
 const crypto = require('crypto');
 const { normalizeEmail } = require('../models/User');
-const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED, isProduction } = require('../config/env');
+const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED } = require('../config/env');
 
 const EMAIL_VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24;
+const PASSWORD_RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
 
 let bcryptLib = null;
 try {
@@ -46,6 +47,15 @@ function createEmailVerificationToken() {
   };
 }
 
+function createPasswordResetToken() {
+  const token = crypto.randomBytes(32).toString('hex');
+  return {
+    token,
+    tokenHash: hashVerificationToken(token),
+    expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS),
+  };
+}
+
 function buildVerificationMeta(user) {
   const expiresAt = user.emailVerificationTokenExpiresAt ?? null;
   const pending = !user.emailVerified && !!user.emailVerificationTokenHash && (!expiresAt || new Date(expiresAt) > new Date());
@@ -75,10 +85,12 @@ function sanitizeUser(user) {
 }
 
 class AuthService {
-  constructor({ userRepository, oauthProviders = {}, publicRegistrationEnabled = PUBLIC_REGISTRATION_ENABLED }) {
+  constructor({ userRepository, oauthProviders = {}, publicRegistrationEnabled = PUBLIC_REGISTRATION_ENABLED, emailService = null, auditLogger = null }) {
     this.userRepository = userRepository;
     this.oauthProviders = oauthProviders;
     this.publicRegistrationEnabled = Boolean(publicRegistrationEnabled);
+    this.emailService = emailService;
+    this.auditLogger = auditLogger;
   }
 
   async seedAdminFromEnv({ email, password, name }) {
@@ -157,13 +169,20 @@ class AuthService {
       throw error;
     }
 
+    const delivery = await this.emailService?.sendVerificationEmail?.({
+      to: email,
+      name,
+      token: verification.token,
+      expiresAt: verification.expiresAt,
+    });
+
     return {
       ok: true,
       user: sanitizeUser(user),
       verification: {
-        emailDeliveryReady: isProduction,
+        emailDeliveryReady: Boolean(delivery?.delivered),
         expiresAt: verification.expiresAt,
-        ...(isProduction ? {} : { devToken: verification.token }),
+        ...(delivery?.delivered ? {} : { devToken: verification.token, devPreviewUrl: delivery?.previewUrl ?? null }),
       },
     };
   }
@@ -241,13 +260,20 @@ class AuthService {
       expiresAt: verification.expiresAt,
     });
 
+    const delivery = await this.emailService?.sendVerificationEmail?.({
+      to: user.email,
+      name: user.name,
+      token: verification.token,
+      expiresAt: verification.expiresAt,
+    });
+
     return {
       ok: true,
       user: sanitizeUser(updated ?? user),
       verification: {
-        emailDeliveryReady: isProduction,
+        emailDeliveryReady: Boolean(delivery?.delivered),
         expiresAt: verification.expiresAt,
-        ...(isProduction ? {} : { devToken: verification.token }),
+        ...(delivery?.delivered ? {} : { devToken: verification.token, devPreviewUrl: delivery?.previewUrl ?? null }),
       },
     };
   }
@@ -292,6 +318,9 @@ class AuthService {
     }
 
     if (typeof payload.role === 'string') {
+      if (actor?.role !== 'admin') {
+        return { ok: false, status: 403, code: 'FORBIDDEN_ROLE_CHANGE', message: 'Only admins can change roles' };
+      }
       if (!['admin', 'editor', 'author', 'viewer', 'client'].includes(payload.role)) {
         return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'Invalid role' };
       }
@@ -310,11 +339,71 @@ class AuthService {
       }
     }
 
+    if (patch.accountStatus === 'suspended' && String(actor?.id) === String(user.id)) {
+      return { ok: false, status: 400, code: 'ADMIN_SELF_SUSPEND_FORBIDDEN', message: 'Cannot suspend own account' };
+    }
+
     if (Object.keys(patch).length === 0) {
       return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'No valid fields to update' };
     }
 
     const updated = await this.userRepository.updateUser(user.id, patch);
+    return { ok: true, user: sanitizeUser(updated ?? user) };
+  }
+
+
+  async requestPasswordReset({ email }) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      return { ok: true, emailDeliveryReady: Boolean(this.emailService?.isDeliveryReady?.()) };
+    }
+
+    const user = await this.userRepository.findByEmailWithPassword(normalizedEmail);
+    if (!user || user.authProvider !== 'local') {
+      return { ok: true, emailDeliveryReady: Boolean(this.emailService?.isDeliveryReady?.()) };
+    }
+
+    const reset = createPasswordResetToken();
+    await this.userRepository.setPasswordResetToken(user.id, { tokenHash: reset.tokenHash, expiresAt: reset.expiresAt });
+
+    const delivery = await this.emailService?.sendPasswordResetEmail?.({
+      to: user.email,
+      name: user.name,
+      token: reset.token,
+      expiresAt: reset.expiresAt,
+    });
+
+    return {
+      ok: true,
+      emailDeliveryReady: Boolean(delivery?.delivered),
+      expiresAt: reset.expiresAt,
+      ...(delivery?.delivered ? {} : { devToken: reset.token, devPreviewUrl: delivery?.previewUrl ?? null }),
+    };
+  }
+
+  async resetPasswordWithToken({ token, password }) {
+    if (!token || typeof token !== 'string') {
+      return { ok: false, status: 400, code: 'INVALID_RESET_TOKEN', message: 'Invalid reset token' };
+    }
+
+    const nextPassword = String(password ?? '');
+    if (nextPassword.length < 8) {
+      return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'password must be at least 8 characters' };
+    }
+
+    const tokenHash = hashVerificationToken(token);
+    const user = await this.userRepository.findByPasswordResetTokenHash(tokenHash);
+    if (!user) {
+      return { ok: false, status: 400, code: 'INVALID_RESET_TOKEN', message: 'Invalid reset token' };
+    }
+
+    if (!user.passwordResetTokenExpiresAt || new Date(user.passwordResetTokenExpiresAt) < new Date()) {
+      return { ok: false, status: 400, code: 'RESET_TOKEN_EXPIRED', message: 'Password reset token expired' };
+    }
+
+    const passwordHash = await hashPassword(nextPassword);
+    const updated = await this.userRepository.resetPasswordByToken(user.id, { passwordHash });
+
     return { ok: true, user: sanitizeUser(updated ?? user) };
   }
 
@@ -339,4 +428,5 @@ module.exports = {
   verifyPassword,
   hashVerificationToken,
   createEmailVerificationToken,
+  createPasswordResetToken,
 };

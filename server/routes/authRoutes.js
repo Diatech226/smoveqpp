@@ -3,6 +3,7 @@ const { requireCsrf } = require('../middleware/csrf');
 const { createAuthRateLimiter } = require('../middleware/authRateLimit');
 const { AUTH_RATE_LIMIT_MAX, AUTH_RATE_LIMIT_WINDOW_MS } = require('../config/env');
 const { requireAuthenticated, requirePermission } = require('../middleware/authz');
+const { Permissions } = require('../security/rbac');
 
 function createAuthRoutes({ authController }) {
   const router = express.Router();
@@ -19,8 +20,11 @@ function createAuthRoutes({ authController }) {
   router.post('/oauth/:provider', limiter, requireCsrf, authController.oauthLogin);
   router.post('/verify-email', limiter, requireCsrf, authController.verifyEmail);
   router.post('/verify-email/resend', requireAuthenticated, requireCsrf, authController.resendVerification);
-  router.get('/admin/users', requireAuthenticated, requirePermission('cms.read'), authController.listUsers);
-  router.patch('/admin/users/:userId', requireAuthenticated, requirePermission('cms.manage'), requireCsrf, authController.updateUserByAdmin);
+  router.post('/password-reset/request', limiter, requireCsrf, authController.requestPasswordReset);
+  router.post('/password-reset/confirm', limiter, requireCsrf, authController.confirmPasswordReset);
+  router.get('/admin/users', requireAuthenticated, requirePermission(Permissions.CMS_ACCESS), authController.listUsers);
+  router.patch('/admin/users/:userId', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), requireCsrf, authController.updateUserByAdmin);
+  router.get('/admin/audit-events', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), authController.listAuditEvents);
   router.post('/logout', requireCsrf, authController.logout);
 
   return router;
