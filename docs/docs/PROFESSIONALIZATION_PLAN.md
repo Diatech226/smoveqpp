@@ -1,8 +1,15 @@
 # Production Readiness Plan (Current-State Based)
 
-Last updated: 2026-03-14
+Last updated: 2026-03-14 (iteration: content durability expansion)
 
 ## Current status
+
+
+### Latest iteration progress (P2 durability expansion)
+- Expanded backend content API beyond blog to include projects, media metadata, page content, and CMS settings in the same persisted content store (`server/data/content.json`) via `ContentService` + `contentRoutes`.
+- CMS dashboard now performs backend-first loading/saving for projects, page content, and settings with explicit retry paths, and keeps controlled local fallback only when backend is unavailable.
+- Media operations now include backend-backed listing/deletion contracts and normalized metadata persistence path (without introducing full cloud DAM upload flow yet).
+- Error handling now maps backend operation failures to visible CMS feedback for critical write paths, reducing silent persistence failures.
 
 ### Maturity snapshot
 The project is **pre-production** with strong structural progress: modular frontend shell/routing, a working auth API with CSRF/session/RBAC controls, and a functional CMS/blog workflow baseline. It is not yet production-ready due to persistence/session durability gaps, incomplete account lifecycle UX, and limited operational readiness.
@@ -133,7 +140,17 @@ The project is **pre-production** with strong structural progress: modular front
 - **Risk level:** High.
 - **Why it matters:** Prevents data divergence and editorial inconsistency.
 
-### Iteration P3 — Account lifecycle completion
+### Iteration P3 — Content conflict controls & migration hardening
+- **Objective:** Remove remaining local fallback ambiguity for CMS-managed content and protect concurrent edits.
+- **Scope:** conflict detection/versioning on writes, one-time migration from browser local stores to backend, stronger media reference integrity checks across projects/pages/blog.
+- **Main deliverables:**
+  - Write precondition/version token support for CMS entities.
+  - Safe migration utility and operator runbook for existing local content.
+  - Referential integrity checks before media deletion and orphan reporting.
+- **Risk level:** High.
+- **Why it matters:** Final step to make backend persistence authoritative and recoverable under real production editing load.
+
+### Iteration P4 — Account lifecycle completion
 - **Objective:** Complete end-user security lifecycle from frontend to backend.
 - **Scope:** Password reset UI flows, verification UX polish, account/session security actions.
 - **Main deliverables:**
@@ -143,7 +160,7 @@ The project is **pre-production** with strong structural progress: modular front
 - **Risk level:** Medium.
 - **Why it matters:** Critical for real user support and security hygiene.
 
-### Iteration P4 — Observability and operational readiness
+### Iteration P5 — Observability and operational readiness
 - **Objective:** Make production incidents detectable and diagnosable.
 - **Scope:** Structured logs, metrics, health checks, trace/correlation IDs, dashboarding hooks.
 - **Main deliverables:**
@@ -153,7 +170,7 @@ The project is **pre-production** with strong structural progress: modular front
 - **Risk level:** Medium.
 - **Why it matters:** Required for stable operations and incident response.
 
-### Iteration P5 — Quality gate modernization
+### Iteration P6 — Quality gate modernization
 - **Objective:** Increase release confidence with realistic automated checks.
 - **Scope:** True lint/typecheck, integration coverage, browser E2E for auth/CMS happy + failure paths.
 - **Main deliverables:**
@@ -163,7 +180,7 @@ The project is **pre-production** with strong structural progress: modular front
 - **Risk level:** Medium.
 - **Why it matters:** Prevents regressions in critical workflows.
 
-### Iteration P6 — Deployment/security hardening
+### Iteration P7 — Deployment/security hardening
 - **Objective:** Close final production readiness gaps for secure deployment.
 - **Scope:** Secrets handling, infra config baselines, backup/recovery, rate-limit tuning, policy docs.
 - **Main deliverables:**
@@ -178,9 +195,10 @@ The project is **pre-production** with strong structural progress: modular front
 ## Execution order recommendation
 1. P1 Auth/session hardening
 2. P2 Content persistence unification
-3. P3 Account lifecycle completion
-4. P4 Observability
-5. P5 Quality gates
-6. P6 Deployment/security hardening
+3. P3 Content conflict controls & migration hardening
+4. P4 Account lifecycle completion
+5. P5 Observability
+6. P6 Quality gates
+7. P7 Deployment/security hardening
 
 This sequencing minimizes production risk while preserving current product momentum.
