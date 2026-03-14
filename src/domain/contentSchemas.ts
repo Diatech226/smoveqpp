@@ -25,19 +25,31 @@ export interface BlogPost {
 
 export type MediaType = 'image' | 'video' | 'document';
 
-export interface MediaFile {
+export interface MediaAsset {
   id: string;
-  name: string;
   type: MediaType;
   url: string;
+  alt?: string;
+  title?: string;
+  label?: string;
+  width?: number;
+  height?: number;
+  metadata?: Record<string, string>;
+  source?: string;
+  createdAt?: string;
+  updatedAt?: string;
+
+  // Legacy compatibility fields
+  name: string;
   thumbnailUrl?: string;
   size: number;
   uploadedDate: string;
   uploadedBy: string;
-  alt?: string;
   caption?: string;
   tags: string[];
 }
+
+export type MediaFile = MediaAsset;
 
 export interface Project {
   id: string;
@@ -109,6 +121,17 @@ export const isMediaFile = (value: unknown): value is MediaFile => {
     isString(v.uploadedDate) &&
     isString(v.uploadedBy) &&
     (v.alt === undefined || isString(v.alt)) &&
+    (v.title === undefined || isString(v.title)) &&
+    (v.label === undefined || isString(v.label)) &&
+    (v.width === undefined || (typeof v.width === 'number' && v.width >= 0)) &&
+    (v.height === undefined || (typeof v.height === 'number' && v.height >= 0)) &&
+    (v.metadata === undefined ||
+      (typeof v.metadata === 'object' &&
+        v.metadata !== null &&
+        Object.values(v.metadata as Record<string, unknown>).every((item) => typeof item === 'string'))) &&
+    (v.source === undefined || isString(v.source)) &&
+    (v.createdAt === undefined || isString(v.createdAt)) &&
+    (v.updatedAt === undefined || isString(v.updatedAt)) &&
     (v.caption === undefined || isString(v.caption)) &&
     isStringArray(v.tags)
   );
