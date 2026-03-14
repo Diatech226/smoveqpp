@@ -5,6 +5,10 @@ const DATA_PATH = path.join(__dirname, '..', 'data', 'content.json');
 
 const defaultState = {
   blogPosts: [],
+  projects: [],
+  mediaFiles: [],
+  pageContent: null,
+  settings: null,
 };
 
 function ensureStore() {
@@ -24,6 +28,10 @@ function readState() {
     const parsed = JSON.parse(raw);
     return {
       blogPosts: Array.isArray(parsed.blogPosts) ? parsed.blogPosts : [],
+      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+      mediaFiles: Array.isArray(parsed.mediaFiles) ? parsed.mediaFiles : [],
+      pageContent: parsed.pageContent && typeof parsed.pageContent === 'object' ? parsed.pageContent : null,
+      settings: parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : null,
     };
   } catch {
     return { ...defaultState };
@@ -36,6 +44,20 @@ function writeState(state) {
 }
 
 class FileContentRepository {
+  getState() {
+    return readState();
+  }
+
+  saveState(state) {
+    writeState({
+      ...defaultState,
+      ...state,
+      blogPosts: Array.isArray(state.blogPosts) ? state.blogPosts : [],
+      projects: Array.isArray(state.projects) ? state.projects : [],
+      mediaFiles: Array.isArray(state.mediaFiles) ? state.mediaFiles : [],
+    });
+  }
+
   getBlogPosts() {
     return readState().blogPosts;
   }

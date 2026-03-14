@@ -29,7 +29,7 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 ### Blog/content path
 - Public blog page renders canonicalized **published** posts.
 - Backend supports blog status lifecycle (`draft`, `in_review`, `published`, `archived`) and editorial analytics.
-- CMS blog editor can save, transition, and delete posts (with backend-first attempt and local fallback behavior in UI).
+- CMS blog/projects/page-content/settings flows now use backend-first persistence with explicit retry/failure states; local fallback is retained only as a compatibility path when backend is unavailable.
 
 ## Current stack
 
@@ -48,8 +48,8 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 
 ### Data/persistence
 - Auth repository supports MongoDB or in-memory fallback.
-- Content API currently uses file-backed repository (`server/data/content.json`).
-- Frontend repositories also use localStorage for several CMS-facing stores.
+- Content API uses a file-backed repository (`server/data/content.json`) for blog, projects, media metadata, page content, and CMS settings.
+- Frontend repositories remain available for controlled fallback/compatibility when backend is unavailable.
 
 ### Testing/automation
 - Vitest unit/integration tests (frontend + selected server modules)

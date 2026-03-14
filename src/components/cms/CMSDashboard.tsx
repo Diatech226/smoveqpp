@@ -29,10 +29,21 @@ import { pageContentRepository } from '../../repositories/pageContentRepository'
 import { defaultHomePageContent, type HomePageContentSettings } from '../../data/pageContentSeed';
 import {
   deleteBackendBlogPost,
+  deleteBackendMediaFile,
+  deleteBackendProject,
   fetchBackendBlogPosts,
+  fetchBackendMediaFiles,
+  fetchBackendPageContent,
+  fetchBackendProjects,
+  fetchBackendSettings,
   fetchEditorialAnalytics,
+  requestWithRetry,
   saveBackendBlogPost,
+  saveBackendPageContent,
+  saveBackendProject,
+  saveBackendSettings,
   transitionBackendBlogPost,
+  type CmsSettings,
   type EditorialAnalytics,
 } from '../../utils/contentApi';
 import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
@@ -113,8 +124,6 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   mainImage: 'project cover image',
 };
 
-const SETTINGS_STORAGE_KEY = 'smove_cms_settings';
-
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
   const { user, logout, canAccessCMS, fetchAdminUsers, fetchAdminAuditEvents, updateAdminUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -132,22 +141,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [blogFormErrors, setBlogFormErrors] = useState<Partial<Record<keyof BlogFormState, string>>>({});
 
   const [settingsSaving, setSettingsSaving] = useState(false);
-  const [settingsValues, setSettingsValues] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (!raw) {
-        return { siteTitle: 'SMOVE', supportEmail: 'contact@smove.africa', instantPublishing: true };
-      }
-      const parsed = JSON.parse(raw) as { siteTitle?: string; supportEmail?: string; instantPublishing?: boolean };
-      return {
-        siteTitle: parsed.siteTitle || 'SMOVE',
-        supportEmail: parsed.supportEmail || 'contact@smove.africa',
-        instantPublishing: parsed.instantPublishing ?? true,
-      };
-    } catch {
-      return { siteTitle: 'SMOVE', supportEmail: 'contact@smove.africa', instantPublishing: true };
-    }
-  });
+  const [settingsValues, setSettingsValues] = useState<CmsSettings>({ siteTitle: 'SMOVE', supportEmail: 'contact@smove.africa', instantPublishing: true });
 
   const [projects, setProjects] = useState(() => projectRepository.getAll());
   const [projectsError, setProjectsError] = useState('');
@@ -160,7 +154,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [homeContentForm, setHomeContentForm] = useState<HomePageContentSettings>(() => pageContentRepository.getHomePageContent());
   const [homeContentSaving, setHomeContentSaving] = useState(false);
   const [homeContentError, setHomeContentError] = useState('');
-  const mediaFiles = useMemo(() => mediaRepository.getAll(), [feedback]);
+  const [mediaVersion, setMediaVersion] = useState(0);
+  const mediaFiles = useMemo(() => mediaRepository.getAll(), [mediaVersion]);
   const cmsStats = useMemo(() => cmsRepository.getStats(), [posts, mediaFiles.length, projects.length]);
   const canDeleteContent = user?.role === 'admin';
   const filteredMediaFiles = useMemo(() => {
@@ -185,7 +180,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     const load = async () => {
       setPostsLoading(true);
       try {
-        const backendPosts = await fetchBackendBlogPosts();
+        const backendPosts = await requestWithRetry(() => fetchBackendBlogPosts(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
         setPosts(backendPosts);
         backendPosts.forEach((post) => blogRepository.save(post));
@@ -208,6 +203,42 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         if (active) setEditorialAnalytics(analytics);
       } catch {
         if (active) setEditorialAnalytics(null);
+      }
+
+      try {
+        const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
+        if (!active) return;
+        backendProjects.forEach((project) => projectRepository.save(project));
+        setProjects(backendProjects);
+      } catch {
+        if (active) {
+          setProjects(projectRepository.getAll());
+        }
+      }
+
+      try {
+        const backendMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+        if (!active) return;
+        backendMedia.forEach((file) => mediaRepository.save(file));
+        setMediaVersion((version) => version + 1);
+      } catch {
+        // keep local media fallback silently to preserve existing UX
+      }
+
+      try {
+        const home = await requestWithRetry(() => fetchBackendPageContent(), { retries: 1, retryDelayMs: 250 });
+        if (!active) return;
+        const saved = pageContentRepository.saveHomePageContent(home);
+        setHomeContentForm(saved);
+      } catch {
+        if (active) setHomeContentForm(pageContentRepository.getHomePageContent());
+      }
+
+      try {
+        const settings = await requestWithRetry(() => fetchBackendSettings(), { retries: 1, retryDelayMs: 250 });
+        if (active) setSettingsValues(settings);
+      } catch {
+        // keep defaults if backend unavailable
       }
     };
 
@@ -501,7 +532,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
-  const saveSettings = () => {
+  const saveSettings = async () => {
     if (!settingsValues.siteTitle.trim() || !settingsValues.supportEmail.includes('@')) {
       setSectionError('Renseignez un nom de site et un email de support valide.');
       return;
@@ -509,14 +540,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     setSettingsSaving(true);
     setSectionError('');
-    setTimeout(() => {
-      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settingsValues));
+    try {
+      const saved = await requestWithRetry(() => saveBackendSettings(settingsValues), { retries: 1, retryDelayMs: 300 });
+      setSettingsValues(saved);
+      showSuccess('Paramètres enregistrés sur le backend.');
+    } catch {
+      setSectionError('Sauvegarde backend impossible. Réessayez.');
+    } finally {
       setSettingsSaving(false);
-      showSuccess('Paramètres enregistrés avec succès.');
-    }, 300);
+    }
   };
 
-  const saveHomePageContent = () => {
+  const saveHomePageContent = async () => {
     if (!homeContentForm.heroTitleLine1.trim() || !homeContentForm.heroTitleLine2.trim()) {
       setHomeContentError('Le titre hero doit être renseigné.');
       return;
@@ -525,12 +560,22 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setHomeContentSaving(true);
     setHomeContentError('');
 
-    setTimeout(() => {
-      const saved = pageContentRepository.saveHomePageContent(homeContentForm);
+    try {
+      const savedRemote = await requestWithRetry(() => saveBackendPageContent(homeContentForm), { retries: 1, retryDelayMs: 250 });
+      const saved = pageContentRepository.saveHomePageContent(savedRemote);
       setHomeContentForm(saved);
+      showSuccess('Contenu de page enregistré via backend CMS.');
+    } catch {
+      try {
+        const saved = pageContentRepository.saveHomePageContent(homeContentForm);
+        setHomeContentForm(saved);
+        setHomeContentError('Backend indisponible: contenu stocké localement temporairement.');
+      } catch {
+        setHomeContentError('Enregistrement impossible. Réessayez.');
+      }
+    } finally {
       setHomeContentSaving(false);
-      showSuccess('Contenu de page enregistré et centralisé dans le CMS.');
-    }, 250);
+    }
   };
 
   const resetHomePageContent = () => {
@@ -600,7 +645,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setProjectFormErrors({});
   };
 
-  const saveProject = () => {
+  const saveProject = async () => {
     const errors = validateProjectForm(projectForm);
     setProjectFormErrors(errors);
 
@@ -612,33 +657,42 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setIsSavingProject(true);
     setProjectsError('');
 
+    const payload = {
+      id: projectForm.id || `project-${Date.now()}`,
+      title: projectForm.title.trim(),
+      client: projectForm.client.trim(),
+      category: projectForm.category.trim(),
+      year: projectForm.year.trim() || new Date().getFullYear().toString(),
+      description: projectForm.description.trim(),
+      challenge: projectForm.challenge.trim(),
+      solution: projectForm.solution.trim(),
+      results: projectForm.results.split('\n').map((line) => line.trim()).filter(Boolean),
+      tags: projectForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      mainImage: projectForm.mainImage.trim() || 'project cover image',
+      images: projectForm.mainImage.trim() ? [projectForm.mainImage.trim()] : [],
+    };
+
     try {
-      const baseId = projectForm.id || `project-${Date.now()}`;
-      projectRepository.save({
-        id: baseId,
-        title: projectForm.title.trim(),
-        client: projectForm.client.trim(),
-        category: projectForm.category.trim(),
-        year: projectForm.year.trim() || new Date().getFullYear().toString(),
-        description: projectForm.description.trim(),
-        challenge: projectForm.challenge.trim(),
-        solution: projectForm.solution.trim(),
-        results: projectForm.results.split('\n').map((line) => line.trim()).filter(Boolean),
-        tags: projectForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-        mainImage: projectForm.mainImage.trim() || 'project cover image',
-        images: projectForm.mainImage.trim() ? [projectForm.mainImage.trim()] : [],
-      });
-      setProjects(projectRepository.getAll());
+      const saved = await requestWithRetry(() => saveBackendProject(payload), { retries: 1, retryDelayMs: 250 });
+      projectRepository.save(saved);
+      setProjects(await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 }));
       showSuccess(projectEditorMode === 'create' ? 'Projet créé avec succès.' : 'Projet mis à jour avec succès.');
       resetProjectEditor();
     } catch {
-      setProjectsError('Enregistrement du projet impossible. Réessayez.');
+      try {
+        projectRepository.save(payload);
+        setProjects(projectRepository.getAll());
+        setProjectsError('Backend indisponible: modification conservée localement.');
+      } catch {
+        setProjectsError('Enregistrement du projet impossible. Réessayez.');
+      }
     } finally {
       setIsSavingProject(false);
     }
   };
 
-  const deleteProject = (projectId: string, projectTitle: string) => {
+
+  const deleteProject = async (projectId: string, projectTitle: string) => {
     if (!canDeleteContent) {
       setProjectsError('Suppression non autorisée: rôle administrateur requis.');
       return;
@@ -649,16 +703,39 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
 
     try {
+      await requestWithRetry(() => deleteBackendProject(projectId), { retries: 1, retryDelayMs: 250 });
       projectRepository.delete(projectId);
-      setProjects(projectRepository.getAll());
+      setProjects(await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 }));
       if (projectForm.id === projectId) {
         resetProjectEditor();
       }
       showSuccess('Projet supprimé.');
     } catch {
-      setProjectsError('Suppression du projet impossible. Réessayez.');
+      setProjectsError('Suppression backend impossible. Réessayez.');
     }
   };
+
+  const deleteSelectedMedia = async () => {
+    if (!selectedMedia) return;
+    if (!canDeleteContent) {
+      setSectionError('Suppression média non autorisée: rôle administrateur requis.');
+      return;
+    }
+    if (!window.confirm(`Supprimer définitivement le média "${selectedMedia.label || selectedMedia.name}" ?`)) {
+      return;
+    }
+
+    try {
+      await requestWithRetry(() => deleteBackendMediaFile(selectedMedia.id), { retries: 1, retryDelayMs: 250 });
+      mediaRepository.delete(selectedMedia.id);
+      setSelectedMediaId('');
+      setMediaVersion((version) => version + 1);
+      showSuccess('Média supprimé.');
+    } catch {
+      setSectionError('Suppression média impossible. Réessayez.');
+    }
+  };
+
 
   const renderProjectForm = () => {
     const title = projectEditorMode === 'create' ? 'Créer un projet' : 'Modifier un projet';
@@ -1188,6 +1265,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   <p><span className="font-semibold">Créé:</span> {selectedMedia.createdAt || selectedMedia.uploadedDate}</p>
                   <p><span className="font-semibold">Mis à jour:</span> {selectedMedia.updatedAt || selectedMedia.uploadedDate}</p>
                   <div className="pt-1"><code className="text-[12px] bg-[#f5f9fa] px-2 py-1 rounded">media:{selectedMedia.id}</code></div>
+                  <button type="button" onClick={deleteSelectedMedia} disabled={!canDeleteContent} className="mt-2 px-3 py-2 border border-red-200 text-red-600 rounded-[10px] disabled:opacity-50">Supprimer ce média</button>
                 </div>
               )}
             </AdminPanel>

@@ -45,6 +45,60 @@ function createContentRoutes({ contentService }) {
     return sendSuccess(res, { post: result.post });
   });
 
+  router.get('/projects', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, { projects: contentService.listProjects() }));
+
+  router.post('/projects', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.saveProject(req.body);
+    if (!result.ok) {
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+    return sendSuccess(res, { project: result.project });
+  });
+
+  router.delete('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    contentService.deleteProject(req.params.id);
+    return sendSuccess(res, { deleted: true });
+  });
+
+  router.get('/media', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, { mediaFiles: contentService.listMediaFiles() }));
+
+  router.post('/media', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.saveMediaFile(req.body);
+    if (!result.ok) {
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+    return sendSuccess(res, { mediaFile: result.mediaFile });
+  });
+
+  router.delete('/media/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    contentService.deleteMediaFile(req.params.id);
+    return sendSuccess(res, { deleted: true });
+  });
+
+  router.get('/page-content', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, { pageContent: contentService.getPageContent() }));
+
+  router.post('/page-content', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.savePageContent(req.body);
+    if (!result.ok) {
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+    return sendSuccess(res, { pageContent: result.pageContent });
+  });
+
+  router.get('/settings', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, { settings: contentService.getSettings() }));
+
+  router.post('/settings', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.saveSettings(req.body);
+    if (!result.ok) {
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+    return sendSuccess(res, { settings: result.settings });
+  });
+
   return router;
 }
 

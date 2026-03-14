@@ -1,12 +1,58 @@
 const BLOG_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
+const MEDIA_TYPES = new Set(['image', 'video', 'document']);
+
+const defaultHomePageContent = {
+  heroBadge: 'Agence de communication',
+  heroTitleLine1: 'Donnez du relief',
+  heroTitleLine2: 'à votre communication',
+  heroDescription:
+    'Un hero premium avec animation 3D légère, pour valoriser votre image de marque et présenter vos services avec impact.',
+  heroPrimaryCtaLabel: 'Découvrir nos services',
+  heroSecondaryCtaLabel: 'Lancer un projet',
+  aboutBadge: 'À PROPOS DE NOUS',
+  aboutTitle: 'Innovation & Excellence Digitale',
+  aboutParagraphOne:
+    "SMOVE Communication est une agence digitale basée en Côte d'Ivoire, spécialisée dans la création de solutions digitales innovantes. Nous accompagnons les entreprises dans leur transformation digitale avec passion et expertise.",
+  aboutParagraphTwo:
+    'Notre équipe de professionnels talentueux combine créativité, technologie et stratégie pour créer des expériences digitales qui marquent les esprits et génèrent des résultats mesurables.',
+  aboutImage: '',
+  servicesIntroTitle: 'Ce que nous faisons',
+  servicesIntroSubtitle: 'Des solutions digitales complètes pour propulser votre entreprise vers le succès',
+};
+
+const defaultSettings = {
+  siteTitle: 'SMOVE',
+  supportEmail: 'contact@smove.africa',
+  instantPublishing: true,
+};
 
 class ContentService {
   constructor({ contentRepository }) {
     this.contentRepository = contentRepository;
   }
 
+  readState() {
+    return this.contentRepository.getState
+      ? this.contentRepository.getState()
+      : {
+          blogPosts: this.contentRepository.getBlogPosts(),
+          projects: [],
+          mediaFiles: [],
+          pageContent: null,
+          settings: null,
+        };
+  }
+
+  writeState(state) {
+    if (this.contentRepository.saveState) {
+      this.contentRepository.saveState(state);
+      return;
+    }
+    this.contentRepository.saveBlogPosts(state.blogPosts || []);
+  }
+
   listBlogPosts() {
-    return this.contentRepository.getBlogPosts().map((post) => this.normalizePost(post));
+    return this.readState().blogPosts.map((post) => this.normalizePost(post));
   }
 
   saveBlogPost(post) {
@@ -40,14 +86,17 @@ class ContentService {
       posts.push(normalized);
     }
 
-    this.contentRepository.saveBlogPosts(posts);
+    const state = this.readState();
+    state.blogPosts = posts;
+    this.writeState(state);
     return { ok: true, post: normalized };
   }
 
   deleteBlogPost(id) {
-    const posts = this.listBlogPosts();
-    const next = posts.filter((post) => post.id !== id);
-    this.contentRepository.saveBlogPosts(next);
+    const state = this.readState();
+    const next = this.listBlogPosts().filter((post) => post.id !== id);
+    state.blogPosts = next;
+    this.writeState(state);
     return { ok: true };
   }
 
@@ -77,7 +126,9 @@ class ContentService {
     }
 
     posts[index] = next;
-    this.contentRepository.saveBlogPosts(posts);
+    const state = this.readState();
+    state.blogPosts = posts;
+    this.writeState(state);
     return { ok: true, post: next };
   }
 
@@ -94,6 +145,97 @@ class ContentService {
         .slice(0, 5)
         .map((post) => ({ id: post.id, title: post.title, status: post.status, publishedDate: post.publishedDate })),
     };
+  }
+
+  listProjects() {
+    return this.readState().projects.filter((project) => this.validateProject(project)).map((project) => this.normalizeProject(project));
+  }
+
+  saveProject(project) {
+    const normalized = this.normalizeProject(project);
+    if (!this.validateProject(normalized)) {
+      return { ok: false, error: { code: 'PROJECT_VALIDATION_ERROR', message: 'Invalid project payload.' } };
+    }
+
+    const state = this.readState();
+    const projects = this.listProjects();
+    const index = projects.findIndex((entry) => entry.id === normalized.id);
+    if (index >= 0) projects[index] = normalized;
+    else projects.push(normalized);
+    state.projects = projects;
+    this.writeState(state);
+    return { ok: true, project: normalized };
+  }
+
+  deleteProject(id) {
+    const state = this.readState();
+    state.projects = this.listProjects().filter((entry) => entry.id !== id);
+    this.writeState(state);
+    return { ok: true };
+  }
+
+  listMediaFiles() {
+    return this.readState().mediaFiles.filter((file) => this.validateMediaFile(file)).map((file) => this.normalizeMediaFile(file));
+  }
+
+  saveMediaFile(file) {
+    const normalized = this.normalizeMediaFile(file);
+    if (!this.validateMediaFile(normalized)) {
+      return { ok: false, error: { code: 'MEDIA_VALIDATION_ERROR', message: 'Invalid media payload.' } };
+    }
+
+    const state = this.readState();
+    const files = this.listMediaFiles();
+    const index = files.findIndex((entry) => entry.id === normalized.id);
+    if (index >= 0) files[index] = normalized;
+    else files.push(normalized);
+    state.mediaFiles = files;
+    this.writeState(state);
+    return { ok: true, mediaFile: normalized };
+  }
+
+  deleteMediaFile(id) {
+    const state = this.readState();
+    state.mediaFiles = this.listMediaFiles().filter((entry) => entry.id !== id);
+    this.writeState(state);
+    return { ok: true };
+  }
+
+  getPageContent() {
+    const candidate = this.readState().pageContent;
+    if (!candidate || typeof candidate !== 'object') {
+      return { home: { ...defaultHomePageContent } };
+    }
+    return { home: this.normalizeHomePageContent(candidate.home || {}) };
+  }
+
+  savePageContent(payload) {
+    const normalized = { home: this.normalizeHomePageContent(payload?.home || {}) };
+    if (!this.validateHomePageContent(normalized.home)) {
+      return { ok: false, error: { code: 'PAGE_CONTENT_VALIDATION_ERROR', message: 'Invalid page content payload.' } };
+    }
+
+    const state = this.readState();
+    state.pageContent = normalized;
+    this.writeState(state);
+    return { ok: true, pageContent: normalized };
+  }
+
+  getSettings() {
+    const candidate = this.readState().settings;
+    return this.normalizeSettings(candidate || {});
+  }
+
+  saveSettings(payload) {
+    const normalized = this.normalizeSettings(payload || {});
+    if (!normalized.siteTitle.trim() || !normalized.supportEmail.includes('@')) {
+      return { ok: false, error: { code: 'SETTINGS_VALIDATION_ERROR', message: 'Invalid settings payload.' } };
+    }
+
+    const state = this.readState();
+    state.settings = normalized;
+    this.writeState(state);
+    return { ok: true, settings: normalized };
   }
 
   evaluatePublishability(post) {
@@ -137,6 +279,109 @@ class ContentService {
       Array.isArray(post.images) &&
       BLOG_STATUSES.has(post.status)
     );
+  }
+
+  normalizeProject(project) {
+    return {
+      ...project,
+      title: (project?.title || '').trim(),
+      client: (project?.client || '').trim(),
+      category: (project?.category || '').trim(),
+      year: (project?.year || '').trim(),
+      description: (project?.description || '').trim(),
+      challenge: (project?.challenge || '').trim(),
+      solution: (project?.solution || '').trim(),
+      results: Array.isArray(project?.results) ? project.results.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      tags: Array.isArray(project?.tags) ? project.tags.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      mainImage: (project?.mainImage || '').trim() || 'project cover image',
+      images: Array.isArray(project?.images) ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+    };
+  }
+
+  validateProject(project) {
+    return Boolean(
+      project &&
+        typeof project.id === 'string' &&
+        typeof project.title === 'string' &&
+        project.title.length > 0 &&
+        typeof project.client === 'string' &&
+        project.client.length > 0 &&
+        typeof project.category === 'string' &&
+        project.category.length > 0 &&
+        typeof project.year === 'string' &&
+        typeof project.description === 'string' &&
+        project.description.length > 0 &&
+        typeof project.challenge === 'string' &&
+        project.challenge.length > 0 &&
+        typeof project.solution === 'string' &&
+        project.solution.length > 0 &&
+        Array.isArray(project.results) &&
+        Array.isArray(project.tags) &&
+        typeof project.mainImage === 'string' &&
+        Array.isArray(project.images)
+    );
+  }
+
+  normalizeMediaFile(file) {
+    const normalizedName = (file?.name || '').trim();
+    const normalizedAlt = (file?.alt || '').trim() || normalizedName;
+    const nowIso = new Date().toISOString();
+
+    return {
+      ...file,
+      name: normalizedName,
+      title: (file?.title || '').trim() || normalizedName,
+      label: (file?.label || '').trim() || normalizedName,
+      alt: normalizedAlt,
+      caption: (file?.caption || '').trim() || normalizedAlt,
+      tags: Array.isArray(file?.tags) ? file.tags.map((tag) => `${tag}`.trim()).filter(Boolean) : [],
+      source: (file?.source || '').trim() || 'content-api',
+      metadata: file?.metadata && typeof file.metadata === 'object' ? file.metadata : {},
+      thumbnailUrl: (file?.thumbnailUrl || '').trim() || file?.url,
+      createdAt: file?.createdAt || file?.uploadedDate || nowIso,
+      updatedAt: nowIso,
+    };
+  }
+
+  validateMediaFile(file) {
+    return Boolean(
+      file &&
+        typeof file.id === 'string' &&
+        typeof file.name === 'string' &&
+        file.name.length > 0 &&
+        MEDIA_TYPES.has(file.type) &&
+        typeof file.url === 'string' &&
+        file.url.length > 0 &&
+        typeof file.size === 'number' &&
+        file.size >= 0 &&
+        typeof file.uploadedDate === 'string' &&
+        typeof file.uploadedBy === 'string' &&
+        Array.isArray(file.tags)
+    );
+  }
+
+  normalizeHomePageContent(value) {
+    const home = value && typeof value === 'object' ? value : {};
+    const normalized = {};
+    for (const [key, fallback] of Object.entries(defaultHomePageContent)) {
+      normalized[key] = typeof home[key] === 'string' ? home[key].trim() || fallback : fallback;
+    }
+    return normalized;
+  }
+
+  validateHomePageContent(home) {
+    return Object.keys(defaultHomePageContent).every((key) => typeof home[key] === 'string');
+  }
+
+  normalizeSettings(settings) {
+    return {
+      siteTitle: typeof settings.siteTitle === 'string' ? settings.siteTitle.trim() || defaultSettings.siteTitle : defaultSettings.siteTitle,
+      supportEmail:
+        typeof settings.supportEmail === 'string'
+          ? settings.supportEmail.trim() || defaultSettings.supportEmail
+          : defaultSettings.supportEmail,
+      instantPublishing: typeof settings.instantPublishing === 'boolean' ? settings.instantPublishing : defaultSettings.instantPublishing,
+    };
   }
 }
 
