@@ -41,6 +41,29 @@ describe('routeResolver', () => {
     expect(resolution.normalizedHash).toBe('login');
   });
 
+
+  it('normalizes cms root route for authorized admins', () => {
+    const resolution = resolveRoute('#cms', {
+      ...baseAuth,
+      isAuthenticated: true,
+      canAccessCMS: true,
+    });
+
+    expect(resolution.page).toBe('cms-dashboard');
+    expect(resolution.normalizedHash).toBe('cms');
+  });
+
+  it('normalizes legacy cms dashboard hash to cms root', () => {
+    const resolution = resolveRoute('#cms-dashboard', {
+      ...baseAuth,
+      isAuthenticated: true,
+      canAccessCMS: true,
+    });
+
+    expect(resolution.page).toBe('cms-dashboard');
+    expect(resolution.normalizedHash).toBe('cms');
+  });
+
   it('redirects cms routes to login when unauthenticated', () => {
     const resolution = resolveRoute('#cms-dashboard', baseAuth);
 

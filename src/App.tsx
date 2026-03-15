@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useHashNavigation } from './app-routing/useHashNavigation';
+import { resolveCmsSectionFromRoute } from './app-routing/guards';
+import { parseHashRoute } from './app-routing/routeResolver';
 import AppErrorBoundary from './features/app-shell/AppErrorBoundary';
 import AppPageRenderer from './features/app-shell/AppPageRenderer';
 
@@ -15,6 +17,19 @@ function AppContent() {
     postLoginRoute,
   } = useAuth();
   const [cmsSection, setCmsSection] = useState('overview');
+
+
+  useEffect(() => {
+    const syncCmsSectionFromHash = () => {
+      const route = parseHashRoute(window.location.hash);
+      setCmsSection(resolveCmsSectionFromRoute(route));
+    };
+
+    syncCmsSectionFromHash();
+    window.addEventListener('hashchange', syncCmsSectionFromHash);
+
+    return () => window.removeEventListener('hashchange', syncCmsSectionFromHash);
+  }, []);
 
   const { currentPage } = useHashNavigation({
     isAuthenticated,
@@ -34,7 +49,10 @@ function AppContent() {
       <AppPageRenderer
         currentPage={currentPage}
         cmsSection={cmsSection}
-        onCmsSectionChange={setCmsSection}
+        onCmsSectionChange={(section) => {
+          setCmsSection(section);
+          window.location.hash = section === 'overview' ? 'cms' : `cms/${section}`;
+        }}
         cmsEnabled={cmsEnabled}
       />
 
