@@ -103,6 +103,7 @@ interface ProjectFormState {
   results: string;
   tags: string;
   mainImage: string;
+  imageAlt: string;
 }
 
 interface ServiceFormState {
@@ -163,6 +164,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   results: '',
   tags: '',
   mainImage: 'project cover image',
+  imageAlt: '',
 };
 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
@@ -725,7 +727,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       solution: project.solution,
       results: project.results.join('\n'),
       tags: project.tags.join(', '),
-      mainImage: project.mainImage,
+      mainImage: project.featuredImage || project.mainImage,
+      imageAlt: project.imageAlt || project.title,
     });
     setProjectFormErrors({});
     setProjectsError('');
@@ -743,6 +746,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       errors.year = 'L’année doit être sur 4 chiffres (ex: 2026).';
     }
     if (!form.description.trim()) errors.description = 'La description est requise.';
+    if (!form.mainImage.trim()) errors.mainImage = 'L’image de couverture est requise pour les cartes.';
     if (!form.challenge.trim()) errors.challenge = 'Le challenge est requis.';
     if (!form.solution.trim()) errors.solution = 'La solution est requise.';
     return errors;
@@ -823,6 +827,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       results: projectForm.results.split('\n').map((line) => line.trim()).filter(Boolean),
       tags: projectForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
       mainImage: projectForm.mainImage.trim() || 'project cover image',
+      featuredImage: projectForm.mainImage.trim() || 'project cover image',
+      imageAlt: projectForm.imageAlt.trim() || projectForm.title.trim(),
       images: projectForm.mainImage.trim() ? [projectForm.mainImage.trim()] : [],
     };
 
@@ -896,6 +902,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     const errors: Partial<Record<keyof ServiceFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
     if (!form.description.trim()) errors.description = 'La description est requise.';
+    if (!form.mainImage.trim()) errors.mainImage = 'L’image de couverture est requise pour les cartes.';
     if (!form.icon.trim()) errors.icon = 'L’icône est requise.';
     if (!form.color.trim()) errors.color = 'La couleur est requise.';
     if (!form.features.trim()) errors.features = 'Ajoutez au moins une fonctionnalité.';
@@ -1061,7 +1068,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             void saveProject();
           }}
         >
-          {(['title', 'slug', 'client', 'category', 'year', 'mainImage'] as const).map((fieldKey) => (
+          {(['title', 'slug', 'client', 'category', 'year', 'mainImage', 'imageAlt'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
               <input

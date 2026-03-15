@@ -56,6 +56,8 @@ export interface Project {
   title: string;
   slug?: string;
   summary?: string;
+  featuredImage?: string;
+  imageAlt?: string;
   client: string;
   category: string;
   year: string;
@@ -183,6 +185,8 @@ export const isProject = (value: unknown): value is Project => {
     isStringArray(v.images) &&
     (v.slug === undefined || isString(v.slug)) &&
     (v.summary === undefined || isString(v.summary)) &&
+    (v.featuredImage === undefined || isString(v.featuredImage)) &&
+    (v.imageAlt === undefined || isString(v.imageAlt)) &&
     (v.featured === undefined || typeof v.featured === 'boolean') &&
     (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
     (v.createdAt === undefined || isString(v.createdAt)) &&

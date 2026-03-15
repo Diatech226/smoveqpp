@@ -219,6 +219,8 @@ describe('projectRepository and cmsRepository', () => {
     expect(normalized[0].description).toBe('Résumé hérité');
     expect(normalized[0].challenge).toBeTruthy();
     expect(normalized[0].solution).toBeTruthy();
+    expect(normalized[0].featuredImage).toBe('legacy image');
+    expect(normalized[0].imageAlt).toBe('Legacy Projet');
     expect(projectRepository.getById('legacy-project')?.slug).toBe('legacy-projet');
   });
 

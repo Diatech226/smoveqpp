@@ -415,6 +415,8 @@ class ContentService {
     const status = PROJECT_STATUSES.has(project?.status) ? project.status : 'published';
     const nowIso = new Date().toISOString();
 
+    const featuredImage = asTrimmedString(project?.featuredImage) || asTrimmedString(project?.mainImage) || 'project cover image';
+
     return {
       ...project,
       id: asTrimmedString(project?.id),
@@ -429,8 +431,14 @@ class ContentService {
       solution: asTrimmedString(project?.solution) || 'Solution à compléter.',
       results: Array.isArray(project?.results) ? project.results.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       tags: Array.isArray(project?.tags) ? project.tags.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
-      mainImage: asTrimmedString(project?.mainImage) || 'project cover image',
-      images: Array.isArray(project?.images) ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      mainImage: featuredImage,
+      featuredImage,
+      imageAlt: asTrimmedString(project?.imageAlt) || title || 'Projet SMOVE',
+      images: Array.isArray(project?.images)
+        ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean)
+        : featuredImage
+          ? [featuredImage]
+          : [],
       featured: Boolean(project?.featured),
       status,
       createdAt: project?.createdAt || nowIso,
@@ -467,6 +475,8 @@ class ContentService {
         Array.isArray(project.results) &&
         Array.isArray(project.tags) &&
         typeof project.mainImage === 'string' &&
+        typeof project.featuredImage === 'string' &&
+        typeof project.imageAlt === 'string' &&
         Array.isArray(project.images) &&
         PROJECT_STATUSES.has(project.status)
     );
