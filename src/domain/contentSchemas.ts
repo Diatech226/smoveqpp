@@ -54,6 +54,8 @@ export type MediaFile = MediaAsset;
 export interface Project {
   id: string;
   title: string;
+  slug?: string;
+  summary?: string;
   client: string;
   category: string;
   year: string;
@@ -64,6 +66,14 @@ export interface Project {
   tags: string[];
   mainImage: string;
   images: string[];
+  featured?: boolean;
+  status?: 'draft' | 'published' | 'archived';
+  createdAt?: string;
+  updatedAt?: string;
+  links?: {
+    live?: string;
+    caseStudy?: string;
+  };
   testimonial?: {
     text: string;
     author: string;
@@ -141,6 +151,7 @@ export const isProject = (value: unknown): value is Project => {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
   const testimonial = v.testimonial as Record<string, unknown> | undefined;
+  const links = v.links as Record<string, unknown> | undefined;
 
   return (
     isString(v.id) &&
@@ -155,6 +166,17 @@ export const isProject = (value: unknown): value is Project => {
     isStringArray(v.tags) &&
     isString(v.mainImage) &&
     isStringArray(v.images) &&
+    (v.slug === undefined || isString(v.slug)) &&
+    (v.summary === undefined || isString(v.summary)) &&
+    (v.featured === undefined || typeof v.featured === 'boolean') &&
+    (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
+    (v.createdAt === undefined || isString(v.createdAt)) &&
+    (v.updatedAt === undefined || isString(v.updatedAt)) &&
+    (links === undefined ||
+      (typeof links === 'object' &&
+        links !== null &&
+        (links.live === undefined || isString(links.live)) &&
+        (links.caseStudy === undefined || isString(links.caseStudy)))) &&
     (testimonial === undefined ||
       (typeof testimonial === 'object' &&
         testimonial !== null &&

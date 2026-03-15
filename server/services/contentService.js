@@ -1,5 +1,6 @@
 const BLOG_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
 const MEDIA_TYPES = new Set(['image', 'video', 'document']);
+const PROJECT_STATUSES = new Set(['draft', 'published', 'archived']);
 
 const defaultHomePageContent = {
   heroBadge: 'Agence de communication',
@@ -148,7 +149,11 @@ class ContentService {
   }
 
   listProjects() {
-    return this.readState().projects.filter((project) => this.validateProject(project)).map((project) => this.normalizeProject(project));
+    return this.readState()
+      .projects
+      .map((project) => this.normalizeProject(project))
+      .filter((project) => this.validateProject(project))
+      .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || Number.parseInt(b.year, 10) - Number.parseInt(a.year, 10));
   }
 
   saveProject(project) {
@@ -282,12 +287,19 @@ class ContentService {
   }
 
   normalizeProject(project) {
+    const title = (project?.title || '').trim();
+    const slug = this.normalizeSlug(project?.slug || title || project?.id || '');
+    const status = PROJECT_STATUSES.has(project?.status) ? project.status : 'published';
+    const nowIso = new Date().toISOString();
+
     return {
       ...project,
-      title: (project?.title || '').trim(),
+      title,
+      slug,
+      summary: (project?.summary || '').trim() || undefined,
       client: (project?.client || '').trim(),
       category: (project?.category || '').trim(),
-      year: (project?.year || '').trim(),
+      year: (project?.year || '').trim() || new Date().getFullYear().toString(),
       description: (project?.description || '').trim(),
       challenge: (project?.challenge || '').trim(),
       solution: (project?.solution || '').trim(),
@@ -295,6 +307,16 @@ class ContentService {
       tags: Array.isArray(project?.tags) ? project.tags.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       mainImage: (project?.mainImage || '').trim() || 'project cover image',
       images: Array.isArray(project?.images) ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      featured: Boolean(project?.featured),
+      status,
+      createdAt: project?.createdAt || nowIso,
+      updatedAt: nowIso,
+      links: project?.links && typeof project.links === 'object'
+        ? {
+            live: typeof project.links.live === 'string' ? project.links.live.trim() : undefined,
+            caseStudy: typeof project.links.caseStudy === 'string' ? project.links.caseStudy.trim() : undefined,
+          }
+        : undefined,
     };
   }
 
@@ -304,6 +326,8 @@ class ContentService {
         typeof project.id === 'string' &&
         typeof project.title === 'string' &&
         project.title.length > 0 &&
+        typeof project.slug === 'string' &&
+        project.slug.length > 0 &&
         typeof project.client === 'string' &&
         project.client.length > 0 &&
         typeof project.category === 'string' &&
@@ -318,8 +342,20 @@ class ContentService {
         Array.isArray(project.results) &&
         Array.isArray(project.tags) &&
         typeof project.mainImage === 'string' &&
-        Array.isArray(project.images)
+        Array.isArray(project.images) &&
+        PROJECT_STATUSES.has(project.status)
     );
+  }
+
+
+  normalizeSlug(input) {
+    return `${input || ''}`
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   normalizeMediaFile(file) {

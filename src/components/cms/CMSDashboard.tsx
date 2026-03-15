@@ -85,9 +85,13 @@ interface BlogFormState {
 interface ProjectFormState {
   id?: string;
   title: string;
+  slug: string;
+  summary: string;
   client: string;
   category: string;
   year: string;
+  status: 'draft' | 'published' | 'archived';
+  featured: boolean;
   description: string;
   challenge: string;
   solution: string;
@@ -114,9 +118,13 @@ const EMPTY_BLOG_FORM: BlogFormState = {
 
 const EMPTY_PROJECT_FORM: ProjectFormState = {
   title: '',
+  slug: '',
+  summary: '',
   client: '',
   category: '',
   year: new Date().getFullYear().toString(),
+  status: 'published',
+  featured: false,
   description: '',
   challenge: '',
   solution: '',
@@ -617,9 +625,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setProjectForm({
       id: project.id,
       title: project.title,
+      slug: project.slug || '',
+      summary: project.summary || '',
       client: project.client,
       category: project.category,
       year: project.year,
+      status: project.status ?? 'published',
+      featured: Boolean(project.featured),
       description: project.description,
       challenge: project.challenge,
       solution: project.solution,
@@ -635,6 +647,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     const errors: Partial<Record<keyof ProjectFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
     if (!form.client.trim()) errors.client = 'Le client est requis.';
+    if (form.slug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
+      errors.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
+    }
     if (!form.category.trim()) errors.category = 'La catégorie est requise.';
     if (!form.description.trim()) errors.description = 'La description est requise.';
     if (!form.challenge.trim()) errors.challenge = 'Le challenge est requis.';
@@ -663,9 +678,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     const payload = {
       id: projectForm.id || `project-${Date.now()}`,
       title: projectForm.title.trim(),
+      slug: projectForm.slug.trim() || undefined,
+      summary: projectForm.summary.trim() || undefined,
       client: projectForm.client.trim(),
       category: projectForm.category.trim(),
       year: projectForm.year.trim() || new Date().getFullYear().toString(),
+      status: projectForm.status,
+      featured: projectForm.featured,
       description: projectForm.description.trim(),
       challenge: projectForm.challenge.trim(),
       solution: projectForm.solution.trim(),
@@ -685,9 +704,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       try {
         projectRepository.save(payload);
         setProjects(projectRepository.getAll());
-        setProjectsError('Backend indisponible: modification conservée localement.');
-      } catch {
-        setProjectsError('Enregistrement du projet impossible. Réessayez.');
+        showSuccess(projectEditorMode === 'create' ? 'Projet créé localement (backend indisponible).' : 'Projet mis à jour localement (backend indisponible).');
+      } catch (error) {
+        const message = error instanceof Error && error.message.includes('slug')
+          ? 'Slug déjà utilisé, veuillez en choisir un autre.'
+          : 'Enregistrement du projet impossible. Réessayez.';
+        setProjectsError(message);
       }
     } finally {
       setIsSavingProject(false);
@@ -791,7 +813,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     return (
       <AdminPanel title={title}>
         <div className="space-y-4">
-          {(['title', 'client', 'category', 'year', 'mainImage'] as const).map((fieldKey) => (
+          {(['title', 'slug', 'client', 'category', 'year', 'mainImage'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
               <input
@@ -802,6 +824,34 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               {projectFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors[fieldKey]}</p> : null}
             </label>
           ))}
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Résumé court (optionnel)</span>
+            <textarea
+              value={projectForm.summary}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, summary: event.target.value }))}
+              className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Statut</span>
+            <select
+              value={projectForm.status}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, status: event.target.value as ProjectFormState['status'] }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            >
+              <option value="draft">Brouillon</option>
+              <option value="published">Publié</option>
+              <option value="archived">Archivé</option>
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-2 text-[14px] text-[#6f7f85]">
+            <input
+              type="checkbox"
+              checked={projectForm.featured}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, featured: event.target.checked }))}
+            />
+            Projet mis en avant
+          </label>
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Description</span>
             <textarea
@@ -1124,6 +1174,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] text-[#9ba1a4]">{project.category}</span>
+                      <span className={`text-[12px] px-2 py-1 rounded-full ${project.status === 'published' ? 'bg-green-50 text-green-700' : project.status === 'archived' ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'}`}>
+                        {project.status === 'published' ? 'Publié' : project.status === 'archived' ? 'Archivé' : 'Brouillon'}
+                      </span>
                       <button onClick={() => startEditProject(project)} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2">
                         <Pencil size={15} /> Modifier
                       </button>

@@ -103,7 +103,7 @@ export default function ProjectsSection() {
 
               {/* Description */}
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#38484e] mb-4 line-clamp-3 flex-1">
-                {project.description}
+                {project.summary || project.description}
               </p>
 
               {/* Tags */}

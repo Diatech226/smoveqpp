@@ -116,7 +116,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {project.tags.map((tag, i) => (
+                  {(project.tags.length > 0 ? project.tags : ['Projet digital']).map((tag, i) => (
                     <motion.span
                       key={i}
                       className="bg-[#f5f9fa] text-[#273a41] px-4 py-2 rounded-full font-['Abhaya_Libre:Regular',sans-serif] text-[14px] border-2 border-transparent hover:border-[#ffc247]"
@@ -231,7 +231,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {project.images.map((image, index) => (
+            {(project.images.length > 0 ? project.images : [project.mainImage]).map((image, index) => (
               <motion.div
                 key={index}
                 className="aspect-video rounded-[16px] overflow-hidden shadow-lg cursor-pointer"

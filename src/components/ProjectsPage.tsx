@@ -10,7 +10,7 @@ export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const projects = projectRepository.getAll();
+  const projects = projectRepository.getPublished();
   const projectCategories = projectRepository.getCategories();
 
   const filteredProjects = projects.filter((project) => {
@@ -260,7 +260,7 @@ export default function ProjectsPage() {
                       </h3>
 
                       <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#38484e] mb-4 line-clamp-3 flex-1">
-                        {project.description}
+                        {project.summary || project.description}
                       </p>
 
                       {/* Tags */}

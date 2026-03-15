@@ -163,6 +163,40 @@ describe('projectRepository and cmsRepository', () => {
   });
 
 
+
+  it('normalizes project slug and preserves created date on update', () => {
+    const seed = projectRepository.getAll()[0];
+
+    const created = projectRepository.save({
+      ...seed,
+      id: 'project-slug-normalize',
+      title: 'Projet Démo Accentué',
+      slug: '',
+      createdAt: '2024-01-01T00:00:00.000Z',
+    });
+
+    const updated = projectRepository.save({
+      ...created,
+      title: 'Projet Démo Accentué MAJ',
+      slug: 'projet-demo-accentue-maj',
+    });
+
+    expect(created.slug).toBe('projet-demo-accentue');
+    expect(updated.createdAt).toBe('2024-01-01T00:00:00.000Z');
+  });
+
+  it('filters draft/archived projects from public listing helper', () => {
+    const seed = projectRepository.getAll()[0];
+
+    projectRepository.save({ ...seed, id: 'project-draft-only', status: 'draft', slug: 'project-draft-only' });
+    projectRepository.save({ ...seed, id: 'project-archived-only', status: 'archived', slug: 'project-archived-only' });
+
+    const publishedIds = projectRepository.getPublished().map((project) => project.id);
+
+    expect(publishedIds).not.toContain('project-draft-only');
+    expect(publishedIds).not.toContain('project-archived-only');
+  });
+
   it('supports CMS project save and delete workflows', () => {
     const seed = projectRepository.getAll()[0];
 
