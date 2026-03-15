@@ -1,11 +1,13 @@
 import { UserCircle2, ShieldCheck, BadgeCheck, AlertTriangle, RefreshCcw } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getCmsAppUrl } from '../../config/cmsRuntime';
 import Navigation from '../Navigation';
 
 export default function AccountPage() {
   const { user, canAccessCMS, sessionState, resendVerification, verifyEmail, authNotice, clearAuthNotice } = useAuth();
   const [busy, setBusy] = useState(false);
+  const cmsAppUrl = getCmsAppUrl();
   const [error, setError] = useState<string | null>(null);
 
   const onResend = async () => {
@@ -119,7 +121,7 @@ export default function AccountPage() {
 
             {canAccessCMS && (
               <a
-                href="#cms"
+                href={cmsAppUrl}
                 className="mt-8 inline-flex items-center gap-2 bg-gradient-to-r from-[#a855f7] to-[#9333ea] text-white px-5 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif]"
               >
                 <ShieldCheck size={18} />

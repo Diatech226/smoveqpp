@@ -3,6 +3,7 @@ import { useState } from 'react';
 import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
+import { getCmsAppUrl } from '../config/cmsRuntime';
 
 interface NavigationProps {
   currentPath?: string;
@@ -15,6 +16,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
   const showAuthActions = cmsEnabled && !isAuthenticated;
   const showCMSAction = cmsEnabled && canAccessCMS;
   const showAccountAction = isAuthenticated && !canAccessCMS;
+  const cmsAppUrl = getCmsAppUrl();
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string, sectionId?: string) => {
     e.preventDefault();
@@ -162,7 +164,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
 
                 {showCMSAction && (
                   <motion.a
-                    href="#cms"
+                    href={cmsAppUrl}
                     className="flex items-center gap-2 bg-gradient-to-r from-[#a855f7] to-[#9333ea] text-white px-5 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px] hover:shadow-lg transition-shadow"
                     whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(168, 85, 247, 0.3)' }}
                     whileTap={{ scale: 0.95 }}
@@ -264,7 +266,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                 )}
                 {showCMSAction && (
                   <a
-                    href="#cms"
+                    href={cmsAppUrl}
                     className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-[#a855f7] border-2 border-[#a855f7] font-['Abhaya_Libre:Bold',sans-serif]"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
