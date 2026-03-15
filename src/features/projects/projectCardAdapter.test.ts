@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Project } from '../../domain/contentSchemas';
 import { toProjectCardContract } from './projectCardAdapter';
-import { PROJECT_MEDIA_FALLBACK_QUERY, resolveProjectFeaturedImage } from './projectMedia';
+import { PROJECT_MEDIA_FALLBACK_QUERY, resolveProjectFeaturedImage, toProjectMediaReference } from './projectMedia';
+import { mediaRepository } from '../../repositories/mediaRepository';
 
 const baseProject: Project = {
   id: 'project-1',
@@ -45,4 +46,29 @@ describe('projectCardAdapter', () => {
     expect(media.query).toBe(PROJECT_MEDIA_FALLBACK_QUERY);
     expect(media.alt).toBe('Projet SMOVE');
   });
+
+  it('resolves media references to concrete asset url for public cards', () => {
+    mediaRepository.save({
+      id: 'project-asset-1',
+      name: 'project-cover.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,project123',
+      thumbnailUrl: 'data:image/png;base64,project123',
+      size: 128,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Couverture projet',
+      caption: 'Visuel projet',
+      tags: [],
+    });
+
+    const card = toProjectCardContract({
+      ...baseProject,
+      featuredImage: toProjectMediaReference('project-asset-1'),
+    });
+
+    expect(card.mediaQuery).toBe('data:image/png;base64,project123');
+    expect(card.mediaAlt).toBe('Couverture projet');
+  });
+
 });

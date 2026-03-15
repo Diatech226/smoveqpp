@@ -11,6 +11,7 @@ Last updated: 2026-03-15 (iteration: blog-project model harmonization)
 - Completed Projects CMS editor coherence: create/edit now captures explicit image alt metadata and persists consistent featured media fields required by public cards/details.
 - Added deterministic project card adapter/media resolver so public cards read a stable minimal contract (title/summary/category/client/year/tags/media) with safe fallbacks for legacy records.
 - Aligned backend + frontend project normalization/validation so saved records, repository payloads, and public rendering consume the same image/card model.
+- Completed CMS media input parity for Projects + Blog: both editors now expose in-form image import fields and media-asset selectors that persist canonical `featuredImage`/`mainImage` references used by public cards/details.
 ### Latest iteration progress (Projects + Blog CMS workflow completion)
 - Completed Projects and Blog admin flows with explicit visible submit actions inside forms (validate/save) and role-aware create entry points in section headers.
 - Hardened Blog editor reliability: submit now uses a real form submission path, buttons are typed safely, retries are applied on save, and write attempts are blocked early for unauthorized roles.
