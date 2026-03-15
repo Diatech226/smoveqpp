@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Calendar, User, Tag, Check, Quote, ExternalLink } from 'lucide-react';
 import Navigation from './Navigation';
@@ -10,7 +11,24 @@ interface ProjectDetailPageProps {
 }
 
 export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
-  const project = projectRepository.getById(projectId);
+  const [projectVersion, setProjectVersion] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    import('../utils/publicContentApi').then(({ fetchPublicProjects }) => {
+      void fetchPublicProjects().then((remote) => {
+        if (!active || !remote) return;
+        projectRepository.replaceAll(remote);
+        setProjectVersion((version) => version + 1);
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const project = useMemo(() => projectRepository.getById(projectId), [projectId, projectVersion]);
 
   if (!project) {
     return (

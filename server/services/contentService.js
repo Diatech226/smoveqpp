@@ -244,6 +244,11 @@ class ContentService {
 
     const state = this.readState();
     const projects = this.listProjects();
+    const duplicateSlug = projects.find((entry) => entry.slug === normalized.slug && entry.id !== normalized.id);
+    if (duplicateSlug) {
+      return { ok: false, error: { code: 'PROJECT_SLUG_CONFLICT', message: 'Project slug already exists.' } };
+    }
+
     const index = projects.findIndex((entry) => entry.id === normalized.id);
     if (index >= 0) projects[index] = normalized;
     else projects.push(normalized);

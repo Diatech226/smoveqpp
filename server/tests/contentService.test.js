@@ -107,6 +107,50 @@ describe('ContentService project persistence', () => {
     expect(listed[0].title).toBe('Projet CMS Démo MAJ');
   });
 
+
+  it('rejects duplicate project slugs across different ids', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const first = service.saveProject({
+      id: 'project-1',
+      title: 'Projet Alpha',
+      slug: 'projet-alpha',
+      client: 'Client Alpha',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: [],
+      tags: [],
+      mainImage: 'cover',
+      images: [],
+      status: 'published',
+    });
+
+    expect(first.ok).toBe(true);
+
+    const duplicate = service.saveProject({
+      id: 'project-2',
+      title: 'Projet Beta',
+      slug: 'projet-alpha',
+      client: 'Client Beta',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: [],
+      tags: [],
+      mainImage: 'cover',
+      images: [],
+      status: 'published',
+    });
+
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.error.code).toBe('PROJECT_SLUG_CONFLICT');
+  });
+
   it('rejects invalid project payloads', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 
