@@ -45,6 +45,7 @@ export interface CmsBlogInput {
   content: string;
   author: string;
   category: string;
+  tags?: string;
   featuredImage?: string;
   readTime?: string;
   status: BlogPost['status'];
@@ -151,7 +152,10 @@ export function fromCmsBlogInput(input: CmsBlogInput): BlogPost {
     author: input.author.trim() || 'Équipe SMOVE',
     authorRole: 'CMS Editor',
     category: input.category.trim() || 'Non classé',
-    tags: [],
+    tags: (input.tags || '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean),
     publishedDate: input.publishedDate || new Date().toISOString(),
     readTime: input.readTime?.trim() || '5 min',
     featuredImage: input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,

@@ -29,7 +29,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
     };
   }, []);
 
-  const project = useMemo(() => projectRepository.getById(projectId), [projectId, projectVersion]);
+  const project = useMemo(() => projectRepository.getBySlug(projectId) || projectRepository.getById(projectId), [projectId, projectVersion]);
   const projectMedia = useMemo(() => (project ? resolveProjectFeaturedImage(project) : null), [project]);
 
   if (!project) {

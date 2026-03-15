@@ -39,6 +39,23 @@ describe('blogEntryAdapter', () => {
     expect(result.seo?.canonicalSlug).toBe('nouveau-billet');
   });
 
+
+  it('maps CMS tags string into canonical tag array', () => {
+    const result = fromCmsBlogInput({
+      title: 'Article tags',
+      slug: 'article-tags',
+      excerpt: 'Résumé',
+      content: 'Contenu',
+      author: 'Alice',
+      category: 'News',
+      tags: 'react, cms,  vite ',
+      featuredImage: 'hero image',
+      status: 'draft',
+    });
+
+    expect(result.tags).toEqual(['react', 'cms', 'vite']);
+    expect(result.featuredImage).toBe('hero image');
+  });
   it('resolves media references through repository assets when available', () => {
     mediaRepository.save({
       id: 'asset-1',

@@ -232,3 +232,25 @@ This sequencing minimizes production risk while preserving current product momen
 - Projects and Services are now managed through the CMS and persisted through the backend content API (`/api/v1/content/projects`, `/api/v1/content/services`).
 - Public pages now consume backend public endpoints (`/api/v1/content/public/projects`, `/api/v1/content/public/services`) with repository fallback for resilience.
 - CMS bootstraps legacy static/local content into backend storage when backend collections are empty, preventing duplicates via stable IDs/slugs and upsert behavior.
+
+## Final harmonization snapshot — CMS Blog & Projects as source of truth
+
+### Canonical Blog model (CMS → repository → backend → public)
+- `id`, `title`, `slug`, `excerpt`, `content`, `featuredImage`, `category`, `tags`, `author`, `publishedDate`, `status` are now treated as the stable rendering baseline.
+- CMS Blog editor now captures `tags` and validates `featuredImage` for card integrity.
+- Blog normalization adapter (`BlogEntry → BlogCard`) remains the compatibility boundary used by public rendering and SEO hydration.
+
+### Canonical Project model (CMS → repository → backend → public)
+- `id`, `title`, `slug`, `summary`, `description`, `featuredImage`, `category`, `tags`, `status`, `link` are now harmonized and persisted.
+- CMS Project editor now captures optional `externalLink` and writes both `link` and legacy-compatible `links.live`.
+- Project adapter (`ProjectEntry → ProjectCard`) remains authoritative for card-safe fields (slug/title/summary/media alt/query).
+
+### Synchronization guarantees
+- Public Blog listing is sourced from backend public content endpoint with local canonical fallback.
+- Public Projects listing/detail is sourced from backend public content endpoint with repository normalization fallback.
+- Published filtering is enforced in public endpoints and client contract builders.
+
+### Backward compatibility and fallback behavior
+- Legacy projects with only `mainImage` continue to render via `featuredImage` normalization.
+- Missing summary/excerpt/category fields continue to receive safe canonical fallbacks.
+- Missing media still resolves to safe placeholder queries (`blog article image`, `project cover image`) without UI redesign.

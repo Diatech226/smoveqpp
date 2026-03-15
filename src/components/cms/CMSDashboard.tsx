@@ -79,6 +79,7 @@ interface BlogFormState {
   content: string;
   author: string;
   category: string;
+  tags: string;
   featuredImage: string;
   readTime: string;
   status: BlogPost['status'];
@@ -105,6 +106,7 @@ interface ProjectFormState {
   tags: string;
   mainImage: string;
   imageAlt: string;
+  externalLink: string;
 }
 
 interface ServiceFormState {
@@ -129,6 +131,7 @@ const EMPTY_BLOG_FORM: BlogFormState = {
   content: '',
   author: '',
   category: '',
+  tags: '',
   featuredImage: '',
   readTime: '5 min',
   status: 'draft',
@@ -166,6 +169,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   tags: '',
   mainImage: '',
   imageAlt: '',
+  externalLink: '',
 };
 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
@@ -431,7 +435,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         return 'Publication non autorisée pour votre rôle.';
       }
       if (error.message.includes('Missing required publish fields')) {
-        return 'Article non publiable: renseignez titre, slug, extrait et contenu.';
+        return 'Article non publiable: renseignez titre, slug, extrait, image vedette et contenu.';
       }
       if (error.message.trim()) {
         return error.message;
@@ -456,6 +460,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       content: post.content,
       author: post.author,
       category: post.category,
+      tags: post.tags.join(', '),
       featuredImage: post.featuredImage,
       readTime: post.readTime,
       status: post.status,
@@ -476,6 +481,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (!normalizeSlug(form.slug, form.title)) errors.slug = 'Le slug est requis.';
     if (!form.author.trim()) errors.author = 'L’auteur est requis.';
     if (!form.category.trim()) errors.category = 'La catégorie est requise.';
+    if (!form.featuredImage.trim()) errors.featuredImage = 'L’image vedette est requise pour les cartes.';
     if (form.seoDescription && form.seoDescription.trim().length > 320) {
       errors.seoDescription = 'La description SEO doit rester concise (320 caractères max).';
     }
@@ -556,6 +562,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       content: existing.content,
       author: existing.author,
       category: existing.category,
+      tags: existing.tags.join(', '),
       featuredImage: existing.featuredImage,
       readTime: existing.readTime,
       status: existing.status,
@@ -730,6 +737,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       tags: project.tags.join(', '),
       mainImage: project.featuredImage || project.mainImage,
       imageAlt: project.imageAlt || project.title,
+      externalLink: project.link || project.links?.live || '',
     });
     setProjectFormErrors({});
     setProjectsError('');
@@ -746,6 +754,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (form.year.trim() && !/^\d{4}$/.test(form.year.trim())) {
       errors.year = 'L’année doit être sur 4 chiffres (ex: 2026).';
     }
+    if (!form.summary.trim()) errors.summary = 'Le résumé est requis pour la carte projet.';
     if (!form.description.trim()) errors.description = 'La description est requise.';
     if (!form.mainImage.trim()) errors.mainImage = 'L’image de couverture est requise pour les cartes.';
     if (!form.challenge.trim()) errors.challenge = 'Le challenge est requis.';
@@ -831,6 +840,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       featuredImage: projectForm.mainImage.trim() || 'project cover image',
       imageAlt: projectForm.imageAlt.trim() || projectForm.title.trim(),
       images: projectForm.mainImage.trim() ? [projectForm.mainImage.trim()] : [],
+      link: projectForm.externalLink.trim() || undefined,
+      links: projectForm.externalLink.trim() ? { live: projectForm.externalLink.trim() } : undefined,
     };
 
     try {
@@ -1142,6 +1153,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               onChange={(event) => setProjectForm((prev) => ({ ...prev, summary: event.target.value }))}
               className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             />
+            {projectFormErrors.summary ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.summary}</p> : null}
           </label>
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Statut</span>
@@ -1327,7 +1339,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             void saveBlogPost();
           }}
         >
-          {(['title', 'slug', 'author', 'category', 'readTime'] as const).map((fieldKey) => (
+          {(['title', 'slug', 'author', 'category', 'tags', 'readTime'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
               <input
@@ -1401,6 +1413,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               onChange={(event) => setBlogForm((prev) => ({ ...prev, featuredImage: event.target.value }))}
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             />
+            {blogFormErrors.featuredImage ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.featuredImage}</p> : null}
             {isMediaReference(blogForm.featuredImage) ? (
               <p className="text-[12px] text-[#6f7f85] mt-1">Référence média liée: {blogForm.featuredImage}</p>
             ) : null}

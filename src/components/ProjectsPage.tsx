@@ -209,7 +209,7 @@ export default function ProjectsPage() {
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ delay: index * 0.1, duration: 0.6 }}
                   onClick={() => {
-                    window.location.hash = `project-${project.id}`;
+                    window.location.hash = `project-${card.slug}`;
                   }}
                 >
                   <motion.div
