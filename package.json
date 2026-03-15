@@ -60,7 +60,7 @@
   },
   "scripts": {
     "dev": "node scripts/dev.js",
-    "build": "vite build",
+    "build": "npm run build:public && npm run build:cms",
     "test:security": "vitest run src/utils/securityPolicy.test.ts",
     "dev:server": "node server/index.js",
     "test:auth": "vitest run src/utils/securityPolicy.test.ts server/tests/*.test.js",
@@ -78,6 +78,11 @@
     "start": "node server/index.js",
     "ops:backup": "node scripts/backup-content.js",
     "ops:restore": "node scripts/restore-content.js",
-    "ops:verify-integrity": "node scripts/verify-content-integrity.js"
+    "ops:verify-integrity": "node scripts/verify-content-integrity.js",
+    "dev:cms": "npm --prefix cms run dev",
+    "build:public": "vite build",
+    "build:cms": "npm --prefix cms run build",
+    "preview:cms": "npm --prefix cms run preview",
+    "dev:all": "node scripts/dev-all.js"
   }
 }

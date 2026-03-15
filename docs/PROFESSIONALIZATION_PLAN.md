@@ -8,6 +8,11 @@
 
 ---
 
+## Monorepo app boundary hardening
+- CMS extracted into a standalone root-level frontend app (`/cms`) with independent entrypoint and scripts, while keeping backend/auth contracts shared.
+
+---
+
 ## Current status
 The app has moved from “single-file prototype” toward a structured baseline:
 - Front routing and guards are now extracted into `app-routing` + app-shell renderer modules.

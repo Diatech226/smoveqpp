@@ -22,7 +22,8 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 
 ### CMS/admin workspace
 - CMS access is restricted to `admin` role only.
-- CMS has a dedicated app-like shell under `#cms` (with section hashes like `#cms/blog`) to separate admin workflows from the public browsing flow.
+- CMS now runs as a standalone root-level app in `/cms` with its own `package.json`, Vite entrypoint, and app shell.
+- Public site exposes an admin-only CMS entry action that opens the standalone CMS app.
 - Sections in dashboard: overview, projects, blog, media, page content, users, settings.
 - Role-aware editorial actions (e.g., publish restrictions for author role).
 - Admin user management and auth audit-event visibility.
@@ -72,17 +73,25 @@ npm install
 cp .env.example .env.local
 ```
 
-### 3) Run app (frontend + backend)
+### 3) Run public app + backend
 ```bash
 npm run dev
 ```
-- Frontend: `http://localhost:5173`
+- Public app: `http://localhost:5173`
 - Backend API: `http://localhost:3001`
+
+### 4) Run CMS app (standalone)
+```bash
+npm --prefix cms install
+npm run dev:cms
+```
+- CMS app: `http://localhost:5174/#cms`
 
 ### Alternative run commands
 ```bash
 npm run dev:client
 npm run dev:server
+npm run dev:all
 ```
 
 ## Auth behavior locally
@@ -114,6 +123,9 @@ npm run dev:server
 - `VITE_REQUEST_TIMEOUT_MS`
 - `VITE_ENABLE_CMS`
 - `VITE_ENABLE_REGISTRATION`
+- `VITE_CMS_APP_URL` (public app admin button target)
+- `VITE_CMS_PORT` (CMS app dev server port)
+- `VITE_PUBLIC_APP_URL` (CMS “retour site” link)
 
 ### Backend core
 - `API_PORT`
@@ -189,6 +201,7 @@ npm run typecheck
 npm run test
 # optional (after adding @playwright/test in your environment): npx playwright test tests/e2e/critical-flows.spec.ts
 npm run build
+# builds public + standalone CMS
 npm run ops:backup
 npm run ops:verify-integrity
 # restore from a backup folder

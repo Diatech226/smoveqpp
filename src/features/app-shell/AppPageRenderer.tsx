@@ -10,8 +10,6 @@ import ProjectDetailPage from '../../components/ProjectDetailPage';
 import LoginPage from '../../components/auth/LoginPage';
 import RegisterPage from '../../components/auth/RegisterPage';
 import AccountPage from '../../components/auth/AccountPage';
-import CMSDashboard from '../../components/cms/CMSDashboard';
-import CMSAppShell from '../../components/cms/CMSAppShell';
 import APropos from '../../imports/APropos';
 import HomePageContent from '../marketing/home/HomePageContent';
 import type { ResolvedPage } from '../../app-routing/navigationTypes';
@@ -19,18 +17,15 @@ import SecurityStatePage from './SecurityStatePage';
 import SectionErrorBoundary from './SectionErrorBoundary';
 import PublicSiteShell from './PublicSiteShell';
 import { AppLoadingState } from './AppStatusState';
+import { getCmsAppUrl } from '../../config/cmsRuntime';
 
 interface AppPageRendererProps {
   currentPage: ResolvedPage;
-  cmsSection: string;
-  onCmsSectionChange: (section: string) => void;
   cmsEnabled: boolean;
 }
 
 export default function AppPageRenderer({
   currentPage,
-  cmsSection,
-  onCmsSectionChange,
   cmsEnabled
 }: AppPageRendererProps) {
   if (currentPage === 'auth-loading') {
@@ -78,13 +73,15 @@ export default function AppPageRenderer({
 
   if (currentPage === 'cms-dashboard') {
     return (
-      <CMSAppShell>
-        <SectionErrorBoundary scope="cms-dashboard">
-          <CMSDashboard currentSection={cmsSection} onSectionChange={onCmsSectionChange} />
-        </SectionErrorBoundary>
-      </CMSAppShell>
+      <SecurityStatePage
+        title="CMS séparé"
+        description="Le CMS est désormais disponible dans une application dédiée."
+        actionHref={getCmsAppUrl()}
+        actionLabel="Ouvrir le CMS"
+      />
     );
   }
+
 
   if (currentPage === 'cms-unavailable') {
     return (
