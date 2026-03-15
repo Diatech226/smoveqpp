@@ -37,6 +37,7 @@ function parseBoolean(value, fallback = false) {
 
 const API_PORT = parseIntOrDefault(process.env.API_PORT, 3001);
 const FRONTEND_PORT = parseIntOrDefault(process.env.CLIENT_PORT ?? process.env.VITE_PORT, 5173);
+const CMS_PORT = parseIntOrDefault(process.env.VITE_CMS_PORT, 5174);
 const SESSION_SECRET = process.env.SESSION_SECRET ?? 'dev-session-secret-change-me';
 
 const AUTH_STORAGE_MODE = ['auto', 'mongo', 'memory'].includes(process.env.AUTH_STORAGE_MODE)
@@ -93,12 +94,46 @@ function validateCriticalEnv() {
 const GOOGLE_CALLBACK_PATH = process.env.GOOGLE_CALLBACK_PATH ?? '/api/v1/auth/oauth/google/callback';
 const FACEBOOK_CALLBACK_PATH = process.env.FACEBOOK_CALLBACK_PATH ?? '/api/v1/auth/oauth/facebook/callback';
 
+function normalizeOrigin(origin) {
+  if (!origin || typeof origin !== 'string') return null;
+  try {
+    const parsed = new URL(origin.trim());
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function buildFrontendOrigins() {
+  const configuredPrimary = process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`;
+  const configuredList = [
+    configuredPrimary,
+    process.env.CMS_ORIGIN,
+    process.env.CMS_FRONTEND_ORIGIN,
+    ...(process.env.FRONTEND_ORIGINS ?? '').split(',').map((entry) => entry.trim()),
+  ];
+
+  if (!isProduction) {
+    configuredList.push(
+      `http://localhost:${FRONTEND_PORT}`,
+      `http://127.0.0.1:${FRONTEND_PORT}`,
+      `http://localhost:${CMS_PORT}`,
+      `http://127.0.0.1:${CMS_PORT}`,
+    );
+  }
+
+  return Array.from(new Set(configuredList.map(normalizeOrigin).filter(Boolean)));
+}
+
+const FRONTEND_ORIGINS = buildFrontendOrigins();
+
 module.exports = {
   isProduction,
   API_PORT,
   AUTH_STORAGE_MODE,
   SESSION_STORE_MODE,
-  FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
+  FRONTEND_ORIGIN: FRONTEND_ORIGINS[0] ?? `http://localhost:${FRONTEND_PORT}`,
+  FRONTEND_ORIGINS,
   API_ORIGIN: process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`,
   SESSION_SECRET,
   MONGO_URI: process.env.MONGO_URI ?? '',

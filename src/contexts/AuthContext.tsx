@@ -223,13 +223,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [cmsEnabled]);
 
+  const refreshSession = async (token?: string | null): Promise<AuthResult> => {
+    const session = await fetchServerSession(token);
+    setCsrfToken(session.csrfToken);
+    setUser(resolveTrustedSessionUser(session.user));
+    setSessionState(resolveSessionState(session));
+    setAuthError(resolveAuthActionError(session));
+    return session;
+  };
+
   const login = async (email: string, password: string): Promise<AuthActionResult> => {
     if (!cmsEnabled) {
       setAuthError('Le CMS est désactivé.');
       return { success: false, error: 'Le CMS est désactivé.', destination: null };
     }
 
-    const result = await loginWithApi(email, password, csrfToken);
+    let resolvedCsrfToken = csrfToken;
+    if (!resolvedCsrfToken) {
+      const session = await refreshSession();
+      resolvedCsrfToken = session.csrfToken;
+    }
+
+    let result = await loginWithApi(email, password, resolvedCsrfToken);
+    if (result.errorCode === 'INVALID_CSRF') {
+      const session = await refreshSession();
+      result = await loginWithApi(email, password, session.csrfToken);
+    }
+
     setCsrfToken(result.csrfToken);
     setSessionState(resolveSessionState(result));
     const trustedUser = resolveTrustedSessionUser(result.user);
