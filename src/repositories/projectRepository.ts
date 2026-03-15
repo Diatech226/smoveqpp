@@ -20,25 +20,29 @@ const toIsoOrNow = (value?: string): string => {
   return new Date(date).toISOString();
 };
 
-const normalizeProject = (project: Project): Project => {
-  const title = project.title.trim();
+const asTrimmedString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+const normalizeProject = (project: Partial<Project> & { id: string }): Project => {
+  const title = asTrimmedString(project.title);
   const now = new Date().toISOString();
-  const slug = toSlug(project.slug?.trim() || title || project.id);
-  const summary = (project.summary || '').trim();
+  const slug = toSlug(asTrimmedString(project.slug) || title || project.id);
+  const summary = asTrimmedString(project.summary);
+  const description = asTrimmedString(project.description) || summary || 'Description à compléter.';
 
   return {
     ...project,
+    id: asTrimmedString(project.id),
     title,
-    client: project.client.trim(),
-    category: project.category.trim(),
-    year: project.year.trim() || new Date().getFullYear().toString(),
-    description: project.description.trim(),
-    challenge: project.challenge.trim(),
-    solution: project.solution.trim(),
-    results: project.results.map((entry) => entry.trim()).filter(Boolean),
-    tags: project.tags.map((entry) => entry.trim()).filter(Boolean),
-    mainImage: project.mainImage.trim() || 'project cover image',
-    images: project.images.map((entry) => entry.trim()).filter(Boolean),
+    client: asTrimmedString(project.client),
+    category: asTrimmedString(project.category),
+    year: asTrimmedString(project.year) || new Date().getFullYear().toString(),
+    description,
+    challenge: asTrimmedString(project.challenge) || 'Challenge à compléter.',
+    solution: asTrimmedString(project.solution) || 'Solution à compléter.',
+    results: Array.isArray(project.results) ? project.results.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
+    tags: Array.isArray(project.tags) ? project.tags.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
+    mainImage: asTrimmedString(project.mainImage) || 'project cover image',
+    images: Array.isArray(project.images) ? project.images.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
     slug,
     summary: summary || undefined,
     featured: Boolean(project.featured),
@@ -47,10 +51,21 @@ const normalizeProject = (project: Project): Project => {
     updatedAt: now,
     links: project.links
       ? {
-          live: project.links.live?.trim() || undefined,
-          caseStudy: project.links.caseStudy?.trim() || undefined,
+          live: asTrimmedString(project.links.live) || undefined,
+          caseStudy: asTrimmedString(project.links.caseStudy) || undefined,
         }
       : undefined,
+    testimonial:
+      project.testimonial &&
+      asTrimmedString(project.testimonial.text) &&
+      asTrimmedString(project.testimonial.author) &&
+      asTrimmedString(project.testimonial.position)
+        ? {
+            text: asTrimmedString(project.testimonial.text),
+            author: asTrimmedString(project.testimonial.author),
+            position: asTrimmedString(project.testimonial.position),
+          }
+        : undefined,
   };
 };
 
@@ -75,6 +90,7 @@ export interface ProjectRepository {
   getBySlug(slug: string): Project | undefined;
   getByCategory(category: string): Project[];
   getFeatured(count?: number): Project[];
+  replaceAll(projects: Project[]): Project[];
   save(project: Project): Project;
   delete(id: string): void;
 }
@@ -128,6 +144,12 @@ class LocalProjectRepository implements ProjectRepository {
 
   getFeatured(count: number = 3): Project[] {
     return this.getPublished().slice(0, count);
+  }
+
+  replaceAll(projects: Project[]): Project[] {
+    const normalized = this.validateProjects(projects);
+    writeToStorage(PROJECT_STORAGE_KEY, normalized);
+    return normalized;
   }
 
   save(project: Project): Project {

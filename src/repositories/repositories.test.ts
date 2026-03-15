@@ -4,7 +4,7 @@ import { mediaRepository } from './mediaRepository';
 import { projectRepository } from './projectRepository';
 import { cmsRepository } from './cmsRepository';
 import { pageContentRepository } from './pageContentRepository';
-import type { BlogPost, MediaFile } from '../domain/contentSchemas';
+import type { BlogPost, MediaFile, Project } from '../domain/contentSchemas';
 import { toMediaReference } from '../features/blog/mediaReference';
 
 class MemoryStorage {
@@ -195,6 +195,30 @@ describe('projectRepository and cmsRepository', () => {
 
     expect(publishedIds).not.toContain('project-draft-only');
     expect(publishedIds).not.toContain('project-archived-only');
+  });
+
+
+  it('normalizes legacy partial project payloads when replacing from backend', () => {
+    const legacy: Partial<Project> & { id: string; title: string; client: string; category: string; year: string } = {
+      id: 'legacy-project',
+      title: 'Legacy Projet',
+      client: 'Client Legacy',
+      category: 'Legacy',
+      year: '2022',
+      summary: 'Résumé hérité',
+      mainImage: 'legacy image',
+      results: [],
+      tags: [],
+      images: [],
+      status: 'published' as const,
+    };
+
+    const normalized = projectRepository.replaceAll([legacy as Project]);
+
+    expect(normalized[0].description).toBe('Résumé hérité');
+    expect(normalized[0].challenge).toBeTruthy();
+    expect(normalized[0].solution).toBeTruthy();
+    expect(projectRepository.getById('legacy-project')?.slug).toBe('legacy-projet');
   });
 
   it('supports CMS project save and delete workflows', () => {
