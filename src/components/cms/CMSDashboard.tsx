@@ -54,6 +54,7 @@ import {
 } from '../../utils/contentApi';
 import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
 import { isMediaReference, resolveBlogMediaReference, toMediaReference } from '../../features/blog/mediaReference';
+import { isProjectMediaReference, toProjectMediaReference } from '../../features/projects/projectMedia';
 import type { BlogPost, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -163,7 +164,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   solution: '',
   results: '',
   tags: '',
-  mainImage: 'project cover image',
+  mainImage: '',
   imageAlt: '',
 };
 
@@ -902,7 +903,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     const errors: Partial<Record<keyof ServiceFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
     if (!form.description.trim()) errors.description = 'La description est requise.';
-    if (!form.mainImage.trim()) errors.mainImage = 'L’image de couverture est requise pour les cartes.';
     if (!form.icon.trim()) errors.icon = 'L’icône est requise.';
     if (!form.color.trim()) errors.color = 'La couleur est requise.';
     if (!form.features.trim()) errors.features = 'Ajoutez au moins une fonctionnalité.';
@@ -1068,7 +1068,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             void saveProject();
           }}
         >
-          {(['title', 'slug', 'client', 'category', 'year', 'mainImage', 'imageAlt'] as const).map((fieldKey) => (
+          {(['title', 'slug', 'client', 'category', 'year'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
               <input
@@ -1079,6 +1079,62 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               {projectFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors[fieldKey]}</p> : null}
             </label>
           ))}
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Image de couverture (URL ou media:asset-id)</span>
+            <input
+              value={projectForm.mainImage}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, mainImage: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              placeholder="https://... ou media:asset-id"
+            />
+            {projectFormErrors.mainImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.mainImage}</p> : null}
+            {isProjectMediaReference(projectForm.mainImage) ? (
+              <p className="text-[12px] text-[#6f7f85] mt-1">Référence média liée: {projectForm.mainImage}</p>
+            ) : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Texte alternatif image</span>
+            <input
+              value={projectForm.imageAlt}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, imageAlt: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+          {mediaFiles.length > 0 ? (
+            <div className="rounded-[10px] bg-[#f5f9fa] p-3">
+              <p className="text-[13px] text-[#6f7f85] mb-2">Associer un média existant</p>
+              <div className="flex flex-wrap gap-2">
+                {mediaFiles.slice(0, 6).map((file) => (
+                  <button
+                    type="button"
+                    key={file.id}
+                    onClick={() =>
+                      setProjectForm((prev) => ({
+                        ...prev,
+                        mainImage: toProjectMediaReference(file.id),
+                        imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name,
+                      }))
+                    }
+                    className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]"
+                  >
+                    {file.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <label className="block">
+            <span className="text-[13px] text-[#6f7f85]">Importer une image projet</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                void handleMediaUpload(event);
+              }}
+              className="mt-1 w-full rounded-[10px] border border-dashed border-[#d8e4e8] px-3 py-2 text-[13px]"
+            />
+          </label>
+
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Résumé court (optionnel)</span>
             <textarea
@@ -1176,7 +1232,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           className="space-y-4"
           onSubmit={(event) => {
             event.preventDefault();
-            void saveBlogPost();
+            void saveService();
           }}
         >
           {(['title', 'slug', 'icon', 'color'] as const).map((fieldKey) => (
@@ -1372,6 +1428,19 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               </div>
             </div>
           ) : null}
+          <label className="block">
+            <span className="text-[13px] text-[#6f7f85]">Importer une image d’article</span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                void handleMediaUpload(event);
+              }}
+              className="mt-1 w-full rounded-[10px] border border-dashed border-[#d8e4e8] px-3 py-2 text-[13px]"
+            />
+            <p className="text-[12px] text-[#6f7f85] mt-1">Après upload, sélectionnez le média ci-dessus pour le lier à l’article.</p>
+          </label>
+
           {blogForm.featuredImage ? (
             <div className="rounded-[10px] border border-[#eef3f5] px-3 py-2 text-[12px] text-[#6f7f85]">
               Aperçu média: {resolveBlogMediaReference(blogForm.featuredImage, blogForm.title || 'Article').caption}
