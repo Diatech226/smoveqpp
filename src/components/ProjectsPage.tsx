@@ -6,6 +6,7 @@ import Footer from './Footer';
 import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { fetchPublicProjects } from '../utils/publicContentApi';
+import { toProjectCardContract } from '../features/projects/projectCardAdapter';
 
 export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
@@ -197,9 +198,11 @@ export default function ProjectsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {filteredProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredProjects.map((project, index) => (
+              {filteredProjects.map((project, index) => {
+                const card = toProjectCardContract(project);
+                return (
                 <motion.article
-                  key={project.id}
+                  key={card.id}
                   className="group cursor-pointer"
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -225,8 +228,8 @@ export default function ProjectsPage() {
                       >
                         <ImageWithFallback
                           src=""
-                          alt={project.title}
-                          query={project.mainImage}
+                          alt={card.mediaAlt}
+                          query={card.mediaQuery}
                           className="w-full h-full object-cover"
                         />
                       </motion.div>
@@ -248,12 +251,12 @@ export default function ProjectsPage() {
                       {/* Badges */}
                       <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full">
                         <span className="font-['Abhaya_Libre:Bold',sans-serif] text-[12px] text-[#ffc247]">
-                          {project.category}
+                          {card.category}
                         </span>
                       </div>
                       <div className="absolute top-4 left-4 bg-[#34c759] px-3 py-1 rounded-full">
                         <span className="font-['Abhaya_Libre:Bold',sans-serif] text-[12px] text-white">
-                          {project.year}
+                          {card.year}
                         </span>
                       </div>
                     </div>
@@ -263,21 +266,21 @@ export default function ProjectsPage() {
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-2 h-2 rounded-full bg-[#ffc247]" />
                         <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
-                          {project.client}
+                          {card.client}
                         </span>
                       </div>
 
                       <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[24px] text-[#273a41] mb-3 line-clamp-2 group-hover:text-[#ffc247] transition-colors">
-                        {project.title}
+                        {card.title}
                       </h3>
 
                       <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#38484e] mb-4 line-clamp-3 flex-1">
-                        {project.summary || project.description}
+                        {card.summary}
                       </p>
 
                       {/* Tags */}
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {project.tags.slice(0, 3).map((tag, i) => (
+                        {card.tags.slice(0, 3).map((tag, i) => (
                           <span
                             key={i}
                             className="bg-[#f5f9fa] text-[#38484e] px-2 py-1 rounded font-['Abhaya_Libre:Regular',sans-serif] text-[12px]"
@@ -285,9 +288,9 @@ export default function ProjectsPage() {
                             {tag}
                           </span>
                         ))}
-                        {project.tags.length > 3 && (
+                        {card.tags.length > 3 && (
                           <span className="bg-[#f5f9fa] text-[#9ba1a4] px-2 py-1 rounded font-['Abhaya_Libre:Regular',sans-serif] text-[12px]">
-                            +{project.tags.length - 3}
+                            +{card.tags.length - 3}
                           </span>
                         )}
                       </div>
@@ -303,7 +306,8 @@ export default function ProjectsPage() {
                     </div>
                   </motion.div>
                 </motion.article>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <motion.div

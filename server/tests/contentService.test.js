@@ -98,6 +98,8 @@ describe('ContentService project persistence', () => {
 
     expect(created.ok).toBe(true);
     expect(created.project.slug).toBe('projet-cms-demo');
+    expect(created.project.featuredImage).toBe('image projet');
+    expect(created.project.imageAlt).toBe('Projet CMS Démo');
 
     const updated = service.saveProject({ ...created.project, title: 'Projet CMS Démo MAJ' });
     expect(updated.ok).toBe(true);

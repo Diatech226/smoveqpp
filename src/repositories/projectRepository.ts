@@ -1,6 +1,7 @@
 import { isProjectArray, type Project } from '../domain/contentSchemas';
 import { projectCategories, projects as staticProjects } from '../data/projects';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
+import { PROJECT_MEDIA_FALLBACK_QUERY } from '../features/projects/projectMedia';
 
 const PROJECT_STORAGE_KEY = 'smove_projects';
 
@@ -28,6 +29,7 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
   const slug = toSlug(asTrimmedString(project.slug) || title || project.id);
   const summary = asTrimmedString(project.summary);
   const description = asTrimmedString(project.description) || summary || 'Description à compléter.';
+  const featuredImage = asTrimmedString(project.featuredImage) || asTrimmedString(project.mainImage) || PROJECT_MEDIA_FALLBACK_QUERY;
 
   return {
     ...project,
@@ -41,8 +43,14 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
     solution: asTrimmedString(project.solution) || 'Solution à compléter.',
     results: Array.isArray(project.results) ? project.results.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
     tags: Array.isArray(project.tags) ? project.tags.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
-    mainImage: asTrimmedString(project.mainImage) || 'project cover image',
-    images: Array.isArray(project.images) ? project.images.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
+    mainImage: featuredImage,
+    featuredImage,
+    imageAlt: asTrimmedString(project.imageAlt) || title || 'Projet SMOVE',
+    images: Array.isArray(project.images)
+      ? project.images.map((entry) => asTrimmedString(entry)).filter(Boolean)
+      : featuredImage
+        ? [featuredImage]
+        : [],
     slug,
     summary: summary || undefined,
     featured: Boolean(project.featured),

@@ -1,11 +1,16 @@
 # Production Readiness Plan (Current-State Based)
 
-Last updated: 2026-03-14 (iteration: operational durability hardening)
+Last updated: 2026-03-15 (iteration: blog-project model harmonization)
 
 ## Current status
 
 
 ### Latest iteration progress (P4 operational durability hardening)
+### Latest iteration progress (Blog + Projects model harmonization)
+- Harmonized Blog/Projects CMS-to-public content contracts around explicit card-safe media fields, with Projects now supporting a first-class `featuredImage` + `imageAlt` contract while preserving legacy `mainImage` compatibility.
+- Completed Projects CMS editor coherence: create/edit now captures explicit image alt metadata and persists consistent featured media fields required by public cards/details.
+- Added deterministic project card adapter/media resolver so public cards read a stable minimal contract (title/summary/category/client/year/tags/media) with safe fallbacks for legacy records.
+- Aligned backend + frontend project normalization/validation so saved records, repository payloads, and public rendering consume the same image/card model.
 ### Latest iteration progress (Projects + Blog CMS workflow completion)
 - Completed Projects and Blog admin flows with explicit visible submit actions inside forms (validate/save) and role-aware create entry points in section headers.
 - Hardened Blog editor reliability: submit now uses a real form submission path, buttons are typed safely, retries are applied on save, and write attempts are blocked early for unauthorized roles.
