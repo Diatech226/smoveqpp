@@ -118,6 +118,8 @@ interface ServiceFormState {
   featured: boolean;
 }
 
+const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 const EMPTY_BLOG_FORM: BlogFormState = {
   title: '',
   slug: '',
@@ -563,6 +565,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   }, [blogEditorMode, blogForm, posts]);
 
   const saveBlogPost = async (nextStatus?: BlogPost['status']) => {
+    if (!canEditContent) {
+      setPostsError('Création/mise à jour non autorisée pour votre rôle.');
+      return;
+    }
+
     const formToSave: BlogFormState = nextStatus ? { ...blogForm, status: nextStatus } : blogForm;
     if (nextStatus) {
       setBlogForm(formToSave);
@@ -581,7 +588,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     try {
       const payload = fromCmsBlogInput(formToSave);
-      const saved = await saveBackendBlogPost(payload);
+      const saved = await requestWithRetry(() => saveBackendBlogPost(payload), { retries: 1, retryDelayMs: 250 });
       blogRepository.save(saved);
       setPosts((prev) => {
         const index = prev.findIndex((entry) => entry.id === saved.id);
@@ -744,6 +751,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const mapProjectSaveError = (error: unknown) => {
     if (error instanceof ContentApiError) {
       if (error.status === 403) return 'Création/mise à jour non autorisée pour votre rôle.';
+      if (error.code === 'PROJECT_SLUG_CONFLICT') return 'Ce slug projet existe déjà. Choisissez un slug unique.';
       if (error.code === 'PROJECT_VALIDATION_ERROR') return 'Le projet ne respecte pas le format attendu par le backend.';
       return `Sauvegarde impossible (${error.message}).`;
     }
@@ -791,10 +799,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setIsSavingProject(true);
     setProjectsError('');
 
+    const normalizedSlug = normalizeSlug(projectForm.slug, projectForm.title);
+    if (!PROJECT_SLUG_PATTERN.test(normalizedSlug)) {
+      setProjectFormErrors((prev) => ({ ...prev, slug: 'Le slug généré est invalide. Modifiez le titre ou le slug.' }));
+      setProjectsError('Slug invalide. Corrigez le titre ou le slug puis réessayez.');
+      setIsSavingProject(false);
+      return;
+    }
+
     const payload = {
       id: projectForm.id || `project-${Date.now()}`,
       title: projectForm.title.trim(),
-      slug: normalizeSlug(projectForm.slug, projectForm.title),
+      slug: normalizedSlug,
       summary: projectForm.summary.trim() || undefined,
       client: projectForm.client.trim(),
       category: projectForm.category.trim(),
@@ -1149,7 +1165,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     return (
       <AdminPanel title={title}>
-        <div className="space-y-4">
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveBlogPost();
+          }}
+        >
           {(['title', 'slug', 'icon', 'color'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
@@ -1225,7 +1247,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               Annuler
             </button>
           </AdminActionBar>
-        </div>
+        </form>
       </AdminPanel>
     );
   };
@@ -1235,7 +1257,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     return (
       <AdminPanel title={title}>
-        <div className="space-y-4">
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveBlogPost();
+          }}
+        >
           {(['title', 'slug', 'author', 'category', 'readTime'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
@@ -1320,6 +1348,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               <div className="flex flex-wrap gap-2">
                 {mediaFiles.slice(0, 6).map((file) => (
                   <button
+                    type="button"
                     key={file.id}
                     onClick={() =>
                       setBlogForm((prev) => ({
@@ -1343,15 +1372,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           ) : null}
           <AdminActionBar>
             <button
-              onClick={saveBlogPost}
+              type="submit"
               disabled={isSavingPost}
               className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
             >
-              <Save size={16} /> {isSavingPost ? 'Enregistrement...' : 'Enregistrer'}
+              <Save size={16} /> {isSavingPost ? 'Enregistrement...' : blogEditorMode === 'create' ? 'Valider et créer l’article' : 'Valider et enregistrer'}
             </button>
             <button
+              type="button"
               onClick={() => {
-                saveBlogPost('draft');
+                void saveBlogPost('draft');
               }}
               disabled={isSavingPost}
               className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41] disabled:opacity-60"
@@ -1359,15 +1389,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               Enregistrer en brouillon
             </button>
             <button
+              type="button"
               onClick={() => {
-                saveBlogPost('in_review');
+                void saveBlogPost('in_review');
               }}
               disabled={isSavingPost || !canEditContent}
               className="px-4 py-2 rounded-[10px] bg-[#00b3e8] text-white disabled:opacity-60"
             >
               Soumettre en revue
             </button>
-            <button onClick={resetBlogEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
+            <button type="button" onClick={resetBlogEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
               Annuler
             </button>
           </AdminActionBar>
@@ -1377,7 +1408,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {blogHasUnsavedChanges ? (
             <p className="text-[12px] text-amber-700">Modifications non enregistrées en cours.</p>
           ) : null}
-        </div>
+        </form>
       </AdminPanel>
     );
   };
@@ -1472,7 +1503,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 disabled={!canEditContent}
                 className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif] disabled:opacity-60"
               >
-                Create Project
+                Nouveau projet
               </button>
             }
           />
@@ -1592,7 +1623,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             actions={
               <button
                 onClick={startCreatePost}
-                className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif]"
+                disabled={!canEditContent}
+                className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif] disabled:opacity-60"
               >
                 Nouvel article
               </button>

@@ -6,6 +6,12 @@ Last updated: 2026-03-14 (iteration: operational durability hardening)
 
 
 ### Latest iteration progress (P4 operational durability hardening)
+### Latest iteration progress (Projects + Blog CMS workflow completion)
+- Completed Projects and Blog admin flows with explicit visible submit actions inside forms (validate/save) and role-aware create entry points in section headers.
+- Hardened Blog editor reliability: submit now uses a real form submission path, buttons are typed safely, retries are applied on save, and write attempts are blocked early for unauthorized roles.
+- Hardened Projects persistence consistency: project slug uniqueness is now enforced on backend saves (`PROJECT_SLUG_CONFLICT`) and surfaced in CMS validation feedback.
+- Improved public-site synchronization for project details by refreshing repository state from the public backend content endpoint before rendering details, while preserving existing design.
+
 ### Latest iteration progress (Projects CMS CRUD hardening)
 - Stabilized the Projects canonical model with slug/status/featured/timestamps normalization across frontend repository and backend content service.
 - Completed Projects CMS workflow reliability: create/edit/delete with stronger validation feedback, slug conflict safety, status controls, and offline-local fallback messaging.
