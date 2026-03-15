@@ -1,6 +1,6 @@
 import { AuthProvider, useAuth } from '../../src/contexts/AuthContext';
-import LoginPage from '../../src/components/auth/LoginPage';
-import RegisterPage from '../../src/components/auth/RegisterPage';
+import CMSLoginPage from './CMSLoginPage';
+import CMSRegisterPage from './CMSRegisterPage';
 import CMSDashboard from '../../src/components/cms/CMSDashboard';
 import CMSAppShell from '../../src/components/cms/CMSAppShell';
 import SecurityStatePage from '../../src/features/app-shell/SecurityStatePage';
@@ -25,11 +25,11 @@ function CMSContent() {
   }
 
   if (page === 'login') {
-    return <LoginPage />;
+    return <CMSLoginPage />;
   }
 
   if (page === 'register') {
-    return <RegisterPage />;
+    return <CMSRegisterPage />;
   }
 
   if (page === 'cms-unavailable') {
