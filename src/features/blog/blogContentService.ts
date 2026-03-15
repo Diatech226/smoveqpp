@@ -1,4 +1,6 @@
 import { blogRepository } from '../../repositories/blogRepository';
+import type { BlogPost } from '../../domain/contentSchemas';
+import { fetchPublicBlogPosts } from '../../utils/contentApi';
 import { evaluatePublishability, toCanonicalBlogEntry } from './blogEntryAdapter';
 
 export interface BlogListItem {
@@ -58,9 +60,8 @@ const toListItem = (entry: ReturnType<typeof toCanonicalBlogEntry>, featuredId?:
   },
 });
 
-const getCanonicalPublishedEntries = () =>
-  blogRepository
-    .getAll()
+const toContractFromPosts = (posts: BlogPost[]): BlogContentContract => {
+  const canonicalEntries = posts
     .map(toCanonicalBlogEntry)
     .filter(isRenderablePublishedEntry)
     .sort((a, b) => {
@@ -68,25 +69,38 @@ const getCanonicalPublishedEntries = () =>
       return byDate !== 0 ? byDate : a.slug.localeCompare(b.slug);
     });
 
-export function getBlogContentContract(): BlogContentContract {
-  const canonicalEntries = getCanonicalPublishedEntries();
-
   const [firstPost] = canonicalEntries;
-  const posts = canonicalEntries.map((entry) => toListItem(entry, firstPost?.id));
-  const categories = ['Tous', ...new Set(posts.map((post) => post.category))];
+  const items = canonicalEntries.map((entry) => toListItem(entry, firstPost?.id));
+  const categories = ['Tous', ...new Set(items.map((post) => post.category))];
 
   return {
     categories,
-    posts,
+    posts: items,
   };
+};
+
+export function getBlogContentContract(): BlogContentContract {
+  return toContractFromPosts(blogRepository.getAll());
 }
 
-export function getBlogPostBySlugContract(slug: string): BlogListItem | undefined {
+export async function getBlogContentContractFromSource(): Promise<BlogContentContract> {
+  try {
+    const remotePosts = await fetchPublicBlogPosts();
+    if (remotePosts.length > 0) {
+      return toContractFromPosts(remotePosts);
+    }
+  } catch {
+    // fallback intentionally uses local canonical repository snapshot.
+  }
+
+  return getBlogContentContract();
+}
+
+export async function getBlogPostBySlugContract(slug: string): Promise<BlogListItem | undefined> {
   if (!slug) {
     return undefined;
   }
 
-  const canonicalPost = getCanonicalPublishedEntries().find((post) => post.slug === slug);
-
-  return canonicalPost ? toListItem(canonicalPost) : undefined;
+  const contract = await getBlogContentContractFromSource();
+  return contract.posts.find((post) => post.slug === slug);
 }

@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { blogRepository } from '../../repositories/blogRepository';
-import { getBlogContentContract, getBlogPostBySlugContract } from './blogContentService';
+import { getBlogContentContract, getBlogContentContractFromSource, getBlogPostBySlugContract } from './blogContentService';
 
 class MemoryStorage {
   private store = new Map<string, string>();
@@ -26,6 +26,7 @@ const localStorage = new MemoryStorage();
 
 beforeEach(() => {
   localStorage.clear();
+  vi.restoreAllMocks();
   (globalThis as unknown as { window: Window }).window = {
     localStorage,
   } as unknown as Window;
@@ -55,28 +56,46 @@ describe('blogContentService', () => {
     expect(a).toBeLessThan(b);
   });
 
-
-  it('resolves a published post by canonical slug', () => {
+  it('resolves a published post by canonical slug', async () => {
     const published = blogRepository.getPublished()[0];
-    const result = getBlogPostBySlugContract(published.slug);
+    const result = await getBlogPostBySlugContract(published.slug);
 
     expect(result?.slug).toBe(published.slug);
     expect(result?.seo.canonicalSlug).toBe(published.slug);
   });
 
-  it('ignores drafts when resolving by slug for blog rendering', () => {
+  it('ignores drafts when resolving by slug for blog rendering', async () => {
     const post = blogRepository.getAll()[0];
     blogRepository.save({ ...post, id: 'draft-1', slug: 'draft-1', status: 'draft' });
 
-    expect(getBlogPostBySlugContract('draft-1')).toBeUndefined();
+    await expect(getBlogPostBySlugContract('draft-1')).resolves.toBeUndefined();
   });
 
-
-  it('excludes archived content from public contracts', () => {
+  it('excludes archived content from public contracts', async () => {
     const post = blogRepository.getAll()[0];
     blogRepository.save({ ...post, id: 'archived-1', slug: 'archived-1', status: 'archived' });
 
-    expect(getBlogPostBySlugContract('archived-1')).toBeUndefined();
+    await expect(getBlogPostBySlugContract('archived-1')).resolves.toBeUndefined();
     expect(getBlogContentContract().posts.some((entry) => entry.slug === 'archived-1')).toBe(false);
+  });
+
+  it('prefers backend public blog source when available', async () => {
+    const published = blogRepository.getPublished()[0];
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        data: {
+          posts: [{ ...published, id: 'remote-1', slug: 'remote-1', title: 'Remote post', status: 'published' }],
+        },
+      }),
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const contract = await getBlogContentContractFromSource();
+
+    expect(contract.posts.length).toBe(1);
+    expect(contract.posts[0].slug).toBe('remote-1');
   });
 });

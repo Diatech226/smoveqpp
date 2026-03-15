@@ -222,6 +222,7 @@ This iteration is intentionally constrained:
 
 ### Blog pipeline hardening and CMS compatibility
 - Added a canonical blog entry adapter layer to normalize CMS-authored payloads and frontend-rendered entries under a stable contract.
+- Added backend `public/blog` delivery and idempotent server-side blog seed migration so CMS and public blog now consume the same persisted blog records rather than diverging local/static sources.
 - Enforced slug normalization and slug uniqueness checks at repository save-time to prevent route/content collisions.
 - Strengthened blog content contract with deterministic ordering (`publishedDate` then slug tie-break) and explicit SEO-ready metadata fields (`title`, `description`, `canonicalSlug`) without any visual change to blog pages.
 - Hardened CMS-to-blog mapping via `fromCmsBlogInput` so CMS forms produce schema-valid, render-safe blog entities.
