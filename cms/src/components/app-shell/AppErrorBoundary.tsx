@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { logError } from '../../../srcBridge/observability';
-import { AppErrorState } from '../../../srcBridge/AppStatusState';
+import { logError } from '../../shared/observability';
+import { AppErrorState } from '../../shared/app-shell/AppStatusState';
 
 interface AppErrorBoundaryProps {
   children: ReactNode;
