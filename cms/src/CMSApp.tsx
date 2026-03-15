@@ -3,7 +3,7 @@ import CMSLoginPage from './CMSLoginPage';
 import CMSRegisterPage from './CMSRegisterPage';
 import { CMSDashboard } from './srcBridge/CMSDashboard';
 import CMSAppShell from './components/cms/CMSAppShell';
-import { SecurityStatePage } from './shared/app-shell/SecurityStatePage';
+import SecurityStatePage from './shared/app-shell/SecurityStatePage';
 import { AppLoadingState } from './shared/app-shell/AppStatusState';
 import AppErrorBoundary from './components/app-shell/AppErrorBoundary';
 import SectionErrorBoundary from './components/app-shell/SectionErrorBoundary';
