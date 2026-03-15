@@ -34,6 +34,15 @@ describe('projectCardAdapter', () => {
     expect(card.summary).toBe('Résumé court');
   });
 
+
+
+  it('uses description fallback when summary is missing for project cards', () => {
+    const card = toProjectCardContract({ ...baseProject, summary: '', featuredImage: '' });
+
+    expect(card.summary).toBe('Description longue');
+    expect(card.mediaQuery).toBe('legacy cover image');
+  });
+
   it('uses safe fallback for legacy payloads missing explicit featured image', () => {
     const media = resolveProjectFeaturedImage({
       featuredImage: '',

@@ -366,7 +366,7 @@ class ContentService {
   }
 
   evaluatePublishability(post) {
-    if (!post.title?.trim() || !post.slug?.trim() || !post.content?.trim() || !post.excerpt?.trim()) {
+    if (!post.title?.trim() || !post.slug?.trim() || !post.featuredImage?.trim() || !post.content?.trim() || !post.excerpt?.trim()) {
       return { ok: false, message: 'Missing required publish fields.' };
     }
     return { ok: true };
@@ -403,6 +403,7 @@ class ContentService {
       typeof post.publishedDate === 'string' &&
       typeof post.readTime === 'string' &&
       typeof post.featuredImage === 'string' &&
+      post.featuredImage.trim().length > 0 &&
       Array.isArray(post.images) &&
       BLOG_STATUSES.has(post.status)
     );
@@ -443,12 +444,15 @@ class ContentService {
       status,
       createdAt: project?.createdAt || nowIso,
       updatedAt: nowIso,
+      link: asTrimmedString(project?.link) || (project?.links && typeof project.links.live === 'string' ? project.links.live.trim() : '') || undefined,
       links: project?.links && typeof project.links === 'object'
         ? {
-            live: typeof project.links.live === 'string' ? project.links.live.trim() : undefined,
+            live: typeof project.links.live === 'string' ? project.links.live.trim() : asTrimmedString(project?.link) || undefined,
             caseStudy: typeof project.links.caseStudy === 'string' ? project.links.caseStudy.trim() : undefined,
           }
-        : undefined,
+        : asTrimmedString(project?.link)
+          ? { live: asTrimmedString(project?.link) }
+          : undefined,
     };
   }
 
@@ -475,8 +479,11 @@ class ContentService {
         Array.isArray(project.results) &&
         Array.isArray(project.tags) &&
         typeof project.mainImage === 'string' &&
+        project.mainImage.length > 0 &&
         typeof project.featuredImage === 'string' &&
+        project.featuredImage.length > 0 &&
         typeof project.imageAlt === 'string' &&
+        (project.link === undefined || typeof project.link === 'string') &&
         Array.isArray(project.images) &&
         PROJECT_STATUSES.has(project.status)
     );

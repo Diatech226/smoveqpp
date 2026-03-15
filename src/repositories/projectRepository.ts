@@ -57,12 +57,15 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
     status: project.status ?? 'published',
     createdAt: toIsoOrNow(project.createdAt),
     updatedAt: now,
+    link: asTrimmedString((project as Project).link) || asTrimmedString(project.links?.live) || undefined,
     links: project.links
       ? {
-          live: asTrimmedString(project.links.live) || undefined,
+          live: asTrimmedString(project.links.live) || asTrimmedString((project as Project).link) || undefined,
           caseStudy: asTrimmedString(project.links.caseStudy) || undefined,
         }
-      : undefined,
+      : asTrimmedString((project as Project).link)
+        ? { live: asTrimmedString((project as Project).link) }
+        : undefined,
     testimonial:
       project.testimonial &&
       asTrimmedString(project.testimonial.text) &&

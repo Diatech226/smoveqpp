@@ -70,6 +70,7 @@ export interface Project {
   images: string[];
   featured?: boolean;
   status?: 'draft' | 'published' | 'archived';
+  link?: string;
   createdAt?: string;
   updatedAt?: string;
   links?: {
@@ -189,6 +190,7 @@ export const isProject = (value: unknown): value is Project => {
     (v.imageAlt === undefined || isString(v.imageAlt)) &&
     (v.featured === undefined || typeof v.featured === 'boolean') &&
     (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
+    (v.link === undefined || isString(v.link)) &&
     (v.createdAt === undefined || isString(v.createdAt)) &&
     (v.updatedAt === undefined || isString(v.updatedAt)) &&
     (links === undefined ||
@@ -228,6 +230,7 @@ export const isService = (value: unknown): value is Service => {
     isStringArray(v.features) &&
     (v.shortDescription === undefined || isString(v.shortDescription)) &&
     (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
+    (v.link === undefined || isString(v.link)) &&
     (v.featured === undefined || typeof v.featured === 'boolean') &&
     (v.createdAt === undefined || isString(v.createdAt)) &&
     (v.updatedAt === undefined || isString(v.updatedAt))

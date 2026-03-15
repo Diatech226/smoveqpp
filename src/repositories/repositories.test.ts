@@ -38,6 +38,25 @@ beforeEach(() => {
 });
 
 describe('blogRepository', () => {
+
+  it('creates a CMS article with required card fields', () => {
+    const seed = blogRepository.getAll()[0];
+
+    blogRepository.save({
+      ...seed,
+      id: 'cms-create-article',
+      slug: 'cms-create-article',
+      title: 'CMS Create Article',
+      excerpt: 'Résumé CMS',
+      featuredImage: 'article card image',
+      status: 'draft',
+    });
+
+    const created = blogRepository.getById('cms-create-article');
+    expect(created?.title).toBe('CMS Create Article');
+    expect(created?.featuredImage).toBe('article card image');
+  });
+
   it('writes and reads posts through validated repository contracts', () => {
     const initialCount = blogRepository.getAll().length;
     const newPost: BlogPost = {
