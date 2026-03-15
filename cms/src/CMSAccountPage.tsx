@@ -1,5 +1,5 @@
 import { ShieldCheck, UserCircle2 } from 'lucide-react';
-import { useAuth } from '../../src/contexts/AuthContext';
+import { useAuth } from './srcBridge/AuthContext';
 
 function getPublicAppUrl() {
   return import.meta.env.VITE_PUBLIC_APP_URL?.trim() || 'http://localhost:5173/#home';

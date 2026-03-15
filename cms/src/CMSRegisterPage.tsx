@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { AlertCircle, Lock, Mail, UserRound } from 'lucide-react';
-import { useAuth } from '../../src/contexts/AuthContext';
+import { useAuth } from './srcBridge/AuthContext';
 
 export default function CMSRegisterPage() {
   const [name, setName] = useState('');
