@@ -222,6 +222,34 @@ describe('projectRepository and cmsRepository', () => {
     expect(projectRepository.getById('legacy-project')?.slug).toBe('legacy-projet');
   });
 
+
+  it('keeps CMS/public source of truth aligned after backend replaceAll', () => {
+    const payload: Project = {
+      id: 'project-source-truth',
+      title: 'Projet Source Truth',
+      slug: 'projet-source-truth',
+      summary: 'Résumé',
+      client: 'Client',
+      category: 'Branding',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: ['Résultat'],
+      tags: ['brand'],
+      mainImage: 'image',
+      images: ['image'],
+      status: 'published',
+      featured: true,
+    };
+
+    projectRepository.replaceAll([payload]);
+
+    expect(projectRepository.getAll()).toHaveLength(1);
+    expect(projectRepository.getPublished()).toHaveLength(1);
+    expect(projectRepository.getFeatured(1)[0].id).toBe('project-source-truth');
+  });
+
   it('supports CMS project save and delete workflows', () => {
     const seed = projectRepository.getAll()[0];
 
