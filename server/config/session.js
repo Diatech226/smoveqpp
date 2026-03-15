@@ -1,5 +1,5 @@
 const session = require('express-session');
-const { FRONTEND_ORIGIN, SESSION_SECRET, isProduction, SESSION_TTL_SECONDS, MONGO_URI, SESSION_STORE_MODE } = require('./env');
+const { FRONTEND_ORIGIN, FRONTEND_ORIGINS, SESSION_SECRET, isProduction, SESSION_TTL_SECONDS, MONGO_URI, SESSION_STORE_MODE } = require('./env');
 const { getMongoose } = require('./mongo');
 const { logInfo, logWarn } = require('../utils/logger');
 
@@ -73,9 +73,19 @@ function createSessionMiddleware() {
 }
 
 function createCorsOptions() {
+  const allowedOrigins = new Set(FRONTEND_ORIGINS ?? [FRONTEND_ORIGIN]);
+
   return {
-    origin: FRONTEND_ORIGIN,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     credentials: true,
+    allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'X-Requested-With'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   };
 }
 
