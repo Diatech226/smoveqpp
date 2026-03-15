@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { blogRepository, BlogRepositoryError } from './blogRepository';
 import { mediaRepository } from './mediaRepository';
 import { projectRepository } from './projectRepository';
+import { serviceRepository } from './serviceRepository';
 import { cmsRepository } from './cmsRepository';
 import { pageContentRepository } from './pageContentRepository';
 import type { BlogPost, MediaFile, Project } from '../domain/contentSchemas';
@@ -229,6 +230,33 @@ describe('projectRepository and cmsRepository', () => {
 
     projectRepository.delete('project-new');
     expect(projectRepository.getById('project-new')).toBeUndefined();
+  });
+
+
+  it('supports services CRUD with published filtering', () => {
+    const first = serviceRepository.getAll()[0];
+    expect(first.id).toBeTruthy();
+
+    serviceRepository.save({
+      ...first,
+      id: 'service-cms-test',
+      slug: 'service-cms-test',
+      title: 'Service CMS Test',
+      status: 'draft',
+    });
+
+    expect(serviceRepository.getById('service-cms-test')?.title).toBe('Service CMS Test');
+    expect(serviceRepository.getPublished().map((service) => service.id)).not.toContain('service-cms-test');
+
+    serviceRepository.save({
+      ...serviceRepository.getById('service-cms-test')!,
+      status: 'published',
+    });
+
+    expect(serviceRepository.getPublished().map((service) => service.id)).toContain('service-cms-test');
+
+    serviceRepository.delete('service-cms-test');
+    expect(serviceRepository.getById('service-cms-test')).toBeUndefined();
   });
 
   it('aggregates CMS stats from domain repositories', () => {

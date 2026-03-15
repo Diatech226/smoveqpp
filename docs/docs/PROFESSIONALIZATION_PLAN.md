@@ -213,3 +213,9 @@ The project is **pre-production** with strong structural progress: modular front
 7. P7 Deployment/security hardening
 
 This sequencing minimizes production risk while preserving current product momentum.
+
+
+## Projects & Services source of truth
+- Projects and Services are now managed through the CMS and persisted through the backend content API (`/api/v1/content/projects`, `/api/v1/content/services`).
+- Public pages now consume backend public endpoints (`/api/v1/content/public/projects`, `/api/v1/content/public/services`) with repository fallback for resilience.
+- CMS bootstraps legacy static/local content into backend storage when backend collections are empty, preventing duplicates via stable IDs/slugs and upsert behavior.

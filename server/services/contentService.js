@@ -1,6 +1,7 @@
 const BLOG_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
 const MEDIA_TYPES = new Set(['image', 'video', 'document']);
 const PROJECT_STATUSES = new Set(['draft', 'published', 'archived']);
+const SERVICE_STATUSES = new Set(['draft', 'published', 'archived']);
 
 const defaultHomePageContent = {
   heroBadge: 'Agence de communication',
@@ -39,6 +40,7 @@ class ContentService {
           blogPosts: this.contentRepository.getBlogPosts(),
           projects: [],
           mediaFiles: [],
+          services: [],
           pageContent: null,
           settings: null,
         };
@@ -149,8 +151,7 @@ class ContentService {
   }
 
   listProjects() {
-    return this.readState()
-      .projects
+    return (this.readState().projects || [])
       .map((project) => this.normalizeProject(project))
       .filter((project) => this.validateProject(project))
       .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || Number.parseInt(b.year, 10) - Number.parseInt(a.year, 10));
@@ -175,6 +176,43 @@ class ContentService {
   deleteProject(id) {
     const state = this.readState();
     state.projects = this.listProjects().filter((entry) => entry.id !== id);
+    this.writeState(state);
+    return { ok: true };
+  }
+
+
+  listServices() {
+    return (this.readState().services || [])
+      .map((service) => this.normalizeService(service))
+      .filter((service) => this.validateService(service))
+      .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || a.title.localeCompare(b.title, 'fr'));
+  }
+
+  saveService(service) {
+    const normalized = this.normalizeService(service);
+    if (!this.validateService(normalized)) {
+      return { ok: false, error: { code: 'SERVICE_VALIDATION_ERROR', message: 'Invalid service payload.' } };
+    }
+
+    const services = this.listServices();
+    const slugConflict = services.find((entry) => entry.slug === normalized.slug && entry.id !== normalized.id);
+    if (slugConflict) {
+      return { ok: false, error: { code: 'SERVICE_SLUG_CONFLICT', message: 'Service slug already exists.' } };
+    }
+
+    const index = services.findIndex((entry) => entry.id === normalized.id);
+    if (index >= 0) services[index] = normalized;
+    else services.push(normalized);
+
+    const state = this.readState();
+    state.services = services;
+    this.writeState(state);
+    return { ok: true, service: normalized };
+  }
+
+  deleteService(id) {
+    const state = this.readState();
+    state.services = this.listServices().filter((entry) => entry.id !== id);
     this.writeState(state);
     return { ok: true };
   }
@@ -350,6 +388,49 @@ class ContentService {
     );
   }
 
+
+
+  normalizeService(service) {
+    const asTrimmedString = (value) => (typeof value === 'string' ? value.trim() : '');
+    const title = asTrimmedString(service?.title);
+    const nowIso = new Date().toISOString();
+
+    return {
+      ...service,
+      id: asTrimmedString(service?.id),
+      title,
+      slug: this.normalizeSlug(asTrimmedString(service?.slug) || title || asTrimmedString(service?.id)),
+      description: asTrimmedString(service?.description),
+      shortDescription: asTrimmedString(service?.shortDescription) || undefined,
+      icon: asTrimmedString(service?.icon) || 'palette',
+      color: asTrimmedString(service?.color) || 'from-[#00b3e8] to-[#00c0e8]',
+      features: Array.isArray(service?.features) ? service.features.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      status: SERVICE_STATUSES.has(service?.status) ? service.status : 'published',
+      featured: Boolean(service?.featured),
+      createdAt: service?.createdAt || nowIso,
+      updatedAt: nowIso,
+    };
+  }
+
+  validateService(service) {
+    return Boolean(
+      service &&
+        typeof service.id === 'string' &&
+        service.id.length > 0 &&
+        typeof service.title === 'string' &&
+        service.title.length > 0 &&
+        typeof service.slug === 'string' &&
+        service.slug.length > 0 &&
+        typeof service.description === 'string' &&
+        service.description.length > 0 &&
+        typeof service.icon === 'string' &&
+        service.icon.length > 0 &&
+        typeof service.color === 'string' &&
+        service.color.length > 0 &&
+        Array.isArray(service.features) &&
+        SERVICE_STATUSES.has(service.status)
+    );
+  }
 
   normalizeSlug(input) {
     return `${input || ''}`

@@ -81,6 +81,21 @@ export interface Project {
   };
 }
 
+export interface Service {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  shortDescription?: string;
+  icon: string;
+  color: string;
+  features: string[];
+  status?: 'draft' | 'published' | 'archived';
+  featured?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 const isString = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
@@ -194,3 +209,26 @@ export const isMediaFileArray = (value: unknown): value is MediaFile[] =>
 
 export const isProjectArray = (value: unknown): value is Project[] =>
   Array.isArray(value) && value.every(isProject);
+
+export const isService = (value: unknown): value is Service => {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+
+  return (
+    isString(v.id) &&
+    isString(v.title) &&
+    isString(v.slug) &&
+    isString(v.description) &&
+    isString(v.icon) &&
+    isString(v.color) &&
+    isStringArray(v.features) &&
+    (v.shortDescription === undefined || isString(v.shortDescription)) &&
+    (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
+    (v.featured === undefined || typeof v.featured === 'boolean') &&
+    (v.createdAt === undefined || isString(v.createdAt)) &&
+    (v.updatedAt === undefined || isString(v.updatedAt))
+  );
+};
+
+export const isServiceArray = (value: unknown): value is Service[] =>
+  Array.isArray(value) && value.every(isService);
