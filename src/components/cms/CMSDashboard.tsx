@@ -219,8 +219,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       try {
         const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
-        backendProjects.forEach((project) => projectRepository.save(project));
-        setProjects(backendProjects);
+        syncProjectsFromBackend(backendProjects);
       } catch {
         if (active) {
           setProjects(projectRepository.getAll());
@@ -657,6 +656,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     return errors;
   };
 
+  const syncProjectsFromBackend = (backendProjects: Awaited<ReturnType<typeof fetchBackendProjects>>) => {
+    const normalized = projectRepository.replaceAll(backendProjects);
+    setProjects(normalized);
+  };
+
   const resetProjectEditor = () => {
     setProjectEditorMode('list');
     setProjectForm(EMPTY_PROJECT_FORM);
@@ -695,9 +699,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     };
 
     try {
-      const saved = await requestWithRetry(() => saveBackendProject(payload), { retries: 1, retryDelayMs: 250 });
-      projectRepository.save(saved);
-      setProjects(await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 }));
+      await requestWithRetry(() => saveBackendProject(payload), { retries: 1, retryDelayMs: 250 });
+      const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
+      syncProjectsFromBackend(backendProjects);
       showSuccess(projectEditorMode === 'create' ? 'Projet créé avec succès.' : 'Projet mis à jour avec succès.');
       resetProjectEditor();
     } catch {
@@ -729,14 +733,23 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     try {
       await requestWithRetry(() => deleteBackendProject(projectId), { retries: 1, retryDelayMs: 250 });
-      projectRepository.delete(projectId);
-      setProjects(await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 }));
+      const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
+      syncProjectsFromBackend(backendProjects);
       if (projectForm.id === projectId) {
         resetProjectEditor();
       }
       showSuccess('Projet supprimé.');
     } catch {
-      setProjectsError('Suppression backend impossible. Réessayez.');
+      try {
+        projectRepository.delete(projectId);
+        setProjects(projectRepository.getAll());
+        if (projectForm.id === projectId) {
+          resetProjectEditor();
+        }
+        showSuccess('Projet supprimé localement (backend indisponible).');
+      } catch {
+        setProjectsError('Suppression impossible. Réessayez.');
+      }
     }
   };
 

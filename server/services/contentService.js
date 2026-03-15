@@ -287,25 +287,27 @@ class ContentService {
   }
 
   normalizeProject(project) {
-    const title = (project?.title || '').trim();
-    const slug = this.normalizeSlug(project?.slug || title || project?.id || '');
+    const asTrimmedString = (value) => (typeof value === 'string' ? value.trim() : '');
+    const title = asTrimmedString(project?.title);
+    const slug = this.normalizeSlug(asTrimmedString(project?.slug) || title || asTrimmedString(project?.id));
     const status = PROJECT_STATUSES.has(project?.status) ? project.status : 'published';
     const nowIso = new Date().toISOString();
 
     return {
       ...project,
+      id: asTrimmedString(project?.id),
       title,
       slug,
-      summary: (project?.summary || '').trim() || undefined,
-      client: (project?.client || '').trim(),
-      category: (project?.category || '').trim(),
-      year: (project?.year || '').trim() || new Date().getFullYear().toString(),
-      description: (project?.description || '').trim(),
-      challenge: (project?.challenge || '').trim(),
-      solution: (project?.solution || '').trim(),
+      summary: asTrimmedString(project?.summary) || undefined,
+      client: asTrimmedString(project?.client),
+      category: asTrimmedString(project?.category),
+      year: asTrimmedString(project?.year) || new Date().getFullYear().toString(),
+      description: asTrimmedString(project?.description) || asTrimmedString(project?.summary) || 'Description à compléter.',
+      challenge: asTrimmedString(project?.challenge) || 'Challenge à compléter.',
+      solution: asTrimmedString(project?.solution) || 'Solution à compléter.',
       results: Array.isArray(project?.results) ? project.results.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       tags: Array.isArray(project?.tags) ? project.tags.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
-      mainImage: (project?.mainImage || '').trim() || 'project cover image',
+      mainImage: asTrimmedString(project?.mainImage) || 'project cover image',
       images: Array.isArray(project?.images) ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       featured: Boolean(project?.featured),
       status,
@@ -324,6 +326,7 @@ class ContentService {
     return Boolean(
       project &&
         typeof project.id === 'string' &&
+        project.id.length > 0 &&
         typeof project.title === 'string' &&
         project.title.length > 0 &&
         typeof project.slug === 'string' &&
