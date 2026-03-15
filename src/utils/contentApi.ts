@@ -95,6 +95,21 @@ export async function fetchBackendBlogPosts(): Promise<BlogPost[]> {
   return body.data?.posts || [];
 }
 
+export async function fetchPublicBlogPosts(): Promise<BlogPost[]> {
+  const response = await fetch(`${CONTENT_BASE_URL}/public/blog`, {
+    credentials: 'include',
+  });
+
+  const body = (await response.json().catch(() => null)) as ApiEnvelope<{ posts: BlogPost[] }> | null;
+  if (!response.ok || !body?.success) {
+    const code = body?.error?.code || `CONTENT_API_${response.status}`;
+    const message = body?.error?.message || `CONTENT_API_${response.status}`;
+    throw new ContentApiError(message, code, response.status);
+  }
+
+  return body.data?.posts || [];
+}
+
 export async function saveBackendBlogPost(post: BlogPost): Promise<BlogPost> {
   const body = await request<{ post: BlogPost }>('/blog', {
     method: 'POST',

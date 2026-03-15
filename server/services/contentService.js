@@ -22,6 +22,61 @@ const defaultHomePageContent = {
   servicesIntroSubtitle: 'Des solutions digitales complètes pour propulser votre entreprise vers le succès',
 };
 
+
+const defaultBlogPosts = [
+  {
+    id: '1',
+    title: 'Création de site web pour SMOVE',
+    slug: 'creation-site-web-smove',
+    excerpt: "SMOVE propose une vision moderne du web africain, tournée vers l'innovation et l'excellence digitale.",
+    content:
+      "## Introduction\n\nSMOVE Communication révolutionne le paysage digital africain avec sa nouvelle plateforme web. Ce projet ambitieux combine design moderne, performance technique et expérience utilisateur exceptionnelle.",
+    author: 'Spencer Tarring',
+    authorRole: 'Lead Developer',
+    category: 'Développement Web',
+    tags: ['React', 'Web Design', 'Performance', 'Innovation'],
+    publishedDate: '2024-02-01',
+    readTime: '5 min',
+    featuredImage: 'modern website design smove platform',
+    images: ['web development coding modern'],
+    status: 'published',
+  },
+  {
+    id: '2',
+    title: "Communication d'entreprise pour ECLA BTP",
+    slug: 'communication-entreprise-ecla-btp',
+    excerpt: 'Création de vidéo et affiche publicitaire pour se démarquer dans le secteur du BTP.',
+    content:
+      "## Le Projet\n\nECLA BTP souhaitait moderniser sa communication pour mieux refléter son positionnement premium dans le secteur de la construction.",
+    author: 'James Rodd',
+    authorRole: 'Creative Director',
+    category: 'Communication',
+    tags: ['Vidéo', 'Branding', 'Corporate', 'BTP'],
+    publishedDate: '2024-01-28',
+    readTime: '4 min',
+    featuredImage: 'corporate video production professional',
+    images: ['video production studio'],
+    status: 'published',
+  },
+  {
+    id: '3',
+    title: 'Création de logo et visuels pour Gobon Sarl',
+    slug: 'logo-visuels-gobon-sarl',
+    excerpt: 'Logo et visuels pour une identité commerciale remarquée dans le secteur alimentaire.',
+    content:
+      "## Contexte\n\nGobon Sarl, entreprise de distribution alimentaire, avait besoin d'une identité visuelle forte pour se démarquer sur un marché concurrentiel.",
+    author: 'David Silvester',
+    authorRole: 'Brand Designer',
+    category: 'Branding',
+    tags: ['Logo Design', 'Identité Visuelle', 'Branding', 'Food'],
+    publishedDate: '2024-01-25',
+    readTime: '6 min',
+    featuredImage: 'logo design creative professional',
+    images: ['brand identity design mockup'],
+    status: 'published',
+  },
+];
+
 const defaultSettings = {
   siteTitle: 'SMOVE',
   supportEmail: 'contact@smove.africa',
@@ -54,8 +109,32 @@ class ContentService {
     this.contentRepository.saveBlogPosts(state.blogPosts || []);
   }
 
+  seedBlogPostsFromLegacy() {
+    const state = this.readState();
+    const existingPosts = Array.isArray(state.blogPosts) ? state.blogPosts.map((post) => this.normalizePost(post)).filter((post) => this.validateBlogPost(post)) : [];
+
+    if (existingPosts.length === 0) {
+      state.blogPosts = defaultBlogPosts.map((post) => this.normalizePost(post));
+      this.writeState(state);
+      return state.blogPosts;
+    }
+
+    const knownSlugs = new Set(existingPosts.map((post) => post.slug));
+    const missingSeedPosts = defaultBlogPosts
+      .map((post) => this.normalizePost(post))
+      .filter((post) => !knownSlugs.has(post.slug));
+
+    if (missingSeedPosts.length > 0) {
+      state.blogPosts = [...existingPosts, ...missingSeedPosts];
+      this.writeState(state);
+      return state.blogPosts;
+    }
+
+    return existingPosts;
+  }
+
   listBlogPosts() {
-    return this.readState().blogPosts.map((post) => this.normalizePost(post));
+    return this.seedBlogPostsFromLegacy().map((post) => this.normalizePost(post));
   }
 
   saveBlogPost(post) {

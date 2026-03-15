@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Calendar, User, ArrowRight, Clock, Tag, Search } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { getBlogContentContract } from '../features/blog/blogContentService';
+import { getBlogContentContractFromSource, type BlogContentContract } from '../features/blog/blogContentService';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -31,8 +31,20 @@ const itemVariants = {
 export default function BlogPageEnhanced() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
+  const [content, setContent] = useState<BlogContentContract>({ categories: ['Tous'], posts: [] });
 
-  const { categories, posts } = useMemo(() => getBlogContentContract(), []);
+  useEffect(() => {
+    let active = true;
+    getBlogContentContractFromSource().then((contract) => {
+      if (active) setContent(contract);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const { categories, posts } = content;
 
   const filteredPosts = posts.filter((post) => {
     const matchesCategory = selectedCategory === 'Tous' || post.category === selectedCategory;

@@ -29,7 +29,7 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 - Admin user management and auth audit-event visibility.
 
 ### Blog/content path
-- Public blog page renders canonicalized **published** posts.
+- Public blog page renders canonicalized **published** posts from the backend public content API (`/api/content/public/blog`) with local repository fallback only when backend is unavailable.
 - Backend supports blog status lifecycle (`draft`, `in_review`, `published`, `archived`) and editorial analytics.
 - CMS blog/projects/page-content/settings flows now use backend-first persistence with explicit retry/failure states; local fallback is retained only as a compatibility path when backend is unavailable.
 
@@ -51,6 +51,7 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 ### Data/persistence
 - Auth repository supports MongoDB or in-memory fallback.
 - Content API uses a file-backed repository (`server/data/content.json`) for blog, projects, media metadata, page content, and CMS settings with schema-versioned migration normalization (`schemaVersion`, `migrationHistory`).
+- Blog seed migration is now handled server-side: existing legacy public posts are auto-seeded idempotently into persisted backend blog records (by slug) so CMS and public blog share one source of truth.
 - Auth/content audit events are durably persisted in `server/data/audit-log.json` and available via admin audit endpoints.
 - Media uploads now support backend persistence to local disk (`server/data/uploads`) via `/api/v1/content/media/upload` with MIME/size validation.
 - Frontend repositories remain available for controlled fallback/compatibility when backend is unavailable.

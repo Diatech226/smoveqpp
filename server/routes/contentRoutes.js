@@ -62,6 +62,12 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
 
   router.get('/public/projects', (_req, res) => sendSuccess(res, 200, { projects: contentService.listProjects().filter((p) => p.status === 'published') }));
   router.get('/public/services', (_req, res) => sendSuccess(res, 200, { services: contentService.listServices().filter((s) => s.status === 'published') }));
+  router.get('/public/blog', (_req, res) =>
+    sendSuccess(res, 200, {
+      posts: contentService
+        .listBlogPosts()
+        .filter((post) => post.status === 'published' && post.title?.trim() && post.slug?.trim() && post.excerpt?.trim() && post.content?.trim()),
+    }));
 
   router.use(requireAuthenticated);
 
