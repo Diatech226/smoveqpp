@@ -40,7 +40,15 @@ export const SECURITY_FLAGS = {
   devAdminFallbackEnabled: false,
 } as const;
 
-const cmsRoles = new Set<UserRole>(['admin', 'editor', 'author']);
+const cmsRoles = new Set<UserRole>(['admin']);
+
+function isCmsIntentRoute(route?: string | null): boolean {
+  if (!route) {
+    return false;
+  }
+
+  return route === 'cms' || route === 'cms-dashboard' || route.startsWith('cms-') || route.startsWith('cms/');
+}
 
 export function evaluateCmsAccess(input: CmsAccessInput): CmsAccessDecision {
   if (!input.cmsEnabled) {
@@ -87,13 +95,13 @@ export function resolvePostLoginRoute(cmsEnabled: boolean, user: AppUser | null,
   });
 
   if (decision === 'allow') {
-    if (intendedRoute?.startsWith('cms-')) {
+    if (isCmsIntentRoute(intendedRoute)) {
       return 'cms-dashboard';
     }
     return 'cms-dashboard';
   }
 
-  if (intendedRoute?.startsWith('cms-')) {
+  if (isCmsIntentRoute(intendedRoute)) {
     return 'cms-forbidden';
   }
 

@@ -27,14 +27,18 @@ describe('evaluateCmsAccess', () => {
     expect(decision).toBe('unauthenticated');
   });
 
-  it('allows editor and author roles for cms', () => {
+  it('allows only admin role for cms', () => {
     expect(
-      evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'editor' } }),
+      evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'admin' } }),
     ).toBe('allow');
 
     expect(
+      evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'editor' } }),
+    ).toBe('forbidden');
+
+    expect(
       evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'author' } }),
-    ).toBe('allow');
+    ).toBe('forbidden');
   });
 
   it('denies viewer and client roles for cms', () => {
@@ -90,5 +94,11 @@ describe('resolvePostLoginRoute', () => {
 
   it('routes clients to forbidden only when they explicitly requested cms', () => {
     expect(resolvePostLoginRoute(true, { id: '2', email: 'client@test.com', name: 'Client', role: 'client' }, 'cms-dashboard')).toBe('cms-forbidden');
+  });
+
+  it('treats hash-style cms intent as forbidden for non-admin users', () => {
+    expect(
+      resolvePostLoginRoute(true, { id: '2', email: 'client@test.com', name: 'Client', role: 'client' }, 'cms/blog'),
+    ).toBe('cms-forbidden');
   });
 });

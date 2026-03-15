@@ -17,6 +17,7 @@ import HomePageContent from '../marketing/home/HomePageContent';
 import type { ResolvedPage } from '../../app-routing/navigationTypes';
 import SecurityStatePage from './SecurityStatePage';
 import SectionErrorBoundary from './SectionErrorBoundary';
+import PublicSiteShell from './PublicSiteShell';
 import { AppLoadingState } from './AppStatusState';
 
 interface AppPageRendererProps {
@@ -110,78 +111,98 @@ export default function AppPageRenderer({
   if (currentPage.startsWith('project-')) {
     const projectId = currentPage.replace('project-', '');
     return (
-      <SectionErrorBoundary scope="project-detail">
-        <ProjectDetailPage projectId={projectId} />
-      </SectionErrorBoundary>
+      <PublicSiteShell>
+        <SectionErrorBoundary scope="project-detail">
+          <ProjectDetailPage projectId={projectId} />
+        </SectionErrorBoundary>
+      </PublicSiteShell>
     );
   }
 
   switch (currentPage) {
     case 'home':
       return (
-        <SectionErrorBoundary scope="home">
-          <>
-            <Navigation currentPath="/" />
-            <HomePageContent />
-          </>
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="home">
+            <>
+              <Navigation currentPath="/" />
+              <HomePageContent />
+            </>
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
     case 'projects':
       return (
-        <SectionErrorBoundary scope="projects">
-          <ProjectsPage />
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="projects">
+            <ProjectsPage />
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
     case 'services-all':
       return (
-        <SectionErrorBoundary scope="services">
-          <ServicesHubPage />
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="services">
+            <ServicesHubPage />
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
     case 'service-design':
       return (
-        <SectionErrorBoundary scope="service-design">
-          <DesignBrandingPage />
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="service-design">
+            <DesignBrandingPage />
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
     case 'service-web':
       return (
-        <SectionErrorBoundary scope="service-web">
-          <WebDevelopmentPage />
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="service-web">
+            <WebDevelopmentPage />
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
     case 'portfolio':
       return (
-        <SectionErrorBoundary scope="portfolio">
-          <PortfolioPage />
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="portfolio">
+            <PortfolioPage />
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
     case 'blog':
       return (
-        <SectionErrorBoundary scope="blog">
-          <BlogPageEnhanced />
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="blog">
+            <BlogPageEnhanced />
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
     case 'apropos':
       return (
-        <SectionErrorBoundary scope="apropos">
-          <>
-            <Navigation currentPath="/apropos" />
-            <div className="pt-20">
-              <APropos />
-            </div>
-            <Footer />
-          </>
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="apropos">
+            <>
+              <Navigation currentPath="/apropos" />
+              <div className="pt-20">
+                <APropos />
+              </div>
+              <Footer />
+            </>
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
     default:
       return (
-        <SectionErrorBoundary scope="home">
-          <>
-            <Navigation currentPath="/" />
-            <HomePageContent />
-          </>
-        </SectionErrorBoundary>
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="home">
+            <>
+              <Navigation currentPath="/" />
+              <HomePageContent />
+            </>
+          </SectionErrorBoundary>
+        </PublicSiteShell>
       );
   }
 }

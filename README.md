@@ -21,8 +21,8 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 - Account page with role/status/provider/verification visibility.
 
 ### CMS/admin workspace
-- CMS access for `admin`, `editor`, `author` roles.
-- CMS now has a dedicated app-like shell under `#cms` (with section hashes like `#cms/blog`) to separate admin workflows from the public browsing flow.
+- CMS access is restricted to `admin` role only.
+- CMS has a dedicated app-like shell under `#cms` (with section hashes like `#cms/blog`) to separate admin workflows from the public browsing flow.
 - Sections in dashboard: overview, projects, blog, media, page content, users, settings.
 - Role-aware editorial actions (e.g., publish restrictions for author role).
 - Admin user management and auth audit-event visibility.
