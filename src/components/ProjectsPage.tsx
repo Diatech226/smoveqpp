@@ -1,16 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Filter, Search, ArrowRight, ExternalLink } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
 import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { fetchPublicProjects } from '../utils/publicContentApi';
 
 export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
+  const [projects, setProjects] = useState(() => projectRepository.getPublished());
 
-  const projects = projectRepository.getPublished();
+  useEffect(() => {
+    let active = true;
+    void fetchPublicProjects().then((remote) => {
+      if (!active || !remote) return;
+      const synced = projectRepository.replaceAll(remote);
+      setProjects(synced.filter((project) => project.status !== 'draft' && project.status !== 'archived'));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const projectCategories = projectRepository.getCategories();
 
   const filteredProjects = projects.filter((project) => {

@@ -1,10 +1,24 @@
 import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { fetchPublicProjects } from '../utils/publicContentApi';
 
 export default function ProjectsSection() {
-  const featuredProjects = projectRepository.getFeatured(6);
+  const [featuredProjects, setFeaturedProjects] = useState(() => projectRepository.getFeatured(6));
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicProjects().then((remote) => {
+      if (!active || !remote) return;
+      const synced = projectRepository.replaceAll(remote);
+      setFeaturedProjects(synced.filter((project) => project.status !== 'draft' && project.status !== 'archived').slice(0, 6));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

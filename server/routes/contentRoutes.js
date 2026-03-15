@@ -60,7 +60,11 @@ function parseUploadPayload(payload) {
 function createContentRoutes({ contentService, auditService, mediaStorage }) {
   const router = express.Router();
 
+  router.get('/public/projects', (_req, res) => sendSuccess(res, 200, { projects: contentService.listProjects().filter((p) => p.status === 'published') }));
+  router.get('/public/services', (_req, res) => sendSuccess(res, 200, { services: contentService.listServices().filter((s) => s.status === 'published') }));
+
   router.use(requireAuthenticated);
+
 
   router.get('/blog', requirePermission(Permissions.CONTENT_READ), (req, res) => {
     return sendSuccess(res, 200, { posts: contentService.listBlogPosts() });
@@ -139,6 +143,26 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   router.delete('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     contentService.deleteProject(req.params.id);
     auditService?.record(toAuditContext(req, 'cms_project_delete', 'success', { entityType: 'project', entityId: req.params.id }));
+    return sendSuccess(res, 200, { deleted: true });
+  });
+
+  router.get('/services', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, 200, { services: contentService.listServices() }));
+
+  router.post('/services', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.saveService(req.body);
+    if (!result.ok) {
+      logContentFailure(req, 'cms_service_save_failed', result.error.code);
+      auditService?.record(toAuditContext(req, 'cms_service_save', 'failure', { entityType: 'service', metadata: { code: result.error.code } }));
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+    auditService?.record(toAuditContext(req, 'cms_service_save', 'success', { entityType: 'service', entityId: result.service.id }));
+    return sendSuccess(res, 200, { service: result.service });
+  });
+
+  router.delete('/services/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    contentService.deleteService(req.params.id);
+    auditService?.record(toAuditContext(req, 'cms_service_delete', 'success', { entityType: 'service', entityId: req.params.id }));
     return sendSuccess(res, 200, { deleted: true });
   });
 

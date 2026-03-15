@@ -1,52 +1,26 @@
 import { motion } from 'motion/react';
-import { Palette, Code, Megaphone, Video, Box, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
-
-const services = [
-  {
-    id: 'design-branding',
-    icon: Palette,
-    title: 'Design & Branding',
-    description: 'Création d\'interfaces immersives, animations 3D et expériences interactives, de logo et d\'identité visuels.',
-    color: 'from-[#00b3e8] to-[#00c0e8]',
-    features: ['Logo & Identité', 'UI/UX Design', 'Charte Graphique', 'Motion Design'],
-  },
-  {
-    id: 'web-development',
-    icon: Code,
-    title: 'Développement Web & Mobile',
-    description: 'Applications web modernes, rapides et sécurisées, adaptées à vos besoins métiers.',
-    color: 'from-[#34c759] to-[#2da84a]',
-    features: ['Sites Web', 'Applications Mobile', 'E-commerce', 'Web Apps'],
-  },
-  {
-    id: 'digital-communication',
-    icon: Megaphone,
-    title: 'Communication Digitale',
-    description: 'Stratégie de contenu, visibilité en ligne, branding et storytelling digital.',
-    color: 'from-[#ffc247] to-[#ff9f47]',
-    features: ['Stratégie Social Media', 'Content Marketing', 'SEO/SEA', 'Email Marketing'],
-  },
-  {
-    id: 'video-production',
-    icon: Video,
-    title: 'Production Vidéo',
-    description: 'Création de vidéos professionnelles pour vos campagnes marketing et événements.',
-    color: 'from-[#ff6b6b] to-[#ee5a6f]',
-    features: ['Vidéos Publicitaires', 'Motion Graphics', 'Montage Vidéo', 'Live Streaming'],
-  },
-  {
-    id: '3d-creation',
-    icon: Box,
-    title: 'Création 3D',
-    description: 'Modélisation 3D, animations et expériences immersives pour vos projets.',
-    color: 'from-[#a855f7] to-[#9333ea]',
-    features: ['Modélisation 3D', 'Animation 3D', 'Rendering', 'VR/AR'],
-  },
-];
+import { serviceRepository } from '../repositories/serviceRepository';
+import { toRenderableService } from '../features/marketing/serviceCatalog';
+import { fetchPublicServices } from '../utils/publicContentApi';
 
 export default function ServicesHubPage() {
+  const [services, setServices] = useState(() => serviceRepository.getPublished().map(toRenderableService));
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicServices().then((remote) => {
+      if (!active || !remote) return;
+      const synced = serviceRepository.replaceAll(remote);
+      setServices(synced.filter((service) => service.status !== 'draft' && service.status !== 'archived').map(toRenderableService));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-white">
       <Navigation currentPath="/services" />
@@ -173,7 +147,7 @@ export default function ServicesHubPage() {
                       whileHover={{ rotate: 360 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <service.icon className="text-white" size={40} />
+                      <service.iconComponent className="text-white" size={40} />
                     </motion.div>
                     
                     <h2 className="font-['Medula_One:Regular',sans-serif] text-[28px] tracking-[2.8px] uppercase text-[#273a41] group-hover:text-white transition-colors mb-4">

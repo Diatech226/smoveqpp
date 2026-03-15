@@ -1,5 +1,5 @@
 import { RUNTIME_CONFIG } from '../config/runtimeConfig';
-import type { BlogPost, MediaFile, Project } from '../domain/contentSchemas';
+import type { BlogPost, MediaFile, Project, Service } from '../domain/contentSchemas';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
 
 interface ApiEnvelope<T> {
@@ -135,6 +135,24 @@ export async function saveBackendProject(project: Project): Promise<Project> {
 
 export async function deleteBackendProject(id: string): Promise<void> {
   await request('/projects/' + id, { method: 'DELETE' });
+}
+
+
+export async function fetchBackendServices(): Promise<Service[]> {
+  const body = await request<{ services: Service[] }>('/services');
+  return body.data?.services || [];
+}
+
+export async function saveBackendService(service: Service): Promise<Service> {
+  const body = await request<{ service: Service }>('/services', {
+    method: 'POST',
+    body: JSON.stringify(service),
+  });
+  return body.data!.service;
+}
+
+export async function deleteBackendService(id: string): Promise<void> {
+  await request('/services/' + id, { method: 'DELETE' });
 }
 
 export async function fetchBackendMediaFiles(): Promise<MediaFile[]> {

@@ -25,22 +25,26 @@ import { blogRepository, BlogRepositoryError } from '../../repositories/blogRepo
 import { cmsRepository } from '../../repositories/cmsRepository';
 import { mediaRepository } from '../../repositories/mediaRepository';
 import { projectRepository } from '../../repositories/projectRepository';
+import { serviceRepository } from '../../repositories/serviceRepository';
 import { pageContentRepository } from '../../repositories/pageContentRepository';
 import { defaultHomePageContent, type HomePageContentSettings } from '../../data/pageContentSeed';
 import {
   deleteBackendBlogPost,
   deleteBackendMediaFile,
   deleteBackendProject,
+  deleteBackendService,
   fetchBackendBlogPosts,
   fetchBackendMediaFiles,
   fetchBackendPageContent,
   fetchBackendProjects,
+  fetchBackendServices,
   fetchBackendSettings,
   fetchEditorialAnalytics,
   requestWithRetry,
   saveBackendBlogPost,
   saveBackendPageContent,
   saveBackendProject,
+  saveBackendService,
   saveBackendSettings,
   transitionBackendBlogPost,
   uploadBackendMediaFile,
@@ -49,7 +53,7 @@ import {
 } from '../../utils/contentApi';
 import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
 import { isMediaReference, resolveBlogMediaReference, toMediaReference } from '../../features/blog/mediaReference';
-import type { BlogPost } from '../../domain/contentSchemas';
+import type { BlogPost, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
   AdminEmptyState,
@@ -100,6 +104,19 @@ interface ProjectFormState {
   mainImage: string;
 }
 
+interface ServiceFormState {
+  id?: string;
+  title: string;
+  slug: string;
+  description: string;
+  shortDescription: string;
+  icon: string;
+  color: string;
+  features: string;
+  status: 'draft' | 'published' | 'archived';
+  featured: boolean;
+}
+
 const EMPTY_BLOG_FORM: BlogFormState = {
   title: '',
   slug: '',
@@ -114,6 +131,18 @@ const EMPTY_BLOG_FORM: BlogFormState = {
   seoDescription: '',
   canonicalSlug: '',
   socialImage: '',
+};
+
+const EMPTY_SERVICE_FORM: ServiceFormState = {
+  title: '',
+  slug: '',
+  description: '',
+  shortDescription: '',
+  icon: 'palette',
+  color: 'from-[#00b3e8] to-[#00c0e8]',
+  features: '',
+  status: 'published',
+  featured: false,
 };
 
 const EMPTY_PROJECT_FORM: ProjectFormState = {
@@ -158,6 +187,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [projectEditorMode, setProjectEditorMode] = useState<'list' | 'create' | 'edit'>('list');
   const [projectForm, setProjectForm] = useState<ProjectFormState>(EMPTY_PROJECT_FORM);
   const [projectFormErrors, setProjectFormErrors] = useState<Partial<Record<keyof ProjectFormState, string>>>({});
+  const [services, setServices] = useState(() => serviceRepository.getAll());
+  const [servicesError, setServicesError] = useState('');
+  const [isSavingService, setIsSavingService] = useState(false);
+  const [serviceEditorMode, setServiceEditorMode] = useState<'list' | 'create' | 'edit'>('list');
+  const [serviceForm, setServiceForm] = useState<ServiceFormState>(EMPTY_SERVICE_FORM);
+  const [serviceFormErrors, setServiceFormErrors] = useState<Partial<Record<keyof ServiceFormState, string>>>({});
   const [mediaQuery, setMediaQuery] = useState('');
   const [selectedMediaId, setSelectedMediaId] = useState<string>('');
   const [mediaUploadError, setMediaUploadError] = useState('');
@@ -219,10 +254,50 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       try {
         const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
-        syncProjectsFromBackend(backendProjects);
+
+        if (backendProjects.length === 0) {
+          const localProjects = projectRepository.getAll();
+          if (localProjects.length > 0) {
+            for (const project of localProjects) {
+              await requestWithRetry(() => saveBackendProject(project), { retries: 1, retryDelayMs: 250 });
+            }
+            const hydratedProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
+            if (!active) return;
+            syncProjectsFromBackend(hydratedProjects);
+          } else {
+            syncProjectsFromBackend(backendProjects);
+          }
+        } else {
+          syncProjectsFromBackend(backendProjects);
+        }
       } catch {
         if (active) {
           setProjects(projectRepository.getAll());
+        }
+      }
+
+      try {
+        const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
+        if (!active) return;
+
+        if (backendServices.length === 0) {
+          const localServices = serviceRepository.getAll();
+          if (localServices.length > 0) {
+            for (const service of localServices) {
+              await requestWithRetry(() => saveBackendService(service), { retries: 1, retryDelayMs: 250 });
+            }
+            const hydratedServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
+            if (!active) return;
+            setServices(serviceRepository.replaceAll(hydratedServices));
+          } else {
+            setServices(serviceRepository.replaceAll(backendServices));
+          }
+        } else {
+          setServices(serviceRepository.replaceAll(backendServices));
+        }
+      } catch {
+        if (active) {
+          setServices(serviceRepository.getAll());
         }
       }
 
@@ -293,6 +368,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const menuItems = [
     { id: 'overview', label: "Vue d'ensemble", icon: LayoutDashboard },
     { id: 'projects', label: 'Projets', icon: FolderOpen },
+    { id: 'services', label: 'Services', icon: Settings },
     { id: 'blog', label: 'Blog', icon: FileText },
     { id: 'media', label: 'Médiathèque', icon: ImageIcon },
     { id: 'content', label: 'Contenus pages', icon: FileText },
@@ -753,6 +829,121 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
+  const startCreateService = () => {
+    setServiceEditorMode('create');
+    setServiceForm(EMPTY_SERVICE_FORM);
+    setServiceFormErrors({});
+    setServicesError('');
+  };
+
+  const startEditService = (service: Service) => {
+    setServiceEditorMode('edit');
+    setServiceForm({
+      id: service.id,
+      title: service.title,
+      slug: service.slug,
+      description: service.description,
+      shortDescription: service.shortDescription || '',
+      icon: service.icon,
+      color: service.color,
+      features: service.features.join('\n'),
+      status: service.status ?? 'published',
+      featured: Boolean(service.featured),
+    });
+    setServiceFormErrors({});
+    setServicesError('');
+  };
+
+  const validateServiceForm = (form: ServiceFormState) => {
+    const errors: Partial<Record<keyof ServiceFormState, string>> = {};
+    if (!form.title.trim()) errors.title = 'Le titre est requis.';
+    if (!form.description.trim()) errors.description = 'La description est requise.';
+    if (!form.icon.trim()) errors.icon = 'L’icône est requise.';
+    if (!form.color.trim()) errors.color = 'La couleur est requise.';
+    if (!form.features.trim()) errors.features = 'Ajoutez au moins une fonctionnalité.';
+    if (form.slug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
+      errors.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
+    }
+    return errors;
+  };
+
+  const resetServiceEditor = () => {
+    setServiceEditorMode('list');
+    setServiceForm(EMPTY_SERVICE_FORM);
+    setServiceFormErrors({});
+  };
+
+  const saveService = async () => {
+    const errors = validateServiceForm(serviceForm);
+    setServiceFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setServicesError('Veuillez corriger les erreurs du service avant d’enregistrer.');
+      return;
+    }
+
+    setIsSavingService(true);
+    setServicesError('');
+
+    const payload: Service = {
+      id: serviceForm.id || `service-${Date.now()}`,
+      title: serviceForm.title.trim(),
+      slug: serviceForm.slug.trim() || serviceForm.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+      description: serviceForm.description.trim(),
+      shortDescription: serviceForm.shortDescription.trim() || undefined,
+      icon: serviceForm.icon.trim(),
+      color: serviceForm.color.trim(),
+      features: serviceForm.features.split('\n').map((entry) => entry.trim()).filter(Boolean),
+      status: serviceForm.status,
+      featured: serviceForm.featured,
+    };
+
+    try {
+      await requestWithRetry(() => saveBackendService(payload), { retries: 1, retryDelayMs: 250 });
+      const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
+      setServices(serviceRepository.replaceAll(backendServices));
+      showSuccess(serviceEditorMode === 'create' ? 'Service créé avec succès.' : 'Service mis à jour avec succès.');
+      resetServiceEditor();
+    } catch {
+      try {
+        serviceRepository.save(payload);
+        setServices(serviceRepository.getAll());
+        showSuccess(serviceEditorMode === 'create' ? 'Service créé localement (backend indisponible).' : 'Service mis à jour localement (backend indisponible).');
+      } catch {
+        setServicesError('Enregistrement du service impossible. Réessayez.');
+      }
+    } finally {
+      setIsSavingService(false);
+    }
+  };
+
+  const deleteService = async (serviceId: string, serviceTitle: string) => {
+    if (!canDeleteContent) {
+      setServicesError('Suppression non autorisée: rôle administrateur requis.');
+      return;
+    }
+
+    if (!window.confirm(`Supprimer définitivement le service "${serviceTitle}" ?`)) {
+      return;
+    }
+
+    try {
+      await requestWithRetry(() => deleteBackendService(serviceId), { retries: 1, retryDelayMs: 250 });
+      const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
+      setServices(serviceRepository.replaceAll(backendServices));
+      if (serviceForm.id === serviceId) resetServiceEditor();
+      showSuccess('Service supprimé.');
+    } catch {
+      try {
+        serviceRepository.delete(serviceId);
+        setServices(serviceRepository.getAll());
+        if (serviceForm.id === serviceId) resetServiceEditor();
+        showSuccess('Service supprimé localement (backend indisponible).');
+      } catch {
+        setServicesError('Suppression impossible. Réessayez.');
+      }
+    }
+  };
 
   const handleMediaUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -917,6 +1108,92 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               <Save size={16} /> {isSavingProject ? 'Enregistrement...' : 'Enregistrer'}
             </button>
             <button onClick={resetProjectEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
+              Annuler
+            </button>
+          </AdminActionBar>
+        </div>
+      </AdminPanel>
+    );
+  };
+
+  const renderServiceForm = () => {
+    const title = serviceEditorMode === 'create' ? 'Créer un service' : 'Modifier un service';
+
+    return (
+      <AdminPanel title={title}>
+        <div className="space-y-4">
+          {(['title', 'slug', 'icon', 'color'] as const).map((fieldKey) => (
+            <label key={fieldKey} className="block">
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <input
+                value={serviceForm[fieldKey]}
+                onChange={(event) => setServiceForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
+                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              />
+              {serviceFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors[fieldKey]}</p> : null}
+            </label>
+          ))}
+
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Description courte (optionnel)</span>
+            <input
+              value={serviceForm.shortDescription}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, shortDescription: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Description</span>
+            <textarea
+              value={serviceForm.description}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, description: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {serviceFormErrors.description ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.description}</p> : null}
+          </label>
+
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Fonctionnalités (une ligne par item)</span>
+            <textarea
+              value={serviceForm.features}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, features: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {serviceFormErrors.features ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.features}</p> : null}
+          </label>
+
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Statut</span>
+            <select
+              value={serviceForm.status}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, status: event.target.value as ServiceFormState['status'] }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            >
+              <option value="draft">Brouillon</option>
+              <option value="published">Publié</option>
+              <option value="archived">Archivé</option>
+            </select>
+          </label>
+
+          <label className="inline-flex items-center gap-2 text-[14px] text-[#6f7f85]">
+            <input
+              type="checkbox"
+              checked={serviceForm.featured}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, featured: event.target.checked }))}
+            />
+            Service mis en avant
+          </label>
+
+          <AdminActionBar>
+            <button
+              onClick={saveService}
+              disabled={isSavingService}
+              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
+            >
+              <Save size={16} /> {isSavingService ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+            <button onClick={resetServiceEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
               Annuler
             </button>
           </AdminActionBar>
@@ -1195,6 +1472,60 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       </button>
                       <button
                         onClick={() => deleteProject(project.id, project.title)}
+                        disabled={!canDeleteContent}
+                        className="px-3 py-2 border border-red-200 text-red-600 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <Trash2 size={15} /> Supprimer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </AdminPanel>
+        </div>
+      );
+    }
+
+    if (currentSection === 'services') {
+      return (
+        <div className="space-y-6">
+          <AdminPageHeader
+            title="Gestion des services"
+            subtitle="Liste, édition et publication de vos services."
+            actions={
+              <button
+                onClick={startCreateService}
+                className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif]"
+              >
+                Nouveau service
+              </button>
+            }
+          />
+
+          {servicesError ? <AdminErrorState label={servicesError} /> : null}
+          {serviceEditorMode !== 'list' ? renderServiceForm() : null}
+
+          <AdminPanel title="Services">
+            {services.length === 0 ? (
+              <AdminEmptyState label="Aucun service trouvé. Créez votre premier service pour commencer." />
+            ) : (
+              <div className="space-y-3">
+                {services.map((service) => (
+                  <div key={service.id} className="rounded-[12px] border border-[#eef3f5] px-4 py-3 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{service.title}</p>
+                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">/{service.slug}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[12px] px-2 py-1 rounded-full ${service.status === 'published' ? 'bg-green-50 text-green-700' : service.status === 'archived' ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'}`}>
+                        {service.status === 'published' ? 'Publié' : service.status === 'archived' ? 'Archivé' : 'Brouillon'}
+                      </span>
+                      <button onClick={() => startEditService(service)} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2">
+                        <Pencil size={15} /> Modifier
+                      </button>
+                      <button
+                        onClick={() => deleteService(service.id, service.title)}
                         disabled={!canDeleteContent}
                         className="px-3 py-2 border border-red-200 text-red-600 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-50"
                       >

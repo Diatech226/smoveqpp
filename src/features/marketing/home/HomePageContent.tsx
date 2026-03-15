@@ -1,46 +1,15 @@
 import { motion } from 'motion/react';
-import { useMemo } from 'react';
-import { Palette, Code, Megaphone, Video, Box, ArrowRight, Calendar, User } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Calendar, User } from 'lucide-react';
 import Hero3DEnhanced from '../../../components/Hero3DEnhanced';
 import Footer from '../../../components/Footer';
 import ProjectsSection from '../../../components/ProjectsSection';
 import { ImageWithFallback } from '../../../components/figma/ImageWithFallback';
 import { pageContentRepository } from '../../../repositories/pageContentRepository';
 import { resolveBlogMediaReference } from '../../blog/mediaReference';
-
-const servicesData = [
-  {
-    icon: Palette,
-    title: 'Design & Branding',
-    description:
-      "Création d'interfaces immersives, animations 3D et expériences interactives, de logo et d'identité visuels.",
-    color: 'from-[#00b3e8] to-[#00c0e8]',
-  },
-  {
-    icon: Code,
-    title: 'Développement Web & Mobile',
-    description: 'Applications web modernes, rapides et sécurisées, adaptées à vos besoins métiers.',
-    color: 'from-[#34c759] to-[#2da84a]',
-  },
-  {
-    icon: Megaphone,
-    title: 'Communication Digitale',
-    description: 'Stratégie de contenu, visibilité en ligne, branding et storytelling digital.',
-    color: 'from-[#ffc247] to-[#ff9f47]',
-  },
-  {
-    icon: Video,
-    title: 'Production Vidéo',
-    description: 'Création de vidéos professionnelles pour vos campagnes marketing et événements.',
-    color: 'from-[#ff6b6b] to-[#ee5a6f]',
-  },
-  {
-    icon: Box,
-    title: 'Création 3D',
-    description: 'Modélisation 3D, animations et expériences immersives pour vos projets.',
-    color: 'from-[#a855f7] to-[#9333ea]',
-  },
-];
+import { serviceRepository } from '../../../repositories/serviceRepository';
+import { toRenderableService } from '../serviceCatalog';
+import { fetchPublicServices } from '../../../utils/publicContentApi';
 
 const blogPosts = [
   {
@@ -78,6 +47,19 @@ const blogPosts = [
 function HomePageContent() {
   const homeContent = useMemo(() => pageContentRepository.getHomePageContent(), []);
   const aboutMedia = resolveBlogMediaReference(homeContent.aboutImage, 'SMOVE Team');
+  const [servicesData, setServicesData] = useState(() => serviceRepository.getPublished().map(toRenderableService));
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicServices().then((remote) => {
+      if (!active || !remote) return;
+      const synced = serviceRepository.replaceAll(remote);
+      setServicesData(synced.filter((service) => service.status !== 'draft' && service.status !== 'archived').map(toRenderableService));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="relative" style={{ position: 'relative' }}>
