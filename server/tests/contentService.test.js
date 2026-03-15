@@ -72,3 +72,60 @@ describe('ContentService blog persistence', () => {
     expect(service.transitionBlogStatus('draft-1', 'published').ok).toBe(true);
   });
 });
+
+
+describe('ContentService project persistence', () => {
+  it('creates and updates projects with normalized slug/status contract', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const created = service.saveProject({
+      id: 'project-cms-1',
+      title: 'Projet CMS Démo',
+      slug: '',
+      client: 'Client Démo',
+      category: 'Web',
+      year: '2026',
+      summary: 'Résumé court',
+      description: 'Description complète',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: ['Résultat 1'],
+      tags: ['cms'],
+      mainImage: 'image projet',
+      images: [],
+      status: 'published',
+    });
+
+    expect(created.ok).toBe(true);
+    expect(created.project.slug).toBe('projet-cms-demo');
+
+    const updated = service.saveProject({ ...created.project, title: 'Projet CMS Démo MAJ' });
+    expect(updated.ok).toBe(true);
+
+    const listed = service.listProjects();
+    expect(listed).toHaveLength(1);
+    expect(listed[0].title).toBe('Projet CMS Démo MAJ');
+  });
+
+  it('rejects invalid project payloads', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-invalid',
+      title: '',
+      client: '',
+      category: '',
+      year: '2026',
+      description: '',
+      challenge: '',
+      solution: '',
+      results: [],
+      tags: [],
+      mainImage: '',
+      images: [],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('PROJECT_VALIDATION_ERROR');
+  });
+});

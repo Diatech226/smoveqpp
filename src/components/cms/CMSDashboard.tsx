@@ -48,6 +48,7 @@ import {
   saveBackendSettings,
   transitionBackendBlogPost,
   uploadBackendMediaFile,
+  ContentApiError,
   type CmsSettings,
   type EditorialAnalytics,
 } from '../../utils/contentApi';
@@ -182,6 +183,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [settingsValues, setSettingsValues] = useState<CmsSettings>({ siteTitle: 'SMOVE', supportEmail: 'contact@smove.africa', instantPublishing: true });
 
   const [projects, setProjects] = useState(() => projectRepository.getAll());
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [projectsError, setProjectsError] = useState('');
   const [isSavingProject, setIsSavingProject] = useState(false);
   const [projectEditorMode, setProjectEditorMode] = useState<'list' | 'create' | 'edit'>('list');
@@ -252,6 +254,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       }
 
       try {
+        setProjectsLoading(true);
         const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
 
@@ -273,7 +276,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       } catch {
         if (active) {
           setProjects(projectRepository.getAll());
+          setProjectsError('Backend indisponible, données locales affichées temporairement.');
         }
+      } finally {
+        if (active) setProjectsLoading(false);
       }
 
       try {
@@ -726,10 +732,35 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       errors.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
     }
     if (!form.category.trim()) errors.category = 'La catégorie est requise.';
+    if (form.year.trim() && !/^\d{4}$/.test(form.year.trim())) {
+      errors.year = 'L’année doit être sur 4 chiffres (ex: 2026).';
+    }
     if (!form.description.trim()) errors.description = 'La description est requise.';
     if (!form.challenge.trim()) errors.challenge = 'Le challenge est requis.';
     if (!form.solution.trim()) errors.solution = 'La solution est requise.';
     return errors;
+  };
+
+  const mapProjectSaveError = (error: unknown) => {
+    if (error instanceof ContentApiError) {
+      if (error.status === 403) return 'Création/mise à jour non autorisée pour votre rôle.';
+      if (error.code === 'PROJECT_VALIDATION_ERROR') return 'Le projet ne respecte pas le format attendu par le backend.';
+      return `Sauvegarde impossible (${error.message}).`;
+    }
+    return 'Sauvegarde impossible. Vérifiez votre connexion puis réessayez.';
+  };
+
+  const loadProjectsFromBackend = async () => {
+    setProjectsLoading(true);
+    setProjectsError('');
+    try {
+      const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
+      syncProjectsFromBackend(backendProjects);
+    } catch {
+      setProjectsError('Impossible de charger les projets depuis le backend.');
+    } finally {
+      setProjectsLoading(false);
+    }
   };
 
   const syncProjectsFromBackend = (backendProjects: Awaited<ReturnType<typeof fetchBackendProjects>>) => {
@@ -744,6 +775,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const saveProject = async () => {
+    if (!canEditContent) {
+      setProjectsError('Création/mise à jour non autorisée pour votre rôle.');
+      return;
+    }
+
     const errors = validateProjectForm(projectForm);
     setProjectFormErrors(errors);
 
@@ -758,7 +794,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     const payload = {
       id: projectForm.id || `project-${Date.now()}`,
       title: projectForm.title.trim(),
-      slug: projectForm.slug.trim() || undefined,
+      slug: normalizeSlug(projectForm.slug, projectForm.title),
       summary: projectForm.summary.trim() || undefined,
       client: projectForm.client.trim(),
       category: projectForm.category.trim(),
@@ -780,17 +816,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       syncProjectsFromBackend(backendProjects);
       showSuccess(projectEditorMode === 'create' ? 'Projet créé avec succès.' : 'Projet mis à jour avec succès.');
       resetProjectEditor();
-    } catch {
-      try {
-        projectRepository.save(payload);
-        setProjects(projectRepository.getAll());
-        showSuccess(projectEditorMode === 'create' ? 'Projet créé localement (backend indisponible).' : 'Projet mis à jour localement (backend indisponible).');
-      } catch (error) {
-        const message = error instanceof Error && error.message.includes('slug')
-          ? 'Slug déjà utilisé, veuillez en choisir un autre.'
-          : 'Enregistrement du projet impossible. Réessayez.';
-        setProjectsError(message);
-      }
+    } catch (error) {
+      setProjectsError(mapProjectSaveError(error));
     } finally {
       setIsSavingProject(false);
     }
@@ -815,17 +842,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         resetProjectEditor();
       }
       showSuccess('Projet supprimé.');
-    } catch {
-      try {
-        projectRepository.delete(projectId);
-        setProjects(projectRepository.getAll());
-        if (projectForm.id === projectId) {
-          resetProjectEditor();
-        }
-        showSuccess('Projet supprimé localement (backend indisponible).');
-      } catch {
-        setProjectsError('Suppression impossible. Réessayez.');
+    } catch (error) {
+      if (error instanceof ContentApiError && error.status === 403) {
+        setProjectsError('Suppression non autorisée: rôle administrateur requis.');
+        return;
       }
+      setProjectsError('Suppression impossible. Vérifiez votre connexion puis réessayez.');
     }
   };
 
@@ -1016,7 +1038,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     return (
       <AdminPanel title={title}>
-        <div className="space-y-4">
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveProject();
+          }}
+        >
           {(['title', 'slug', 'client', 'category', 'year', 'mainImage'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
@@ -1101,17 +1129,17 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           </label>
           <AdminActionBar>
             <button
-              onClick={saveProject}
+              type="submit"
               disabled={isSavingProject}
               className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
             >
-              <Save size={16} /> {isSavingProject ? 'Enregistrement...' : 'Enregistrer'}
+              <Save size={16} /> {isSavingProject ? 'Enregistrement...' : projectEditorMode === 'create' ? 'Créer le projet' : 'Enregistrer'}
             </button>
-            <button onClick={resetProjectEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
+            <button type="button" onClick={resetProjectEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
               Annuler
             </button>
           </AdminActionBar>
-        </div>
+        </form>
       </AdminPanel>
     );
   };
@@ -1441,9 +1469,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             actions={
               <button
                 onClick={startCreateProject}
-                className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif]"
+                disabled={!canEditContent}
+                className="bg-[#00b3e8] text-white rounded-[12px] px-4 py-2 font-['Abhaya_Libre:Bold',sans-serif] disabled:opacity-60"
               >
-                Nouveau projet
+                Create Project
               </button>
             }
           />
@@ -1452,9 +1481,22 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {projectEditorMode !== 'list' ? renderProjectForm() : null}
 
           <AdminPanel title="Projets récents">
-            {projects.length === 0 ? (
+            {projectsLoading ? <AdminLoadingState label="Chargement des projets..." /> : null}
+            {!projectsLoading ? (
+              <div className="mb-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void loadProjectsFromBackend()}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-[14px] border border-[#d8e4e8] rounded-[10px] text-[#273a41]"
+                >
+                  <RotateCcw size={15} /> Rafraîchir
+                </button>
+              </div>
+            ) : null}
+            {!projectsLoading && projects.length === 0 ? (
               <AdminEmptyState label="Aucun projet trouvé. Créez votre premier projet pour commencer." />
-            ) : (
+            ) : null}
+            {!projectsLoading && projects.length > 0 ? (
               <div className="space-y-3">
                 {projects.map((project) => (
                   <div key={project.id} className="rounded-[12px] border border-[#eef3f5] px-4 py-3 flex items-center justify-between gap-4">
@@ -1481,7 +1523,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
           </AdminPanel>
         </div>
       );

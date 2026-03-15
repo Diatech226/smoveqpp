@@ -9,6 +9,7 @@ Last updated: 2026-03-14 (iteration: operational durability hardening)
 ### Latest iteration progress (Projects CMS CRUD hardening)
 - Stabilized the Projects canonical model with slug/status/featured/timestamps normalization across frontend repository and backend content service.
 - Completed Projects CMS workflow reliability: create/edit/delete with stronger validation feedback, slug conflict safety, status controls, and offline-local fallback messaging.
+- Completed Projects CMS workflow reliability: visible "Create Project" header action, form submit/save controls, explicit validation/error feedback, and backend-authoritative create/update/delete list refresh.
 - Aligned public Projects rendering to CMS-managed source-of-truth by consuming published projects only, with defensive fallbacks for missing summary/tags/gallery data.
 
 - Added schema-versioned content store normalization (`schemaVersion`, `migrationHistory`) so legacy content upgrades are explicit and replayable on read/write.
