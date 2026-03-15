@@ -1,12 +1,12 @@
-import { AuthProvider, useAuth } from '../../src/contexts/AuthContext';
+import { AuthProvider, useAuth } from './srcBridge/AuthContext';
 import CMSLoginPage from './CMSLoginPage';
 import CMSRegisterPage from './CMSRegisterPage';
-import CMSDashboard from '../../src/components/cms/CMSDashboard';
-import CMSAppShell from '../../src/components/cms/CMSAppShell';
-import SecurityStatePage from '../../src/features/app-shell/SecurityStatePage';
-import { AppLoadingState } from '../../src/features/app-shell/AppStatusState';
-import AppErrorBoundary from '../../src/features/app-shell/AppErrorBoundary';
-import SectionErrorBoundary from '../../src/features/app-shell/SectionErrorBoundary';
+import { CMSDashboard } from './srcBridge/CMSDashboard';
+import CMSAppShell from './components/cms/CMSAppShell';
+import { SecurityStatePage } from './srcBridge/SecurityStatePage';
+import { AppLoadingState } from './srcBridge/AppStatusState';
+import AppErrorBoundary from './components/app-shell/AppErrorBoundary';
+import SectionErrorBoundary from './components/app-shell/SectionErrorBoundary';
 import CMSAccountPage from './CMSAccountPage';
 import { useCmsNavigation } from './cmsRouting';
 

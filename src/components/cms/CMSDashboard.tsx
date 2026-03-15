@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import {
   LayoutDashboard,
   FileText,
@@ -1525,14 +1524,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
   return (
     <div className="min-h-screen bg-[#f5f9fa] flex">
-      <motion.aside
+      <aside
         className={`fixed left-0 top-0 h-full bg-white shadow-xl z-50 ${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300`}
-        initial={{ x: -100 }}
-        animate={{ x: 0 }}
       >
         <div className="p-6 border-b border-[#eef3f5] flex items-center justify-between">
           {sidebarOpen && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-r from-[#00b3e8] to-[#34c759] rounded-[10px] flex items-center justify-center">
                 <span className="text-white font-['ABeeZee:Regular',sans-serif] text-[20px]">S</span>
               </div>
@@ -1540,7 +1537,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 <h2 className="font-['ABeeZee:Regular',sans-serif] text-[18px] text-[#273a41]">SMOVE</h2>
                 <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">CMS Admin</p>
               </div>
-            </motion.div>
+            </div>
           )}
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-[#f5f9fa] rounded-[8px] transition-colors">
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
@@ -1553,43 +1550,39 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               <span className="text-white font-['Abhaya_Libre:Bold',sans-serif] text-[16px]">{user?.name?.charAt(0) ?? 'A'}</span>
             </div>
             {sidebarOpen && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0">
                 <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-[#273a41] truncate">{user?.name}</p>
                 <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4] truncate">{user?.email}</p>
-              </motion.div>
+              </div>
             )}
           </div>
         </div>
 
         <nav className="p-4 space-y-2">
           {menuItems.map((item) => (
-            <motion.button
+            <button
               key={item.id}
               onClick={() => handleSectionChange(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all ${
                 currentSection === item.id ? 'bg-[#00b3e8] text-white' : 'text-[#273a41] hover:bg-[#f5f9fa]'
               }`}
-              whileHover={{ x: 5 }}
-              whileTap={{ scale: 0.95 }}
             >
               <item.icon size={20} />
               {sidebarOpen && <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px]">{item.label}</span>}
-            </motion.button>
+            </button>
           ))}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#eef3f5]">
-          <motion.button
+          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] text-red-500 hover:bg-red-50 transition-colors"
-            whileHover={{ x: 5 }}
-            whileTap={{ scale: 0.95 }}
           >
             <LogOut size={20} />
             {sidebarOpen && <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px]">Déconnexion</span>}
-          </motion.button>
+          </button>
         </div>
-      </motion.aside>
+      </aside>
 
       <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
         <header className="bg-white border-b border-[#eef3f5] px-8 py-6 sticky top-0 z-40">
@@ -1612,13 +1605,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {stats.map((stat, index) => (
-                  <motion.div
+                  <div
                     key={index}
                     className="bg-white rounded-[20px] p-6 shadow-sm"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ y: -5, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className={`w-12 h-12 rounded-[12px] bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
@@ -1628,38 +1617,33 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     </div>
                     <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[32px] text-[#273a41] mb-1">{stat.value}</h3>
                     <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">{stat.label}</p>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {[['projects', 'Nouveau Projet', 'Ajouter un projet', 'from-[#00b3e8] to-[#00c0e8]'], ['blog', 'Nouvel Article', 'Rédiger un article', 'from-[#a855f7] to-[#9333ea]'], ['media', 'Upload Média', 'Ajouter des fichiers', 'from-[#ffc247] to-[#ff9f47]']].map(([id, title, subtitle, color]) => (
-                  <motion.button
+                  <button
                     key={id}
                     onClick={() => handleSectionChange(id)}
                     className={`bg-gradient-to-r ${color} text-white p-6 rounded-[20px] flex items-center justify-between group`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                   >
                     <div className="text-left">
                       <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">{title}</p>
                       <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">{subtitle}</p>
                     </div>
                     <Plus className="group-hover:rotate-90 transition-transform" size={32} />
-                  </motion.button>
+                  </button>
                 ))}
               </div>
 
-              <motion.div className="bg-white rounded-[20px] p-6 shadow-sm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="bg-white rounded-[20px] p-6 shadow-sm">
                 <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-6">Activité Récente</h3>
                 <div className="space-y-4">
                   {recentActivity.map((activity, index) => (
-                    <motion.div
+                    <div
                       key={index}
                       className="flex items-center gap-4 p-4 rounded-[12px] hover:bg-[#f5f9fa] transition-colors"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
                     >
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                         activity.type === 'project'
@@ -1675,10 +1659,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                         <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">{activity.item}</p>
                       </div>
                       <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">{activity.time}</span>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             </>
           ) : (
             renderSectionContent()
