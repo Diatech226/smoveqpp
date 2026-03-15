@@ -13,7 +13,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
   const { user, isAuthenticated, cmsEnabled, canAccessCMS, registrationEnabled } = useAuth();
   const currentHash = window.location.hash.slice(1) || 'home';
   const showAuthActions = cmsEnabled && !isAuthenticated;
-  const showDashboardAction = cmsEnabled && canAccessCMS;
+  const showCMSAction = cmsEnabled && canAccessCMS;
   const showAccountAction = isAuthenticated && !canAccessCMS;
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string, sectionId?: string) => {
@@ -160,15 +160,15 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                   </motion.a>
                 )}
 
-                {showDashboardAction && (
+                {showCMSAction && (
                   <motion.a
-                    href="#cms-dashboard"
+                    href="#cms"
                     className="flex items-center gap-2 bg-gradient-to-r from-[#a855f7] to-[#9333ea] text-white px-5 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px] hover:shadow-lg transition-shadow"
                     whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(168, 85, 247, 0.3)' }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <LayoutDashboard size={20} />
-                    Dashboard
+                    CMS
                   </motion.a>
                 )}
               </>
@@ -262,14 +262,14 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                     <span>Mon compte</span>
                   </a>
                 )}
-                {showDashboardAction && (
+                {showCMSAction && (
                   <a
-                    href="#cms-dashboard"
+                    href="#cms"
                     className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-[#a855f7] border-2 border-[#a855f7] font-['Abhaya_Libre:Bold',sans-serif]"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <LayoutDashboard size={20} />
-                    <span>Dashboard</span>
+                    <span>CMS</span>
                   </a>
                 )}
               </>

@@ -63,11 +63,11 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   router.use(requireAuthenticated);
 
   router.get('/blog', requirePermission(Permissions.CONTENT_READ), (req, res) => {
-    return sendSuccess(res, { posts: contentService.listBlogPosts() });
+    return sendSuccess(res, 200, { posts: contentService.listBlogPosts() });
   });
 
   router.get('/analytics', requirePermission(Permissions.CONTENT_READ), (req, res) => {
-    return sendSuccess(res, { analytics: contentService.getAnalytics() });
+    return sendSuccess(res, 200, { analytics: contentService.getAnalytics() });
   });
 
   router.post('/blog', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
@@ -79,14 +79,14 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     }
     logInfo('cms_blog_saved', { requestId: req.requestId, userId: req.session?.userId ?? null, postId: result.post.id });
     auditService?.record(toAuditContext(req, 'cms_blog_save', 'success', { entityType: 'blog_post', entityId: result.post.id }));
-    return sendSuccess(res, { post: result.post });
+    return sendSuccess(res, 200, { post: result.post });
   });
 
   router.delete('/blog/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     contentService.deleteBlogPost(req.params.id);
     logInfo('cms_blog_deleted', { requestId: req.requestId, userId: req.session?.userId ?? null, postId: req.params.id });
     auditService?.record(toAuditContext(req, 'cms_blog_delete', 'success', { entityType: 'blog_post', entityId: req.params.id }));
-    return sendSuccess(res, { deleted: true });
+    return sendSuccess(res, 200, { deleted: true });
   });
 
   router.post('/blog/:id/transition', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
@@ -119,11 +119,11 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       entityId: req.params.id,
       metadata: { targetStatus: status },
     }));
-    return sendSuccess(res, { post: result.post });
+    return sendSuccess(res, 200, { post: result.post });
   });
 
   router.get('/projects', requirePermission(Permissions.CONTENT_READ), (req, res) =>
-    sendSuccess(res, { projects: contentService.listProjects() }));
+    sendSuccess(res, 200, { projects: contentService.listProjects() }));
 
   router.post('/projects', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const result = contentService.saveProject(req.body);
@@ -133,17 +133,17 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 400, result.error.code, result.error.message);
     }
     auditService?.record(toAuditContext(req, 'cms_project_save', 'success', { entityType: 'project', entityId: result.project.id }));
-    return sendSuccess(res, { project: result.project });
+    return sendSuccess(res, 200, { project: result.project });
   });
 
   router.delete('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     contentService.deleteProject(req.params.id);
     auditService?.record(toAuditContext(req, 'cms_project_delete', 'success', { entityType: 'project', entityId: req.params.id }));
-    return sendSuccess(res, { deleted: true });
+    return sendSuccess(res, 200, { deleted: true });
   });
 
   router.get('/media', requirePermission(Permissions.CONTENT_READ), (req, res) =>
-    sendSuccess(res, { mediaFiles: contentService.listMediaFiles() }));
+    sendSuccess(res, 200, { mediaFiles: contentService.listMediaFiles() }));
 
   router.post('/media/upload', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const parsed = parseUploadPayload(req.body || {});
@@ -199,7 +199,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       entityId: stored.file.id,
       metadata: { mimeType: stored.file.mimeType, size: stored.file.size },
     }));
-    return sendSuccess(res, { mediaFile: saved.mediaFile });
+    return sendSuccess(res, 200, { mediaFile: saved.mediaFile });
   });
 
   router.post('/media', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
@@ -210,17 +210,17 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 400, result.error.code, result.error.message);
     }
     auditService?.record(toAuditContext(req, 'cms_media_save', 'success', { entityType: 'media_asset', entityId: result.mediaFile.id }));
-    return sendSuccess(res, { mediaFile: result.mediaFile });
+    return sendSuccess(res, 200, { mediaFile: result.mediaFile });
   });
 
   router.delete('/media/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     contentService.deleteMediaFile(req.params.id);
     auditService?.record(toAuditContext(req, 'cms_media_delete', 'success', { entityType: 'media_asset', entityId: req.params.id }));
-    return sendSuccess(res, { deleted: true });
+    return sendSuccess(res, 200, { deleted: true });
   });
 
   router.get('/page-content', requirePermission(Permissions.CONTENT_READ), (req, res) =>
-    sendSuccess(res, { pageContent: contentService.getPageContent() }));
+    sendSuccess(res, 200, { pageContent: contentService.getPageContent() }));
 
   router.post('/page-content', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const result = contentService.savePageContent(req.body);
@@ -230,11 +230,11 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 400, result.error.code, result.error.message);
     }
     auditService?.record(toAuditContext(req, 'cms_page_content_save', 'success', { entityType: 'page_content', entityId: 'home' }));
-    return sendSuccess(res, { pageContent: result.pageContent });
+    return sendSuccess(res, 200, { pageContent: result.pageContent });
   });
 
   router.get('/settings', requirePermission(Permissions.CONTENT_READ), (req, res) =>
-    sendSuccess(res, { settings: contentService.getSettings() }));
+    sendSuccess(res, 200, { settings: contentService.getSettings() }));
 
   router.post('/settings', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const result = contentService.saveSettings(req.body);
@@ -244,12 +244,12 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 400, result.error.code, result.error.message);
     }
     auditService?.record(toAuditContext(req, 'cms_settings_save', 'success', { entityType: 'cms_settings', entityId: 'global' }));
-    return sendSuccess(res, { settings: result.settings });
+    return sendSuccess(res, 200, { settings: result.settings });
   });
 
   router.get('/admin/audit-events', requirePermission(Permissions.USER_MANAGE), (req, res) => {
     const events = auditService?.list({ limit: req.query?.limit }) || [];
-    return sendSuccess(res, { events });
+    return sendSuccess(res, 200, { events });
   });
 
   return router;

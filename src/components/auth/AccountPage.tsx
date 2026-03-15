@@ -119,7 +119,7 @@ export default function AccountPage() {
 
             {canAccessCMS && (
               <a
-                href="#cms-dashboard"
+                href="#cms"
                 className="mt-8 inline-flex items-center gap-2 bg-gradient-to-r from-[#a855f7] to-[#9333ea] text-white px-5 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif]"
               >
                 <ShieldCheck size={18} />

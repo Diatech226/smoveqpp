@@ -20,10 +20,11 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
 
   if (isCmsRoute(route)) {
     const page = resolveCmsRouteGuard(auth);
+    const normalizedHash = page === 'cms-dashboard' ? 'cms' : page;
     return {
       page,
       sectionToScroll: null,
-      normalizedHash: page,
+      normalizedHash,
     };
   }
 

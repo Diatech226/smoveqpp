@@ -11,6 +11,7 @@ import LoginPage from '../../components/auth/LoginPage';
 import RegisterPage from '../../components/auth/RegisterPage';
 import AccountPage from '../../components/auth/AccountPage';
 import CMSDashboard from '../../components/cms/CMSDashboard';
+import CMSAppShell from '../../components/cms/CMSAppShell';
 import APropos from '../../imports/APropos';
 import HomePageContent from '../marketing/home/HomePageContent';
 import type { ResolvedPage } from '../../app-routing/navigationTypes';
@@ -76,9 +77,11 @@ export default function AppPageRenderer({
 
   if (currentPage === 'cms-dashboard') {
     return (
-      <SectionErrorBoundary scope="cms-dashboard">
-        <CMSDashboard currentSection={cmsSection} onSectionChange={onCmsSectionChange} />
-      </SectionErrorBoundary>
+      <CMSAppShell>
+        <SectionErrorBoundary scope="cms-dashboard">
+          <CMSDashboard currentSection={cmsSection} onSectionChange={onCmsSectionChange} />
+        </SectionErrorBoundary>
+      </CMSAppShell>
     );
   }
 
