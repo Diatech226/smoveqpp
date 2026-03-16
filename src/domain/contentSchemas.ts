@@ -112,17 +112,17 @@ export const isBlogPost = (value: unknown): value is BlogPost => {
   return (
     isString(v.id) &&
     isString(v.title) &&
-    isString(v.slug) &&
-    isString(v.excerpt) &&
-    isString(v.content) &&
-    isString(v.author) &&
-    isString(v.authorRole) &&
-    isString(v.category) &&
-    isStringArray(v.tags) &&
-    isString(v.publishedDate) &&
-    isString(v.readTime) &&
+    typeof v.slug === 'string' &&
+    typeof v.excerpt === 'string' &&
+    typeof v.content === 'string' &&
+    typeof v.author === 'string' &&
+    typeof v.authorRole === 'string' &&
+    typeof v.category === 'string' &&
+    Array.isArray(v.tags) && v.tags.every((item) => typeof item === 'string') &&
+    typeof v.publishedDate === 'string' &&
+    typeof v.readTime === 'string' &&
     isString(v.featuredImage) &&
-    isStringArray(v.images) &&
+    Array.isArray(v.images) && v.images.every((item) => typeof item === 'string') &&
     (v.status === 'published' || v.status === 'draft' || v.status === 'in_review' || v.status === 'archived') &&
     (seo === undefined ||
       (typeof seo === 'object' &&
@@ -174,16 +174,16 @@ export const isProject = (value: unknown): value is Project => {
   return (
     isString(v.id) &&
     isString(v.title) &&
-    isString(v.client) &&
-    isString(v.category) &&
-    isString(v.year) &&
-    isString(v.description) &&
-    isString(v.challenge) &&
-    isString(v.solution) &&
-    isStringArray(v.results) &&
-    isStringArray(v.tags) &&
+    typeof v.client === 'string' &&
+    typeof v.category === 'string' &&
+    typeof v.year === 'string' &&
+    typeof v.description === 'string' &&
+    typeof v.challenge === 'string' &&
+    typeof v.solution === 'string' &&
+    Array.isArray(v.results) && v.results.every((item) => typeof item === 'string') &&
+    Array.isArray(v.tags) && v.tags.every((item) => typeof item === 'string') &&
     isString(v.mainImage) &&
-    isStringArray(v.images) &&
+    Array.isArray(v.images) && v.images.every((item) => typeof item === 'string') &&
     (v.slug === undefined || isString(v.slug)) &&
     (v.summary === undefined || isString(v.summary)) &&
     (v.featuredImage === undefined || isString(v.featuredImage)) &&

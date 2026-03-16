@@ -259,3 +259,5 @@ This sequencing minimizes production risk while preserving current product momen
 - Legacy projects with only `mainImage` continue to render via `featuredImage` normalization.
 - Missing summary/excerpt/category fields continue to receive safe canonical fallbacks.
 - Missing media still resolves to safe placeholder queries (`blog article image`, `project cover image`) without UI redesign.
+
+- Relaxed Projects and Blog CMS validation contract to require only **title + featured image** for save paths (slug stays auto-generated), while optional fields now flow with safe defaults through CMS forms, repositories, backend validation, and public rendering adapters to prevent save blocking and keep CMS/public synchronization stable.

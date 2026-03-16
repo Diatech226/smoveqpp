@@ -66,7 +66,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     sendSuccess(res, 200, {
       posts: contentService
         .listBlogPosts()
-        .filter((post) => post.status === 'published' && post.title?.trim() && post.slug?.trim() && post.excerpt?.trim() && post.content?.trim()),
+        .filter((post) => post.status === 'published' && post.title?.trim() && post.slug?.trim() && post.featuredImage?.trim()),
     }));
 
   router.use(requireAuthenticated);

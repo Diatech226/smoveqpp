@@ -79,6 +79,26 @@ describe('blogContentService', () => {
     expect(getBlogContentContract().posts.some((entry) => entry.slug === 'archived-1')).toBe(false);
   });
 
+
+  it('keeps published posts visible in public contract with optional fields empty', () => {
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({
+      ...seed,
+      id: 'published-minimal',
+      title: 'Publié minimal',
+      slug: 'publie-minimal',
+      excerpt: '',
+      content: '',
+      author: '',
+      category: '',
+      featuredImage: 'published minimal image',
+      status: 'published',
+    });
+
+    const contract = getBlogContentContract();
+    expect(contract.posts.some((post) => post.slug === 'publie-minimal')).toBe(true);
+  });
+
   it('prefers backend public blog source when available', async () => {
     const published = blogRepository.getPublished()[0];
     const fetchMock = vi.fn().mockResolvedValue({

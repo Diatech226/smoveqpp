@@ -191,7 +191,7 @@ class LocalProjectRepository implements ProjectRepository {
     const trustedProject = normalizeProject(project);
     const projects = this.getAll();
 
-    if (!trustedProject.id.trim() || !trustedProject.title || !trustedProject.client || !trustedProject.category) {
+    if (!trustedProject.id.trim() || !trustedProject.title || !trustedProject.featuredImage.trim()) {
       throw new Error('Invalid project payload');
     }
 
