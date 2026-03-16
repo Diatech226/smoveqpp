@@ -99,6 +99,25 @@ describe('blogContentService', () => {
     expect(contract.posts.some((post) => post.slug === 'publie-minimal')).toBe(true);
   });
 
+
+  it('returns a detail-safe payload with metadata fallbacks', async () => {
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({
+      ...seed,
+      id: 'detail-safe',
+      slug: 'detail-safe',
+      title: 'Detail Safe',
+      seo: { canonicalSlug: 'detail-safe' },
+      category: '',
+      status: 'published',
+    });
+
+    const detail = await getBlogPostBySlugContract('detail-safe');
+    expect(detail?.slug).toBe('detail-safe');
+    expect(detail?.category).toBe('Non classé');
+    expect(detail?.seo.socialImage?.length).toBeGreaterThan(0);
+  });
+
   it('prefers backend public blog source when available', async () => {
     const published = blogRepository.getPublished()[0];
     const fetchMock = vi.fn().mockResolvedValue({

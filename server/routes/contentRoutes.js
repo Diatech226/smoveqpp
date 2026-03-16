@@ -146,6 +146,40 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { project: result.project });
   });
 
+
+  router.post('/projects/:id/transition', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const { status } = req.body || {};
+
+    if (status === 'published' && req.session?.role === 'author') {
+      logContentFailure(req, 'cms_project_transition_failed', 'FORBIDDEN', { targetStatus: status, projectId: req.params.id });
+      auditService?.record(toAuditContext(req, 'cms_project_transition', 'failure', {
+        entityType: 'project',
+        entityId: req.params.id,
+        metadata: { code: 'FORBIDDEN', targetStatus: status },
+      }));
+      return sendError(res, 403, 'FORBIDDEN', 'Authors cannot publish projects directly.');
+    }
+
+    const result = contentService.transitionProjectStatus(req.params.id, status, { reviewedBy: req.session?.userId || undefined });
+    if (!result.ok) {
+      const statusCode = result.error.code === 'PROJECT_NOT_FOUND' ? 404 : 400;
+      logContentFailure(req, 'cms_project_transition_failed', result.error.code, { targetStatus: status, projectId: req.params.id });
+      auditService?.record(toAuditContext(req, 'cms_project_transition', 'failure', {
+        entityType: 'project',
+        entityId: req.params.id,
+        metadata: { code: result.error.code, targetStatus: status },
+      }));
+      return sendError(res, statusCode, result.error.code, result.error.message);
+    }
+
+    auditService?.record(toAuditContext(req, 'cms_project_transition', 'success', {
+      entityType: 'project',
+      entityId: req.params.id,
+      metadata: { targetStatus: status },
+    }));
+    return sendSuccess(res, 200, { project: result.project });
+  });
+
   router.delete('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     contentService.deleteProject(req.params.id);
     auditService?.record(toAuditContext(req, 'cms_project_delete', 'success', { entityType: 'project', entityId: req.params.id }));

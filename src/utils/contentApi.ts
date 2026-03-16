@@ -148,6 +148,15 @@ export async function saveBackendProject(project: Project): Promise<Project> {
   return body.data!.project;
 }
 
+
+export async function transitionBackendProject(id: string, status: Project['status']): Promise<Project> {
+  const body = await request<{ project: Project }>(`/projects/${id}/transition`, {
+    method: 'POST',
+    body: JSON.stringify({ status }),
+  });
+  return body.data!.project;
+}
+
 export async function deleteBackendProject(id: string): Promise<void> {
   await request('/projects/' + id, { method: 'DELETE' });
 }

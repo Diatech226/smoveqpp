@@ -26,7 +26,7 @@ describe('serviceCatalog', () => {
   });
 
   it('falls back to anchored hash route for unknown service slugs', () => {
-    expect(resolveServiceRouteHref({ id: '3', slug: 'custom', routeSlug: 'custom' })).toBe('#service-3');
+    expect(resolveServiceRouteHref({ id: '3', slug: 'custom', routeSlug: 'custom' })).toBe('#service/custom');
   });
 
   it('falls back to safe default color for invalid values', () => {

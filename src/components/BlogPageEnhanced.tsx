@@ -290,7 +290,7 @@ export default function BlogPageEnhanced() {
                       </div>
                     </div>
                     <motion.a
-                      href="#"
+                      href={`#blog/${featuredPost?.seo.canonicalSlug || featuredPost?.slug || ""}`}
                       className="inline-flex items-center gap-2 bg-white text-[#00b3e8] px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
                       whileHover={{ scale: 1.05, x: 5 }}
                       whileTap={{ scale: 0.95 }}

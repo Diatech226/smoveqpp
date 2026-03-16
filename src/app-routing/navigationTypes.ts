@@ -19,6 +19,7 @@ export type AppRoute =
   | 'auth-loading'
   | `cms-${string}`
   | `project-${string}`
+  | `blog-${string}`
   | string;
 
 export type ResolvedPage =
@@ -37,7 +38,8 @@ export type ResolvedPage =
   | 'cms-unavailable'
   | 'cms-forbidden'
   | 'auth-loading'
-  | `project-${string}`;
+  | `project-${string}`
+  | `blog-${string}`;
 
 export interface AuthRoutingState {
   isAuthenticated: boolean;

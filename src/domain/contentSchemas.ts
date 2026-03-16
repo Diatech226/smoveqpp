@@ -73,7 +73,9 @@ export interface Project {
   mainImage: string;
   images: string[];
   featured?: boolean;
-  status?: 'draft' | 'published' | 'archived';
+  status?: 'draft' | 'in_review' | 'published' | 'archived';
+  reviewedAt?: string;
+  reviewedBy?: string;
   link?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -105,6 +107,12 @@ export interface Service {
   status?: 'draft' | 'published' | 'archived';
   featured?: boolean;
   routeSlug?: string;
+  overviewTitle?: string;
+  overviewDescription?: string;
+  ctaTitle?: string;
+  ctaDescription?: string;
+  ctaPrimaryLabel?: string;
+  ctaPrimaryHref?: string;
   iconLikeAsset?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -206,10 +214,12 @@ export const isProject = (value: unknown): value is Project => {
     (v.featuredImage === undefined || isString(v.featuredImage)) &&
     (v.imageAlt === undefined || isString(v.imageAlt)) &&
     (v.featured === undefined || typeof v.featured === 'boolean') &&
-    (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
+    (v.status === undefined || v.status === 'draft' || v.status === 'in_review' || v.status === 'published' || v.status === 'archived') &&
     (v.link === undefined || isString(v.link)) &&
     (v.createdAt === undefined || isString(v.createdAt)) &&
     (v.updatedAt === undefined || isString(v.updatedAt)) &&
+    (v.reviewedAt === undefined || isString(v.reviewedAt)) &&
+    (v.reviewedBy === undefined || isString(v.reviewedBy)) &&
     (links === undefined ||
       (typeof links === 'object' &&
         links !== null &&
@@ -254,6 +264,12 @@ export const isService = (value: unknown): value is Service => {
     isStringArray(v.features) &&
     (v.shortDescription === undefined || isString(v.shortDescription)) &&
     (v.routeSlug === undefined || isString(v.routeSlug)) &&
+    (v.overviewTitle === undefined || isString(v.overviewTitle)) &&
+    (v.overviewDescription === undefined || isString(v.overviewDescription)) &&
+    (v.ctaTitle === undefined || isString(v.ctaTitle)) &&
+    (v.ctaDescription === undefined || isString(v.ctaDescription)) &&
+    (v.ctaPrimaryLabel === undefined || isString(v.ctaPrimaryLabel)) &&
+    (v.ctaPrimaryHref === undefined || isString(v.ctaPrimaryHref)) &&
     (v.iconLikeAsset === undefined || isString(v.iconLikeAsset)) &&
     (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
     (v.link === undefined || isString(v.link)) &&

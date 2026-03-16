@@ -22,7 +22,7 @@ export const resolveServiceRouteHref = (service: Pick<Service, 'id' | 'slug' | '
     return KNOWN_SERVICE_ROUTE_MAP[routeSlug];
   }
 
-  return `#service-${service.id}`;
+  return `#service/${routeSlug || service.id}`;
 };
 
 export const toRenderableService = (service: Service) => ({

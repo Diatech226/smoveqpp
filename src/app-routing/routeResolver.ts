@@ -59,6 +59,29 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     };
   }
 
+
+
+  if (route.startsWith('service/')) {
+    const slug = route.slice('service/'.length).trim().toLowerCase();
+    if (slug === 'design-branding') {
+      return { page: 'service-design', sectionToScroll: null };
+    }
+    if (slug === 'web-development') {
+      return { page: 'service-web', sectionToScroll: null };
+    }
+    return { page: 'services-all', sectionToScroll: null };
+  }
+
+  if (route.startsWith('blog/')) {
+    const slug = route.slice('blog/'.length).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (slug) {
+      return {
+        page: `blog-${slug}`,
+        sectionToScroll: null,
+      };
+    }
+  }
+
   if (route.startsWith('project-')) {
     return {
       page: route,
