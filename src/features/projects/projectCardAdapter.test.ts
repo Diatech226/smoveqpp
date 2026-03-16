@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Project } from '../../domain/contentSchemas';
 import { toProjectCardContract } from './projectCardAdapter';
-import { PROJECT_MEDIA_FALLBACK_QUERY, resolveProjectFeaturedImage, resolveProjectGalleryMedia, toProjectMediaReference } from './projectMedia';
+import { PROJECT_MEDIA_FALLBACK_QUERY, resolveProjectFeaturedImage, resolveProjectGalleryMedia, resolveProjectHeroMedia, toCanonicalProjectMediaRoles, toProjectMediaReference } from './projectMedia';
 import { mediaRepository } from '../../repositories/mediaRepository';
 
 const baseProject: Project = {
@@ -36,6 +36,33 @@ describe('projectCardAdapter', () => {
   });
 
 
+
+
+  it('normalizes canonical project media roles with backward-compatible fallbacks', () => {
+    const roles = toCanonicalProjectMediaRoles({
+      featuredImage: 'legacy-card',
+      mainImage: 'legacy-hero',
+      images: ['legacy-gallery'],
+      mediaRoles: {
+        cardImage: 'role-card',
+        heroImage: 'role-hero',
+        galleryImages: ['role-gallery-1', 'role-gallery-2'],
+      },
+    });
+
+    expect(roles.cardImage).toBe('role-card');
+    expect(roles.heroImage).toBe('role-hero');
+    expect(roles.galleryImages).toEqual(['role-gallery-1', 'role-gallery-2']);
+  });
+
+  it('uses hero role for detail hero rendering when available', () => {
+    const hero = resolveProjectHeroMedia({
+      ...baseProject,
+      mediaRoles: { cardImage: 'card-image', heroImage: 'hero-image', galleryImages: [] },
+    });
+
+    expect(hero.query).toBe('hero-image');
+  });
 
   it('uses description fallback when summary is missing for project cards', () => {
     const card = toProjectCardContract({ ...baseProject, summary: '', featuredImage: '' });

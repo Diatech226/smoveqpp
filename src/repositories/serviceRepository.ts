@@ -33,6 +33,8 @@ const normalizeService = (service: Partial<Service> & { id: string }): Service =
     description: asTrimmedString(service.description),
     shortDescription: asTrimmedString(service.shortDescription) || undefined,
     icon: asTrimmedString(service.icon) || 'palette',
+    iconLikeAsset: asTrimmedString(service.iconLikeAsset) || undefined,
+    routeSlug: toSlug(asTrimmedString(service.routeSlug) || asTrimmedString(service.slug) || title || service.id),
     color: asTrimmedString(service.color) || 'from-[#00b3e8] to-[#00c0e8]',
     features: Array.isArray(service.features) ? service.features.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
     status: service.status ?? 'published',
@@ -100,13 +102,18 @@ class LocalServiceRepository implements ServiceRepository {
     const trusted = normalizeService(service);
     const services = this.getAll();
 
-    if (!trusted.id || !trusted.title || !trusted.slug || !trusted.description) {
+    if (!trusted.id || !trusted.title || !trusted.slug || !trusted.routeSlug || !trusted.description) {
       throw new Error('Invalid service payload');
     }
 
     const slugConflict = services.find((candidate) => candidate.slug === trusted.slug && candidate.id !== trusted.id);
     if (slugConflict) {
       throw new Error('Service slug already exists');
+    }
+
+    const routeSlugConflict = services.find((candidate) => candidate.routeSlug === trusted.routeSlug && candidate.id !== trusted.id);
+    if (routeSlugConflict) {
+      throw new Error('Service route slug already exists');
     }
 
     const index = services.findIndex((candidate) => candidate.id === trusted.id);

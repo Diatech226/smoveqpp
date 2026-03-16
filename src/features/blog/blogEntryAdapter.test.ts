@@ -21,6 +21,20 @@ describe('blogEntryAdapter', () => {
     expect(canonical.seo.title.length).toBeGreaterThan(0);
   });
 
+
+  it('falls back social image to featured role when social role is missing', () => {
+    const canonical = toCanonicalBlogEntry({
+      ...defaultBlogPosts[0],
+      seo: { ...defaultBlogPosts[0].seo, socialImage: '' },
+      mediaRoles: {
+        featuredImage: 'role-featured-image',
+      },
+    });
+
+    expect(canonical.featuredImage).toBe('role-featured-image');
+    expect(canonical.seo.socialImage).toBe('role-featured-image');
+  });
+
   it('maps cms form payload to strict BlogPost schema', () => {
     const result = fromCmsBlogInput({
       title: '  Nouveau billet  ',
@@ -37,6 +51,7 @@ describe('blogEntryAdapter', () => {
     expect(result.excerpt).toContain('Contenu principal');
     expect(result.status).toBe('draft');
     expect(result.seo?.canonicalSlug).toBe('nouveau-billet');
+    expect(result.mediaRoles?.featuredImage).toBe('blog article image');
   });
 
 

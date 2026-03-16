@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toRenderableService } from './serviceCatalog';
+import { resolveServiceRouteHref, toRenderableService } from './serviceCatalog';
 import type { Service } from '../../domain/contentSchemas';
 
 const baseService: Service = {
@@ -17,6 +17,16 @@ describe('serviceCatalog', () => {
   it('keeps valid configured gradient colors', () => {
     const renderable = toRenderableService(baseService);
     expect(renderable.color).toBe('from-[#00b3e8] to-[#00c0e8]');
+  });
+
+
+  it('maps known service routeSlug to dedicated service routes', () => {
+    expect(resolveServiceRouteHref({ id: '1', slug: 'design-branding', routeSlug: 'design-branding' })).toBe('#service-design');
+    expect(resolveServiceRouteHref({ id: '2', slug: 'web-development', routeSlug: 'web-development' })).toBe('#service-web');
+  });
+
+  it('falls back to anchored hash route for unknown service slugs', () => {
+    expect(resolveServiceRouteHref({ id: '3', slug: 'custom', routeSlug: 'custom' })).toBe('#service-3');
   });
 
   it('falls back to safe default color for invalid values', () => {

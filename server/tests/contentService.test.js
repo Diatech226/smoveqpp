@@ -207,6 +207,39 @@ describe('ContentService project persistence', () => {
     expect(result.project.featuredImage).toBe('minimal server image');
   });
 
+
+  it('normalizes project mediaRoles into explicit card/hero/gallery contract', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-media-roles',
+      title: 'Projet media roles',
+      slug: 'projet-media-roles',
+      client: 'Client',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: [],
+      tags: [],
+      featuredImage: 'card-image',
+      mainImage: 'hero-image',
+      images: ['gallery-1'],
+      mediaRoles: {
+        cardImage: 'role-card-image',
+        heroImage: 'role-hero-image',
+        galleryImages: ['role-gallery-1', 'role-gallery-2'],
+      },
+      status: 'published',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.project.featuredImage).toBe('role-card-image');
+    expect(result.project.mainImage).toBe('role-hero-image');
+    expect(result.project.mediaRoles.galleryImages).toEqual(['role-gallery-1', 'role-gallery-2']);
+  });
+
   it('rejects duplicate project slugs across different ids', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 
@@ -432,6 +465,27 @@ describe('ContentService production hardening', () => {
       description: 'Description',
       icon: 'rocket',
       color: 'red',
+      features: ['Feature'],
+      status: 'published',
+    });
+
+    expect(invalid.ok).toBe(false);
+    expect(invalid.error.code).toBe('SERVICE_VALIDATION_ERROR');
+  });
+
+
+  it('enforces service routeSlug contract and icon-like media reference when provided', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const invalid = service.saveService({
+      id: 'service-invalid-route',
+      title: 'Service invalide route',
+      slug: 'service-invalide-route',
+      routeSlug: 'invalid route slug',
+      description: 'Description',
+      icon: 'palette',
+      iconLikeAsset: 'media:missing',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
       features: ['Feature'],
       status: 'published',
     });

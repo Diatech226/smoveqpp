@@ -53,7 +53,13 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
   const slug = toSlug(asTrimmedString(project.slug) || title || project.id);
   const summary = asTrimmedString(project.summary);
   const description = asTrimmedString(project.description) || summary || 'Description à compléter.';
-  const featuredImage = asTrimmedString(project.featuredImage) || asTrimmedString(project.mainImage) || PROJECT_MEDIA_FALLBACK_QUERY;
+  const roleCardImage = asTrimmedString(project.mediaRoles?.cardImage);
+  const roleHeroImage = asTrimmedString(project.mediaRoles?.heroImage);
+  const roleGalleryImages = Array.isArray(project.mediaRoles?.galleryImages)
+    ? project.mediaRoles?.galleryImages.map((entry) => asTrimmedString(entry)).filter(Boolean)
+    : [];
+  const featuredImage = roleCardImage || asTrimmedString(project.featuredImage) || asTrimmedString(project.mainImage) || PROJECT_MEDIA_FALLBACK_QUERY;
+  const heroImage = roleHeroImage || asTrimmedString(project.mainImage) || featuredImage;
 
   return {
     ...project,
@@ -67,14 +73,25 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
     solution: asTrimmedString(project.solution) || 'Solution à compléter.',
     results: Array.isArray(project.results) ? project.results.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
     tags: Array.isArray(project.tags) ? project.tags.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
-    mainImage: featuredImage,
+    mainImage: heroImage,
     featuredImage,
     imageAlt: asTrimmedString(project.imageAlt) || title || 'Projet SMOVE',
     images: Array.isArray(project.images)
       ? project.images.map((entry) => asTrimmedString(entry)).filter(Boolean)
-      : featuredImage
-        ? [featuredImage]
+      : heroImage
+        ? [heroImage]
         : [],
+    mediaRoles: {
+      cardImage: featuredImage,
+      heroImage,
+      galleryImages: roleGalleryImages.length > 0
+        ? roleGalleryImages
+        : Array.isArray(project.images)
+          ? project.images.map((entry) => asTrimmedString(entry)).filter(Boolean)
+          : heroImage
+            ? [heroImage]
+            : [],
+    },
     slug,
     summary: summary || undefined,
     featured: Boolean(project.featured),

@@ -56,7 +56,7 @@ const normalizeSeo = (candidate: Partial<BlogPost>): BlogPost['seo'] => {
     title: seo.title?.trim() || title,
     description: seo.description?.trim() || excerpt || (candidate.content || '').slice(0, 160),
     canonicalSlug: normalizeSlug(seo.canonicalSlug || slug, title),
-    socialImage: seo.socialImage?.trim() || candidate.featuredImage || 'blog article image',
+    socialImage: seo.socialImage?.trim() || candidate.mediaRoles?.socialImage?.trim() || candidate.featuredImage || 'blog article image',
   };
 };
 
@@ -84,11 +84,18 @@ const coerceBlogPost = (value: unknown): BlogPost | null => {
     return null;
   }
 
+  const featuredImage = (candidate.mediaRoles?.featuredImage || candidate.featuredImage || '').trim() || 'blog article image';
+  const socialImage = (candidate.mediaRoles?.socialImage || candidate.seo?.socialImage || featuredImage).trim();
+
   return {
     ...candidate,
     status: normalizeLegacyStatus(candidate.status),
-    featuredImage: (candidate.featuredImage || '').trim() || 'blog article image',
-    seo: normalizeSeo(candidate),
+    featuredImage,
+    seo: { ...normalizeSeo({ ...candidate, featuredImage }), socialImage },
+    mediaRoles: {
+      featuredImage,
+      socialImage,
+    },
   } as BlogPost;
 };
 
@@ -171,9 +178,9 @@ class LocalBlogRepository implements BlogRepository {
     const index = posts.findIndex((candidate) => candidate.id === trustedPost.id);
 
     if (index >= 0) {
-      posts[index] = { ...trustedPost, seo: normalizeSeo(trustedPost) };
+      posts[index] = { ...trustedPost, seo: normalizeSeo(trustedPost), mediaRoles: { featuredImage: trustedPost.featuredImage, socialImage: trustedPost.seo?.socialImage || trustedPost.featuredImage } };
     } else {
-      posts.push({ ...trustedPost, seo: normalizeSeo(trustedPost) });
+      posts.push({ ...trustedPost, seo: normalizeSeo(trustedPost), mediaRoles: { featuredImage: trustedPost.featuredImage, socialImage: trustedPost.seo?.socialImage || trustedPost.featuredImage } });
     }
 
     writeToStorage(BLOG_STORAGE_KEY, posts);
