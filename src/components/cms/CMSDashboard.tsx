@@ -1691,7 +1691,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
 
   const hydrateBackendFromLocalSnapshot = async () => {
-    if (!window.confirm('Hydrater le backend depuis l'instantané local ? Cette action peut écraser des données distantes.')) {
+    if (!window.confirm("Hydrater le backend depuis l'instantané local ? Cette action peut écraser des données distantes.")) {
       return;
     }
 
