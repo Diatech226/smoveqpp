@@ -474,6 +474,9 @@ class ContentService {
       this.isValidMediaLink(post.featuredImage) &&
       Array.isArray(post.images) &&
       post.images.every((image) => this.isValidMediaLink(image)) &&
+      (post.seo === undefined ||
+        (typeof post.seo === 'object' &&
+          (post.seo.socialImage === undefined || this.isValidMediaLink(post.seo.socialImage)))) &&
       SLUG_PATTERN.test(post.slug.trim()) &&
       BLOG_STATUSES.has(post.status)
     );

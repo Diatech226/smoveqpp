@@ -1,6 +1,5 @@
-import { mediaRepository } from '../../repositories/mediaRepository';
+import { isMediaReferenceValue, resolveAssetReference, toMediaReferenceValue } from '../media/assetReference';
 
-const MEDIA_REFERENCE_PREFIX = 'media:';
 const FALLBACK_IMAGE_QUERY = 'blog article image';
 
 export interface ResolvedBlogMedia {
@@ -12,54 +11,12 @@ export interface ResolvedBlogMedia {
   isFallback: boolean;
 }
 
-export const toMediaReference = (mediaId: string) => `${MEDIA_REFERENCE_PREFIX}${mediaId.trim()}`;
-
-const normalizeText = (value: string | undefined, fallback: string): string => {
-  const normalized = value?.trim();
-  return normalized ? normalized : fallback;
-};
+export const toMediaReference = (mediaId: string) => toMediaReferenceValue(mediaId);
 
 export function resolveBlogMediaReference(reference: string | undefined, fallbackAlt: string): ResolvedBlogMedia {
-  const normalizedReference = (reference || '').trim();
-
-  if (normalizedReference.startsWith(MEDIA_REFERENCE_PREFIX)) {
-    const mediaId = normalizedReference.slice(MEDIA_REFERENCE_PREFIX.length).trim();
-    const media = mediaId ? mediaRepository.getById(mediaId) : undefined;
-
-    if (media) {
-      return {
-        reference: normalizedReference,
-        src: media.url,
-        alt: normalizeText(media.alt, fallbackAlt),
-        caption: normalizeText(media.caption, media.title || media.name),
-        isMediaAsset: true,
-        isFallback: false,
-      };
-    }
-  }
-
-  if (normalizedReference) {
-    return {
-      reference: normalizedReference,
-      src: normalizedReference,
-      alt: fallbackAlt,
-      caption: fallbackAlt,
-      isMediaAsset: false,
-      isFallback: false,
-    };
-  }
-
-  return {
-    reference: FALLBACK_IMAGE_QUERY,
-    src: FALLBACK_IMAGE_QUERY,
-    alt: fallbackAlt,
-    caption: fallbackAlt,
-    isMediaAsset: false,
-    isFallback: true,
-  };
+  return resolveAssetReference(reference, fallbackAlt, FALLBACK_IMAGE_QUERY);
 }
 
-export const isMediaReference = (value: string | undefined) =>
-  typeof value === 'string' && value.trim().startsWith(MEDIA_REFERENCE_PREFIX);
+export const isMediaReference = (value: string | undefined) => isMediaReferenceValue(value);
 
 export const BLOG_MEDIA_FALLBACK_QUERY = FALLBACK_IMAGE_QUERY;

@@ -298,6 +298,34 @@ describe('ContentService production hardening', () => {
     expect(result.error.code).toBe('BLOG_VALIDATION_ERROR');
   });
 
+
+  it('rejects blog payload when seo social image media reference is invalid', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveBlogPost({
+      id: 'blog-invalid-seo-media',
+      title: 'Blog SEO invalide',
+      slug: 'blog-seo-invalide',
+      excerpt: 'Extrait',
+      content: 'Contenu',
+      author: 'Auteur',
+      authorRole: 'Role',
+      category: 'Cat',
+      tags: [],
+      publishedDate: '2024-01-01T00:00:00.000Z',
+      readTime: '4 min',
+      featuredImage: 'blog article image',
+      images: [],
+      status: 'draft',
+      seo: {
+        socialImage: 'media:missing-seo',
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('BLOG_VALIDATION_ERROR');
+  });
+
   it('enforces service icon and color whitelist', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 
