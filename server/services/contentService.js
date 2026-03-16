@@ -146,9 +146,18 @@ const defaultServices = [
 ];
 
 const defaultSettings = {
-  siteTitle: 'SMOVE',
-  supportEmail: 'contact@smove.africa',
-  instantPublishing: true,
+  siteSettings: {
+    siteTitle: 'SMOVE',
+    supportEmail: 'contact@smove.africa',
+    brandMedia: {
+      logo: '',
+      favicon: '',
+      defaultSocialImage: '',
+    },
+  },
+  operationalSettings: {
+    instantPublishing: true,
+  },
 };
 
 class ContentService {
@@ -466,8 +475,12 @@ class ContentService {
     return { ok: true };
   }
 
-  listMediaFiles() {
-    return this.readState().mediaFiles.filter((file) => this.validateMediaFile(file)).map((file) => this.normalizeMediaFile(file));
+  listMediaFiles(options = {}) {
+    const includeArchived = Boolean(options.includeArchived);
+    return this.readState().mediaFiles
+      .filter((file) => this.validateMediaFile(file))
+      .map((file) => this.normalizeMediaFile(file))
+      .filter((file) => includeArchived || !file.archivedAt);
   }
 
   saveMediaFile(file) {
@@ -477,7 +490,7 @@ class ContentService {
     }
 
     const state = this.readState();
-    const files = this.listMediaFiles();
+    const files = this.listMediaFiles({ includeArchived: true });
     const index = files.findIndex((entry) => entry.id === normalized.id);
     if (index >= 0) files[index] = normalized;
     else files.push(normalized);
@@ -486,9 +499,58 @@ class ContentService {
     return { ok: true, mediaFile: normalized };
   }
 
+  archiveMediaFile(id) {
+    const references = this.findMediaReferences(id);
+    if (references.length > 0) {
+      return { ok: false, error: { code: 'MEDIA_IN_USE', message: 'Media file is still referenced by published or editable content.', references } };
+    }
+
+    const files = this.listMediaFiles({ includeArchived: true });
+    const index = files.findIndex((entry) => entry.id === id);
+    if (index < 0) {
+      return { ok: false, error: { code: 'MEDIA_NOT_FOUND', message: 'Media file not found.' } };
+    }
+
+    files[index] = {
+      ...files[index],
+      archivedAt: files[index].archivedAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const state = this.readState();
+    state.mediaFiles = files;
+    this.writeState(state);
+    return { ok: true, mediaFile: files[index] };
+  }
+
+  replaceMediaFile(id, nextPayload = {}) {
+    const files = this.listMediaFiles({ includeArchived: true });
+    const index = files.findIndex((entry) => entry.id === id);
+    if (index < 0) {
+      return { ok: false, error: { code: 'MEDIA_NOT_FOUND', message: 'Media file not found.' } };
+    }
+
+    const merged = this.normalizeMediaFile({
+      ...files[index],
+      ...nextPayload,
+      id,
+      archivedAt: null,
+      replacedAt: new Date().toISOString(),
+    });
+    if (!this.validateMediaFile(merged)) {
+      return { ok: false, error: { code: 'MEDIA_VALIDATION_ERROR', message: 'Invalid media payload.' } };
+    }
+
+    files[index] = merged;
+    const state = this.readState();
+    state.mediaFiles = files;
+    this.writeState(state);
+    return { ok: true, mediaFile: merged };
+  }
+
   deleteMediaFile(id) {
     const state = this.readState();
-    state.mediaFiles = this.listMediaFiles().filter((entry) => entry.id !== id);
+    state.mediaFiles = this.listMediaFiles({ includeArchived: true }).filter((entry) => entry.id !== id);
     this.writeState(state);
     return { ok: true };
   }
@@ -518,9 +580,13 @@ class ContentService {
     return this.normalizeSettings(candidate || {});
   }
 
+  getPublicSettings() {
+    return this.getSettings().siteSettings;
+  }
+
   saveSettings(payload) {
     const normalized = this.normalizeSettings(payload || {});
-    if (!normalized.siteTitle.trim() || !normalized.supportEmail.includes('@')) {
+    if (!normalized.siteSettings.siteTitle.trim() || !normalized.siteSettings.supportEmail.includes('@')) {
       return { ok: false, error: { code: 'SETTINGS_VALIDATION_ERROR', message: 'Invalid settings payload.' } };
     }
 
@@ -528,6 +594,24 @@ class ContentService {
     state.settings = normalized;
     this.writeState(state);
     return { ok: true, settings: normalized };
+  }
+
+  getSyncDiagnostics() {
+    const invalidMediaReferences = this.collectAllMediaReferences().filter((entry) => !entry.isValid);
+    const settings = this.getSettings();
+
+    return {
+      mode: 'authoritative_remote',
+      instantPublishingEnabled: settings.operationalSettings.instantPublishing,
+      invalidMediaReferences,
+      summary: {
+        invalidMediaReferenceCount: invalidMediaReferences.length,
+        blogCount: this.listBlogPosts().length,
+        projectCount: this.listProjects().length,
+        serviceCount: this.listServices().length,
+        mediaCount: this.listMediaFiles().length,
+      },
+    };
   }
 
   evaluatePublishability(post) {
@@ -933,48 +1017,98 @@ class ContentService {
 
   findMediaReferences(mediaId) {
     const mediaRef = `${MEDIA_REFERENCE_PREFIX}${mediaId}`;
+    return this.collectAllMediaReferences().filter((entry) => entry.value === mediaRef);
+  }
+
+  collectAllMediaReferences() {
     const references = [];
+    const activeMediaIds = new Set(this.listMediaFiles({ includeArchived: true }).filter((entry) => !entry.archivedAt).map((entry) => entry.id));
+
+    const register = (value, payload) => {
+      if (typeof value !== 'string') return;
+      const trimmed = value.trim();
+      if (!trimmed.startsWith(MEDIA_REFERENCE_PREFIX)) return;
+      const mediaId = this.mediaIdFromReference(trimmed);
+      if (!mediaId) return;
+      references.push({
+        ...payload,
+        value: trimmed,
+        mediaId,
+        isValid: activeMediaIds.has(mediaId),
+      });
+    };
 
     this.listBlogPosts().forEach((post) => {
-      if (post.featuredImage === mediaRef) {
-        references.push({ domain: 'blog', id: post.id, field: 'featuredImage', label: post.title });
-      }
-      if (Array.isArray(post.images) && post.images.some((image) => image === mediaRef)) {
-        references.push({ domain: 'blog', id: post.id, field: 'images', label: post.title });
-      }
-      if (post.mediaRoles?.featuredImage === mediaRef) {
-        references.push({ domain: 'blog', id: post.id, field: 'mediaRoles.featuredImage', label: post.title });
-      }
-      if (post.seo?.socialImage === mediaRef || post.mediaRoles?.socialImage === mediaRef) {
-        references.push({ domain: 'blog', id: post.id, field: 'seo.socialImage', label: post.title });
-      }
+      register(post.featuredImage, { domain: 'blog', id: post.id, field: 'featuredImage', label: post.title });
+      register(post.mediaRoles?.featuredImage, { domain: 'blog', id: post.id, field: 'mediaRoles.featuredImage', label: post.title });
+      register(post.seo?.socialImage, { domain: 'blog', id: post.id, field: 'seo.socialImage', label: post.title });
+      register(post.mediaRoles?.socialImage, { domain: 'blog', id: post.id, field: 'mediaRoles.socialImage', label: post.title });
+      (Array.isArray(post.images) ? post.images : []).forEach((image, index) => register(image, { domain: 'blog', id: post.id, field: `images[${index}]`, label: post.title }));
     });
 
     this.listProjects().forEach((project) => {
-      if (project.featuredImage === mediaRef || project.mainImage === mediaRef) {
-        references.push({ domain: 'project', id: project.id, field: 'featuredImage', label: project.title });
-      }
-      if (Array.isArray(project.images) && project.images.some((image) => image === mediaRef)) {
-        references.push({ domain: 'project', id: project.id, field: 'images', label: project.title });
-      }
+      register(project.featuredImage, { domain: 'project', id: project.id, field: 'featuredImage', label: project.title });
+      register(project.mainImage, { domain: 'project', id: project.id, field: 'mainImage', label: project.title });
+      (Array.isArray(project.images) ? project.images : []).forEach((image, index) => register(image, { domain: 'project', id: project.id, field: `images[${index}]`, label: project.title }));
+      register(project.mediaRoles?.cardImage, { domain: 'project', id: project.id, field: 'mediaRoles.cardImage', label: project.title });
+      register(project.mediaRoles?.heroImage, { domain: 'project', id: project.id, field: 'mediaRoles.heroImage', label: project.title });
+      (project.mediaRoles?.galleryImages || []).forEach((image, index) => register(image, { domain: 'project', id: project.id, field: `mediaRoles.galleryImages[${index}]`, label: project.title }));
+    });
+
+    this.listServices().forEach((service) => {
+      register(service.iconLikeAsset, { domain: 'service', id: service.id, field: 'iconLikeAsset', label: service.title });
     });
 
     const home = this.getPageContent().home;
-    if (home.aboutImage === mediaRef) {
-      references.push({ domain: 'home', id: 'home', field: 'aboutImage', label: 'Home page' });
-    }
+    register(home.aboutImage, { domain: 'home', id: 'home', field: 'aboutImage', label: 'Home page' });
+
+    const settings = this.getSettings();
+    register(settings.siteSettings.brandMedia.logo, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.logo', label: 'Site settings' });
+    register(settings.siteSettings.brandMedia.favicon, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.favicon', label: 'Site settings' });
+    register(settings.siteSettings.brandMedia.defaultSocialImage, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.defaultSocialImage', label: 'Site settings' });
 
     return references;
   }
 
   normalizeSettings(settings) {
+    const siteSettings = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
+    const operationalSettings = settings?.operationalSettings && typeof settings.operationalSettings === 'object' ? settings.operationalSettings : settings;
+
     return {
-      siteTitle: typeof settings.siteTitle === 'string' ? settings.siteTitle.trim() || defaultSettings.siteTitle : defaultSettings.siteTitle,
+      siteSettings: {
+        siteTitle:
+          typeof siteSettings?.siteTitle === 'string'
+            ? siteSettings.siteTitle.trim() || defaultSettings.siteSettings.siteTitle
+            : defaultSettings.siteSettings.siteTitle,
+        supportEmail:
+          typeof siteSettings?.supportEmail === 'string'
+            ? siteSettings.supportEmail.trim() || defaultSettings.siteSettings.supportEmail
+            : defaultSettings.siteSettings.supportEmail,
+        brandMedia: {
+          logo: typeof siteSettings?.brandMedia?.logo === 'string' ? siteSettings.brandMedia.logo.trim() : '',
+          favicon: typeof siteSettings?.brandMedia?.favicon === 'string' ? siteSettings.brandMedia.favicon.trim() : '',
+          defaultSocialImage:
+            typeof siteSettings?.brandMedia?.defaultSocialImage === 'string' ? siteSettings.brandMedia.defaultSocialImage.trim() : '',
+        },
+      },
+      operationalSettings: {
+        instantPublishing:
+          typeof operationalSettings?.instantPublishing === 'boolean'
+            ? operationalSettings.instantPublishing
+            : defaultSettings.operationalSettings.instantPublishing,
+      },
+      siteTitle:
+        typeof siteSettings?.siteTitle === 'string'
+          ? siteSettings.siteTitle.trim() || defaultSettings.siteSettings.siteTitle
+          : defaultSettings.siteSettings.siteTitle,
       supportEmail:
-        typeof settings.supportEmail === 'string'
-          ? settings.supportEmail.trim() || defaultSettings.supportEmail
-          : defaultSettings.supportEmail,
-      instantPublishing: typeof settings.instantPublishing === 'boolean' ? settings.instantPublishing : defaultSettings.instantPublishing,
+        typeof siteSettings?.supportEmail === 'string'
+          ? siteSettings.supportEmail.trim() || defaultSettings.siteSettings.supportEmail
+          : defaultSettings.siteSettings.supportEmail,
+      instantPublishing:
+        typeof operationalSettings?.instantPublishing === 'boolean'
+          ? operationalSettings.instantPublishing
+          : defaultSettings.operationalSettings.instantPublishing,
     };
   }
 }
