@@ -38,3 +38,21 @@ Raise confidence for production through validation, observability, and runbook-c
 - CI green on new contract + flow tests.
 - Manual smoke across CMS and public pages.
 - Runbook dry-run for backup/restore + rollback.
+
+## Implementation notes (completed)
+
+### Validation hardening matrix
+- **Blog (CMS + backend):** slug pattern enforcement, valid publish date requirement, featured/social image media reference validation, and publishability guardrail aligned with required render fields.
+- **Projects (CMS + backend):** strict 4-digit year, URL validation for external/case-study links, media reference integrity for featured/gallery assets, and slug format checks.
+- **Services (CMS + backend):** icon whitelist (`palette`, `code`, `megaphone`, `video`, `box`) and gradient color contract (`from-[#hex] to-[#hex]`) enforcement.
+- **Home content (CMS + backend):** hero title required and about-image validated as URL or existing `media:<id>` reference.
+- **Media entities (backend):** upload date and URL shape validation tightened for stored assets.
+
+### Media safe-delete guardrails
+- Added cross-domain media reference discovery in content service (blog/project/home).
+- API now blocks media deletion with `409 MEDIA_IN_USE` when any content still references the asset.
+- CMS now surfaces explicit admin feedback when delete is blocked due to references.
+
+### Regression coverage added
+- Backend content service tests for invalid blog/project payload rejection, service icon/color contract enforcement, home content media reference validation, and media reference detection.
+- Frontend service rendering contract tests for invalid color fallback.
