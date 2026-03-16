@@ -60,6 +60,8 @@ export default function DesignBrandingPage() {
 
   const service = useMemo(() => serviceRepository.getPublished().find((entry) => entry.routeSlug === 'design-branding' || entry.slug === 'design-branding'), [serviceVersion]);
   const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
+  const ctaPrimaryLabel = service?.ctaPrimaryLabel || 'Contactez-nous';
+  const ctaDescription = service?.ctaDescription || `${ctaPrimaryLabel} dès aujourd'hui pour discuter de votre projet et obtenir un devis personnalisé.`;
 
   return (
     <div className="min-h-screen bg-white">
@@ -357,7 +359,7 @@ export default function DesignBrandingPage() {
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
           >
-            {service?.ctaDescription || '{service?.ctaPrimaryLabel || 'Contactez-nous'} dès aujourd'hui pour discuter de votre projet et obtenir un devis personnalisé.'}
+            {ctaDescription}
           </motion.p>
           <motion.a
             href="#contact"
