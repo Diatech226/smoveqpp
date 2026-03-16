@@ -71,6 +71,41 @@ describe('ContentService blog persistence', () => {
     expect(service.transitionBlogStatus('draft-1', 'in_review').ok).toBe(true);
     expect(service.transitionBlogStatus('draft-1', 'published').ok).toBe(true);
   });
+
+  it('blocks publish transitions when instant publishing is disabled in settings', () => {
+    const repo = new MemoryContentRepository({
+      settings: {
+        siteTitle: 'SMOVE',
+        supportEmail: 'contact@smove.africa',
+        instantPublishing: false,
+      },
+      blogPosts: [
+        {
+          id: 'review-1',
+          title: 'Review',
+          slug: 'review',
+          excerpt: 'Excerpt',
+          content: 'Content',
+          author: 'Author',
+          authorRole: 'Role',
+          category: 'Cat',
+          tags: [],
+          publishedDate: '2024-01-01',
+          readTime: '2 min',
+          featuredImage: 'img',
+          images: [],
+          status: 'in_review',
+        },
+      ],
+    });
+    const service = new ContentService({ contentRepository: repo });
+
+    const transition = service.transitionBlogStatus('review-1', 'published');
+
+    expect(transition.ok).toBe(false);
+    expect(transition.error.code).toBe('BLOG_INSTANT_PUBLISHING_DISABLED');
+  });
+
 });
 
 

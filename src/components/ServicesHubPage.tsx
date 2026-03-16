@@ -12,11 +12,15 @@ export default function ServicesHubPage() {
 
   useEffect(() => {
     let active = true;
-    void fetchPublicServices().then((remote) => {
-      if (!active || !remote) return;
+    void fetchPublicServices()
+      .then((remote) => {
+        if (!active) return;
       const synced = serviceRepository.replaceAll(remote);
       setServices(synced.filter((service) => service.status !== 'draft' && service.status !== 'archived').map(toRenderableService));
-    });
+      })
+      .catch((error) => {
+        console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);
+      });
     return () => {
       active = false;
     };

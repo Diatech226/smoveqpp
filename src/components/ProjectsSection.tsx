@@ -11,11 +11,15 @@ export default function ProjectsSection() {
 
   useEffect(() => {
     let active = true;
-    void fetchPublicProjects().then((remote) => {
-      if (!active || !remote) return;
+    void fetchPublicProjects()
+      .then((remote) => {
+        if (!active) return;
       const synced = projectRepository.replaceAll(remote);
       setFeaturedProjects(synced.filter((project) => project.status !== 'draft' && project.status !== 'archived').slice(0, 6));
-    });
+      })
+      .catch((error) => {
+        console.warn('[public-content] projects API unavailable, keeping repository snapshot.', error);
+      });
     return () => {
       active = false;
     };

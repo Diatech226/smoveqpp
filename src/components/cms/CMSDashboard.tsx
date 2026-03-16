@@ -115,6 +115,8 @@ interface ProjectFormState {
   testimonialPosition: string;
 }
 
+
+type RuntimeMode = 'authoritative_remote' | 'degraded_local';
 interface ServiceFormState {
   id?: string;
   title: string;
@@ -204,6 +206,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [sectionBusy, setSectionBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [sectionError, setSectionError] = useState('');
+  const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>('authoritative_remote');
+  const [runtimeWarnings, setRuntimeWarnings] = useState<string[]>([]);
+  const [isHydratingBackend, setIsHydratingBackend] = useState(false);
 
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
@@ -273,6 +278,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           if (!active) return;
           setPosts(blogRepository.getAll());
           setPostsError('Backend indisponible, données locales affichées.');
+          markDegradedMode('Blog: backend indisponible, lecture locale temporaire.');
         } catch {
           if (!active) return;
           setPostsError('Impossible de charger les articles. Réessayez.');
@@ -293,25 +299,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
 
-        if (backendProjects.length === 0) {
-          const localProjects = projectRepository.getAll();
-          if (localProjects.length > 0) {
-            for (const project of localProjects) {
-              await requestWithRetry(() => saveBackendProject(project), { retries: 1, retryDelayMs: 250 });
-            }
-            const hydratedProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
-            if (!active) return;
-            syncProjectsFromBackend(hydratedProjects);
-          } else {
-            syncProjectsFromBackend(backendProjects);
-          }
-        } else {
-          syncProjectsFromBackend(backendProjects);
-        }
+        syncProjectsFromBackend(backendProjects);
       } catch {
         if (active) {
           setProjects(projectRepository.getAll());
           setProjectsError('Backend indisponible, données locales affichées temporairement.');
+          markDegradedMode('Projets: backend indisponible, lecture locale temporaire.');
         }
       } finally {
         if (active) setProjectsLoading(false);
@@ -321,24 +314,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
 
-        if (backendServices.length === 0) {
-          const localServices = serviceRepository.getAll();
-          if (localServices.length > 0) {
-            for (const service of localServices) {
-              await requestWithRetry(() => saveBackendService(service), { retries: 1, retryDelayMs: 250 });
-            }
-            const hydratedServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
-            if (!active) return;
-            setServices(serviceRepository.replaceAll(hydratedServices));
-          } else {
-            setServices(serviceRepository.replaceAll(backendServices));
-          }
-        } else {
-          setServices(serviceRepository.replaceAll(backendServices));
-        }
+        setServices(serviceRepository.replaceAll(backendServices));
       } catch {
         if (active) {
           setServices(serviceRepository.getAll());
+          markDegradedMode('Services: backend indisponible, lecture locale temporaire.');
         }
       }
 
@@ -348,7 +328,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         backendMedia.forEach((file) => mediaRepository.save(file));
         setMediaVersion((version) => version + 1);
       } catch {
-        // keep local media fallback silently to preserve existing UX
+        markDegradedMode('Médiathèque: backend indisponible, cache local affiché.');
       }
 
       try {
@@ -357,18 +337,23 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         const saved = pageContentRepository.saveHomePageContent(home);
         setHomeContentForm(saved);
       } catch {
-        if (active) setHomeContentForm(pageContentRepository.getHomePageContent());
+        if (active) {
+          setHomeContentForm(pageContentRepository.getHomePageContent());
+          markDegradedMode('Contenu page: backend indisponible, lecture locale temporaire.');
+        }
       }
 
       try {
         const settings = await requestWithRetry(() => fetchBackendSettings(), { retries: 1, retryDelayMs: 250 });
         if (active) setSettingsValues(settings);
       } catch {
-        // keep defaults if backend unavailable
+        markDegradedMode('Paramètres CMS: backend indisponible, valeurs locales conservées.');
       }
     };
 
-    void load();
+    void load().then(() => {
+      setRuntimeMode((prev) => (prev === 'degraded_local' ? prev : 'authoritative_remote'));
+    });
 
     return () => {
       active = false;
@@ -443,6 +428,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setTimeout(() => setFeedback(''), 2500);
   };
 
+  const markDegradedMode = (reason: string) => {
+    setRuntimeMode('degraded_local');
+    setRuntimeWarnings((prev) => (prev.includes(reason) ? prev : [...prev, reason]));
+  };
+
+  const markAuthoritativeMode = () => {
+    setRuntimeMode('authoritative_remote');
+    setRuntimeWarnings([]);
+  };
+
   const mapBlogError = (error: unknown) => {
     if (error instanceof BlogRepositoryError && error.code === 'BLOG_SLUG_CONFLICT') {
       return 'Ce slug existe déjà. Utilisez un slug unique.';
@@ -462,6 +457,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       }
       if (error.message.includes('Missing required publish fields')) {
         return 'Article non publiable: renseignez titre, slug, extrait, image vedette et contenu.';
+      }
+      if (error.message.includes('BLOG_INSTANT_PUBLISHING_DISABLED')) {
+        return 'Publication instantanée désactivée: passez par la revue éditoriale et activez la publication pour publier.';
       }
       if (error.message.trim()) {
         return error.message;
@@ -704,13 +702,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setHomeContentForm(saved);
       showSuccess('Contenu de page enregistré via backend CMS.');
     } catch {
-      try {
-        const saved = pageContentRepository.saveHomePageContent(homeContentForm);
-        setHomeContentForm(saved);
-        setHomeContentError('Backend indisponible: contenu stocké localement temporairement.');
-      } catch {
-        setHomeContentError('Enregistrement impossible. Réessayez.');
-      }
+      markDegradedMode('Contenu page: écriture backend indisponible, aucune persistance locale automatique.');
+      setHomeContentError('Backend indisponible: enregistrement annulé pour éviter une divergence de source de vérité.');
     } finally {
       setHomeContentSaving(false);
     }
@@ -1616,7 +1609,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               onClick={() => {
                 void saveBlogPost('in_review');
               }}
-              disabled={isSavingPost || !canEditContent}
+              disabled={isSavingPost || !canEditContent || !settingsValues.instantPublishing}
               className="px-4 py-2 rounded-[10px] bg-[#00b3e8] text-white disabled:opacity-60"
             >
               Soumettre en revue
@@ -1634,6 +1627,56 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         </form>
       </AdminPanel>
     );
+  };
+
+
+  const hydrateBackendFromLocalSnapshot = async () => {
+    if (!window.confirm('Hydrater le backend depuis l'instantané local ? Cette action peut écraser des données distantes.')) {
+      return;
+    }
+
+    setIsHydratingBackend(true);
+    setSectionError('');
+    try {
+      const localPosts = blogRepository.getAll();
+      const localProjects = projectRepository.getAll();
+      const localServices = serviceRepository.getAll();
+      const localHome = pageContentRepository.getHomePageContent();
+
+      for (const post of localPosts) {
+        await requestWithRetry(() => saveBackendBlogPost(post), { retries: 1, retryDelayMs: 250 });
+      }
+      for (const project of localProjects) {
+        await requestWithRetry(() => saveBackendProject(project), { retries: 1, retryDelayMs: 250 });
+      }
+      for (const service of localServices) {
+        await requestWithRetry(() => saveBackendService(service), { retries: 1, retryDelayMs: 250 });
+      }
+      await requestWithRetry(() => saveBackendPageContent(localHome), { retries: 1, retryDelayMs: 250 });
+      await requestWithRetry(() => saveBackendSettings(settingsValues), { retries: 1, retryDelayMs: 250 });
+
+      const [backendPosts, backendProjects, backendServices, backendHome, backendSettings] = await Promise.all([
+        requestWithRetry(() => fetchBackendBlogPosts(), { retries: 1, retryDelayMs: 250 }),
+        requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 }),
+        requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 }),
+        requestWithRetry(() => fetchBackendPageContent(), { retries: 1, retryDelayMs: 250 }),
+        requestWithRetry(() => fetchBackendSettings(), { retries: 1, retryDelayMs: 250 }),
+      ]);
+
+      setPosts(backendPosts);
+      backendPosts.forEach((post) => blogRepository.save(post));
+      syncProjectsFromBackend(backendProjects);
+      setServices(serviceRepository.replaceAll(backendServices));
+      setHomeContentForm(pageContentRepository.saveHomePageContent(backendHome));
+      setSettingsValues(backendSettings);
+      markAuthoritativeMode();
+      showSuccess('Hydratation manuelle terminée: backend synchronisé depuis le snapshot local.');
+    } catch {
+      markDegradedMode('Hydratation manuelle échouée: backend toujours indisponible.');
+      setSectionError('Hydratation impossible. Vérifiez la connectivité backend puis réessayez.');
+    } finally {
+      setIsHydratingBackend(false);
+    }
   };
 
   const loadAdminUsers = async () => {
@@ -1920,7 +1963,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       {post.status !== 'published' ? (
                         <button
                           onClick={() => transitionPostStatus(post, 'published')}
-                          disabled={statusTransitioningPostId === post.id || !canPublishContent || post.status === 'archived'}
+                          disabled={statusTransitioningPostId === post.id || !canPublishContent || post.status === 'archived' || !settingsValues.instantPublishing}
                           className="px-3 py-2 border border-emerald-200 text-emerald-700 rounded-[10px] disabled:opacity-50"
                         >
                           Publier
@@ -2165,6 +2208,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {sectionError ? (
             <AdminActionBar>
               <AdminErrorState label={sectionError} />
+              {settingsValues.instantPublishing ? null : (
+                <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
+              )}
+              <button
+                onClick={() => {
+                  void hydrateBackendFromLocalSnapshot();
+                }}
+                disabled={isHydratingBackend}
+                className="border border-amber-300 text-amber-800 rounded-[10px] px-4 py-2 disabled:opacity-60"
+              >
+                {isHydratingBackend ? 'Hydratation...' : 'Hydrater backend depuis local'}
+              </button>
               <button
                 onClick={saveSettings}
                 disabled={settingsSaving}
@@ -2200,6 +2255,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   onChange={(event) => setSettingsValues((prev) => ({ ...prev, instantPublishing: event.target.checked }))}
                 />
               </label>
+              {settingsValues.instantPublishing ? null : (
+                <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
+              )}
+              <button
+                onClick={() => {
+                  void hydrateBackendFromLocalSnapshot();
+                }}
+                disabled={isHydratingBackend}
+                className="border border-amber-300 text-amber-800 rounded-[10px] px-4 py-2 disabled:opacity-60"
+              >
+                {isHydratingBackend ? 'Hydratation...' : 'Hydrater backend depuis local'}
+              </button>
               <button
                 onClick={saveSettings}
                 disabled={settingsSaving}
@@ -2294,6 +2361,22 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         </header>
 
         <div className="p-8 space-y-6">
+          {runtimeMode === 'degraded_local' ? (
+            <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-4 text-amber-800 flex items-start gap-2">
+              <AlertTriangle size={18} className="mt-0.5" />
+              <div>
+                <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px]">Mode dégradé actif (degraded_local)</p>
+                <p className="text-[13px]">Le backend n'est pas pleinement disponible. Les données affichées peuvent provenir du cache local et les écritures doivent être considérées non fiables.</p>
+                {runtimeWarnings.length > 0 ? (
+                  <ul className="list-disc ml-5 mt-2 text-[12px]">
+                    {runtimeWarnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           {feedback ? <AdminSuccessFeedback label={feedback} /> : null}
           {currentSection === 'overview' ? (
             <>
