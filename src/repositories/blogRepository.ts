@@ -92,6 +92,24 @@ const coerceBlogPost = (value: unknown): BlogPost | null => {
   } as BlogPost;
 };
 
+
+const isValidMediaField = (value: string): boolean => {
+  const normalized = value.trim();
+  if (!normalized) return false;
+
+  if (isMediaReference(normalized)) {
+    const mediaId = normalized.slice('media:'.length).trim();
+    return Boolean(mediaId && mediaRepository.getById(mediaId));
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return !normalized.includes('://');
+  }
+};
+
 const isMigratableBlogPostArray = (value: unknown): value is BlogPost[] =>
   Array.isArray(value) && value.every((entry) => coerceBlogPost(entry) !== null);
 
@@ -128,11 +146,16 @@ class LocalBlogRepository implements BlogRepository {
 
     const trustedPost = post;
 
-    if (isMediaReference(trustedPost.featuredImage)) {
-      const mediaId = trustedPost.featuredImage.slice('media:'.length).trim();
-      if (!mediaId || !mediaRepository.getById(mediaId)) {
-        throw new BlogRepositoryError('Le média sélectionné est invalide ou supprimé.', 'BLOG_INVALID_MEDIA_REFERENCE');
-      }
+    if (!isValidMediaField(trustedPost.featuredImage)) {
+      throw new BlogRepositoryError('Le média sélectionné est invalide ou supprimé.', 'BLOG_INVALID_MEDIA_REFERENCE');
+    }
+
+    if (trustedPost.seo?.socialImage && !isValidMediaField(trustedPost.seo.socialImage)) {
+      throw new BlogRepositoryError('L’image sociale SEO est invalide ou supprimée.', 'BLOG_INVALID_MEDIA_REFERENCE');
+    }
+
+    if (trustedPost.images.some((image) => !isValidMediaField(image))) {
+      throw new BlogRepositoryError('Une image secondaire référence un média invalide.', 'BLOG_INVALID_MEDIA_REFERENCE');
     }
 
     const posts = this.getAll();

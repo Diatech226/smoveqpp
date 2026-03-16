@@ -18,4 +18,5 @@ This folder tracks the incremental hardening of the CMS and public site content 
 - `ITERATION_01_CONTENT_CONTRACT_ALIGNMENT.md` — fix critical create/form vs model mismatches.
 - `ITERATION_02_SOURCE_OF_TRUTH_AND_PUBLISH_FLOW.md` — harden data flow and publishing behavior.
 - `ITERATION_03_PRODUCTION_HARDENING_AND_OPERATIONS.md` — validation, observability, and release readiness.
+- `ITERATION_04_MEDIA_LIBRARY_AND_CONTENT_AUTHORITY.md` — unified media contract, picker consistency, and CMS content authority hardening.
 - `PRODUCTION_READINESS_ROADMAP.md` — staged path to production readiness.

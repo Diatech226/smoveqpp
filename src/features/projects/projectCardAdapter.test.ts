@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Project } from '../../domain/contentSchemas';
 import { toProjectCardContract } from './projectCardAdapter';
-import { PROJECT_MEDIA_FALLBACK_QUERY, resolveProjectFeaturedImage, toProjectMediaReference } from './projectMedia';
+import { PROJECT_MEDIA_FALLBACK_QUERY, resolveProjectFeaturedImage, resolveProjectGalleryMedia, toProjectMediaReference } from './projectMedia';
 import { mediaRepository } from '../../repositories/mediaRepository';
 
 const baseProject: Project = {
@@ -78,6 +78,31 @@ describe('projectCardAdapter', () => {
 
     expect(card.mediaQuery).toBe('data:image/png;base64,project123');
     expect(card.mediaAlt).toBe('Couverture projet');
+  });
+
+  it('resolves gallery media references into render-safe contracts', () => {
+    mediaRepository.save({
+      id: 'project-gallery-1',
+      name: 'project-gallery.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,gallery1',
+      thumbnailUrl: 'data:image/png;base64,gallery1',
+      size: 128,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Galerie projet',
+      caption: 'Galerie',
+      tags: [],
+    });
+
+    const gallery = resolveProjectGalleryMedia({
+      ...baseProject,
+      images: [toProjectMediaReference('project-gallery-1'), 'manual fallback image'],
+    });
+
+    expect(gallery[0].query).toBe('data:image/png;base64,gallery1');
+    expect(gallery[0].alt).toBe('Galerie projet');
+    expect(gallery[1].query).toBe('manual fallback image');
   });
 
 });

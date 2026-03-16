@@ -125,6 +125,23 @@ describe('blogRepository', () => {
     expect(migrated?.status).toBe('draft');
   });
 
+
+  it('rejects dangling social image media references during save', () => {
+    const seed = blogRepository.getAll()[0];
+
+    expect(() =>
+      blogRepository.save({
+        ...seed,
+        id: 'invalid-social-media-ref-post',
+        slug: 'invalid-social-media-ref-post',
+        seo: {
+          ...seed.seo,
+          socialImage: toMediaReference('missing-asset-social'),
+        },
+      }),
+    ).toThrowError(BlogRepositoryError);
+  });
+
   it('rejects dangling media references during save', () => {
     const seed = blogRepository.getAll()[0];
 
@@ -298,6 +315,33 @@ describe('projectRepository and cmsRepository', () => {
     expect(saved?.links?.caseStudy).toBe('https://smove.africa/case-study');
     expect(saved?.testimonial?.author).toBe('Nadia');
     expect(saved?.testimonial?.position).toBe('Directrice Marketing');
+  });
+
+
+  it('rejects invalid project links and dangling gallery media references', () => {
+    const seed = projectRepository.getAll()[0];
+
+    expect(() =>
+      projectRepository.save({
+        ...seed,
+        id: 'project-invalid-media-link',
+        slug: 'project-invalid-media-link',
+        featuredImage: 'media:missing-project-asset',
+        images: ['media:missing-project-asset'],
+      }),
+    ).toThrowError('Invalid project media payload');
+
+    expect(() =>
+      projectRepository.save({
+        ...seed,
+        id: 'project-invalid-case-study-link',
+        slug: 'project-invalid-case-study-link',
+        links: {
+          live: 'https://smove.africa/live',
+          caseStudy: 'invalid-url',
+        },
+      }),
+    ).toThrowError('Invalid project link payload');
   });
 
   it('supports CMS project save and delete workflows', () => {

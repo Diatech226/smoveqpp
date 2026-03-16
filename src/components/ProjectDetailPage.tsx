@@ -5,7 +5,7 @@ import Navigation from './Navigation';
 import Footer from './Footer';
 import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { resolveProjectFeaturedImage } from '../features/projects/projectMedia';
+import { resolveProjectFeaturedImage, resolveProjectGalleryMedia } from '../features/projects/projectMedia';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -35,6 +35,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
 
   const project = useMemo(() => projectRepository.getBySlug(projectId) || projectRepository.getById(projectId), [projectId, projectVersion]);
   const projectMedia = useMemo(() => (project ? resolveProjectFeaturedImage(project) : null), [project]);
+  const galleryMedia = useMemo(() => (project ? resolveProjectGalleryMedia(project) : []), [project]);
 
   if (!project) {
     return (
@@ -255,7 +256,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(project.images.length > 0 ? project.images : [projectMedia?.query || 'project cover image']).map((image, index) => (
+            {galleryMedia.map((image, index) => (
               <motion.div
                 key={index}
                 className="aspect-video rounded-[16px] overflow-hidden shadow-lg cursor-pointer"
@@ -267,8 +268,8 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
               >
                 <ImageWithFallback
                   src=""
-                  alt={`${project.title} - Image ${index + 1}`}
-                  query={image}
+                  alt={image.alt || `${project.title} - Image ${index + 1}`}
+                  query={image.query}
                   className="w-full h-full object-cover"
                 />
               </motion.div>

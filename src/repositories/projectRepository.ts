@@ -1,7 +1,9 @@
 import { isProjectArray, type Project } from '../domain/contentSchemas';
-import { projectCategories, projects as staticProjects } from '../data/projects';
+import { projects as staticProjects } from '../data/projects';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
 import { PROJECT_MEDIA_FALLBACK_QUERY } from '../features/projects/projectMedia';
+import { isMediaReferenceValue } from '../features/media/assetReference';
+import { mediaRepository } from './mediaRepository';
 
 const PROJECT_STORAGE_KEY = 'smove_projects';
 
@@ -22,6 +24,28 @@ const toIsoOrNow = (value?: string): string => {
 };
 
 const asTrimmedString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+
+const isValidHttpUrl = (value: string): boolean => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const isValidMediaField = (value: string): boolean => {
+  const normalized = value.trim();
+  if (!normalized) return false;
+
+  if (isMediaReferenceValue(normalized)) {
+    const mediaId = normalized.slice('media:'.length).trim();
+    return Boolean(mediaId && mediaRepository.getById(mediaId));
+  }
+
+  return isValidHttpUrl(normalized) || !normalized.includes('://');
+};
 
 const normalizeProject = (project: Partial<Project> & { id: string }): Project => {
   const title = asTrimmedString(project.title);
@@ -134,8 +158,8 @@ class LocalProjectRepository implements ProjectRepository {
   }
 
   getCategories(): string[] {
-    const categories = new Set(projectCategories);
-    this.getAll().forEach((project) => categories.add(project.category));
+    const categories = new Set<string>(['Tous']);
+    this.getPublished().forEach((project) => categories.add(project.category));
     return [...categories];
   }
 
@@ -169,6 +193,18 @@ class LocalProjectRepository implements ProjectRepository {
 
     if (!trustedProject.id.trim() || !trustedProject.title || !trustedProject.client || !trustedProject.category) {
       throw new Error('Invalid project payload');
+    }
+
+    if (!isValidMediaField(trustedProject.featuredImage) || trustedProject.images.some((image) => !isValidMediaField(image))) {
+      throw new Error('Invalid project media payload');
+    }
+
+    if (
+      (trustedProject.link && !isValidHttpUrl(trustedProject.link)) ||
+      (trustedProject.links?.live && !isValidHttpUrl(trustedProject.links.live)) ||
+      (trustedProject.links?.caseStudy && !isValidHttpUrl(trustedProject.links.caseStudy))
+    ) {
+      throw new Error('Invalid project link payload');
     }
 
     const slugConflict = projects.find((candidate) => candidate.slug === trustedProject.slug && candidate.id !== trustedProject.id);

@@ -53,8 +53,9 @@ import {
   type EditorialAnalytics,
 } from '../../utils/contentApi';
 import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
-import { isMediaReference, resolveBlogMediaReference, toMediaReference } from '../../features/blog/mediaReference';
-import { isProjectMediaReference, toProjectMediaReference } from '../../features/projects/projectMedia';
+import { isMediaReference, resolveBlogMediaReference } from '../../features/blog/mediaReference';
+import { isProjectMediaReference } from '../../features/projects/projectMedia';
+import { isValidMediaFieldValue, toMediaReferenceValue } from '../../features/media/assetReference';
 import type { BlogPost, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -143,18 +144,7 @@ const isValidHttpUrl = (value: string): boolean => {
   }
 };
 
-const mediaReferenceExists = (value: string): boolean => {
-  if (!isMediaReference(value)) return false;
-  const mediaId = value.slice('media:'.length).trim();
-  return Boolean(mediaId && mediaRepository.getById(mediaId));
-};
-
-const isValidMediaField = (value: string): boolean => {
-  const normalized = value.trim();
-  if (!normalized) return false;
-  if (isMediaReference(normalized)) return mediaReferenceExists(normalized);
-  return isValidHttpUrl(normalized) || !normalized.includes('://');
-};
+const isValidMediaField = (value: string): boolean => isValidMediaFieldValue(value);
 
 const EMPTY_BLOG_FORM: BlogFormState = {
   title: '',
@@ -275,6 +265,34 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     return mediaRepository.search(mediaQuery.trim());
   }, [mediaFiles, mediaQuery]);
   const selectedMedia = useMemo(() => mediaRepository.getById(selectedMediaId), [selectedMediaId, mediaFiles]);
+
+  const mediaUsageIndex = useMemo(() => {
+    const index = new Map<string, string[]>();
+    const register = (reference: string | undefined, label: string) => {
+      if (!reference || !reference.startsWith('media:')) return;
+      const mediaId = reference.slice('media:'.length).trim();
+      if (!mediaId) return;
+      const entries = index.get(mediaId) || [];
+      entries.push(label);
+      index.set(mediaId, entries);
+    };
+
+    posts.forEach((post) => {
+      register(post.featuredImage, `Blog • ${post.title} • featuredImage`);
+      register(post.seo?.socialImage, `Blog • ${post.title} • seo.socialImage`);
+      post.images.forEach((image) => register(image, `Blog • ${post.title} • images[]`));
+    });
+
+    projects.forEach((project) => {
+      register(project.featuredImage, `Projet • ${project.title} • featuredImage`);
+      register(project.mainImage, `Projet • ${project.title} • mainImage`);
+      project.images.forEach((image) => register(image, `Projet • ${project.title} • images[]`));
+    });
+
+    register(homeContentForm.aboutImage, 'Home page • aboutImage');
+    return index;
+  }, [homeContentForm.aboutImage, posts, projects]);
+
   const canEditContent = user?.role === 'admin' || user?.role === 'editor' || user?.role === 'author';
   const canReviewContent = user?.role === 'admin' || user?.role === 'editor';
   const canPublishContent = user?.role === 'admin' || user?.role === 'editor';
@@ -1164,6 +1182,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setSectionError('Suppression média non autorisée: rôle administrateur requis.');
       return;
     }
+    const localReferences = mediaUsageIndex.get(selectedMedia.id) || [];
+    if (localReferences.length > 0) {
+      setSectionError(`Suppression refusée: média référencé localement (${localReferences.slice(0, 3).join(' | ')}).`);
+      return;
+    }
+
     if (!window.confirm(`Supprimer définitivement le média "${selectedMedia.label || selectedMedia.name}" ?`)) {
       return;
     }
@@ -1230,7 +1254,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           </label>
           {mediaFiles.length > 0 ? (
             <div className="rounded-[10px] bg-[#f5f9fa] p-3">
-              <p className="text-[13px] text-[#6f7f85] mb-2">Associer un média existant</p>
+              <p className="text-[13px] text-[#6f7f85] mb-2">Sélecteur média (même contrat Blog/Projet: media:asset-id)</p>
               <div className="flex flex-wrap gap-2">
                 {mediaFiles.slice(0, 6).map((file) => (
                   <button
@@ -1239,7 +1263,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     onClick={() =>
                       setProjectForm((prev) => ({
                         ...prev,
-                        mainImage: toProjectMediaReference(file.id),
+                        mainImage: toMediaReferenceValue(file.id),
                         imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name,
                       }))
                     }
@@ -1607,7 +1631,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           </label>
           {mediaFiles.length > 0 ? (
             <div className="rounded-[10px] bg-[#f5f9fa] p-3">
-              <p className="text-[13px] text-[#6f7f85] mb-2">Associer un média existant</p>
+              <p className="text-[13px] text-[#6f7f85] mb-2">Sélecteur média (même contrat Blog/Projet: media:asset-id)</p>
               <div className="flex flex-wrap gap-2">
                 {mediaFiles.slice(0, 6).map((file) => (
                   <button
@@ -1616,8 +1640,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     onClick={() =>
                       setBlogForm((prev) => ({
                         ...prev,
-                        featuredImage: toMediaReference(file.id),
-                        socialImage: toMediaReference(file.id),
+                        featuredImage: toMediaReferenceValue(file.id),
+                        socialImage: toMediaReferenceValue(file.id),
                       }))
                     }
                     className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]"
@@ -2096,7 +2120,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   {filteredMediaFiles.map((file) => (
                     <button type="button" key={file.id} onClick={() => setSelectedMediaId(file.id)} className={`rounded-[12px] border p-4 text-left ${selectedMediaId === file.id ? 'border-[#00b3e8] bg-[#f0fbff]' : 'border-[#eef3f5]'}`}>
                       <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{file.label || file.name}</p>
-                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">{file.type} • {Math.round(file.size / 1024)} KB</p>
+                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">{file.type} • {Math.round(file.size / 1024)} KB • {(mediaUsageIndex.get(file.id)?.length || 0)} référence(s)</p>
                       <p className="text-[12px] text-[#8a969b] mt-1">{file.alt || 'alt non renseigné'}</p>
                     </button>
                   ))}
@@ -2114,7 +2138,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   <p><span className="font-semibold">Titre:</span> {selectedMedia.title || selectedMedia.name}</p>
                   <p><span className="font-semibold">Créé:</span> {selectedMedia.createdAt || selectedMedia.uploadedDate}</p>
                   <p><span className="font-semibold">Mis à jour:</span> {selectedMedia.updatedAt || selectedMedia.uploadedDate}</p>
-                  <div className="pt-1"><code className="text-[12px] bg-[#f5f9fa] px-2 py-1 rounded">media:{selectedMedia.id}</code></div>
+                  <div className="pt-1"><code className="text-[12px] bg-[#f5f9fa] px-2 py-1 rounded">{toMediaReferenceValue(selectedMedia.id)}</code></div>
+                  {(mediaUsageIndex.get(selectedMedia.id)?.length || 0) > 0 ? (
+                    <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+                      Références actives:
+                      <ul className="list-disc ml-4 mt-1">
+                        {(mediaUsageIndex.get(selectedMedia.id) || []).slice(0, 6).map((usage) => (<li key={usage}>{usage}</li>))}
+                      </ul>
+                    </div>
+                  ) : null}
                   <button type="button" onClick={deleteSelectedMedia} disabled={!canDeleteContent} className="mt-2 px-3 py-2 border border-red-200 text-red-600 rounded-[10px] disabled:opacity-50">Supprimer ce média</button>
                 </div>
               )}
@@ -2153,7 +2185,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               <textarea value={homeContentForm.aboutParagraphTwo} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphTwo: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[90px]" placeholder="Paragraphe 2" />
               <select value={homeContentForm.aboutImage} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutImage: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2">
                 <option value="">Image about par défaut</option>
-                {mediaFiles.map((file) => (<option key={file.id} value={`media:${file.id}`}>{file.label || file.name}</option>))}
+                {mediaFiles.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
               </select>
             </div>
           </AdminPanel>
