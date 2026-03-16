@@ -523,6 +523,17 @@ class ContentService {
       readTime: typeof raw?.readTime === 'string' && raw.readTime.trim() ? raw.readTime.trim() : '5 min',
       featuredImage: typeof raw?.featuredImage === 'string' && raw.featuredImage.trim() ? raw.featuredImage.trim() : 'blog article image',
       images: Array.isArray(raw?.images) ? raw.images.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      mediaRoles: {
+        featuredImage:
+          (raw?.mediaRoles && typeof raw.mediaRoles.featuredImage === 'string' && raw.mediaRoles.featuredImage.trim()) ||
+          (typeof raw?.featuredImage === 'string' && raw.featuredImage.trim()) ||
+          'blog article image',
+        socialImage:
+          (raw?.mediaRoles && typeof raw.mediaRoles.socialImage === 'string' && raw.mediaRoles.socialImage.trim()) ||
+          (raw?.seo && typeof raw.seo.socialImage === 'string' && raw.seo.socialImage.trim()) ||
+          (typeof raw?.featuredImage === 'string' && raw.featuredImage.trim()) ||
+          'blog article image',
+      },
     };
   }
 
@@ -587,6 +598,10 @@ class ContentService {
       (post.seo === undefined ||
         (typeof post.seo === 'object' &&
           (post.seo.socialImage === undefined || this.isValidMediaLink(post.seo.socialImage)))) &&
+      (post.mediaRoles === undefined ||
+        (typeof post.mediaRoles === 'object' &&
+          (post.mediaRoles.featuredImage === undefined || this.isValidMediaLink(post.mediaRoles.featuredImage)) &&
+          (post.mediaRoles.socialImage === undefined || this.isValidMediaLink(post.mediaRoles.socialImage)))) &&
       SLUG_PATTERN.test(post.slug.trim()) &&
       BLOG_STATUSES.has(post.status)
     );
@@ -599,7 +614,11 @@ class ContentService {
     const status = PROJECT_STATUSES.has(project?.status) ? project.status : 'published';
     const nowIso = new Date().toISOString();
 
-    const featuredImage = asTrimmedString(project?.featuredImage) || asTrimmedString(project?.mainImage) || 'project cover image';
+    const roleCardImage = asTrimmedString(project?.mediaRoles?.cardImage);
+    const roleHeroImage = asTrimmedString(project?.mediaRoles?.heroImage);
+    const roleGalleryImages = Array.isArray(project?.mediaRoles?.galleryImages) ? project.mediaRoles.galleryImages.map((entry) => `${entry}`.trim()).filter(Boolean) : [];
+    const featuredImage = roleCardImage || asTrimmedString(project?.featuredImage) || asTrimmedString(project?.mainImage) || 'project cover image';
+    const heroImage = roleHeroImage || asTrimmedString(project?.mainImage) || featuredImage;
 
     return {
       ...project,
@@ -615,14 +634,25 @@ class ContentService {
       solution: asTrimmedString(project?.solution) || 'Solution à compléter.',
       results: Array.isArray(project?.results) ? project.results.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       tags: Array.isArray(project?.tags) ? project.tags.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
-      mainImage: featuredImage,
+      mainImage: heroImage,
       featuredImage,
       imageAlt: asTrimmedString(project?.imageAlt) || title || 'Projet SMOVE',
       images: Array.isArray(project?.images)
         ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean)
-        : featuredImage
-          ? [featuredImage]
+        : heroImage
+          ? [heroImage]
           : [],
+      mediaRoles: {
+        cardImage: featuredImage,
+        heroImage,
+        galleryImages: roleGalleryImages.length > 0
+          ? roleGalleryImages
+          : Array.isArray(project?.images)
+            ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean)
+            : heroImage
+              ? [heroImage]
+              : [],
+      },
       featured: Boolean(project?.featured),
       status,
       createdAt: project?.createdAt || nowIso,
@@ -680,6 +710,11 @@ class ContentService {
         project.featuredImage.length > 0 &&
         this.isValidMediaLink(project.featuredImage) &&
         typeof project.imageAlt === 'string' &&
+        (project.mediaRoles === undefined ||
+          (typeof project.mediaRoles === 'object' &&
+            (project.mediaRoles.cardImage === undefined || this.isValidMediaLink(project.mediaRoles.cardImage)) &&
+            (project.mediaRoles.heroImage === undefined || this.isValidMediaLink(project.mediaRoles.heroImage)) &&
+            (project.mediaRoles.galleryImages === undefined || (Array.isArray(project.mediaRoles.galleryImages) && project.mediaRoles.galleryImages.every((image) => this.isValidMediaLink(image)))))) &&
         (project.link === undefined || this.isValidHttpUrl(project.link)) &&
         (project.links === undefined ||
           (typeof project.links === 'object' &&
@@ -711,6 +746,8 @@ class ContentService {
       description: asTrimmedString(service?.description),
       shortDescription: asTrimmedString(service?.shortDescription) || undefined,
       icon: asTrimmedString(service?.icon) || 'palette',
+      iconLikeAsset: asTrimmedString(service?.iconLikeAsset) || undefined,
+      routeSlug: this.normalizeSlug(asTrimmedString(service?.routeSlug) || asTrimmedString(service?.slug) || title || asTrimmedString(service?.id)),
       color: asTrimmedString(service?.color) || 'from-[#00b3e8] to-[#00c0e8]',
       features: Array.isArray(service?.features) ? service.features.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       status: SERVICE_STATUSES.has(service?.status) ? service.status : 'published',
@@ -729,6 +766,11 @@ class ContentService {
         service.title.length > 0 &&
         typeof service.slug === 'string' &&
         service.slug.length > 0 &&
+        SLUG_PATTERN.test(service.slug) &&
+        typeof service.routeSlug === 'string' &&
+        service.routeSlug.length > 0 &&
+        SLUG_PATTERN.test(service.routeSlug) &&
+        (service.iconLikeAsset === undefined || this.isValidMediaLink(service.iconLikeAsset)) &&
         typeof service.description === 'string' &&
         service.description.length > 0 &&
         typeof service.icon === 'string' &&
@@ -822,7 +864,10 @@ class ContentService {
       if (Array.isArray(post.images) && post.images.some((image) => image === mediaRef)) {
         references.push({ domain: 'blog', id: post.id, field: 'images', label: post.title });
       }
-      if (post.seo?.socialImage === mediaRef) {
+      if (post.mediaRoles?.featuredImage === mediaRef) {
+        references.push({ domain: 'blog', id: post.id, field: 'mediaRoles.featuredImage', label: post.title });
+      }
+      if (post.seo?.socialImage === mediaRef || post.mediaRoles?.socialImage === mediaRef) {
         references.push({ domain: 'blog', id: post.id, field: 'seo.socialImage', label: post.title });
       }
     });

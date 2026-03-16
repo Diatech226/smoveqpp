@@ -5,7 +5,7 @@ import Navigation from './Navigation';
 import Footer from './Footer';
 import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { resolveProjectFeaturedImage, resolveProjectGalleryMedia } from '../features/projects/projectMedia';
+import { resolveProjectHeroMedia, resolveProjectGalleryMedia } from '../features/projects/projectMedia';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -34,7 +34,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
   }, []);
 
   const project = useMemo(() => projectRepository.getBySlug(projectId) || projectRepository.getById(projectId), [projectId, projectVersion]);
-  const projectMedia = useMemo(() => (project ? resolveProjectFeaturedImage(project) : null), [project]);
+  const projectMedia = useMemo(() => (project ? resolveProjectHeroMedia(project) : null), [project]);
   const galleryMedia = useMemo(() => (project ? resolveProjectGalleryMedia(project) : []), [project]);
 
   if (!project) {

@@ -21,6 +21,10 @@ export interface BlogPost {
     canonicalSlug?: string;
     socialImage?: string;
   };
+  mediaRoles?: {
+    featuredImage?: string;
+    socialImage?: string;
+  };
 }
 
 export type MediaType = 'image' | 'video' | 'document';
@@ -82,6 +86,11 @@ export interface Project {
     author: string;
     position: string;
   };
+  mediaRoles?: {
+    cardImage?: string;
+    heroImage?: string;
+    galleryImages?: string[];
+  };
 }
 
 export interface Service {
@@ -95,6 +104,8 @@ export interface Service {
   features: string[];
   status?: 'draft' | 'published' | 'archived';
   featured?: boolean;
+  routeSlug?: string;
+  iconLikeAsset?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -131,6 +142,12 @@ export const isBlogPost = (value: unknown): value is BlogPost => {
         (seo.description === undefined || typeof seo.description === 'string') &&
         (seo.canonicalSlug === undefined || typeof seo.canonicalSlug === 'string') &&
         (seo.socialImage === undefined || typeof seo.socialImage === 'string')))
+    &&
+    (v.mediaRoles === undefined ||
+      (typeof v.mediaRoles === 'object' &&
+        v.mediaRoles !== null &&
+        (((v.mediaRoles as Record<string, unknown>).featuredImage === undefined) || typeof (v.mediaRoles as Record<string, unknown>).featuredImage === 'string') &&
+        (((v.mediaRoles as Record<string, unknown>).socialImage === undefined) || typeof (v.mediaRoles as Record<string, unknown>).socialImage === 'string')))
   );
 };
 
@@ -204,6 +221,13 @@ export const isProject = (value: unknown): value is Project => {
         isString(testimonial.text) &&
         isString(testimonial.author) &&
         isString(testimonial.position)))
+    &&
+    (v.mediaRoles === undefined ||
+      (typeof v.mediaRoles === 'object' &&
+        v.mediaRoles !== null &&
+        (((v.mediaRoles as Record<string, unknown>).cardImage === undefined) || isString((v.mediaRoles as Record<string, unknown>).cardImage)) &&
+        (((v.mediaRoles as Record<string, unknown>).heroImage === undefined) || isString((v.mediaRoles as Record<string, unknown>).heroImage)) &&
+        (((v.mediaRoles as Record<string, unknown>).galleryImages === undefined) || isStringArray((v.mediaRoles as Record<string, unknown>).galleryImages))))
   );
 };
 
@@ -229,6 +253,8 @@ export const isService = (value: unknown): value is Service => {
     isString(v.color) &&
     isStringArray(v.features) &&
     (v.shortDescription === undefined || isString(v.shortDescription)) &&
+    (v.routeSlug === undefined || isString(v.routeSlug)) &&
+    (v.iconLikeAsset === undefined || isString(v.iconLikeAsset)) &&
     (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
     (v.link === undefined || isString(v.link)) &&
     (v.featured === undefined || typeof v.featured === 'boolean') &&

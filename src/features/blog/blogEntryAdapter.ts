@@ -78,11 +78,12 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
   const excerpt = post.excerpt || post.content.slice(0, 160) || 'Contenu indisponible.';
   const title = post.title || 'Article sans titre';
   const slug = normalizeSlug(post.slug, title);
-  const media = resolveBlogMediaReference(post.featuredImage, title);
+  const featuredImageRef = post.mediaRoles?.featuredImage?.trim() || post.featuredImage;
+  const media = resolveBlogMediaReference(featuredImageRef, title);
   const seoTitle = post.seo?.title?.trim() || title;
   const seoDescription = post.seo?.description?.trim() || excerpt;
   const canonicalSlug = normalizeSlug(post.seo?.canonicalSlug || slug, title);
-  const socialImage = post.seo?.socialImage?.trim() || media.src;
+  const socialImage = post.mediaRoles?.socialImage?.trim() || post.seo?.socialImage?.trim() || media.src;
 
   return {
     id: post.id,
@@ -157,6 +158,10 @@ export function fromCmsBlogInput(input: CmsBlogInput): BlogPost {
       title: input.seoTitle?.trim() || title,
       description: input.seoDescription?.trim() || excerpt,
       canonicalSlug: normalizeSlug(input.canonicalSlug || slug, title),
+      socialImage: input.socialImage?.trim() || input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
+    },
+    mediaRoles: {
+      featuredImage: input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
       socialImage: input.socialImage?.trim() || input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
     },
   };

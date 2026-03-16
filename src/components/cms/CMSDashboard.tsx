@@ -106,7 +106,8 @@ interface ProjectFormState {
   solution: string;
   results: string;
   tags: string;
-  mainImage: string;
+  cardImage: string;
+  heroImage: string;
   imageAlt: string;
   externalLink: string;
   caseStudyLink: string;
@@ -125,10 +126,12 @@ interface ServiceFormState {
   description: string;
   shortDescription: string;
   icon: string;
+  iconLikeAsset: string;
   color: string;
   features: string;
   status: 'draft' | 'published' | 'archived';
   featured: boolean;
+  routeSlug: string;
 }
 
 const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -170,10 +173,12 @@ const EMPTY_SERVICE_FORM: ServiceFormState = {
   description: '',
   shortDescription: '',
   icon: 'palette',
+  iconLikeAsset: '',
   color: 'from-[#00b3e8] to-[#00c0e8]',
   features: '',
   status: 'published',
   featured: false,
+  routeSlug: '',
 };
 
 const EMPTY_PROJECT_FORM: ProjectFormState = {
@@ -190,7 +195,8 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   solution: '',
   results: '',
   tags: '',
-  mainImage: '',
+  cardImage: '',
+  heroImage: '',
   imageAlt: '',
   externalLink: '',
   caseStudyLink: '',
@@ -280,7 +286,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     posts.forEach((post) => {
       register(post.featuredImage, `Blog • ${post.title} • featuredImage`);
+      register(post.mediaRoles?.featuredImage, `Blog • ${post.title} • mediaRoles.featuredImage`);
       register(post.seo?.socialImage, `Blog • ${post.title} • seo.socialImage`);
+      register(post.mediaRoles?.socialImage, `Blog • ${post.title} • mediaRoles.socialImage`);
       post.images.forEach((image) => register(image, `Blog • ${post.title} • images[]`));
     });
 
@@ -811,7 +819,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       solution: project.solution,
       results: project.results.join('\n'),
       tags: project.tags.join(', '),
-      mainImage: project.featuredImage || project.mainImage,
+      cardImage: project.mediaRoles?.cardImage || project.featuredImage || project.mainImage,
+      heroImage: project.mediaRoles?.heroImage || project.mainImage || project.featuredImage,
       imageAlt: project.imageAlt || project.title,
       externalLink: project.link || project.links?.live || '',
       caseStudyLink: project.links?.caseStudy || '',
@@ -833,9 +842,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (form.year.trim() && !/^\d{4}$/.test(form.year.trim())) {
       errors.year = 'L’année doit être sur 4 chiffres (ex: 2026).';
     }
-    if (!form.mainImage.trim()) errors.mainImage = 'L’image de couverture est requise pour les cartes.';
-    if (form.mainImage.trim() && !isValidMediaField(form.mainImage)) {
-      errors.mainImage = 'Image invalide. Utilisez une URL valide ou media:asset-id existant.';
+    if (!form.cardImage.trim()) errors.cardImage = 'L’image carte est requise pour les cartes.';
+    if (form.cardImage.trim() && !isValidMediaField(form.cardImage)) {
+      errors.cardImage = 'Image carte invalide. Utilisez une URL valide ou media:asset-id existant.';
+    }
+    if (form.heroImage.trim() && !isValidMediaField(form.heroImage)) {
+      errors.heroImage = 'Image hero invalide. Utilisez une URL valide ou media:asset-id existant.';
     }
     if (form.caseStudyLink.trim() && !/^https?:\/\//i.test(form.caseStudyLink.trim())) {
       errors.caseStudyLink = 'Le lien case study doit commencer par http:// ou https://.';
@@ -923,7 +935,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean);
-    const images = normalizedGallery.length > 0 ? normalizedGallery : [projectForm.mainImage.trim()].filter(Boolean);
+    const heroImage = projectForm.heroImage.trim() || projectForm.cardImage.trim();
+    const images = normalizedGallery.length > 0 ? normalizedGallery : [heroImage].filter(Boolean);
 
     const payload = {
       id: projectForm.id || `project-${Date.now()}`,
@@ -940,8 +953,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       solution: projectForm.solution.trim(),
       results: projectForm.results.split('\n').map((line) => line.trim()).filter(Boolean),
       tags: projectForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-      mainImage: projectForm.mainImage.trim() || 'project cover image',
-      featuredImage: projectForm.mainImage.trim() || 'project cover image',
+      mainImage: heroImage || 'project cover image',
+      featuredImage: projectForm.cardImage.trim() || heroImage || 'project cover image',
+      mediaRoles: {
+        cardImage: projectForm.cardImage.trim() || heroImage || 'project cover image',
+        heroImage: heroImage || 'project cover image',
+        galleryImages: images,
+      },
       imageAlt: projectForm.imageAlt.trim() || projectForm.title.trim(),
       images,
       link: projectForm.externalLink.trim() || undefined,
@@ -1019,10 +1037,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       description: service.description,
       shortDescription: service.shortDescription || '',
       icon: service.icon,
+      iconLikeAsset: service.iconLikeAsset || '',
       color: service.color,
       features: service.features.join('\n'),
       status: service.status ?? 'published',
       featured: Boolean(service.featured),
+      routeSlug: service.routeSlug || service.slug,
     });
     setServiceFormErrors({});
     setServicesError('');
@@ -1043,6 +1063,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     if (form.slug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
       errors.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
+    }
+    if (form.routeSlug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.routeSlug.trim())) {
+      errors.routeSlug = 'Le routeSlug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
+    }
+    if (form.iconLikeAsset.trim() && !isValidMediaField(form.iconLikeAsset)) {
+      errors.iconLikeAsset = 'Icon asset invalide. Utilisez une URL valide ou media:asset-id existant.';
     }
     return errors;
   };
@@ -1072,10 +1098,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       description: serviceForm.description.trim(),
       shortDescription: serviceForm.shortDescription.trim() || undefined,
       icon: serviceForm.icon.trim(),
+      iconLikeAsset: serviceForm.iconLikeAsset.trim() || undefined,
       color: serviceForm.color.trim(),
       features: serviceForm.features.split('\n').map((entry) => entry.trim()).filter(Boolean),
       status: serviceForm.status,
       featured: serviceForm.featured,
+      routeSlug: serviceForm.routeSlug.trim() || serviceForm.slug.trim() || serviceForm.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
     };
 
     try {
@@ -1212,17 +1240,27 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             </label>
           ))}
           <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Image de couverture (URL ou media:asset-id)</span>
+            <span className="text-[14px] text-[#6f7f85]">Image carte (URL ou media:asset-id)</span>
             <input
-              value={projectForm.mainImage}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, mainImage: event.target.value }))}
+              value={projectForm.cardImage}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, cardImage: event.target.value }))}
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
               placeholder="https://... ou media:asset-id"
             />
-            {projectFormErrors.mainImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.mainImage}</p> : null}
-            {isProjectMediaReference(projectForm.mainImage) ? (
-              <p className="text-[12px] text-[#6f7f85] mt-1">Référence média liée: {projectForm.mainImage}</p>
+            {projectFormErrors.cardImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.cardImage}</p> : null}
+            {isProjectMediaReference(projectForm.cardImage) ? (
+              <p className="text-[12px] text-[#6f7f85] mt-1">Référence média liée: {projectForm.cardImage}</p>
             ) : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Image hero détail (optionnel, URL ou media:asset-id)</span>
+            <input
+              value={projectForm.heroImage}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, heroImage: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              placeholder="URL ou media:asset-id (fallback sur image carte)"
+            />
+            {projectFormErrors.heroImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.heroImage}</p> : null}
           </label>
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Texte alternatif image</span>
@@ -1255,7 +1293,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     onClick={() =>
                       setProjectForm((prev) => ({
                         ...prev,
-                        mainImage: toMediaReferenceValue(file.id),
+                        cardImage: toMediaReferenceValue(file.id),
+                        heroImage: prev.heroImage.trim() || toMediaReferenceValue(file.id),
                         imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name,
                       }))
                     }
@@ -1426,7 +1465,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             void saveService();
           }}
         >
-          {(['title', 'slug', 'icon', 'color'] as const).map((fieldKey) => (
+          {(['title', 'slug', 'routeSlug', 'icon', 'color'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
               <input
@@ -1447,6 +1486,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             />
           </label>
 
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Icon-like asset (optionnel, URL ou media:asset-id)</span>
+            <input
+              value={serviceForm.iconLikeAsset}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, iconLikeAsset: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {serviceFormErrors.iconLikeAsset ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.iconLikeAsset}</p> : null}
+          </label>
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Description</span>
             <textarea

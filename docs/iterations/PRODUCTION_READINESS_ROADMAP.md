@@ -31,3 +31,7 @@
 ## Milestone D — Media and content authority convergence
 - Deliver Iteration 04.
 - Outcome: Blog/Projects/Home content share coherent media references with safer delete and rendering behavior.
+
+
+## Iteration updates
+- Iteration 01 implementation notes: `docs/iterations/ITERATION_01_MEDIA_ROLE_FRAMEWORK_AND_CONTRACT_HARDENING.md`.
