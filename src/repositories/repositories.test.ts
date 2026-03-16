@@ -57,6 +57,38 @@ describe('blogRepository', () => {
     expect(created?.featuredImage).toBe('article card image');
   });
 
+
+  it('saves a blog article when only title and featured image are meaningfully provided', () => {
+    const seed = blogRepository.getAll()[0];
+
+    blogRepository.save({
+      ...seed,
+      id: 'blog-minimal-fields',
+      title: 'Article minimal',
+      slug: 'article-minimal',
+      excerpt: '',
+      content: '',
+      author: '',
+      authorRole: '',
+      category: '',
+      tags: [],
+      readTime: '',
+      featuredImage: 'minimal blog image',
+      images: [],
+      seo: {
+        title: '',
+        description: '',
+        canonicalSlug: '',
+        socialImage: '',
+      },
+      status: 'draft',
+    });
+
+    const saved = blogRepository.getById('blog-minimal-fields');
+    expect(saved?.title).toBe('Article minimal');
+    expect(saved?.featuredImage).toBe('minimal blog image');
+  });
+
   it('writes and reads posts through validated repository contracts', () => {
     const initialCount = blogRepository.getAll().length;
     const newPost: BlogPost = {
@@ -200,6 +232,32 @@ describe('projectRepository and cmsRepository', () => {
   });
 
 
+
+
+  it('saves a project when only title and featured image are meaningfully provided', () => {
+    const seed = projectRepository.getAll()[0];
+
+    const saved = projectRepository.save({
+      ...seed,
+      id: 'project-minimal-fields',
+      title: 'Projet minimal',
+      slug: '',
+      client: '',
+      category: '',
+      description: '',
+      challenge: '',
+      solution: '',
+      summary: '',
+      featuredImage: 'minimal project image',
+      mainImage: 'minimal project image',
+      images: [],
+      results: [],
+      tags: [],
+    });
+
+    expect(saved.title).toBe('Projet minimal');
+    expect(saved.featuredImage).toBe('minimal project image');
+  });
 
   it('normalizes project slug and preserves created date on update', () => {
     const seed = projectRepository.getAll()[0];

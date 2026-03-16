@@ -119,17 +119,8 @@ export function evaluatePublishability(entry: CanonicalBlogEntry): Publishabilit
   if (!entry.title.trim()) {
     reasons.push('missing_title');
   }
-  if (!entry.content.trim()) {
-    reasons.push('missing_content');
-  }
-  if (!entry.excerpt.trim()) {
-    reasons.push('missing_excerpt');
-  }
-  if (!entry.seo.title.trim()) {
-    reasons.push('missing_seo_title');
-  }
-  if (!entry.seo.description.trim()) {
-    reasons.push('missing_seo_description');
+  if (!entry.featuredImage.trim()) {
+    reasons.push('missing_featured_image');
   }
 
   return {
@@ -141,14 +132,15 @@ export function evaluatePublishability(entry: CanonicalBlogEntry): Publishabilit
 export function fromCmsBlogInput(input: CmsBlogInput): BlogPost {
   const title = input.title.trim();
   const slug = normalizeSlug(input.slug, title);
-  const excerpt = input.excerpt.trim() || input.content.trim().slice(0, 160);
+  const fallbackContent = input.content.trim() || 'Contenu à compléter.';
+  const excerpt = input.excerpt.trim() || fallbackContent.slice(0, 160) || `Résumé à compléter pour ${title || 'cet article'}.`;
 
   return {
     id: input.id || `post-${Date.now()}`,
     title,
     slug,
     excerpt,
-    content: input.content.trim(),
+    content: fallbackContent,
     author: input.author.trim() || 'Équipe SMOVE',
     authorRole: 'CMS Editor',
     category: input.category.trim() || 'Non classé',

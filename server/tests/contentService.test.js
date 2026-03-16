@@ -181,6 +181,32 @@ describe('ContentService project persistence', () => {
     expect(result.project.testimonial.author).toBe('Mariam');
   });
 
+
+  it('accepts project payloads with only title and image as meaningful required fields', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-minimal-server',
+      title: 'Projet minimal serveur',
+      slug: '',
+      client: '',
+      category: '',
+      year: '',
+      description: '',
+      challenge: '',
+      solution: '',
+      results: [],
+      tags: [],
+      mainImage: 'minimal server image',
+      featuredImage: 'minimal server image',
+      images: [],
+      status: 'published',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.project.featuredImage).toBe('minimal server image');
+  });
+
   it('rejects duplicate project slugs across different ids', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 
@@ -298,6 +324,52 @@ describe('ContentService services synchronization', () => {
 });
 
 describe('ContentService production hardening', () => {
+
+  it('normalizes blog payloads with optional fields omitted and keeps them publishable', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveBlogPost({
+      id: 'blog-minimal-server',
+      title: 'Blog minimal serveur',
+      slug: '',
+      excerpt: '',
+      content: '',
+      author: '',
+      authorRole: '',
+      category: '',
+      tags: [],
+      publishedDate: '',
+      readTime: '',
+      featuredImage: 'blog minimal image',
+      images: [],
+      status: 'published',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('BLOG_INVALID_STATUS_TRANSITION');
+
+    const draft = service.saveBlogPost({
+      id: 'blog-minimal-server',
+      title: 'Blog minimal serveur',
+      slug: '',
+      excerpt: '',
+      content: '',
+      author: '',
+      authorRole: '',
+      category: '',
+      tags: [],
+      publishedDate: '',
+      readTime: '',
+      featuredImage: 'blog minimal image',
+      images: [],
+      status: 'draft',
+    });
+
+    expect(draft.ok).toBe(true);
+    expect(draft.post.excerpt.length).toBeGreaterThan(0);
+    expect(draft.post.content.length).toBeGreaterThan(0);
+  });
+
   it('rejects blog payload with invalid date or dangling media reference', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 

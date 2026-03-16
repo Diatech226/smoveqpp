@@ -101,6 +101,25 @@ describe('blogEntryAdapter', () => {
   });
 
 
+
+  it('treats published entries with title + image as renderable even when optional metadata is empty', () => {
+    const evaluation = evaluatePublishability(
+      toCanonicalBlogEntry({
+        ...defaultBlogPosts[0],
+        title: 'Minimal',
+        slug: 'minimal',
+        excerpt: '',
+        content: '',
+        author: '',
+        category: '',
+        featuredImage: 'minimal featured image',
+        status: 'published',
+      }),
+    );
+
+    expect(evaluation.publishable).toBe(true);
+  });
+
   it('flags non-published entries as not publishable', () => {
     const evaluation = evaluatePublishability(
       toCanonicalBlogEntry({

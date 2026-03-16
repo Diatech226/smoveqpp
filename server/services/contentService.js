@@ -478,7 +478,7 @@ class ContentService {
   }
 
   evaluatePublishability(post) {
-    if (!post.title?.trim() || !post.slug?.trim() || !post.featuredImage?.trim() || !post.content?.trim() || !post.excerpt?.trim()) {
+    if (!post.title?.trim() || !post.slug?.trim() || !post.featuredImage?.trim()) {
       return { ok: false, message: 'Missing required publish fields.' };
     }
     if (!this.isValidDate(post.publishedDate)) {
@@ -503,7 +503,27 @@ class ContentService {
 
   normalizePost(raw) {
     const status = BLOG_STATUSES.has(raw?.status) ? raw.status : 'draft';
-    return { ...raw, status };
+    const title = typeof raw?.title === 'string' ? raw.title.trim() : '';
+    const slug = this.normalizeSlug(typeof raw?.slug === 'string' ? raw.slug : title || raw?.id || 'article');
+    const excerpt = typeof raw?.excerpt === 'string' ? raw.excerpt.trim() : '';
+    const content = typeof raw?.content === 'string' ? raw.content.trim() : '';
+
+    return {
+      ...raw,
+      status,
+      title,
+      slug,
+      excerpt: excerpt || (content ? content.slice(0, 160) : `Résumé à compléter pour ${title || 'cet article'}.`),
+      content: content || 'Contenu à compléter.',
+      author: typeof raw?.author === 'string' && raw.author.trim() ? raw.author.trim() : 'Équipe SMOVE',
+      authorRole: typeof raw?.authorRole === 'string' && raw.authorRole.trim() ? raw.authorRole.trim() : 'CMS Editor',
+      category: typeof raw?.category === 'string' && raw.category.trim() ? raw.category.trim() : 'Non classé',
+      tags: Array.isArray(raw?.tags) ? raw.tags.map((tag) => `${tag}`.trim()).filter(Boolean) : [],
+      publishedDate: this.isValidDate(raw?.publishedDate) ? new Date(raw.publishedDate).toISOString() : new Date().toISOString(),
+      readTime: typeof raw?.readTime === 'string' && raw.readTime.trim() ? raw.readTime.trim() : '5 min',
+      featuredImage: typeof raw?.featuredImage === 'string' && raw.featuredImage.trim() ? raw.featuredImage.trim() : 'blog article image',
+      images: Array.isArray(raw?.images) ? raw.images.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+    };
   }
 
   isValidDate(value) {
@@ -645,17 +665,12 @@ class ContentService {
         project.slug.length > 0 &&
         SLUG_PATTERN.test(project.slug) &&
         typeof project.client === 'string' &&
-        project.client.length > 0 &&
         typeof project.category === 'string' &&
-        project.category.length > 0 &&
         typeof project.year === 'string' &&
         /^\d{4}$/.test(project.year) &&
         typeof project.description === 'string' &&
-        project.description.length > 0 &&
         typeof project.challenge === 'string' &&
-        project.challenge.length > 0 &&
         typeof project.solution === 'string' &&
-        project.solution.length > 0 &&
         Array.isArray(project.results) &&
         Array.isArray(project.tags) &&
         typeof project.mainImage === 'string' &&

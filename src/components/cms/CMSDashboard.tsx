@@ -501,7 +501,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         return 'Publication non autorisée pour votre rôle.';
       }
       if (error.message.includes('Missing required publish fields')) {
-        return 'Article non publiable: renseignez titre, slug, extrait, image vedette et contenu.';
+        return 'Article non publiable: renseignez au minimum le titre et l’image vedette.';
       }
       if (error.message.includes('BLOG_INSTANT_PUBLISHING_DISABLED')) {
         return 'Publication instantanée désactivée: passez par la revue éditoriale et activez la publication pour publier.';
@@ -546,16 +546,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const validateBlogForm = (form: BlogFormState) => {
     const errors: Partial<Record<keyof BlogFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
-    if (!form.content.trim()) errors.content = 'Le contenu est requis.';
-    if (!form.excerpt.trim()) errors.excerpt = 'Le résumé est requis.';
-    if (!normalizeSlug(form.slug, form.title)) errors.slug = 'Le slug est requis.';
-    if (!form.author.trim()) errors.author = 'L’auteur est requis.';
-    if (!form.category.trim()) errors.category = 'La catégorie est requise.';
     if (!form.featuredImage.trim()) errors.featuredImage = 'L’image vedette est requise pour les cartes.';
     if (form.featuredImage.trim() && !isValidMediaField(form.featuredImage)) {
       errors.featuredImage = 'Utilisez une URL valide ou une référence media:asset-id existante.';
     }
-    if (!toIsoDateTime(form.publishedDate)) errors.publishedDate = 'La date de publication est invalide.';
     if (form.socialImage.trim() && !isValidMediaField(form.socialImage)) {
       errors.socialImage = 'L’image sociale doit être une URL valide ou media:asset-id existant.';
     }
@@ -828,22 +822,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const validateProjectForm = (form: ProjectFormState) => {
     const errors: Partial<Record<keyof ProjectFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
-    if (!form.client.trim()) errors.client = 'Le client est requis.';
     if (form.slug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
       errors.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
     }
-    if (!form.category.trim()) errors.category = 'La catégorie est requise.';
     if (form.year.trim() && !/^\d{4}$/.test(form.year.trim())) {
       errors.year = 'L’année doit être sur 4 chiffres (ex: 2026).';
     }
-    if (!form.summary.trim()) errors.summary = 'Le résumé est requis pour la carte projet.';
-    if (!form.description.trim()) errors.description = 'La description est requise.';
     if (!form.mainImage.trim()) errors.mainImage = 'L’image de couverture est requise pour les cartes.';
     if (form.mainImage.trim() && !isValidMediaField(form.mainImage)) {
       errors.mainImage = 'Image invalide. Utilisez une URL valide ou media:asset-id existant.';
     }
-    if (!form.challenge.trim()) errors.challenge = 'Le challenge est requis.';
-    if (!form.solution.trim()) errors.solution = 'La solution est requise.';
     if (form.caseStudyLink.trim() && !/^https?:\/\//i.test(form.caseStudyLink.trim())) {
       errors.caseStudyLink = 'Le lien case study doit commencer par http:// ou https://.';
     }
