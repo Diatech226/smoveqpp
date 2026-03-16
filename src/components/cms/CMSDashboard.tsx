@@ -872,7 +872,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (form.status === 'published') {
       const summarySource = form.summary.trim() || form.description.trim();
       if (!summarySource || summarySource.length < 24) {
-        errors.summary = 'Pour publier, ajoutez un résumé/description d'au moins 24 caractères.';
+        errors.summary = "Pour publier, ajoutez un résumé/description d'au moins 24 caractères.";
       }
     }
 
