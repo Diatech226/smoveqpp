@@ -87,6 +87,7 @@ interface BlogFormState {
   seoDescription: string;
   canonicalSlug: string;
   socialImage: string;
+  publishedDate: string;
 }
 
 interface ProjectFormState {
@@ -107,6 +108,11 @@ interface ProjectFormState {
   mainImage: string;
   imageAlt: string;
   externalLink: string;
+  caseStudyLink: string;
+  galleryImages: string;
+  testimonialText: string;
+  testimonialAuthor: string;
+  testimonialPosition: string;
 }
 
 interface ServiceFormState {
@@ -139,6 +145,7 @@ const EMPTY_BLOG_FORM: BlogFormState = {
   seoDescription: '',
   canonicalSlug: '',
   socialImage: '',
+  publishedDate: new Date().toISOString(),
 };
 
 const EMPTY_SERVICE_FORM: ServiceFormState = {
@@ -170,6 +177,25 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   mainImage: '',
   imageAlt: '',
   externalLink: '',
+  caseStudyLink: '',
+  galleryImages: '',
+  testimonialText: '',
+  testimonialAuthor: '',
+  testimonialPosition: '',
+};
+
+const toDateTimeLocalValue = (value: string): string => {
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return '';
+  return new Date(parsed).toISOString().slice(0, 16);
+};
+
+const toIsoDateTime = (value: string): string | null => {
+  const normalized = value.trim();
+  if (!normalized) return null;
+  const parsed = Date.parse(normalized);
+  if (Number.isNaN(parsed)) return null;
+  return new Date(parsed).toISOString();
 };
 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
@@ -468,6 +494,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       seoDescription: post.seo?.description || '',
       canonicalSlug: post.seo?.canonicalSlug || post.slug,
       socialImage: post.seo?.socialImage || '',
+      publishedDate: post.publishedDate,
     });
     setBlogFormErrors({});
     setBlogEditorMode('edit');
@@ -482,6 +509,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (!form.author.trim()) errors.author = 'L’auteur est requis.';
     if (!form.category.trim()) errors.category = 'La catégorie est requise.';
     if (!form.featuredImage.trim()) errors.featuredImage = 'L’image vedette est requise pour les cartes.';
+    if (!toIsoDateTime(form.publishedDate)) errors.publishedDate = 'La date de publication est invalide.';
     if (form.seoDescription && form.seoDescription.trim().length > 320) {
       errors.seoDescription = 'La description SEO doit rester concise (320 caractères max).';
     }
@@ -570,6 +598,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       seoDescription: existing.seo?.description || '',
       canonicalSlug: existing.seo?.canonicalSlug || existing.slug,
       socialImage: existing.seo?.socialImage || '',
+      publishedDate: existing.publishedDate,
     };
     return JSON.stringify(normalizedExisting) !== JSON.stringify(blogForm);
   }, [blogEditorMode, blogForm, posts]);
@@ -738,6 +767,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       mainImage: project.featuredImage || project.mainImage,
       imageAlt: project.imageAlt || project.title,
       externalLink: project.link || project.links?.live || '',
+      caseStudyLink: project.links?.caseStudy || '',
+      galleryImages: project.images.join('\n'),
+      testimonialText: project.testimonial?.text || '',
+      testimonialAuthor: project.testimonial?.author || '',
+      testimonialPosition: project.testimonial?.position || '',
     });
     setProjectFormErrors({});
     setProjectsError('');
@@ -759,6 +793,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (!form.mainImage.trim()) errors.mainImage = 'L’image de couverture est requise pour les cartes.';
     if (!form.challenge.trim()) errors.challenge = 'Le challenge est requis.';
     if (!form.solution.trim()) errors.solution = 'La solution est requise.';
+    if (form.caseStudyLink.trim() && !/^https?:\/\//i.test(form.caseStudyLink.trim())) {
+      errors.caseStudyLink = 'Le lien case study doit commencer par http:// ou https://.';
+    }
+
+    const testimonialFields = [form.testimonialText, form.testimonialAuthor, form.testimonialPosition].map((value) => value.trim());
+    const hasPartialTestimonial = testimonialFields.some(Boolean) && testimonialFields.some((value) => !value);
+    if (hasPartialTestimonial) {
+      errors.testimonialText = 'Complétez le témoignage (texte, auteur et poste) ou laissez les champs vides.';
+    }
+
     return errors;
   };
 
@@ -821,6 +865,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       return;
     }
 
+    const normalizedGallery = projectForm.galleryImages
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const images = normalizedGallery.length > 0 ? normalizedGallery : [projectForm.mainImage.trim()].filter(Boolean);
+
     const payload = {
       id: projectForm.id || `project-${Date.now()}`,
       title: projectForm.title.trim(),
@@ -839,9 +889,23 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       mainImage: projectForm.mainImage.trim() || 'project cover image',
       featuredImage: projectForm.mainImage.trim() || 'project cover image',
       imageAlt: projectForm.imageAlt.trim() || projectForm.title.trim(),
-      images: projectForm.mainImage.trim() ? [projectForm.mainImage.trim()] : [],
+      images,
       link: projectForm.externalLink.trim() || undefined,
-      links: projectForm.externalLink.trim() ? { live: projectForm.externalLink.trim() } : undefined,
+      links:
+        projectForm.externalLink.trim() || projectForm.caseStudyLink.trim()
+          ? {
+              live: projectForm.externalLink.trim() || undefined,
+              caseStudy: projectForm.caseStudyLink.trim() || undefined,
+            }
+          : undefined,
+      testimonial:
+        projectForm.testimonialText.trim() && projectForm.testimonialAuthor.trim() && projectForm.testimonialPosition.trim()
+          ? {
+              text: projectForm.testimonialText.trim(),
+              author: projectForm.testimonialAuthor.trim(),
+              position: projectForm.testimonialPosition.trim(),
+            }
+          : undefined,
     };
 
     try {
@@ -1218,6 +1282,52 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             />
           </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Galerie d’images (une URL/référence média par ligne)</span>
+            <textarea
+              value={projectForm.galleryImages}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, galleryImages: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              placeholder="media:asset-1\nhttps://..."
+            />
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Lien Case Study (optionnel)</span>
+            <input
+              value={projectForm.caseStudyLink}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, caseStudyLink: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              placeholder="https://..."
+            />
+            {projectFormErrors.caseStudyLink ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.caseStudyLink}</p> : null}
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Témoignage client</span>
+            <textarea
+              value={projectForm.testimonialText}
+              onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialText: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {projectFormErrors.testimonialText ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.testimonialText}</p> : null}
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Auteur du témoignage</span>
+              <input
+                value={projectForm.testimonialAuthor}
+                onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialAuthor: event.target.value }))}
+                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Poste / rôle</span>
+              <input
+                value={projectForm.testimonialPosition}
+                onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialPosition: event.target.value }))}
+                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              />
+            </label>
+          </div>
           <AdminActionBar>
             <button
               type="submit"
@@ -1382,6 +1492,21 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             </select>
           </label>
           <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Date de publication</span>
+            <input
+              type="datetime-local"
+              value={toDateTimeLocalValue(blogForm.publishedDate)}
+              onChange={(event) =>
+                setBlogForm((prev) => ({
+                  ...prev,
+                  publishedDate: toIsoDateTime(event.target.value) || prev.publishedDate,
+                }))
+              }
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            {blogFormErrors.publishedDate ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.publishedDate}</p> : null}
+          </label>
+          <label className="block">
             <span className="text-[14px] text-[#6f7f85]">SEO title</span>
             <input
               value={blogForm.seoTitle}
@@ -1404,6 +1529,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               value={blogForm.canonicalSlug}
               onChange={(event) => setBlogForm((prev) => ({ ...prev, canonicalSlug: event.target.value }))}
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Image sociale (SEO)</span>
+            <input
+              value={blogForm.socialImage}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, socialImage: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              placeholder="https://... ou media:asset-id"
             />
           </label>
           <label className="block">

@@ -453,6 +453,21 @@ class ContentService {
         : asTrimmedString(project?.link)
           ? { live: asTrimmedString(project?.link) }
           : undefined,
+      testimonial:
+        project?.testimonial &&
+        typeof project.testimonial === 'object' &&
+        typeof project.testimonial.text === 'string' &&
+        typeof project.testimonial.author === 'string' &&
+        typeof project.testimonial.position === 'string' &&
+        project.testimonial.text.trim() &&
+        project.testimonial.author.trim() &&
+        project.testimonial.position.trim()
+          ? {
+              text: project.testimonial.text.trim(),
+              author: project.testimonial.author.trim(),
+              position: project.testimonial.position.trim(),
+            }
+          : undefined,
     };
   }
 
@@ -484,6 +499,15 @@ class ContentService {
         project.featuredImage.length > 0 &&
         typeof project.imageAlt === 'string' &&
         (project.link === undefined || typeof project.link === 'string') &&
+        (project.links === undefined ||
+          (typeof project.links === 'object' &&
+            (project.links.live === undefined || typeof project.links.live === 'string') &&
+            (project.links.caseStudy === undefined || typeof project.links.caseStudy === 'string'))) &&
+        (project.testimonial === undefined ||
+          (typeof project.testimonial === 'object' &&
+            typeof project.testimonial.text === 'string' &&
+            typeof project.testimonial.author === 'string' &&
+            typeof project.testimonial.position === 'string')) &&
         Array.isArray(project.images) &&
         PROJECT_STATUSES.has(project.status)
     );
