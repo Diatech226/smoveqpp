@@ -40,6 +40,8 @@ import {
   fetchBackendServices,
   fetchBackendSettings,
   fetchEditorialAnalytics,
+  fetchBackendMediaReferences,
+  fetchSyncDiagnostics,
   requestWithRetry,
   saveBackendBlogPost,
   saveBackendPageContent,
@@ -229,6 +231,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [sectionError, setSectionError] = useState('');
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>('authoritative_remote');
   const [runtimeWarnings, setRuntimeWarnings] = useState<string[]>([]);
+  const [syncDiagnosticsWarning, setSyncDiagnosticsWarning] = useState('');
   const [isHydratingBackend, setIsHydratingBackend] = useState(false);
 
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -313,6 +316,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [auditEvents, setAuditEvents] = useState<AuthAuditEvent[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
+
+  const instantPublishingEnabled =
+    settingsValues.operationalSettings?.instantPublishing ?? settingsValues.instantPublishing;
+  const siteSettingsTitle = settingsValues.siteSettings?.siteTitle ?? settingsValues.siteTitle;
+  const siteSettingsSupportEmail = settingsValues.siteSettings?.supportEmail ?? settingsValues.supportEmail;
 
   useEffect(() => {
     let active = true;
@@ -404,6 +412,20 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         if (active) setSettingsValues(settings);
       } catch {
         markDegradedMode('Paramètres CMS: backend indisponible, valeurs locales conservées.');
+      }
+
+      try {
+        const diagnostics = await requestWithRetry(() => fetchSyncDiagnostics(), { retries: 1, retryDelayMs: 250 });
+        if (!active) return;
+        if (diagnostics.summary.invalidMediaReferenceCount > 0) {
+          setSyncDiagnosticsWarning(`Synchronisation: ${diagnostics.summary.invalidMediaReferenceCount} référence(s) média invalide(s) détectée(s).`);
+        } else {
+          setSyncDiagnosticsWarning('');
+        }
+      } catch {
+        if (active) {
+          setSyncDiagnosticsWarning('Diagnostics de synchronisation indisponibles (backend non joignable).');
+        }
       }
     };
 
@@ -728,7 +750,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const saveSettings = async () => {
-    if (!settingsValues.siteTitle.trim() || !settingsValues.supportEmail.includes('@')) {
+    if (!siteSettingsTitle.trim() || !siteSettingsSupportEmail.includes('@')) {
       setSectionError('Renseignez un nom de site et un email de support valide.');
       return;
     }
@@ -736,7 +758,21 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setSettingsSaving(true);
     setSectionError('');
     try {
-      const saved = await requestWithRetry(() => saveBackendSettings(settingsValues), { retries: 1, retryDelayMs: 300 });
+      const saved = await requestWithRetry(() => saveBackendSettings({
+        ...settingsValues,
+        siteSettings: {
+          ...(settingsValues.siteSettings || {}),
+          siteTitle: siteSettingsTitle,
+          supportEmail: siteSettingsSupportEmail,
+        },
+        operationalSettings: {
+          ...(settingsValues.operationalSettings || {}),
+          instantPublishing: instantPublishingEnabled,
+        },
+        siteTitle: siteSettingsTitle,
+        supportEmail: siteSettingsSupportEmail,
+        instantPublishing: instantPublishingEnabled,
+      }), { retries: 1, retryDelayMs: 300 });
       setSettingsValues(saved);
       showSuccess('Paramètres enregistrés sur le backend.');
     } catch {
@@ -1227,19 +1263,22 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       return;
     }
 
-    if (!window.confirm(`Supprimer définitivement le média "${selectedMedia.label || selectedMedia.name}" ?`)) {
+    if (!window.confirm(`Archiver le média "${selectedMedia.label || selectedMedia.name}" ?`)) {
       return;
     }
 
     try {
       await requestWithRetry(() => deleteBackendMediaFile(selectedMedia.id), { retries: 1, retryDelayMs: 250 });
-      mediaRepository.delete(selectedMedia.id);
+      const refreshed = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+      refreshed.forEach((file) => mediaRepository.save(file));
       setSelectedMediaId('');
       setMediaVersion((version) => version + 1);
-      showSuccess('Média supprimé.');
+      showSuccess('Média archivé (suppression irréversible évitée).');
     } catch (error) {
       if (error instanceof ContentApiError && error.code === 'MEDIA_IN_USE') {
-        setSectionError('Suppression refusée: ce média est référencé par du contenu. Retirez les références avant suppression.');
+        const references = await requestWithRetry(() => fetchBackendMediaReferences(selectedMedia.id), { retries: 1, retryDelayMs: 250 }).catch(() => []);
+        const sample = references.slice(0, 3).map((ref) => `${ref.domain}:${ref.field}`).join(' | ');
+        setSectionError(`Suppression refusée: ce média est référencé par du contenu${sample ? ` (${sample})` : ''}.`);
         return;
       }
       setSectionError('Suppression média impossible. Réessayez.');
@@ -1765,7 +1804,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               onClick={() => {
                 void saveBlogPost('in_review');
               }}
-              disabled={isSavingPost || !canEditContent || !settingsValues.instantPublishing}
+              disabled={isSavingPost || !canEditContent || !instantPublishingEnabled}
               className="px-4 py-2 rounded-[10px] bg-[#00b3e8] text-white disabled:opacity-60"
             >
               Soumettre en revue
@@ -1809,7 +1848,21 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         await requestWithRetry(() => saveBackendService(service), { retries: 1, retryDelayMs: 250 });
       }
       await requestWithRetry(() => saveBackendPageContent(localHome), { retries: 1, retryDelayMs: 250 });
-      await requestWithRetry(() => saveBackendSettings(settingsValues), { retries: 1, retryDelayMs: 250 });
+      await requestWithRetry(() => saveBackendSettings({
+        ...settingsValues,
+        siteSettings: {
+          ...(settingsValues.siteSettings || {}),
+          siteTitle: siteSettingsTitle,
+          supportEmail: siteSettingsSupportEmail,
+        },
+        operationalSettings: {
+          ...(settingsValues.operationalSettings || {}),
+          instantPublishing: instantPublishingEnabled,
+        },
+        siteTitle: siteSettingsTitle,
+        supportEmail: siteSettingsSupportEmail,
+        instantPublishing: instantPublishingEnabled,
+      }), { retries: 1, retryDelayMs: 250 });
 
       const [backendPosts, backendProjects, backendServices, backendHome, backendSettings] = await Promise.all([
         requestWithRetry(() => fetchBackendBlogPosts(), { retries: 1, retryDelayMs: 250 }),
@@ -2124,7 +2177,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       {post.status !== 'published' ? (
                         <button
                           onClick={() => transitionPostStatus(post, 'published')}
-                          disabled={statusTransitioningPostId === post.id || !canPublishContent || post.status === 'archived' || !settingsValues.instantPublishing}
+                          disabled={statusTransitioningPostId === post.id || !canPublishContent || post.status === 'archived' || !instantPublishingEnabled}
                           className="px-3 py-2 border border-emerald-200 text-emerald-700 rounded-[10px] disabled:opacity-50"
                         >
                           Publier
@@ -2377,7 +2430,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {sectionError ? (
             <AdminActionBar>
               <AdminErrorState label={sectionError} />
-              {settingsValues.instantPublishing ? null : (
+              {instantPublishingEnabled ? null : (
                 <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
               )}
               <button
@@ -2398,35 +2451,38 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               </button>
             </AdminActionBar>
           ) : null}
-          <AdminPanel title="Publication">
+          <AdminPanel title="Paramètres (site + opérations)">
             <div className="space-y-3">
+              <p className="text-[12px] text-[#6f7f85]">Autorité site: <span className="font-semibold">siteSettings</span> • Autorité opérationnelle: <span className="font-semibold">operationalSettings</span>.</p>
               <label className="block">
                 <span className="text-[14px] text-[#6f7f85]">Nom du site</span>
                 <input
-                  value={settingsValues.siteTitle}
-                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteTitle: event.target.value }))}
+                  value={siteSettingsTitle}
+                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...(prev.siteSettings || {}), siteTitle: event.target.value }, siteTitle: event.target.value }))}
                   className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
                 />
               </label>
               <label className="block">
                 <span className="text-[14px] text-[#6f7f85]">Email support</span>
                 <input
-                  value={settingsValues.supportEmail}
-                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, supportEmail: event.target.value }))}
+                  value={siteSettingsSupportEmail}
+                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...(prev.siteSettings || {}), supportEmail: event.target.value }, supportEmail: event.target.value }))}
                   className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
                 />
               </label>
+              <p className="text-[12px] text-[#6f7f85]">Ces champs sont exposés au runtime public via <code>/content/public/settings</code>.</p>
               <label className="flex items-center justify-between rounded-[12px] border border-[#eef3f5] p-4">
                 <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Autoriser la publication immédiate</span>
                 <input
                   type="checkbox"
-                  checked={settingsValues.instantPublishing}
-                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, instantPublishing: event.target.checked }))}
+                  checked={instantPublishingEnabled}
+                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, operationalSettings: { ...(prev.operationalSettings || {}), instantPublishing: event.target.checked }, instantPublishing: event.target.checked }))}
                 />
               </label>
-              {settingsValues.instantPublishing ? null : (
+              {instantPublishingEnabled ? null : (
                 <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
               )}
+              <p className="text-[12px] text-[#6f7f85]">Ce garde-fou est appliqué côté serveur sur les transitions de publication.</p>
               <button
                 onClick={() => {
                   void hydrateBackendFromLocalSnapshot();
@@ -2544,6 +2600,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   </ul>
                 ) : null}
               </div>
+            </div>
+          ) : null}
+          {syncDiagnosticsWarning ? (
+            <div className="rounded-[12px] border border-blue-200 bg-blue-50 p-4 text-blue-800">
+              <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px]">Observabilité CMS/public</p>
+              <p className="text-[13px]">{syncDiagnosticsWarning}</p>
             </div>
           ) : null}
           {feedback ? <AdminSuccessFeedback label={feedback} /> : null}

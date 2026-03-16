@@ -41,6 +41,49 @@ export interface CmsSettings {
   siteTitle: string;
   supportEmail: string;
   instantPublishing: boolean;
+  siteSettings?: {
+    siteTitle: string;
+    supportEmail: string;
+    brandMedia?: {
+      logo?: string;
+      favicon?: string;
+      defaultSocialImage?: string;
+    };
+  };
+  operationalSettings?: {
+    instantPublishing: boolean;
+  };
+}
+
+export interface PublicSiteSettings {
+  siteTitle: string;
+  supportEmail: string;
+  brandMedia?: {
+    logo?: string;
+    favicon?: string;
+    defaultSocialImage?: string;
+  };
+}
+
+export interface SyncDiagnostics {
+  mode: 'authoritative_remote' | 'degraded_local';
+  instantPublishingEnabled: boolean;
+  invalidMediaReferences: Array<{
+    domain: string;
+    id: string;
+    field: string;
+    label: string;
+    value: string;
+    mediaId: string;
+    isValid: boolean;
+  }>;
+  summary: {
+    invalidMediaReferenceCount: number;
+    blogCount: number;
+    projectCount: number;
+    serviceCount: number;
+    mediaCount: number;
+  };
 }
 
 const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content`;
@@ -205,6 +248,19 @@ export async function deleteBackendMediaFile(id: string): Promise<void> {
   await request('/media/' + id, { method: 'DELETE' });
 }
 
+export async function fetchBackendMediaReferences(id: string): Promise<Array<{ domain: string; id: string; field: string; label: string }>> {
+  const body = await request<{ references: Array<{ domain: string; id: string; field: string; label: string }> }>(`/media/${id}/references`);
+  return body.data?.references || [];
+}
+
+export async function replaceBackendMediaFile(id: string, mediaFile: Partial<MediaFile>): Promise<MediaFile> {
+  const body = await request<{ mediaFile: MediaFile }>(`/media/${id}/replace`, {
+    method: 'POST',
+    body: JSON.stringify(mediaFile),
+  });
+  return body.data!.mediaFile;
+}
+
 export async function fetchBackendPageContent(): Promise<HomePageContentSettings> {
   const body = await request<{ pageContent: { home: HomePageContentSettings } }>('/page-content');
   return body.data?.pageContent?.home as HomePageContentSettings;
@@ -229,4 +285,24 @@ export async function saveBackendSettings(settings: CmsSettings): Promise<CmsSet
     body: JSON.stringify(settings),
   });
   return body.data!.settings;
+}
+
+export async function fetchPublicSettings(): Promise<PublicSiteSettings> {
+  const response = await fetch(`${CONTENT_BASE_URL}/public/settings`, {
+    credentials: 'include',
+  });
+
+  const body = (await response.json().catch(() => null)) as ApiEnvelope<{ settings: PublicSiteSettings }> | null;
+  if (!response.ok || !body?.success) {
+    const code = body?.error?.code || `CONTENT_API_${response.status}`;
+    const message = body?.error?.message || `CONTENT_API_${response.status}`;
+    throw new ContentApiError(message, code, response.status);
+  }
+
+  return body.data!.settings;
+}
+
+export async function fetchSyncDiagnostics(): Promise<SyncDiagnostics> {
+  const body = await request<{ diagnostics: SyncDiagnostics }>('/sync-diagnostics');
+  return body.data!.diagnostics;
 }

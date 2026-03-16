@@ -68,6 +68,8 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
         .listBlogPosts()
         .filter((post) => post.status === 'published' && post.title?.trim() && post.slug?.trim() && post.featuredImage?.trim()),
     }));
+  router.get('/public/settings', (_req, res) =>
+    sendSuccess(res, 200, { settings: contentService.getPublicSettings() }));
 
   router.use(requireAuthenticated);
 
@@ -209,6 +211,9 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   router.get('/media', requirePermission(Permissions.CONTENT_READ), (req, res) =>
     sendSuccess(res, 200, { mediaFiles: contentService.listMediaFiles() }));
 
+  router.get('/media/:id/references', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, 200, { references: contentService.findMediaReferences(req.params.id) }));
+
   router.post('/media/upload', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const parsed = parseUploadPayload(req.body || {});
     if (!parsed.ok) {
@@ -277,6 +282,15 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { mediaFile: result.mediaFile });
   });
 
+  router.post('/media/:id/replace', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.replaceMediaFile(req.params.id, req.body || {});
+    if (!result.ok) {
+      const statusCode = result.error.code === 'MEDIA_NOT_FOUND' ? 404 : 400;
+      return sendError(res, statusCode, result.error.code, result.error.message);
+    }
+    return sendSuccess(res, 200, { mediaFile: result.mediaFile, replaced: true });
+  });
+
   router.delete('/media/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const references = contentService.findMediaReferences(req.params.id);
     if (references.length > 0) {
@@ -288,9 +302,13 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 409, 'MEDIA_IN_USE', 'Media file is still referenced by published or editable content.');
     }
 
-    contentService.deleteMediaFile(req.params.id);
+    const archived = contentService.archiveMediaFile(req.params.id);
+    if (!archived.ok) {
+      const statusCode = archived.error.code === 'MEDIA_NOT_FOUND' ? 404 : 409;
+      return sendError(res, statusCode, archived.error.code, archived.error.message);
+    }
     auditService?.record(toAuditContext(req, 'cms_media_delete', 'success', { entityType: 'media_asset', entityId: req.params.id }));
-    return sendSuccess(res, 200, { deleted: true });
+    return sendSuccess(res, 200, { deleted: false, archived: true, mediaFile: archived.mediaFile });
   });
 
   router.get('/page-content', requirePermission(Permissions.CONTENT_READ), (req, res) =>
@@ -320,6 +338,9 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     auditService?.record(toAuditContext(req, 'cms_settings_save', 'success', { entityType: 'cms_settings', entityId: 'global' }));
     return sendSuccess(res, 200, { settings: result.settings });
   });
+
+  router.get('/sync-diagnostics', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, 200, { diagnostics: contentService.getSyncDiagnostics() }));
 
   router.get('/admin/audit-events', requirePermission(Permissions.USER_MANAGE), (req, res) => {
     const events = auditService?.list({ limit: req.query?.limit }) || [];

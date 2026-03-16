@@ -1,7 +1,28 @@
+import { useEffect, useState } from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { fetchPublicSettings } from '../utils/contentApi';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [siteTitle, setSiteTitle] = useState('SMOVE');
+  const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicSettings()
+      .then((settings) => {
+        if (!active) return;
+        if (settings.siteTitle?.trim()) setSiteTitle(settings.siteTitle.trim());
+        if (settings.supportEmail?.trim()) setSupportEmail(settings.supportEmail.trim());
+      })
+      .catch(() => {
+        // Keep static fallback copy when backend settings are unavailable.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <footer className="bg-[#02033b] text-white pt-16 pb-8">
@@ -10,7 +31,7 @@ export default function Footer() {
           {/* About Column */}
           <div>
             <h3 className="font-['Medula_One:Regular',sans-serif] text-[20px] tracking-[2px] uppercase text-[#00b3e8] mb-6">
-              SMOVE
+              {siteTitle}
             </h3>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] leading-[1.6] text-white/80 mb-6">
               Agence de communication digitale spécialisée dans la création de contenu, le développement web et la stratégie digitale.
@@ -75,7 +96,7 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-3">
                 <Mail size={20} className="text-[#00b3e8] flex-shrink-0" />
-                <span>contact@smove-communication.com</span>
+                <span>{supportEmail}</span>
               </li>
             </ul>
           </div>
@@ -106,7 +127,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-white/65">
-            © {currentYear} SMOVE Communication. Tous droits réservés.
+            © {currentYear} {siteTitle} Communication. Tous droits réservés.
           </p>
           <div className="flex gap-6 font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-white/65">
             <a href="/privacy" className="hover:text-white underline transition-colors">

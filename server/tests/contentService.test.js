@@ -654,4 +654,129 @@ describe('ContentService production hardening', () => {
     expect(refs.length).toBeGreaterThan(0);
     expect(refs.some((ref) => ref.domain === 'blog')).toBe(true);
   });
+
+  it('archives media instead of hard deleting and excludes archived media from active listings', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        mediaFiles: [
+          {
+            id: 'asset-archive-1',
+            name: 'asset.jpg',
+            type: 'image',
+            url: 'https://example.com/asset.jpg',
+            thumbnailUrl: 'https://example.com/asset.jpg',
+            size: 10,
+            uploadedDate: '2024-01-01T00:00:00.000Z',
+            uploadedBy: 'admin',
+            tags: [],
+          },
+        ],
+      }),
+    });
+
+    const archived = service.archiveMediaFile('asset-archive-1');
+    expect(archived.ok).toBe(true);
+    expect(archived.mediaFile.archivedAt).toBeTruthy();
+    expect(service.listMediaFiles().some((entry) => entry.id === 'asset-archive-1')).toBe(false);
+    expect(service.listMediaFiles({ includeArchived: true }).some((entry) => entry.id === 'asset-archive-1')).toBe(true);
+  });
+
+  it('tracks references across services and settings brand media fields', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        mediaFiles: [
+          {
+            id: 'asset-settings-1',
+            name: 'asset.jpg',
+            type: 'image',
+            url: 'https://example.com/asset.jpg',
+            thumbnailUrl: 'https://example.com/asset.jpg',
+            size: 10,
+            uploadedDate: '2024-01-01T00:00:00.000Z',
+            uploadedBy: 'admin',
+            tags: [],
+          },
+        ],
+        services: [
+          {
+            id: 'service-1',
+            title: 'Service',
+            slug: 'service',
+            routeSlug: 'service',
+            description: 'Description',
+            icon: 'palette',
+            iconLikeAsset: 'media:asset-settings-1',
+            color: 'from-[#00b3e8] to-[#00c0e8]',
+            features: ['Feature'],
+            status: 'published',
+            featured: false,
+          },
+        ],
+        settings: {
+          siteSettings: {
+            siteTitle: 'SMOVE',
+            supportEmail: 'contact@smove.africa',
+            brandMedia: {
+              logo: 'media:asset-settings-1',
+            },
+          },
+          operationalSettings: {
+            instantPublishing: true,
+          },
+        },
+      }),
+    });
+
+    const refs = service.findMediaReferences('asset-settings-1');
+    expect(refs.some((ref) => ref.domain === 'service')).toBe(true);
+    expect(refs.some((ref) => ref.domain === 'settings')).toBe(true);
+  });
+
+  it('normalizes split settings authority while preserving backward-compatible top-level fields', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const saved = service.saveSettings({
+      siteSettings: {
+        siteTitle: 'SMOVE Pro',
+        supportEmail: 'ops@smove.africa',
+      },
+      operationalSettings: {
+        instantPublishing: false,
+      },
+    });
+
+    expect(saved.ok).toBe(true);
+    expect(saved.settings.siteSettings.siteTitle).toBe('SMOVE Pro');
+    expect(saved.settings.siteSettings.supportEmail).toBe('ops@smove.africa');
+    expect(saved.settings.operationalSettings.instantPublishing).toBe(false);
+    expect(saved.settings.siteTitle).toBe('SMOVE Pro');
+    expect(saved.settings.supportEmail).toBe('ops@smove.africa');
+    expect(saved.settings.instantPublishing).toBe(false);
+  });
+
+  it('reports invalid media references in synchronization diagnostics', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        services: [
+          {
+            id: 'service-invalid-media',
+            title: 'Service',
+            slug: 'service-invalid-media',
+            routeSlug: 'service-invalid-media',
+            description: 'Description',
+            icon: 'palette',
+            iconLikeAsset: 'media:missing-media',
+            color: 'from-[#00b3e8] to-[#00c0e8]',
+            features: ['Feature'],
+            status: 'published',
+            featured: false,
+          },
+        ],
+      }),
+    });
+
+    const diagnostics = service.getSyncDiagnostics();
+    expect(diagnostics.summary.invalidMediaReferenceCount).toBeGreaterThan(0);
+    expect(diagnostics.invalidMediaReferences.some((entry) => entry.mediaId === 'missing-media')).toBe(true);
+  });
 });
