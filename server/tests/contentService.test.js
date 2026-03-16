@@ -110,6 +110,42 @@ describe('ContentService project persistence', () => {
   });
 
 
+
+  it('persists project testimonial and case study contract fields', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-contract-1',
+      title: 'Projet Contrat',
+      slug: 'projet-contrat',
+      client: 'Client Contrat',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: ['Résultat 1'],
+      tags: ['cms'],
+      mainImage: 'image projet',
+      images: ['img-1', 'img-2', 'img-3'],
+      status: 'published',
+      links: {
+        live: 'https://smove.africa/projet',
+        caseStudy: 'https://smove.africa/case-study',
+      },
+      testimonial: {
+        text: 'Super accompagnement',
+        author: 'Mariam',
+        position: 'CMO',
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.project.images).toEqual(['img-1', 'img-2', 'img-3']);
+    expect(result.project.links.caseStudy).toBe('https://smove.africa/case-study');
+    expect(result.project.testimonial.author).toBe('Mariam');
+  });
+
   it('rejects duplicate project slugs across different ids', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 

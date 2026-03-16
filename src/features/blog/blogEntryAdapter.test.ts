@@ -40,6 +40,26 @@ describe('blogEntryAdapter', () => {
   });
 
 
+
+  it('preserves explicit social image and publication date from CMS payload', () => {
+    const result = fromCmsBlogInput({
+      title: 'Publication programmée',
+      slug: 'publication-programmee',
+      excerpt: 'Résumé',
+      content: 'Contenu',
+      author: 'Alice',
+      category: 'News',
+      status: 'in_review',
+      publishedDate: '2026-03-02T10:30:00.000Z',
+      featuredImage: 'featured image',
+      socialImage: 'social image',
+    });
+
+    expect(result.publishedDate).toBe('2026-03-02T10:30:00.000Z');
+    expect(result.seo?.socialImage).toBe('social image');
+    expect(result.featuredImage).toBe('featured image');
+  });
+
   it('maps CMS tags string into canonical tag array', () => {
     const result = fromCmsBlogInput({
       title: 'Article tags',

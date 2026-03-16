@@ -271,6 +271,35 @@ describe('projectRepository and cmsRepository', () => {
     expect(projectRepository.getFeatured(1)[0].id).toBe('project-source-truth');
   });
 
+
+  it('persists project gallery, testimonial, and case study links for public detail contracts', () => {
+    const seed = projectRepository.getAll()[0];
+
+    projectRepository.save({
+      ...seed,
+      id: 'project-contract-fields',
+      slug: 'project-contract-fields',
+      title: 'Projet Contrat Complet',
+      images: ['media:gallery-1', 'media:gallery-2', 'media:gallery-3'],
+      links: {
+        live: 'https://smove.africa/projet',
+        caseStudy: 'https://smove.africa/case-study',
+      },
+      testimonial: {
+        text: 'Très bonne collaboration',
+        author: 'Nadia',
+        position: 'Directrice Marketing',
+      },
+    });
+
+    const saved = projectRepository.getById('project-contract-fields');
+
+    expect(saved?.images).toEqual(['media:gallery-1', 'media:gallery-2', 'media:gallery-3']);
+    expect(saved?.links?.caseStudy).toBe('https://smove.africa/case-study');
+    expect(saved?.testimonial?.author).toBe('Nadia');
+    expect(saved?.testimonial?.position).toBe('Directrice Marketing');
+  });
+
   it('supports CMS project save and delete workflows', () => {
     const seed = projectRepository.getAll()[0];
 
