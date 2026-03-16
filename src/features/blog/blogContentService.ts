@@ -89,8 +89,8 @@ export async function getBlogContentContractFromSource(): Promise<BlogContentCon
     if (remotePosts.length > 0) {
       return toContractFromPosts(remotePosts);
     }
-  } catch {
-    // fallback intentionally uses local canonical repository snapshot.
+  } catch (error) {
+    console.warn('[public-content] blog API unavailable, using local repository snapshot.', error);
   }
 
   return getBlogContentContract();

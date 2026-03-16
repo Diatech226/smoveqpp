@@ -3,35 +3,30 @@
 ## Objective
 Make backend API the explicit authoritative source in production paths and reduce silent divergence.
 
-## Scope
-- CMS save/load fallback behavior.
-- Public fetch fallback behavior.
-- Publish workflow clarity.
+## Implemented behavior
 
-## Affected domains
-- Blog, Projects, Services, Home content, CMS settings.
+### Runtime modes
+- `authoritative_remote`: backend/API reachable and CMS operations rely on remote persistence.
+- `degraded_local`: one or more CMS backend reads/writes failed; CMS shows an explicit warning banner and scopes fallback semantics as temporary/local.
 
-## Key bugs to fix
-1. Silent local fallback on remote failure can mask backend outages and create data divergence.
-2. CMS bootstrapping backfills remote from local when backend empty without explicit operator confirmation.
-3. `instantPublishing` setting is persisted but not operationally enforced in publish flow.
+### Deterministic fallback policy
+- CMS now flags degraded mode when backend fetch/save fails (blog, projects, services, media, page content, settings).
+- Local fallback remains read-oriented for continuity, but degraded status is explicit and persistent in-session.
+- Home content save no longer silently persists locally when backend write fails.
 
-## Data/model fixes
-- Introduce explicit runtime mode:
-  - `authoritative_remote` (production default)
-  - `degraded_local` (visible warning banner, read/write semantics documented)
-- Gate local-to-remote hydration behind manual admin action.
-- Enforce `instantPublishing` semantics in blog transition controls.
+### Controlled hydration
+- Automatic project/service backfill from local snapshot at bootstrap was removed.
+- Backend seeding from local snapshot is now manual via admin settings action: **Hydrater backend depuis local**.
 
-## Expected deliverables
-- Deterministic fallback policy document + implementation.
-- CMS UI warning state when running degraded/local mode.
-- Controlled migration action for seeding backend from local snapshot.
+### Publish flow hardening
+- Backend now enforces `instantPublishing` during blog publish save/transition.
+- CMS publish controls honor `instantPublishing` by disabling publish actions when the setting is off.
 
-## Risk level
-**High** — touches reliability semantics and operational behavior.
+### Public fetch hardening
+- Public API utilities now throw explicit errors instead of returning silent `null`.
+- Public views log source-unavailability warnings and keep current repository snapshot without pretending fetch success.
 
-## Validation criteria
-- Simulate backend outage; CMS must clearly show degraded mode and avoid silent inconsistencies.
-- Restore backend and reconcile without data loss.
-- Verify publish transition behavior reflects settings.
+## Validation criteria mapping
+- Backend outage in CMS -> degraded banner visible + warnings list.
+- Backend restore -> manual hydration path allows explicit reconciliation.
+- Publish transitions now aligned with `instantPublishing` setting at API + UI layers.

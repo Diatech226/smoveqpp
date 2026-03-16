@@ -148,6 +148,15 @@ class ContentService {
 
     const existing = posts.find((entry) => entry.id === normalized.id);
     if (normalized.status === 'published') {
+      if (!this.getSettings().instantPublishing) {
+        return {
+          ok: false,
+          error: {
+            code: 'BLOG_INSTANT_PUBLISHING_DISABLED',
+            message: 'Instant publishing is disabled. Move content to in_review before publishing.',
+          },
+        };
+      }
       const publishability = this.evaluatePublishability(normalized);
       if (!publishability.ok) {
         return { ok: false, error: { code: 'BLOG_NOT_PUBLISHABLE', message: publishability.message } };
@@ -200,6 +209,15 @@ class ContentService {
     }
 
     const next = { ...current, status: targetStatus };
+    if (targetStatus === 'published' && !this.getSettings().instantPublishing) {
+      return {
+        ok: false,
+        error: {
+          code: 'BLOG_INSTANT_PUBLISHING_DISABLED',
+          message: 'Instant publishing is disabled. Keep content in review until publishing is enabled.',
+        },
+      };
+    }
     if (targetStatus === 'published') {
       const publishability = this.evaluatePublishability(next);
       if (!publishability.ok) {

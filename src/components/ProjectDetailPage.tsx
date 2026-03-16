@@ -17,11 +17,15 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
   useEffect(() => {
     let active = true;
     import('../utils/publicContentApi').then(({ fetchPublicProjects }) => {
-      void fetchPublicProjects().then((remote) => {
-        if (!active || !remote) return;
-        projectRepository.replaceAll(remote);
-        setProjectVersion((version) => version + 1);
-      });
+      void fetchPublicProjects()
+        .then((remote) => {
+          if (!active) return;
+          projectRepository.replaceAll(remote);
+          setProjectVersion((version) => version + 1);
+        })
+        .catch((error) => {
+          console.warn('[public-content] project detail API unavailable, keeping repository snapshot.', error);
+        });
     });
 
     return () => {
