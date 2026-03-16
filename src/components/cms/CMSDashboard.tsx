@@ -244,6 +244,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [projectForm, setProjectForm] = useState<ProjectFormState>(EMPTY_PROJECT_FORM);
   const [projectFormErrors, setProjectFormErrors] = useState<Partial<Record<keyof ProjectFormState, string>>>({});
   const [services, setServices] = useState(() => serviceRepository.getAll());
+  const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState('');
   const [isSavingService, setIsSavingService] = useState(false);
   const [serviceEditorMode, setServiceEditorMode] = useState<'list' | 'create' | 'edit'>('list');
@@ -353,6 +354,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       }
 
       try {
+        setServicesLoading(true);
         const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
 
@@ -360,8 +362,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       } catch {
         if (active) {
           setServices(serviceRepository.getAll());
+          setServicesError('Backend indisponible, données locales affichées temporairement.');
           markDegradedMode('Services: backend indisponible, lecture locale temporaire.');
         }
+      } finally {
+        if (active) setServicesLoading(false);
       }
 
       try {
@@ -1917,9 +1922,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {serviceEditorMode !== 'list' ? renderServiceForm() : null}
 
           <AdminPanel title="Services">
-            {services.length === 0 ? (
+            {servicesLoading ? <AdminLoadingState label="Chargement des services…" /> : null}
+            {!servicesLoading && services.length === 0 ? (
               <AdminEmptyState label="Aucun service trouvé. Créez votre premier service pour commencer." />
-            ) : (
+            ) : !servicesLoading ? (
               <div className="space-y-3">
                 {services.map((service) => (
                   <div key={service.id} className="rounded-[12px] border border-[#eef3f5] px-4 py-3 flex items-center justify-between gap-4">
@@ -1945,7 +1951,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   </div>
                 ))}
               </div>
-            )}
+            ) : null
+            }
           </AdminPanel>
         </div>
       );

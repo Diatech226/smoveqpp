@@ -16,3 +16,6 @@ export const toRenderableService = (service: Service) => ({
   iconComponent: SERVICE_ICONS[service.icon] || Palette,
   color: SERVICE_COLOR_PATTERN.test(service.color || '') ? service.color : 'from-[#00b3e8] to-[#00c0e8]',
 });
+
+export const selectRenderablePublicServices = (services: Service[]) =>
+  services.filter((service) => service.status !== 'draft' && service.status !== 'archived').map(toRenderableService);

@@ -1,11 +1,14 @@
 # Production Readiness Plan (Current-State Based)
 
-Last updated: 2026-03-15 (iteration: blog-project model harmonization)
+Last updated: 2026-03-16 (iteration: homepage preview + services CMS sync)
 
 ## Current status
 
 
 ### Latest iteration progress (Projects + Services CMS authority alignment)
+- Enforced homepage preview rules so only the latest 3 published Projects, Services, and Blog articles render on the landing page while dedicated pages keep full datasets.
+- Connected homepage blog cards to CMS-backed blog content contracts instead of static hardcoded entries, preserving existing card UI.
+- Completed Services CMS operational workflow clarity with explicit loading/error states in the Services admin list and maintained backend-authoritative CRUD synchronization.
 - Fixed Projects CMS create UX completion by restoring visible in-form submit actions (validation/save) so project creation cannot be blocked by a missing action area.
 - Removed Services local-write fallback in CMS save/delete flows to enforce backend authority and avoid CMS/site source-of-truth divergence.
 - Added backend legacy seeding for Services so the CMS and public site both bootstrap from the same canonical service catalog instead of drifting to empty remote state.
