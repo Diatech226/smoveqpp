@@ -598,7 +598,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const resetBlogEditor = () => {
-    if (blogHasUnsavedChanges && !window.confirm('Des modifications non enregistrées seront perdues. Continuer ?')) {
+    if (blogHasUnsavedChanges && !window.confirm("Des modifications non enregistrées seront perdues. Continuer ?")) {
       return;
     }
     setBlogEditorMode('list');
@@ -1691,7 +1691,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
 
   const hydrateBackendFromLocalSnapshot = async () => {
-    if (!window.confirm('Hydrater le backend depuis l'instantané local ? Cette action peut écraser des données distantes.')) {
+    if (!window.confirm("Hydrater le backend depuis l'instantané local ? Cette action peut écraser des données distantes.")) {
       return;
     }
 
@@ -1730,10 +1730,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setHomeContentForm(pageContentRepository.saveHomePageContent(backendHome));
       setSettingsValues(backendSettings);
       markAuthoritativeMode();
-      showSuccess('Hydratation manuelle terminée: backend synchronisé depuis le snapshot local.');
+      showSuccess("Hydratation manuelle terminée: backend synchronisé depuis le snapshot local.");
     } catch {
-      markDegradedMode('Hydratation manuelle échouée: backend toujours indisponible.');
-      setSectionError('Hydratation impossible. Vérifiez la connectivité backend puis réessayez.');
+      markDegradedMode("Hydratation manuelle échouée: backend toujours indisponible.");
+      setSectionError("Hydratation impossible. Vérifiez la connectivité backend puis réessayez.");
     } finally {
       setIsHydratingBackend(false);
     }
