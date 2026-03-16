@@ -5,6 +5,11 @@ Last updated: 2026-03-15 (iteration: blog-project model harmonization)
 ## Current status
 
 
+### Latest iteration progress (Projects + Services CMS authority alignment)
+- Fixed Projects CMS create UX completion by restoring visible in-form submit actions (validation/save) so project creation cannot be blocked by a missing action area.
+- Removed Services local-write fallback in CMS save/delete flows to enforce backend authority and avoid CMS/site source-of-truth divergence.
+- Added backend legacy seeding for Services so the CMS and public site both bootstrap from the same canonical service catalog instead of drifting to empty remote state.
+
 ### Latest iteration progress (P4 operational durability hardening)
 ### Latest iteration progress (Blog + Projects model harmonization)
 - Harmonized Blog/Projects CMS-to-public content contracts around explicit card-safe media fields, with Projects now supporting a first-class `featuredImage` + `imageAlt` contract while preserving legacy `mainImage` compatibility.

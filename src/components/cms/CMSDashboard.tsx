@@ -1092,13 +1092,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       showSuccess(serviceEditorMode === 'create' ? 'Service créé avec succès.' : 'Service mis à jour avec succès.');
       resetServiceEditor();
     } catch {
-      try {
-        serviceRepository.save(payload);
-        setServices(serviceRepository.getAll());
-        showSuccess(serviceEditorMode === 'create' ? 'Service créé localement (backend indisponible).' : 'Service mis à jour localement (backend indisponible).');
-      } catch {
-        setServicesError('Enregistrement du service impossible. Réessayez.');
-      }
+      setServicesError('Enregistrement du service impossible: backend indisponible. Réessayez quand la synchronisation serveur est rétablie.');
     } finally {
       setIsSavingService(false);
     }
@@ -1121,14 +1115,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       if (serviceForm.id === serviceId) resetServiceEditor();
       showSuccess('Service supprimé.');
     } catch {
-      try {
-        serviceRepository.delete(serviceId);
-        setServices(serviceRepository.getAll());
-        if (serviceForm.id === serviceId) resetServiceEditor();
-        showSuccess('Service supprimé localement (backend indisponible).');
-      } catch {
-        setServicesError('Suppression impossible. Réessayez.');
-      }
+      setServicesError('Suppression impossible: backend indisponible. Réessayez quand la synchronisation serveur est rétablie.');
     }
   };
 
@@ -1252,6 +1239,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             />
           </label>
+          <AdminActionBar>
+            <button
+              type="submit"
+              disabled={isSavingProject}
+              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
+            >
+              <Save size={16} /> {isSavingProject ? 'Validation...' : projectEditorMode === 'create' ? 'Valider et créer le projet' : 'Valider et enregistrer'}
+            </button>
+            <button type="button" onClick={resetProjectEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
+              Annuler
+            </button>
+          </AdminActionBar>
           {mediaFiles.length > 0 ? (
             <div className="rounded-[10px] bg-[#f5f9fa] p-3">
               <p className="text-[13px] text-[#6f7f85] mb-2">Sélecteur média (même contrat Blog/Projet: media:asset-id)</p>
@@ -1411,7 +1410,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               disabled={isSavingProject}
               className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
             >
-              <Save size={16} /> {isSavingProject ? 'Enregistrement...' : projectEditorMode === 'create' ? 'Créer le projet' : 'Enregistrer'}
+              <Save size={16} /> {isSavingProject ? 'Validation...' : projectEditorMode === 'create' ? 'Valider et créer le projet' : 'Valider et enregistrer'}
             </button>
             <button type="button" onClick={resetProjectEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
               Annuler

@@ -273,6 +273,30 @@ describe('ContentService project persistence', () => {
   });
 });
 
+
+describe('ContentService services synchronization', () => {
+  it('seeds legacy default services when repository is empty', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const services = service.listServices();
+
+    expect(services.length).toBeGreaterThan(0);
+    expect(services.some((entry) => entry.slug === 'design-branding')).toBe(true);
+    expect(services.every((entry) => entry.status === 'published')).toBe(true);
+  });
+
+  it('keeps service seed migration idempotent by slug', () => {
+    const repo = new MemoryContentRepository();
+    const service = new ContentService({ contentRepository: repo });
+
+    const first = service.listServices();
+    const second = service.listServices();
+
+    expect(second).toHaveLength(first.length);
+    expect(new Set(second.map((entry) => entry.slug)).size).toBe(second.length);
+  });
+});
+
 describe('ContentService production hardening', () => {
   it('rejects blog payload with invalid date or dangling media reference', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
