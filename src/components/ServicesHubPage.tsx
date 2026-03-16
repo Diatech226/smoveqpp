@@ -4,11 +4,11 @@ import { ArrowRight } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
 import { serviceRepository } from '../repositories/serviceRepository';
-import { toRenderableService } from '../features/marketing/serviceCatalog';
+import { selectRenderablePublicServices } from '../features/marketing/serviceCatalog';
 import { fetchPublicServices } from '../utils/publicContentApi';
 
 export default function ServicesHubPage() {
-  const [services, setServices] = useState(() => serviceRepository.getPublished().map(toRenderableService));
+  const [services, setServices] = useState(() => selectRenderablePublicServices(serviceRepository.getAll()));
 
   useEffect(() => {
     let active = true;
@@ -16,7 +16,7 @@ export default function ServicesHubPage() {
       .then((remote) => {
         if (!active) return;
       const synced = serviceRepository.replaceAll(remote);
-      setServices(synced.filter((service) => service.status !== 'draft' && service.status !== 'archived').map(toRenderableService));
+      setServices(selectRenderablePublicServices(synced));
       })
       .catch((error) => {
         console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);

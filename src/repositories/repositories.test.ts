@@ -439,6 +439,36 @@ describe('projectRepository and cmsRepository', () => {
     expect(serviceRepository.getById('service-cms-test')).toBeUndefined();
   });
 
+  it('keeps services source-of-truth aligned after backend replaceAll for CMS and public consumers', () => {
+    serviceRepository.replaceAll([
+      {
+        id: 'service-source-truth-1',
+        title: 'Service Source 1',
+        slug: 'service-source-1',
+        description: 'Description 1',
+        shortDescription: 'Court 1',
+        icon: 'palette',
+        color: 'from-[#00b3e8] to-[#00c0e8]',
+        features: ['A'],
+        status: 'published',
+      },
+      {
+        id: 'service-source-truth-2',
+        title: 'Service Source 2',
+        slug: 'service-source-2',
+        description: 'Description 2',
+        shortDescription: 'Court 2',
+        icon: 'code',
+        color: 'from-[#34c759] to-[#2da84a]',
+        features: ['B'],
+        status: 'draft',
+      },
+    ]);
+
+    expect(serviceRepository.getAll().map((service) => service.id)).toEqual(['service-source-truth-1', 'service-source-truth-2']);
+    expect(serviceRepository.getPublished().map((service) => service.id)).toEqual(['service-source-truth-1']);
+  });
+
   it('aggregates CMS stats from domain repositories', () => {
     const stats = cmsRepository.getStats();
 

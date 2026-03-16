@@ -5,9 +5,10 @@ import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { fetchPublicProjects } from '../utils/publicContentApi';
 import { toProjectCardContract } from '../features/projects/projectCardAdapter';
+import { selectHomepageProjects } from '../features/marketing/home/homePreview';
 
 export default function ProjectsSection() {
-  const [featuredProjects, setFeaturedProjects] = useState(() => projectRepository.getFeatured(6));
+  const [featuredProjects, setFeaturedProjects] = useState(() => selectHomepageProjects(projectRepository.getAll()));
 
   useEffect(() => {
     let active = true;
@@ -15,7 +16,7 @@ export default function ProjectsSection() {
       .then((remote) => {
         if (!active) return;
       const synced = projectRepository.replaceAll(remote);
-      setFeaturedProjects(synced.filter((project) => project.status !== 'draft' && project.status !== 'archived').slice(0, 6));
+      setFeaturedProjects(selectHomepageProjects(synced));
       })
       .catch((error) => {
         console.warn('[public-content] projects API unavailable, keeping repository snapshot.', error);

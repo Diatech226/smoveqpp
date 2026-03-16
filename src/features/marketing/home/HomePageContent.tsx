@@ -8,46 +8,16 @@ import { ImageWithFallback } from '../../../components/figma/ImageWithFallback';
 import { pageContentRepository } from '../../../repositories/pageContentRepository';
 import { resolveBlogMediaReference } from '../../blog/mediaReference';
 import { serviceRepository } from '../../../repositories/serviceRepository';
-import { toRenderableService } from '../serviceCatalog';
+import { selectRenderablePublicServices } from '../serviceCatalog';
 import { fetchPublicServices } from '../../../utils/publicContentApi';
-
-const blogPosts = [
-  {
-    id: '1',
-    title: 'Les tendances du design web en 2024',
-    excerpt:
-      'Découvrez les dernières tendances qui façonnent le paysage du design web moderne et comment les intégrer dans vos projets.',
-    image: 'modern web design trends 2024',
-    category: 'Design',
-    author: 'Marie Kouassi',
-    date: '15 Jan 2024',
-  },
-  {
-    id: '2',
-    title: "L'importance du SEO pour votre entreprise",
-    excerpt:
-      'Comment optimiser votre présence en ligne et améliorer votre visibilité sur les moteurs de recherche.',
-    image: 'seo optimization business growth',
-    category: 'Marketing',
-    author: 'Jean Baptiste',
-    date: '12 Jan 2024',
-  },
-  {
-    id: '3',
-    title: 'Créer une identité de marque forte',
-    excerpt:
-      'Les éléments essentiels pour construire une marque mémorable et cohérente qui résonne avec votre audience.',
-    image: 'brand identity design process',
-    category: 'Branding',
-    author: 'Aïcha Traoré',
-    date: '10 Jan 2024',
-  },
-];
+import { getBlogContentContractFromSource, type BlogListItem } from '../../blog/blogContentService';
+import { selectHomepageBlogPosts, selectHomepageServices } from './homePreview';
 
 function HomePageContent() {
   const homeContent = useMemo(() => pageContentRepository.getHomePageContent(), []);
   const aboutMedia = resolveBlogMediaReference(homeContent.aboutImage, 'SMOVE Team');
-  const [servicesData, setServicesData] = useState(() => serviceRepository.getPublished().map(toRenderableService));
+  const [servicesData, setServicesData] = useState(() => selectHomepageServices(serviceRepository.getAll()));
+  const [blogPosts, setBlogPosts] = useState<BlogListItem[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -55,15 +25,27 @@ function HomePageContent() {
       .then((remote) => {
         if (!active) return;
       const synced = serviceRepository.replaceAll(remote);
-      setServicesData(synced.filter((service) => service.status !== 'draft' && service.status !== 'archived').map(toRenderableService));
+      setServicesData(selectHomepageServices(synced));
       })
       .catch((error) => {
         console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);
       });
+
+    void getBlogContentContractFromSource()
+      .then((contract) => {
+        if (!active) return;
+        setBlogPosts(selectHomepageBlogPosts(contract.posts));
+      })
+      .catch((error) => {
+        console.warn('[public-content] blog API unavailable, keeping repository snapshot.', error);
+      });
+
     return () => {
       active = false;
     };
   }, []);
+
+  const renderableServices = useMemo(() => selectRenderablePublicServices(servicesData), [servicesData]);
 
   return (
     <div className="relative" style={{ position: 'relative' }}>
@@ -111,7 +93,7 @@ function HomePageContent() {
 
           {/* Services Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {servicesData.map((service, index) => (
+            {renderableServices.map((service, index) => (
               <motion.div
                 key={index}
                 className="group"
@@ -140,7 +122,7 @@ function HomePageContent() {
                       whileHover={{ rotate: 360 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <service.icon className="text-white" size={36} />
+                    <service.iconComponent className="text-white" size={36} />
                     </motion.div>
 
                     <h3 className="font-['Medula_One:Regular',sans-serif] text-[24px] tracking-[2.4px] uppercase text-[#273a41] group-hover:text-white transition-colors mb-4">
@@ -375,7 +357,9 @@ function HomePageContent() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {blogPosts.map((post, index) => (
+            {blogPosts.map((post, index) => {
+              const media = resolveBlogMediaReference(post.image, post.media.alt || post.title);
+              return (
               <motion.article
                 key={post.id}
                 className="bg-white rounded-[24px] overflow-hidden shadow-lg group cursor-pointer"
@@ -391,9 +375,9 @@ function HomePageContent() {
                 <div className="aspect-video overflow-hidden">
                   <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.6 }}>
                     <ImageWithFallback
-                      src={aboutMedia.isMediaAsset ? aboutMedia.src : ""}
+                      src={media.isMediaAsset ? media.src : ''}
                       alt={post.title}
-                      query={post.image}
+                      query={media.src}
                       className="w-full h-full object-cover"
                     />
                   </motion.div>
@@ -428,7 +412,8 @@ function HomePageContent() {
                   </div>
                 </div>
               </motion.article>
-            ))}
+              );
+            })}
           </div>
 
           <motion.div
