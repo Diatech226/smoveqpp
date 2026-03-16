@@ -131,6 +131,30 @@ interface ServiceFormState {
 }
 
 const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
+const SERVICE_COLOR_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
+
+const isValidHttpUrl = (value: string): boolean => {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const mediaReferenceExists = (value: string): boolean => {
+  if (!isMediaReference(value)) return false;
+  const mediaId = value.slice('media:'.length).trim();
+  return Boolean(mediaId && mediaRepository.getById(mediaId));
+};
+
+const isValidMediaField = (value: string): boolean => {
+  const normalized = value.trim();
+  if (!normalized) return false;
+  if (isMediaReference(normalized)) return mediaReferenceExists(normalized);
+  return isValidHttpUrl(normalized) || !normalized.includes('://');
+};
 
 const EMPTY_BLOG_FORM: BlogFormState = {
   title: '',
@@ -439,6 +463,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const mapBlogError = (error: unknown) => {
+    if (error instanceof ContentApiError && error.code === 'BLOG_VALIDATION_ERROR') {
+      return 'Le format article est invalide (slug/date/image/URL).';
+    }
     if (error instanceof BlogRepositoryError && error.code === 'BLOG_SLUG_CONFLICT') {
       return 'Ce slug existe déjà. Utilisez un slug unique.';
     }
@@ -507,7 +534,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (!form.author.trim()) errors.author = 'L’auteur est requis.';
     if (!form.category.trim()) errors.category = 'La catégorie est requise.';
     if (!form.featuredImage.trim()) errors.featuredImage = 'L’image vedette est requise pour les cartes.';
+    if (form.featuredImage.trim() && !isValidMediaField(form.featuredImage)) {
+      errors.featuredImage = 'Utilisez une URL valide ou une référence media:asset-id existante.';
+    }
     if (!toIsoDateTime(form.publishedDate)) errors.publishedDate = 'La date de publication est invalide.';
+    if (form.socialImage.trim() && !isValidMediaField(form.socialImage)) {
+      errors.socialImage = 'L’image sociale doit être une URL valide ou media:asset-id existant.';
+    }
     if (form.seoDescription && form.seoDescription.trim().length > 320) {
       errors.seoDescription = 'La description SEO doit rester concise (320 caractères max).';
     }
@@ -692,6 +725,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setHomeContentError('Le titre hero doit être renseigné.');
       return;
     }
+    if (homeContentForm.aboutImage.trim() && !isValidMediaField(homeContentForm.aboutImage)) {
+      setHomeContentError('Image À propos invalide. Utilisez une URL valide ou media:asset-id existant.');
+      return;
+    }
 
     setHomeContentSaving(true);
     setHomeContentError('');
@@ -784,10 +821,22 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (!form.summary.trim()) errors.summary = 'Le résumé est requis pour la carte projet.';
     if (!form.description.trim()) errors.description = 'La description est requise.';
     if (!form.mainImage.trim()) errors.mainImage = 'L’image de couverture est requise pour les cartes.';
+    if (form.mainImage.trim() && !isValidMediaField(form.mainImage)) {
+      errors.mainImage = 'Image invalide. Utilisez une URL valide ou media:asset-id existant.';
+    }
     if (!form.challenge.trim()) errors.challenge = 'Le challenge est requis.';
     if (!form.solution.trim()) errors.solution = 'La solution est requise.';
     if (form.caseStudyLink.trim() && !/^https?:\/\//i.test(form.caseStudyLink.trim())) {
       errors.caseStudyLink = 'Le lien case study doit commencer par http:// ou https://.';
+    }
+    if (form.externalLink.trim() && !/^https?:\/\//i.test(form.externalLink.trim())) {
+      errors.externalLink = 'Le lien externe doit commencer par http:// ou https://.';
+    }
+
+    const galleryRefs = form.galleryImages.split('\n').map((line) => line.trim()).filter(Boolean);
+    const invalidGallery = galleryRefs.find((entry) => !isValidMediaField(entry));
+    if (invalidGallery) {
+      errors.galleryImages = `Référence média invalide: ${invalidGallery}`;
     }
 
     const testimonialFields = [form.testimonialText, form.testimonialAuthor, form.testimonialPosition].map((value) => value.trim());
@@ -804,6 +853,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       if (error.status === 403) return 'Création/mise à jour non autorisée pour votre rôle.';
       if (error.code === 'PROJECT_SLUG_CONFLICT') return 'Ce slug projet existe déjà. Choisissez un slug unique.';
       if (error.code === 'PROJECT_VALIDATION_ERROR') return 'Le projet ne respecte pas le format attendu par le backend.';
+      if (error.code === 'PROJECT_INVALID_MEDIA_REFERENCE') return 'Le projet référence un média introuvable.';
       return `Sauvegarde impossible (${error.message}).`;
     }
     return 'Sauvegarde impossible. Vérifiez votre connexion puis réessayez.';
@@ -974,6 +1024,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (!form.icon.trim()) errors.icon = 'L’icône est requise.';
     if (!form.color.trim()) errors.color = 'La couleur est requise.';
     if (!form.features.trim()) errors.features = 'Ajoutez au moins une fonctionnalité.';
+    if (form.icon.trim() && !SERVICE_ICONS.has(form.icon.trim())) {
+      errors.icon = 'Icône invalide. Valeurs supportées: palette, code, megaphone, video, box.';
+    }
+    if (form.color.trim() && !SERVICE_COLOR_PATTERN.test(form.color.trim())) {
+      errors.color = 'Couleur invalide. Format attendu: from-[#hex] to-[#hex].';
+    }
     if (form.slug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
       errors.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
     }
@@ -1118,7 +1174,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setSelectedMediaId('');
       setMediaVersion((version) => version + 1);
       showSuccess('Média supprimé.');
-    } catch {
+    } catch (error) {
+      if (error instanceof ContentApiError && error.code === 'MEDIA_IN_USE') {
+        setSectionError('Suppression refusée: ce média est référencé par du contenu. Retirez les références avant suppression.');
+        return;
+      }
       setSectionError('Suppression média impossible. Réessayez.');
     }
   };

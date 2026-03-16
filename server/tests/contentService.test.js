@@ -245,4 +245,174 @@ describe('ContentService project persistence', () => {
     expect(result.ok).toBe(false);
     expect(result.error.code).toBe('PROJECT_VALIDATION_ERROR');
   });
+
+  it('rejects project URLs and media references that are invalid', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-invalid-links',
+      title: 'Projet invalide',
+      slug: 'projet-invalide',
+      client: 'Client',
+      category: 'Web',
+      year: '20',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: [],
+      tags: [],
+      mainImage: 'media:missing',
+      featuredImage: 'media:missing',
+      images: ['ftp://invalid'],
+      link: 'not-a-url',
+      status: 'published',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('PROJECT_VALIDATION_ERROR');
+  });
+});
+
+describe('ContentService production hardening', () => {
+  it('rejects blog payload with invalid date or dangling media reference', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveBlogPost({
+      id: 'blog-invalid',
+      title: 'Blog invalide',
+      slug: 'blog-invalide',
+      excerpt: 'Extrait',
+      content: 'Contenu',
+      author: 'Auteur',
+      authorRole: 'Role',
+      category: 'Cat',
+      tags: [],
+      publishedDate: 'not-a-date',
+      readTime: '4 min',
+      featuredImage: 'media:missing',
+      images: [],
+      status: 'draft',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('BLOG_VALIDATION_ERROR');
+  });
+
+  it('enforces service icon and color whitelist', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const invalid = service.saveService({
+      id: 'service-invalid',
+      title: 'Service invalide',
+      slug: 'service-invalide',
+      description: 'Description',
+      icon: 'rocket',
+      color: 'red',
+      features: ['Feature'],
+      status: 'published',
+    });
+
+    expect(invalid.ok).toBe(false);
+    expect(invalid.error.code).toBe('SERVICE_VALIDATION_ERROR');
+  });
+
+  it('persists home content but rejects invalid aboutImage media references', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const rejected = service.savePageContent({
+      home: {
+        heroBadge: 'Badge',
+        heroTitleLine1: 'Line 1',
+        heroTitleLine2: 'Line 2',
+        heroDescription: 'Description',
+        heroPrimaryCtaLabel: 'CTA 1',
+        heroSecondaryCtaLabel: 'CTA 2',
+        aboutBadge: 'About',
+        aboutTitle: 'Title',
+        aboutParagraphOne: 'P1',
+        aboutParagraphTwo: 'P2',
+        aboutImage: 'media:missing',
+        servicesIntroTitle: 'Services',
+        servicesIntroSubtitle: 'Subtitle',
+      },
+    });
+    expect(rejected.ok).toBe(false);
+    expect(rejected.error.code).toBe('PAGE_CONTENT_VALIDATION_ERROR');
+
+    service.saveMediaFile({
+      id: 'media-home',
+      name: 'about.jpg',
+      type: 'image',
+      url: 'https://example.com/about.jpg',
+      thumbnailUrl: 'https://example.com/about.jpg',
+      size: 120,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'admin',
+      alt: 'about',
+      tags: [],
+    });
+
+    const accepted = service.savePageContent({
+      home: {
+        heroBadge: 'Badge',
+        heroTitleLine1: 'Line 1',
+        heroTitleLine2: 'Line 2',
+        heroDescription: 'Description',
+        heroPrimaryCtaLabel: 'CTA 1',
+        heroSecondaryCtaLabel: 'CTA 2',
+        aboutBadge: 'About',
+        aboutTitle: 'Title',
+        aboutParagraphOne: 'P1',
+        aboutParagraphTwo: 'P2',
+        aboutImage: 'media:media-home',
+        servicesIntroTitle: 'Services',
+        servicesIntroSubtitle: 'Subtitle',
+      },
+    });
+    expect(accepted.ok).toBe(true);
+    expect(service.getPageContent().home.aboutImage).toBe('media:media-home');
+  });
+
+  it('returns media usage references to support safe delete guardrails', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        mediaFiles: [
+          {
+            id: 'asset-1',
+            name: 'asset.jpg',
+            type: 'image',
+            url: 'https://example.com/asset.jpg',
+            thumbnailUrl: 'https://example.com/asset.jpg',
+            size: 10,
+            uploadedDate: '2024-01-01T00:00:00.000Z',
+            uploadedBy: 'admin',
+            tags: [],
+          },
+        ],
+        blogPosts: [
+          {
+            id: 'post-1',
+            title: 'Post',
+            slug: 'post',
+            excerpt: 'Excerpt',
+            content: 'Content',
+            author: 'Author',
+            authorRole: 'Role',
+            category: 'Cat',
+            tags: [],
+            publishedDate: '2024-01-01T00:00:00.000Z',
+            readTime: '5 min',
+            featuredImage: 'media:asset-1',
+            images: [],
+            status: 'draft',
+            seo: { socialImage: 'media:asset-1' },
+          },
+        ],
+      }),
+    });
+
+    const refs = service.findMediaReferences('asset-1');
+    expect(refs.length).toBeGreaterThan(0);
+    expect(refs.some((ref) => ref.domain === 'blog')).toBe(true);
+  });
 });

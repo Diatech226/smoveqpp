@@ -2,6 +2,10 @@ const BLOG_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
 const MEDIA_TYPES = new Set(['image', 'video', 'document']);
 const PROJECT_STATUSES = new Set(['draft', 'published', 'archived']);
 const SERVICE_STATUSES = new Set(['draft', 'published', 'archived']);
+const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
+const COLOR_GRADIENT_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const MEDIA_REFERENCE_PREFIX = 'media:';
 
 const defaultHomePageContent = {
   heroBadge: 'Agence de communication',
@@ -387,6 +391,12 @@ class ContentService {
     if (!post.title?.trim() || !post.slug?.trim() || !post.featuredImage?.trim() || !post.content?.trim() || !post.excerpt?.trim()) {
       return { ok: false, message: 'Missing required publish fields.' };
     }
+    if (!this.isValidDate(post.publishedDate)) {
+      return { ok: false, message: 'Published date must be a valid ISO date.' };
+    }
+    if (!this.isValidMediaLink(post.featuredImage)) {
+      return { ok: false, message: 'Featured image must be a valid URL or media reference.' };
+    }
     return { ok: true };
   }
 
@@ -406,6 +416,44 @@ class ContentService {
     return { ...raw, status };
   }
 
+  isValidDate(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    return !Number.isNaN(Date.parse(value));
+  }
+
+  isValidHttpUrl(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    try {
+      const candidate = new URL(value);
+      return candidate.protocol === 'http:' || candidate.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  isMediaReference(value) {
+    return typeof value === 'string' && value.trim().startsWith(MEDIA_REFERENCE_PREFIX);
+  }
+
+  mediaIdFromReference(value) {
+    return value.slice(MEDIA_REFERENCE_PREFIX.length).trim();
+  }
+
+  doesMediaReferenceExist(value) {
+    if (!this.isMediaReference(value)) return false;
+    const mediaId = this.mediaIdFromReference(value);
+    if (!mediaId) return false;
+    return this.listMediaFiles().some((entry) => entry.id === mediaId);
+  }
+
+  isValidMediaLink(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    if (this.isMediaReference(value)) {
+      return this.doesMediaReferenceExist(value);
+    }
+    return this.isValidHttpUrl(value) || !value.includes('://');
+  }
+
   validateBlogPost(post) {
     return Boolean(
       post &&
@@ -418,11 +466,15 @@ class ContentService {
       typeof post.authorRole === 'string' &&
       typeof post.category === 'string' &&
       Array.isArray(post.tags) &&
-      typeof post.publishedDate === 'string' &&
+      this.isValidDate(post.publishedDate) &&
       typeof post.readTime === 'string' &&
+      post.readTime.trim().length > 0 &&
       typeof post.featuredImage === 'string' &&
       post.featuredImage.trim().length > 0 &&
+      this.isValidMediaLink(post.featuredImage) &&
       Array.isArray(post.images) &&
+      post.images.every((image) => this.isValidMediaLink(image)) &&
+      SLUG_PATTERN.test(post.slug.trim()) &&
       BLOG_STATUSES.has(post.status)
     );
   }
@@ -498,11 +550,13 @@ class ContentService {
         project.title.length > 0 &&
         typeof project.slug === 'string' &&
         project.slug.length > 0 &&
+        SLUG_PATTERN.test(project.slug) &&
         typeof project.client === 'string' &&
         project.client.length > 0 &&
         typeof project.category === 'string' &&
         project.category.length > 0 &&
         typeof project.year === 'string' &&
+        /^\d{4}$/.test(project.year) &&
         typeof project.description === 'string' &&
         project.description.length > 0 &&
         typeof project.challenge === 'string' &&
@@ -513,20 +567,23 @@ class ContentService {
         Array.isArray(project.tags) &&
         typeof project.mainImage === 'string' &&
         project.mainImage.length > 0 &&
+        this.isValidMediaLink(project.mainImage) &&
         typeof project.featuredImage === 'string' &&
         project.featuredImage.length > 0 &&
+        this.isValidMediaLink(project.featuredImage) &&
         typeof project.imageAlt === 'string' &&
-        (project.link === undefined || typeof project.link === 'string') &&
+        (project.link === undefined || this.isValidHttpUrl(project.link)) &&
         (project.links === undefined ||
           (typeof project.links === 'object' &&
-            (project.links.live === undefined || typeof project.links.live === 'string') &&
-            (project.links.caseStudy === undefined || typeof project.links.caseStudy === 'string'))) &&
+            (project.links.live === undefined || this.isValidHttpUrl(project.links.live)) &&
+            (project.links.caseStudy === undefined || this.isValidHttpUrl(project.links.caseStudy)))) &&
         (project.testimonial === undefined ||
           (typeof project.testimonial === 'object' &&
             typeof project.testimonial.text === 'string' &&
             typeof project.testimonial.author === 'string' &&
             typeof project.testimonial.position === 'string')) &&
         Array.isArray(project.images) &&
+        project.images.every((image) => this.isValidMediaLink(image)) &&
         PROJECT_STATUSES.has(project.status)
     );
   }
@@ -568,9 +625,12 @@ class ContentService {
         service.description.length > 0 &&
         typeof service.icon === 'string' &&
         service.icon.length > 0 &&
+        SERVICE_ICONS.has(service.icon) &&
         typeof service.color === 'string' &&
         service.color.length > 0 &&
+        COLOR_GRADIENT_PATTERN.test(service.color) &&
         Array.isArray(service.features) &&
+        service.features.length > 0 &&
         SERVICE_STATUSES.has(service.status)
     );
   }
@@ -615,9 +675,11 @@ class ContentService {
         MEDIA_TYPES.has(file.type) &&
         typeof file.url === 'string' &&
         file.url.length > 0 &&
+        (this.isValidHttpUrl(file.url) || file.url.startsWith('data:') || file.url.startsWith('/')) &&
+        (file.thumbnailUrl === undefined || this.isValidHttpUrl(file.thumbnailUrl) || file.thumbnailUrl.startsWith('data:') || file.thumbnailUrl.startsWith('/')) &&
         typeof file.size === 'number' &&
         file.size >= 0 &&
-        typeof file.uploadedDate === 'string' &&
+        this.isValidDate(file.uploadedDate) &&
         typeof file.uploadedBy === 'string' &&
         Array.isArray(file.tags)
     );
@@ -633,7 +695,45 @@ class ContentService {
   }
 
   validateHomePageContent(home) {
-    return Object.keys(defaultHomePageContent).every((key) => typeof home[key] === 'string');
+    return Object.keys(defaultHomePageContent).every((key) => typeof home[key] === 'string') &&
+      typeof home.heroTitleLine1 === 'string' &&
+      home.heroTitleLine1.trim().length > 0 &&
+      typeof home.heroTitleLine2 === 'string' &&
+      home.heroTitleLine2.trim().length > 0 &&
+      (!home.aboutImage || this.isValidMediaLink(home.aboutImage));
+  }
+
+  findMediaReferences(mediaId) {
+    const mediaRef = `${MEDIA_REFERENCE_PREFIX}${mediaId}`;
+    const references = [];
+
+    this.listBlogPosts().forEach((post) => {
+      if (post.featuredImage === mediaRef) {
+        references.push({ domain: 'blog', id: post.id, field: 'featuredImage', label: post.title });
+      }
+      if (Array.isArray(post.images) && post.images.some((image) => image === mediaRef)) {
+        references.push({ domain: 'blog', id: post.id, field: 'images', label: post.title });
+      }
+      if (post.seo?.socialImage === mediaRef) {
+        references.push({ domain: 'blog', id: post.id, field: 'seo.socialImage', label: post.title });
+      }
+    });
+
+    this.listProjects().forEach((project) => {
+      if (project.featuredImage === mediaRef || project.mainImage === mediaRef) {
+        references.push({ domain: 'project', id: project.id, field: 'featuredImage', label: project.title });
+      }
+      if (Array.isArray(project.images) && project.images.some((image) => image === mediaRef)) {
+        references.push({ domain: 'project', id: project.id, field: 'images', label: project.title });
+      }
+    });
+
+    const home = this.getPageContent().home;
+    if (home.aboutImage === mediaRef) {
+      references.push({ domain: 'home', id: 'home', field: 'aboutImage', label: 'Home page' });
+    }
+
+    return references;
   }
 
   normalizeSettings(settings) {

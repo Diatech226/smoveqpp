@@ -244,6 +244,16 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
 
   router.delete('/media/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const references = contentService.findMediaReferences(req.params.id);
+    if (references.length > 0) {
+      auditService?.record(toAuditContext(req, 'cms_media_delete', 'failure', {
+        entityType: 'media_asset',
+        entityId: req.params.id,
+        metadata: { code: 'MEDIA_IN_USE', references },
+      }));
+      return sendError(res, 409, 'MEDIA_IN_USE', 'Media file is still referenced by published or editable content.');
+    }
+
     contentService.deleteMediaFile(req.params.id);
     auditService?.record(toAuditContext(req, 'cms_media_delete', 'success', { entityType: 'media_asset', entityId: req.params.id }));
     return sendSuccess(res, 200, { deleted: true });
