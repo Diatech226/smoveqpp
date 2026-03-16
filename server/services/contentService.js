@@ -1,6 +1,6 @@
 const BLOG_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
 const MEDIA_TYPES = new Set(['image', 'video', 'document']);
-const PROJECT_STATUSES = new Set(['draft', 'published', 'archived']);
+const PROJECT_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
 const SERVICE_STATUSES = new Set(['draft', 'published', 'archived']);
 const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const COLOR_GRADIENT_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
@@ -335,12 +335,65 @@ class ContentService {
       return { ok: false, error: { code: 'PROJECT_SLUG_CONFLICT', message: 'Project slug already exists.' } };
     }
 
+    const existing = projects.find((entry) => entry.id === normalized.id);
+    if (normalized.status === 'published') {
+      const publishability = this.evaluateProjectPublishability(normalized);
+      if (!publishability.ok) {
+        return { ok: false, error: { code: 'PROJECT_NOT_PUBLISHABLE', message: publishability.message } };
+      }
+      if (!existing || !['in_review', 'published'].includes(existing.status)) {
+        return { ok: false, error: { code: 'PROJECT_INVALID_STATUS_TRANSITION', message: 'Project must be in review before publishing.' } };
+      }
+    }
+
     const index = projects.findIndex((entry) => entry.id === normalized.id);
     if (index >= 0) projects[index] = normalized;
     else projects.push(normalized);
     state.projects = projects;
     this.writeState(state);
     return { ok: true, project: normalized };
+  }
+
+
+  transitionProjectStatus(id, targetStatus, actor = {}) {
+    if (!PROJECT_STATUSES.has(targetStatus)) {
+      return { ok: false, error: { code: 'PROJECT_INVALID_STATUS_TRANSITION', message: 'Invalid target status.' } };
+    }
+
+    const projects = this.listProjects();
+    const index = projects.findIndex((project) => project.id === id);
+    if (index < 0) {
+      return { ok: false, error: { code: 'PROJECT_NOT_FOUND', message: 'Project not found.' } };
+    }
+
+    const current = projects[index];
+    const isAllowed = this.isAllowedTransition(current.status || 'draft', targetStatus);
+    if (!isAllowed) {
+      return { ok: false, error: { code: 'PROJECT_INVALID_STATUS_TRANSITION', message: 'Transition not allowed.' } };
+    }
+
+    const reviewedBy = typeof actor?.reviewedBy === 'string' ? actor.reviewedBy.trim() : '';
+    const next = { ...current, status: targetStatus };
+
+    if (targetStatus === 'published') {
+      const publishability = this.evaluateProjectPublishability(next);
+      if (!publishability.ok) {
+        return { ok: false, error: { code: 'PROJECT_NOT_PUBLISHABLE', message: publishability.message } };
+      }
+      next.reviewedAt = new Date().toISOString();
+      if (reviewedBy) next.reviewedBy = reviewedBy;
+    }
+
+    if (targetStatus === 'in_review') {
+      next.reviewedAt = new Date().toISOString();
+      if (reviewedBy) next.reviewedBy = reviewedBy;
+    }
+
+    projects[index] = this.normalizeProject(next);
+    const state = this.readState();
+    state.projects = projects;
+    this.writeState(state);
+    return { ok: true, project: projects[index] };
   }
 
   deleteProject(id) {
@@ -486,6 +539,23 @@ class ContentService {
     }
     if (!this.isValidMediaLink(post.featuredImage)) {
       return { ok: false, message: 'Featured image must be a valid URL or media reference.' };
+    }
+    return { ok: true };
+  }
+
+
+  evaluateProjectPublishability(project) {
+    const summarySource = typeof project.summary === 'string' && project.summary.trim()
+      ? project.summary.trim()
+      : `${project.description || ''}`.trim();
+    if (!project.title?.trim() || !project.slug?.trim() || !project.featuredImage?.trim()) {
+      return { ok: false, message: 'Missing required publish fields.' };
+    }
+    if (!this.isValidMediaLink(project.featuredImage)) {
+      return { ok: false, message: 'Featured image must be a valid URL or media reference.' };
+    }
+    if (!summarySource || summarySource.length < 24) {
+      return { ok: false, message: 'Summary/description must contain at least 24 characters.' };
     }
     return { ok: true };
   }
@@ -655,6 +725,8 @@ class ContentService {
       },
       featured: Boolean(project?.featured),
       status,
+      reviewedAt: typeof project?.reviewedAt === 'string' ? project.reviewedAt : undefined,
+      reviewedBy: typeof project?.reviewedBy === 'string' ? project.reviewedBy.trim() || undefined : undefined,
       createdAt: project?.createdAt || nowIso,
       updatedAt: nowIso,
       link: asTrimmedString(project?.link) || (project?.links && typeof project.links.live === 'string' ? project.links.live.trim() : '') || undefined,
@@ -748,6 +820,12 @@ class ContentService {
       icon: asTrimmedString(service?.icon) || 'palette',
       iconLikeAsset: asTrimmedString(service?.iconLikeAsset) || undefined,
       routeSlug: this.normalizeSlug(asTrimmedString(service?.routeSlug) || asTrimmedString(service?.slug) || title || asTrimmedString(service?.id)),
+      overviewTitle: asTrimmedString(service?.overviewTitle) || undefined,
+      overviewDescription: asTrimmedString(service?.overviewDescription) || undefined,
+      ctaTitle: asTrimmedString(service?.ctaTitle) || undefined,
+      ctaDescription: asTrimmedString(service?.ctaDescription) || undefined,
+      ctaPrimaryLabel: asTrimmedString(service?.ctaPrimaryLabel) || undefined,
+      ctaPrimaryHref: asTrimmedString(service?.ctaPrimaryHref) || undefined,
       color: asTrimmedString(service?.color) || 'from-[#00b3e8] to-[#00c0e8]',
       features: Array.isArray(service?.features) ? service.features.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       status: SERVICE_STATUSES.has(service?.status) ? service.status : 'published',

@@ -47,6 +47,7 @@ import {
   saveBackendService,
   saveBackendSettings,
   transitionBackendBlogPost,
+  transitionBackendProject,
   uploadBackendMediaFile,
   ContentApiError,
   type CmsSettings,
@@ -99,7 +100,7 @@ interface ProjectFormState {
   client: string;
   category: string;
   year: string;
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'in_review' | 'published' | 'archived';
   featured: boolean;
   description: string;
   challenge: string;
@@ -188,7 +189,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   client: '',
   category: '',
   year: new Date().getFullYear().toString(),
-  status: 'published',
+  status: 'draft',
   featured: false,
   description: '',
   challenge: '',
@@ -868,6 +869,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       errors.testimonialText = 'Complétez le témoignage (texte, auteur et poste) ou laissez les champs vides.';
     }
 
+    if (form.status === 'published') {
+      const summarySource = form.summary.trim() || form.description.trim();
+      if (!summarySource || summarySource.length < 24) {
+        errors.summary = 'Pour publier, ajoutez un résumé/description d'au moins 24 caractères.';
+      }
+    }
+
     return errors;
   };
 
@@ -876,6 +884,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       if (error.status === 403) return 'Création/mise à jour non autorisée pour votre rôle.';
       if (error.code === 'PROJECT_SLUG_CONFLICT') return 'Ce slug projet existe déjà. Choisissez un slug unique.';
       if (error.code === 'PROJECT_VALIDATION_ERROR') return 'Le projet ne respecte pas le format attendu par le backend.';
+      if (error.code === 'PROJECT_INVALID_STATUS_TRANSITION') return 'Transition de statut projet non autorisée.';
+      if (error.code === 'PROJECT_NOT_PUBLISHABLE') return 'Ce projet ne peut pas être publié: complétez les champs requis.';
       if (error.code === 'PROJECT_INVALID_MEDIA_REFERENCE') return 'Le projet référence un média introuvable.';
       return `Sauvegarde impossible (${error.message}).`;
     }
@@ -993,6 +1003,27 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
+
+
+  const transitionProjectStatus = async (projectId: string, target: ProjectFormState['status']) => {
+    if (target === 'in_review' && !canEditContent) {
+      setProjectsError('Soumission en revue non autorisée pour votre rôle.');
+      return;
+    }
+    if (target === 'published' && !canPublishContent) {
+      setProjectsError('Publication non autorisée pour votre rôle.');
+      return;
+    }
+
+    try {
+      await requestWithRetry(() => transitionBackendProject(projectId, target), { retries: 1, retryDelayMs: 250 });
+      const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
+      syncProjectsFromBackend(backendProjects);
+      showSuccess(target === 'published' ? 'Projet publié.' : target === 'in_review' ? 'Projet soumis en revue.' : 'Projet archivé.');
+    } catch (error) {
+      setProjectsError(mapProjectSaveError(error));
+    }
+  };
 
   const deleteProject = async (projectId: string, projectTitle: string) => {
     if (!canDeleteContent) {
@@ -1335,6 +1366,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             >
               <option value="draft">Brouillon</option>
+              <option value="in_review">En revue</option>
               <option value="published">Publié</option>
               <option value="archived">Archivé</option>
             </select>
@@ -1927,9 +1959,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] text-[#9ba1a4]">{project.category}</span>
-                      <span className={`text-[12px] px-2 py-1 rounded-full ${project.status === 'published' ? 'bg-green-50 text-green-700' : project.status === 'archived' ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'}`}>
-                        {project.status === 'published' ? 'Publié' : project.status === 'archived' ? 'Archivé' : 'Brouillon'}
+                      <span className={`text-[12px] px-2 py-1 rounded-full ${project.status === 'published' ? 'bg-green-50 text-green-700' : project.status === 'in_review' ? 'bg-sky-50 text-sky-700' : project.status === 'archived' ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'}`}>
+                        {project.status === 'published' ? 'Publié' : project.status === 'in_review' ? 'En revue' : project.status === 'archived' ? 'Archivé' : 'Brouillon'}
                       </span>
+                      {project.status === 'draft' ? (<button onClick={() => void transitionProjectStatus(project.id, 'in_review')} disabled={!canEditContent} className="px-3 py-2 border border-sky-200 text-sky-700 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-50">En revue</button>) : null}
+                      {project.status === 'in_review' ? (<button onClick={() => void transitionProjectStatus(project.id, 'published')} disabled={!canPublishContent} className="px-3 py-2 border border-green-200 text-green-700 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-50">Publier</button>) : null}
+                      {project.status !== 'archived' ? (<button onClick={() => void transitionProjectStatus(project.id, 'archived')} disabled={!canPublishContent} className="px-3 py-2 border border-slate-200 text-slate-700 rounded-[10px] inline-flex items-center gap-2 disabled:opacity-50">Archiver</button>) : null}
                       <button onClick={() => startEditProject(project)} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2">
                         <Pencil size={15} /> Modifier
                       </button>

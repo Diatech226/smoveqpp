@@ -1,8 +1,11 @@
 import { motion } from 'motion/react';
+import { useEffect, useMemo, useState } from 'react';
 import { Code, Smartphone, ShoppingCart, Zap, CheckCircle, ArrowRight, Layers } from 'lucide-react';
 import Navigation from '../Navigation';
 import Footer from '../Footer';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { serviceRepository } from '../../repositories/serviceRepository';
+import { fetchPublicServices } from '../../utils/publicContentApi';
 
 const technologies = [
   { name: 'React', color: '#61DAFB' },
@@ -13,7 +16,7 @@ const technologies = [
   { name: 'MongoDB', color: '#47A248' },
 ];
 
-const features = [
+const defaultFeatures = [
   {
     icon: Code,
     title: 'Sites Web Modernes',
@@ -58,6 +61,21 @@ const projects = [
 ];
 
 export default function WebDevelopmentPage() {
+  const [serviceVersion, setServiceVersion] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicServices().then((remote) => {
+      if (!active) return;
+      serviceRepository.replaceAll(remote);
+      setServiceVersion((value) => value + 1);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const service = useMemo(() => serviceRepository.getPublished().find((entry) => entry.routeSlug === 'web-development' || entry.slug === 'web-development'), [serviceVersion]);
+  const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation currentPath="/services" />
@@ -132,7 +150,7 @@ export default function WebDevelopmentPage() {
                 Transformez vos idées en <span className="text-[#34c759]">applications</span>
               </h1>
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-white/80 mb-8 leading-relaxed">
-                De la simple vitrine au système complexe, nous développons des solutions web et mobile performantes, scalables et sécurisées.
+                {service?.overviewDescription || service?.description || 'De la simple vitrine au système complexe, nous développons des solutions web et mobile performantes, scalables et sécurisées.'}
               </p>
               
               {/* Tech Stack */}
@@ -162,7 +180,7 @@ export default function WebDevelopmentPage() {
 
               <div className="flex flex-wrap gap-4">
                 <motion.a
-                  href="#contact"
+                  href={service?.ctaPrimaryHref || '#contact'}
                   className="bg-[#34c759] text-white px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px] inline-flex items-center gap-2"
                   whileHover={{ scale: 1.05, x: 5 }}
                   whileTap={{ scale: 0.95 }}
@@ -290,7 +308,7 @@ export default function WebDevelopmentPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
+            {features.map((featureTitle, index) => (
               <motion.div
                 key={index}
                 className="group"
@@ -312,13 +330,13 @@ export default function WebDevelopmentPage() {
                     whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.6 }}
                   >
-                    <feature.icon className="text-white" size={32} />
+                    {(() => { const Icon = defaultFeatures[index]?.icon || Code; return <Icon className="text-white" size={32} />; })()}
                   </motion.div>
                   <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[24px] text-[#273a41] mb-3">
-                    {feature.title}
+                    {featureTitle}
                   </h3>
                   <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#38484e] leading-relaxed">
-                    {feature.description}
+                    {defaultFeatures[index]?.description || service?.description || 'Description à compléter.'}
                   </p>
                 </motion.div>
               </motion.div>
@@ -406,7 +424,7 @@ export default function WebDevelopmentPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            Discutons de votre projet
+            {service?.ctaTitle || 'Discutons de votre projet'}
           </motion.h2>
           <motion.p 
             className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-white/90 mb-8"
@@ -415,7 +433,7 @@ export default function WebDevelopmentPage() {
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
           >
-            Que ce soit une simple landing page ou une application complexe, nous sommes là pour vous aider.
+            {service?.ctaDescription || 'Que ce soit une simple landing page ou une application complexe, nous sommes là pour vous aider.'}
           </motion.p>
           <motion.a
             href="#contact"
@@ -427,7 +445,7 @@ export default function WebDevelopmentPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Obtenir un devis gratuit
+            {service?.ctaPrimaryLabel || 'Obtenir un devis gratuit'}
           </motion.a>
         </div>
       </section>

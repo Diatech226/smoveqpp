@@ -2,6 +2,7 @@ import Navigation from '../../components/Navigation';
 import Footer from '../../components/Footer';
 import PortfolioPage from '../../components/PortfolioPage';
 import BlogPageEnhanced from '../../components/BlogPageEnhanced';
+import BlogDetailPage from '../../components/BlogDetailPage';
 import ServicesHubPage from '../../components/ServicesHubPage';
 import DesignBrandingPage from '../../components/services/DesignBrandingPage';
 import WebDevelopmentPage from '../../components/services/WebDevelopmentPage';
@@ -102,6 +103,18 @@ export default function AppPageRenderer({
         actionHref="#home"
         actionLabel="Retour à l'accueil"
       />
+    );
+  }
+
+
+  if (currentPage.startsWith('blog-')) {
+    const slug = currentPage.replace('blog-', '');
+    return (
+      <PublicSiteShell>
+        <SectionErrorBoundary scope="blog-detail">
+          <BlogDetailPage slug={slug} />
+        </SectionErrorBoundary>
+      </PublicSiteShell>
     );
   }
 

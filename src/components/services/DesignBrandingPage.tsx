@@ -1,10 +1,13 @@
 import { motion } from 'motion/react';
+import { useEffect, useMemo, useState } from 'react';
 import { Palette, Pen, Layout, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
 import Navigation from '../Navigation';
 import Footer from '../Footer';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { serviceRepository } from '../../repositories/serviceRepository';
+import { fetchPublicServices } from '../../utils/publicContentApi';
 
-const features = [
+const defaultFeatures = [
   {
     icon: Palette,
     title: 'Identité Visuelle',
@@ -43,6 +46,21 @@ const portfolio = [
 ];
 
 export default function DesignBrandingPage() {
+  const [serviceVersion, setServiceVersion] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicServices().then((remote) => {
+      if (!active) return;
+      serviceRepository.replaceAll(remote);
+      setServiceVersion((value) => value + 1);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const service = useMemo(() => serviceRepository.getPublished().find((entry) => entry.routeSlug === 'design-branding' || entry.slug === 'design-branding'), [serviceVersion]);
+  const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation currentPath="/services" />
@@ -80,11 +98,11 @@ export default function DesignBrandingPage() {
                 Créez une identité visuelle <span className="text-[#00b3e8]">inoubliable</span>
               </h1>
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-[#38484e] mb-8 leading-relaxed">
-                Transformez votre vision en une marque forte et cohérente qui résonne avec votre audience. Notre équipe de designers crée des identités visuelles qui marquent les esprits.
+                {service?.overviewDescription || service?.description || 'Transformez votre vision en une marque forte et cohérente qui résonne avec votre audience. Notre équipe de designers crée des identités visuelles qui marquent les esprits.'}
               </p>
               <div className="flex flex-wrap gap-4">
                 <motion.a
-                  href="#contact"
+                  href={service?.ctaPrimaryHref || '#contact'}
                   className="bg-[#34c759] text-white px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px] inline-flex items-center gap-2"
                   whileHover={{ scale: 1.05, x: 5 }}
                   whileTap={{ scale: 0.95 }}
@@ -160,7 +178,7 @@ export default function DesignBrandingPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
+            {features.map((featureTitle, index) => (
               <motion.div
                 key={index}
                 className="group"
@@ -185,13 +203,13 @@ export default function DesignBrandingPage() {
                     whileHover={{ rotate: 360, scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                   >
-                    <feature.icon className="text-white" size={32} />
+                    {(() => { const Icon = defaultFeatures[index]?.icon || Palette; return <Icon className="text-white" size={32} />; })()}
                   </motion.div>
                   <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[24px] text-[#273a41] mb-3 relative z-10">
-                    {feature.title}
+                    {featureTitle}
                   </h3>
                   <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#38484e] leading-relaxed relative z-10">
-                    {feature.description}
+                    {defaultFeatures[index]?.description || service?.description || 'Description à compléter.'}
                   </p>
                 </motion.div>
               </motion.div>
@@ -330,7 +348,7 @@ export default function DesignBrandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            Prêt à démarrer ?
+            {service?.ctaTitle || 'Prêt à démarrer ?'}
           </motion.h2>
           <motion.p 
             className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-white/90 mb-8"
@@ -339,7 +357,7 @@ export default function DesignBrandingPage() {
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
           >
-            Contactez-nous dès aujourd'hui pour discuter de votre projet et obtenir un devis personnalisé.
+            {service?.ctaDescription || '{service?.ctaPrimaryLabel || 'Contactez-nous'} dès aujourd'hui pour discuter de votre projet et obtenir un devis personnalisé.'}
           </motion.p>
           <motion.a
             href="#contact"

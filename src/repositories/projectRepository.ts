@@ -95,7 +95,7 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
     slug,
     summary: summary || undefined,
     featured: Boolean(project.featured),
-    status: project.status ?? 'published',
+    status: (project.status === 'draft' || project.status === 'in_review' || project.status === 'published' || project.status === 'archived') ? project.status : 'published',
     createdAt: toIsoOrNow(project.createdAt),
     updatedAt: now,
     link: asTrimmedString((project as Project).link) || asTrimmedString(project.links?.live) || undefined,
@@ -171,7 +171,7 @@ class LocalProjectRepository implements ProjectRepository {
   }
 
   getPublished(): Project[] {
-    return this.getAll().filter((project) => project.status !== 'archived' && project.status !== 'draft');
+    return this.getAll().filter((project) => project.status === 'published');
   }
 
   getCategories(): string[] {
@@ -210,6 +210,13 @@ class LocalProjectRepository implements ProjectRepository {
 
     if (!trustedProject.id.trim() || !trustedProject.title || !trustedProject.featuredImage.trim()) {
       throw new Error('Invalid project payload');
+    }
+
+    if (trustedProject.status === 'published') {
+      const summarySource = trustedProject.summary?.trim() || trustedProject.description.trim();
+      if (!summarySource || summarySource.length < 24) {
+        throw new Error('Project cannot publish: summary/content too short');
+      }
     }
 
     if (!isValidMediaField(trustedProject.featuredImage) || trustedProject.images.some((image) => !isValidMediaField(image))) {

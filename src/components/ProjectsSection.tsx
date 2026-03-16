@@ -39,7 +39,7 @@ export default function ProjectsSection() {
           viewport={{ once: true }}
           transition={{ delay: index * 0.1, duration: 0.6 }}
           onClick={() => {
-            window.location.hash = `project-${project.id}`;
+            window.location.hash = `project-${project.slug || project.id}`;
           }}
         >
           <motion.div

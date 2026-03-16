@@ -27,6 +27,20 @@ describe('routeResolver', () => {
     expect(resolution.sectionToScroll).toBeNull();
   });
 
+
+  it('maps blog detail slug hashes to canonical blog detail route', () => {
+    const resolution = resolveRoute('#blog/Mon Super-Article', baseAuth);
+
+    expect(resolution.page).toBe('blog-mon-super-article');
+    expect(resolution.sectionToScroll).toBeNull();
+  });
+
+  it('maps canonical service slugs to deterministic service pages', () => {
+    expect(resolveRoute('#service/design-branding', baseAuth).page).toBe('service-design');
+    expect(resolveRoute('#service/web-development', baseAuth).page).toBe('service-web');
+    expect(resolveRoute('#service/unknown', baseAuth).page).toBe('services-all');
+  });
+
   it('falls back invalid routes to home', () => {
     const resolution = resolveRoute('#not-a-real-route', baseAuth);
 

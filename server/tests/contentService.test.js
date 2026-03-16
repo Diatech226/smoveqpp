@@ -146,6 +146,67 @@ describe('ContentService project persistence', () => {
 
 
 
+
+  it('enforces project lifecycle transitions and publish readiness checks', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const create = service.saveProject({
+      id: 'project-governance-1',
+      title: 'Projet gouvernance',
+      slug: 'projet-gouvernance',
+      client: 'Client',
+      category: 'Web',
+      year: '2026',
+      summary: 'Résumé initial bien détaillé pour validation.',
+      description: 'Description longue pour publication',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: ['result'],
+      tags: ['tag'],
+      mainImage: 'cover-image',
+      featuredImage: 'cover-image',
+      status: 'draft',
+      images: ['cover-image'],
+    });
+
+    expect(create.ok).toBe(true);
+    expect(service.transitionProjectStatus('project-governance-1', 'published').ok).toBe(false);
+    expect(service.transitionProjectStatus('project-governance-1', 'in_review').ok).toBe(true);
+
+    const publish = service.transitionProjectStatus('project-governance-1', 'published', { reviewedBy: 'editor-1' });
+    expect(publish.ok).toBe(true);
+    expect(publish.project.reviewedAt).toBeTruthy();
+    expect(publish.project.reviewedBy).toBe('editor-1');
+  });
+
+  it('blocks invalid project transitions', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    service.saveProject({
+      id: 'project-governance-2',
+      title: 'Projet transition',
+      slug: 'projet-transition',
+      client: 'Client',
+      category: 'Web',
+      year: '2026',
+      summary: 'Résumé initial bien détaillé pour validation.',
+      description: 'Description longue pour publication',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: ['result'],
+      tags: ['tag'],
+      mainImage: 'cover-image',
+      featuredImage: 'cover-image',
+      status: 'draft',
+      images: ['cover-image'],
+    });
+
+    const invalid = service.transitionProjectStatus('project-governance-2', 'archived');
+    expect(invalid.ok).toBe(true);
+    const blocked = service.transitionProjectStatus('project-governance-2', 'published');
+    expect(blocked.ok).toBe(false);
+    expect(blocked.error.code).toBe('PROJECT_INVALID_STATUS_TRANSITION');
+  });
+
   it('persists project testimonial and case study contract fields', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 
