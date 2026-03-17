@@ -41,6 +41,10 @@ const normalizeService = (service: Partial<Service> & { id: string }): Service =
     ctaDescription: asTrimmedString((service as Service).ctaDescription) || undefined,
     ctaPrimaryLabel: asTrimmedString((service as Service).ctaPrimaryLabel) || undefined,
     ctaPrimaryHref: asTrimmedString((service as Service).ctaPrimaryHref) || undefined,
+    processTitle: asTrimmedString((service as Service).processTitle) || undefined,
+    processSteps: Array.isArray((service as Service).processSteps)
+      ? (service as Service).processSteps!.map((entry) => asTrimmedString(entry)).filter(Boolean)
+      : [],
     color: asTrimmedString(service.color) || 'from-[#00b3e8] to-[#00c0e8]',
     features: Array.isArray(service.features) ? service.features.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
     status: service.status ?? 'published',

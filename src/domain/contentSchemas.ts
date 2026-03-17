@@ -113,6 +113,8 @@ export interface Service {
   ctaDescription?: string;
   ctaPrimaryLabel?: string;
   ctaPrimaryHref?: string;
+  processTitle?: string;
+  processSteps?: string[];
   iconLikeAsset?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -270,6 +272,8 @@ export const isService = (value: unknown): value is Service => {
     (v.ctaDescription === undefined || isString(v.ctaDescription)) &&
     (v.ctaPrimaryLabel === undefined || isString(v.ctaPrimaryLabel)) &&
     (v.ctaPrimaryHref === undefined || isString(v.ctaPrimaryHref)) &&
+    (v.processTitle === undefined || isString(v.processTitle)) &&
+    (v.processSteps === undefined || isStringArray(v.processSteps)) &&
     (v.iconLikeAsset === undefined || isString(v.iconLikeAsset)) &&
     (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
     (v.link === undefined || isString(v.link)) &&

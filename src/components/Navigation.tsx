@@ -1,9 +1,10 @@
 import { Home, Info, Briefcase, FolderOpen, BookOpen, Mail, LayoutDashboard, LogIn, UserCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getCmsAppUrl } from '../config/cmsRuntime';
+import { fetchPublicSettings } from '../utils/contentApi';
 
 interface NavigationProps {
   currentPath?: string;
@@ -17,6 +18,22 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
   const showCMSAction = cmsEnabled && canAccessCMS;
   const showAccountAction = isAuthenticated && !canAccessCMS;
   const cmsAppUrl = getCmsAppUrl();
+  const [logoSrc, setLogoSrc] = useState(imgTelegramCloudDocument);
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicSettings()
+      .then((settings) => {
+        if (!active) return;
+        const brandLogo = settings.brandMedia?.logo?.trim();
+        if (brandLogo) setLogoSrc(brandLogo);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string, sectionId?: string) => {
     e.preventDefault();
@@ -65,7 +82,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
           {/* Logo */}
           <a href="#home" className="flex items-center" onClick={(e) => handleNavClick(e, 'home')}>
             <img 
-              src={imgTelegramCloudDocument} 
+              src={logoSrc}
               alt="SMOVE Communication" 
               className="h-12 w-auto rounded-full"
             />

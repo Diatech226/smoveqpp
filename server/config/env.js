@@ -53,7 +53,7 @@ const PUBLIC_REGISTRATION_ENABLED = parseBoolean(
   true,
 );
 
-const CONTENT_SCHEMA_VERSION = parseIntOrDefault(process.env.CONTENT_SCHEMA_VERSION, 2);
+const CONTENT_SCHEMA_VERSION = parseIntOrDefault(process.env.CONTENT_SCHEMA_VERSION, 3);
 const MEDIA_UPLOAD_DIR = process.env.MEDIA_UPLOAD_DIR ?? path.resolve(process.cwd(), 'server/data/uploads');
 const MEDIA_PUBLIC_BASE_PATH = process.env.MEDIA_PUBLIC_BASE_PATH ?? '/uploads';
 const MEDIA_MAX_UPLOAD_BYTES = parseIntOrDefault(process.env.MEDIA_MAX_UPLOAD_BYTES, 5 * 1024 * 1024);

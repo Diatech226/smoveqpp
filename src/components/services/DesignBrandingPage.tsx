@@ -30,7 +30,7 @@ const defaultFeatures = [
   },
 ];
 
-const process = [
+const defaultProcess = [
   { step: '01', title: 'Découverte', description: 'Analyse de vos besoins et de votre vision' },
   { step: '02', title: 'Recherche', description: 'Étude de marché et analyse concurrentielle' },
   { step: '03', title: 'Création', description: 'Développement de concepts créatifs' },
@@ -60,6 +60,7 @@ export default function DesignBrandingPage() {
 
   const service = useMemo(() => serviceRepository.getPublished().find((entry) => entry.routeSlug === 'design-branding' || entry.slug === 'design-branding'), [serviceVersion]);
   const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
+  const process = (service?.processSteps && service.processSteps.length > 0 ? service.processSteps : defaultProcess.map((item) => item.title)).slice(0, 5);
   const ctaPrimaryLabel = service?.ctaPrimaryLabel || 'Contactez-nous';
   const ctaDescription = service?.ctaDescription || `${ctaPrimaryLabel} dès aujourd'hui pour discuter de votre projet et obtenir un devis personnalisé.`;
 
@@ -233,7 +234,7 @@ export default function DesignBrandingPage() {
               Notre Processus
             </h2>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-[#38484e] max-w-2xl mx-auto">
-              Une méthode éprouvée pour des résultats exceptionnels
+              {service?.processTitle || 'Une méthode éprouvée pour des résultats exceptionnels'}
             </p>
           </motion.div>
 
@@ -265,14 +266,14 @@ export default function DesignBrandingPage() {
                       transition={{ delay: index * 0.1 + 0.2 }}
                     />
                     <span className="font-['ABeeZee:Regular',sans-serif] text-[24px] text-white relative z-10">
-                      {item.step}
+                      {String(index + 1).padStart(2, '0')}
                     </span>
                   </motion.div>
                   <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-2">
-                    {item.title}
+                    {item}
                   </h3>
                   <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#38484e]">
-                    {item.description}
+                    {service?.description || 'Description à compléter.'}
                   </p>
                 </motion.div>
               ))}

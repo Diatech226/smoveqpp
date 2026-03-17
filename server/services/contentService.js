@@ -6,6 +6,8 @@ const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const COLOR_GRADIENT_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MEDIA_REFERENCE_PREFIX = 'media:';
+const MANAGED_BLOG_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
+const MANAGED_BLOG_TAGS = ['React', 'Web Design', 'Performance', 'Innovation', 'Vidéo', 'Branding', 'Corporate', 'BTP', 'Logo Design', 'Identité Visuelle', 'Food', 'SEO', 'Social Media', 'CMS'];
 
 const defaultHomePageContent = {
   heroBadge: 'Agence de communication',
@@ -151,12 +153,20 @@ const defaultSettings = {
     supportEmail: 'contact@smove.africa',
     brandMedia: {
       logo: '',
+      logoDark: '',
       favicon: '',
       defaultSocialImage: '',
     },
   },
   operationalSettings: {
     instantPublishing: true,
+  },
+  taxonomySettings: {
+    blog: {
+      managedCategories: MANAGED_BLOG_CATEGORIES,
+      managedTags: MANAGED_BLOG_TAGS,
+      enforceManagedTags: true,
+    },
   },
 };
 
@@ -584,16 +594,83 @@ class ContentService {
     return this.getSettings().siteSettings;
   }
 
-  saveSettings(payload) {
+  getBlogTaxonomy() {
+    return this.getSettings().taxonomySettings.blog;
+  }
+
+  listSettingsHistory(limit = 20) {
+    const history = Array.isArray(this.readState().settingsHistory) ? this.readState().settingsHistory : [];
+    const parsed = Number.parseInt(`${limit}`, 10);
+    const safeLimit = Number.isFinite(parsed) && parsed > 0 ? parsed : 20;
+    return history.slice(0, safeLimit);
+  }
+
+  rollbackSettings(versionId, actor = {}) {
+    const state = this.readState();
+    const history = Array.isArray(state.settingsHistory) ? state.settingsHistory : [];
+    const version = history.find((entry) => entry.versionId === versionId);
+    if (!version) {
+      return { ok: false, error: { code: 'SETTINGS_ROLLBACK_NOT_FOUND', message: 'Requested settings version was not found.' } };
+    }
+
+    const restoredSettings = this.normalizeSettings(version.snapshot || {});
+    const currentSettings = this.getSettings();
+    const diff = this.buildSettingsDiff(currentSettings, restoredSettings);
+
+    state.settings = restoredSettings;
+    state.settingsHistory = [
+      {
+        versionId: `settings-${Date.now()}`,
+        changedAt: new Date().toISOString(),
+        changedBy: typeof actor?.changedBy === 'string' && actor.changedBy.trim() ? actor.changedBy.trim() : 'unknown',
+        changedFields: diff.changedFields,
+        changeSummary: diff.changeSummary,
+        rollbackOf: versionId,
+        snapshot: restoredSettings,
+      },
+      ...history,
+    ].slice(0, 100);
+    this.writeState(state);
+    return { ok: true, settings: restoredSettings, rollbackOf: versionId };
+  }
+
+  saveSettings(payload, actor = {}) {
     const normalized = this.normalizeSettings(payload || {});
     if (!normalized.siteSettings.siteTitle.trim() || !normalized.siteSettings.supportEmail.includes('@')) {
       return { ok: false, error: { code: 'SETTINGS_VALIDATION_ERROR', message: 'Invalid settings payload.' } };
     }
 
+    const brandMedia = normalized.siteSettings.brandMedia;
+    if (brandMedia.logo && !this.isValidMediaLink(brandMedia.logo)) {
+      return { ok: false, error: { code: 'SETTINGS_VALIDATION_ERROR', message: 'Invalid logo media reference.' } };
+    }
+    if (brandMedia.logoDark && !this.isValidMediaLink(brandMedia.logoDark)) {
+      return { ok: false, error: { code: 'SETTINGS_VALIDATION_ERROR', message: 'Invalid dark logo media reference.' } };
+    }
+    if (brandMedia.favicon && !this.isValidMediaLink(brandMedia.favicon)) {
+      return { ok: false, error: { code: 'SETTINGS_VALIDATION_ERROR', message: 'Invalid favicon media reference.' } };
+    }
+    if (brandMedia.defaultSocialImage && !this.isValidMediaLink(brandMedia.defaultSocialImage)) {
+      return { ok: false, error: { code: 'SETTINGS_VALIDATION_ERROR', message: 'Invalid default social image media reference.' } };
+    }
+
+    const previous = this.getSettings();
+    const diff = this.buildSettingsDiff(previous, normalized);
     const state = this.readState();
     state.settings = normalized;
+    state.settingsHistory = [
+      {
+        versionId: `settings-${Date.now()}`,
+        changedAt: new Date().toISOString(),
+        changedBy: typeof actor?.changedBy === 'string' && actor.changedBy.trim() ? actor.changedBy.trim() : 'unknown',
+        changedFields: diff.changedFields,
+        changeSummary: diff.changeSummary,
+        snapshot: normalized,
+      },
+      ...(Array.isArray(state.settingsHistory) ? state.settingsHistory : []),
+    ].slice(0, 100);
     this.writeState(state);
-    return { ok: true, settings: normalized };
+    return { ok: true, settings: normalized, audit: diff };
   }
 
   getSyncDiagnostics() {
@@ -671,8 +748,8 @@ class ContentService {
       content: content || 'Contenu à compléter.',
       author: typeof raw?.author === 'string' && raw.author.trim() ? raw.author.trim() : 'Équipe SMOVE',
       authorRole: typeof raw?.authorRole === 'string' && raw.authorRole.trim() ? raw.authorRole.trim() : 'CMS Editor',
-      category: typeof raw?.category === 'string' && raw.category.trim() ? raw.category.trim() : 'Non classé',
-      tags: Array.isArray(raw?.tags) ? raw.tags.map((tag) => `${tag}`.trim()).filter(Boolean) : [],
+      category: this.normalizeBlogCategory(raw?.category),
+      tags: this.normalizeBlogTags(raw?.tags),
       publishedDate: this.isValidDate(raw?.publishedDate) ? new Date(raw.publishedDate).toISOString() : new Date().toISOString(),
       readTime: typeof raw?.readTime === 'string' && raw.readTime.trim() ? raw.readTime.trim() : '5 min',
       featuredImage: typeof raw?.featuredImage === 'string' && raw.featuredImage.trim() ? raw.featuredImage.trim() : 'blog article image',
@@ -910,6 +987,8 @@ class ContentService {
       ctaDescription: asTrimmedString(service?.ctaDescription) || undefined,
       ctaPrimaryLabel: asTrimmedString(service?.ctaPrimaryLabel) || undefined,
       ctaPrimaryHref: asTrimmedString(service?.ctaPrimaryHref) || undefined,
+      processTitle: asTrimmedString(service?.processTitle) || undefined,
+      processSteps: Array.isArray(service?.processSteps) ? service.processSteps.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       color: asTrimmedString(service?.color) || 'from-[#00b3e8] to-[#00c0e8]',
       features: Array.isArray(service?.features) ? service.features.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
       status: SERVICE_STATUSES.has(service?.status) ? service.status : 'published',
@@ -943,7 +1022,9 @@ class ContentService {
         COLOR_GRADIENT_PATTERN.test(service.color) &&
         Array.isArray(service.features) &&
         service.features.length > 0 &&
-        SERVICE_STATUSES.has(service.status)
+        SERVICE_STATUSES.has(service.status) &&
+        (service.processTitle === undefined || typeof service.processTitle === 'string') &&
+        (service.processSteps === undefined || (Array.isArray(service.processSteps) && service.processSteps.every((step) => typeof step === 'string' && step.trim().length > 0)))
     );
   }
 
@@ -1064,6 +1145,7 @@ class ContentService {
 
     const settings = this.getSettings();
     register(settings.siteSettings.brandMedia.logo, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.logo', label: 'Site settings' });
+    register(settings.siteSettings.brandMedia.logoDark, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.logoDark', label: 'Site settings' });
     register(settings.siteSettings.brandMedia.favicon, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.favicon', label: 'Site settings' });
     register(settings.siteSettings.brandMedia.defaultSocialImage, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.defaultSocialImage', label: 'Site settings' });
 
@@ -1086,6 +1168,7 @@ class ContentService {
             : defaultSettings.siteSettings.supportEmail,
         brandMedia: {
           logo: typeof siteSettings?.brandMedia?.logo === 'string' ? siteSettings.brandMedia.logo.trim() : '',
+          logoDark: typeof siteSettings?.brandMedia?.logoDark === 'string' ? siteSettings.brandMedia.logoDark.trim() : '',
           favicon: typeof siteSettings?.brandMedia?.favicon === 'string' ? siteSettings.brandMedia.favicon.trim() : '',
           defaultSocialImage:
             typeof siteSettings?.brandMedia?.defaultSocialImage === 'string' ? siteSettings.brandMedia.defaultSocialImage.trim() : '',
@@ -1096,6 +1179,13 @@ class ContentService {
           typeof operationalSettings?.instantPublishing === 'boolean'
             ? operationalSettings.instantPublishing
             : defaultSettings.operationalSettings.instantPublishing,
+      },
+      taxonomySettings: {
+        blog: {
+          managedCategories: this.normalizeManagedTaxonomyList(settings?.taxonomySettings?.blog?.managedCategories, MANAGED_BLOG_CATEGORIES),
+          managedTags: this.normalizeManagedTaxonomyList(settings?.taxonomySettings?.blog?.managedTags, MANAGED_BLOG_TAGS),
+          enforceManagedTags: settings?.taxonomySettings?.blog?.enforceManagedTags !== false,
+        },
       },
       siteTitle:
         typeof siteSettings?.siteTitle === 'string'
@@ -1109,6 +1199,84 @@ class ContentService {
         typeof operationalSettings?.instantPublishing === 'boolean'
           ? operationalSettings.instantPublishing
           : defaultSettings.operationalSettings.instantPublishing,
+      taxonomy: {
+        blog: {
+          managedCategories: this.normalizeManagedTaxonomyList(settings?.taxonomySettings?.blog?.managedCategories, MANAGED_BLOG_CATEGORIES),
+          managedTags: this.normalizeManagedTaxonomyList(settings?.taxonomySettings?.blog?.managedTags, MANAGED_BLOG_TAGS),
+          enforceManagedTags: settings?.taxonomySettings?.blog?.enforceManagedTags !== false,
+        },
+      },
+    };
+  }
+
+  normalizeManagedTaxonomyList(candidate, fallback) {
+    const source = Array.isArray(candidate) ? candidate : fallback;
+    const seen = new Set();
+    const normalized = [];
+
+    source.forEach((entry) => {
+      const value = `${entry || ''}`.trim();
+      if (!value) return;
+      const key = value.toLocaleLowerCase('fr');
+      if (seen.has(key)) return;
+      seen.add(key);
+      normalized.push(value);
+    });
+
+    return normalized.length > 0 ? normalized : fallback;
+  }
+
+  normalizeBlogCategory(rawCategory) {
+    const input = typeof rawCategory === 'string' ? rawCategory.trim() : '';
+    if (!input) return 'Non classé';
+
+    const taxonomy = this.getBlogTaxonomy();
+    const match = taxonomy.managedCategories.find((category) => category.toLocaleLowerCase('fr') === input.toLocaleLowerCase('fr'));
+    return match || input;
+  }
+
+  normalizeBlogTags(rawTags) {
+    const tagList = Array.isArray(rawTags)
+      ? rawTags.map((tag) => `${tag}`.trim()).filter(Boolean)
+      : typeof rawTags === 'string'
+        ? rawTags.split(',').map((tag) => tag.trim()).filter(Boolean)
+        : [];
+    const taxonomy = this.getBlogTaxonomy();
+    const seen = new Set();
+    const normalized = [];
+
+    tagList.forEach((tag) => {
+      const managed = taxonomy.managedTags.find((entry) => entry.toLocaleLowerCase('fr') === tag.toLocaleLowerCase('fr'));
+      const next = managed || (taxonomy.enforceManagedTags ? '' : tag);
+      if (!next) return;
+      const key = next.toLocaleLowerCase('fr');
+      if (seen.has(key)) return;
+      seen.add(key);
+      normalized.push(next);
+    });
+
+    return normalized;
+  }
+
+  buildSettingsDiff(previous, next) {
+    const changedFields = [];
+    const register = (field, before, after) => {
+      if ((before || '') !== (after || '')) changedFields.push(field);
+    };
+
+    register('siteSettings.siteTitle', previous.siteSettings.siteTitle, next.siteSettings.siteTitle);
+    register('siteSettings.supportEmail', previous.siteSettings.supportEmail, next.siteSettings.supportEmail);
+    register('siteSettings.brandMedia.logo', previous.siteSettings.brandMedia.logo, next.siteSettings.brandMedia.logo);
+    register('siteSettings.brandMedia.logoDark', previous.siteSettings.brandMedia.logoDark, next.siteSettings.brandMedia.logoDark);
+    register('siteSettings.brandMedia.favicon', previous.siteSettings.brandMedia.favicon, next.siteSettings.brandMedia.favicon);
+    register('siteSettings.brandMedia.defaultSocialImage', previous.siteSettings.brandMedia.defaultSocialImage, next.siteSettings.brandMedia.defaultSocialImage);
+    if (previous.operationalSettings.instantPublishing !== next.operationalSettings.instantPublishing) {
+      changedFields.push('operationalSettings.instantPublishing');
+    }
+
+    return {
+      changedFields,
+      changeSummary: changedFields.length > 0 ? `Updated ${changedFields.length} field(s).` : 'No effective changes detected.',
     };
   }
 }

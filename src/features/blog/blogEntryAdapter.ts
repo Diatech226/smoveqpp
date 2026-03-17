@@ -92,7 +92,7 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
     excerpt,
     content: post.content || '',
     author: post.author || 'Équipe SMOVE',
-    category: post.category || 'Non classé',
+    category: (post.category || 'Non classé').trim() || 'Non classé',
     featuredImage: media.src,
     readTime: post.readTime || '5 min',
     publishedDate: safeDateString(post.publishedDate),
@@ -136,6 +136,8 @@ export function fromCmsBlogInput(input: CmsBlogInput): BlogPost {
   const fallbackContent = input.content.trim() || 'Contenu à compléter.';
   const excerpt = input.excerpt.trim() || fallbackContent.slice(0, 160) || `Résumé à compléter pour ${title || 'cet article'}.`;
 
+  const category = input.category.trim() || 'Non classé';
+  const seen = new Set<string>();
   return {
     id: input.id || `post-${Date.now()}`,
     title,
@@ -144,11 +146,17 @@ export function fromCmsBlogInput(input: CmsBlogInput): BlogPost {
     content: fallbackContent,
     author: input.author.trim() || 'Équipe SMOVE',
     authorRole: 'CMS Editor',
-    category: input.category.trim() || 'Non classé',
+    category,
     tags: (input.tags || '')
       .split(',')
       .map((tag) => tag.trim())
-      .filter(Boolean),
+      .filter(Boolean)
+      .filter((tag) => {
+        const key = tag.toLocaleLowerCase('fr');
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }),
     publishedDate: input.publishedDate || new Date().toISOString(),
     readTime: input.readTime?.trim() || '5 min',
     featuredImage: input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,

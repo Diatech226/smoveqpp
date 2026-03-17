@@ -39,6 +39,14 @@ const defaultFeatures = [
   },
 ];
 
+const defaultProcess = [
+  'Découverte',
+  'Architecture',
+  'Développement',
+  'Recette',
+  'Mise en production',
+];
+
 const projects = [
   { 
     title: 'SMOVE Platform', 
@@ -75,6 +83,7 @@ export default function WebDevelopmentPage() {
 
   const service = useMemo(() => serviceRepository.getPublished().find((entry) => entry.routeSlug === 'web-development' || entry.slug === 'web-development'), [serviceVersion]);
   const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
+  const process = (service?.processSteps && service.processSteps.length > 0 ? service.processSteps : defaultProcess).slice(0, 5);
 
   return (
     <div className="min-h-screen bg-white">
@@ -340,6 +349,23 @@ export default function WebDevelopmentPage() {
                   </p>
                 </motion.div>
               </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div className="text-center mb-16" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <h2 className="font-['Medula_One:Regular',sans-serif] text-[48px] tracking-[4.8px] uppercase text-[#273a41] mb-4">Notre Processus</h2>
+            <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-[#38484e] max-w-2xl mx-auto">{service?.processTitle || 'Une exécution structurée du cadrage au déploiement.'}</p>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {process.map((step, index) => (
+              <div key={index} className="rounded-[16px] bg-[#f5f9fa] p-6 text-center">
+                <div className="font-['ABeeZee:Regular',sans-serif] text-[24px] text-[#34c759] mb-2">{String(index + 1).padStart(2, '0')}</div>
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] text-[#273a41]">{step}</h3>
+              </div>
             ))}
           </div>
         </div>

@@ -779,4 +779,74 @@ describe('ContentService production hardening', () => {
     expect(diagnostics.summary.invalidMediaReferenceCount).toBeGreaterThan(0);
     expect(diagnostics.invalidMediaReferences.some((entry) => entry.mediaId === 'missing-media')).toBe(true);
   });
+
+  it('normalizes blog taxonomy values against managed categories and tags', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const saved = service.saveBlogPost({
+      id: 'taxonomy-post-1',
+      title: 'Taxonomie',
+      slug: 'taxonomie',
+      excerpt: 'Résumé',
+      content: 'Contenu',
+      author: 'Auteur',
+      authorRole: 'Role',
+      category: 'branding',
+      tags: ['react', 'unknown-tag', 'React'],
+      publishedDate: '2024-01-01',
+      readTime: '2 min',
+      featuredImage: 'image',
+      images: [],
+      status: 'draft',
+    });
+
+    expect(saved.ok).toBe(true);
+    expect(saved.post.category).toBe('Branding');
+    expect(saved.post.tags).toEqual(['React']);
+  });
+
+  it('tracks settings history and supports rollback baseline', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const first = service.saveSettings({
+      siteSettings: { siteTitle: 'SMOVE A', supportEmail: 'a@smove.africa' },
+      operationalSettings: { instantPublishing: true },
+    }, { changedBy: 'user-1' });
+    const second = service.saveSettings({
+      siteSettings: { siteTitle: 'SMOVE B', supportEmail: 'b@smove.africa' },
+      operationalSettings: { instantPublishing: false },
+    }, { changedBy: 'user-2' });
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+
+    const history = service.listSettingsHistory(10);
+    expect(history.length).toBeGreaterThanOrEqual(2);
+    expect(history[0].changedBy).toBe('user-2');
+
+    const rollback = service.rollbackSettings(history[1].versionId, { changedBy: 'admin-1' });
+    expect(rollback.ok).toBe(true);
+    expect(rollback.settings.siteSettings.siteTitle).toBe('SMOVE A');
+  });
+
+  it('accepts service process fields in CMS service payload', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const saved = service.saveService({
+      id: 'service-process-1',
+      title: 'Service Process',
+      slug: 'service-process',
+      routeSlug: 'service-process',
+      description: 'Description',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature'],
+      processTitle: 'Notre Process',
+      processSteps: ['Découverte', 'Livraison'],
+      status: 'published',
+      featured: false,
+    });
+
+    expect(saved.ok).toBe(true);
+    expect(saved.service.processTitle).toBe('Notre Process');
+    expect(saved.service.processSteps).toEqual(['Découverte', 'Livraison']);
+  });
 });

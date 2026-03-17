@@ -1,8 +1,10 @@
 import { motion } from 'motion/react';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useHashNavigation } from './app-routing/useHashNavigation';
 import AppErrorBoundary from './features/app-shell/AppErrorBoundary';
 import AppPageRenderer from './features/app-shell/AppPageRenderer';
+import { fetchPublicSettings } from './utils/contentApi';
 
 function AppContent() {
   const {
@@ -25,6 +27,29 @@ function AppContent() {
   const shouldHideScrollToTop =
     ['login', 'register', 'auth-loading', 'cms-unavailable', 'cms-forbidden'].includes(currentPage) ||
     currentPage.startsWith('cms-');
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicSettings()
+      .then((settings) => {
+        if (!active) return;
+        if (settings.siteTitle?.trim()) {
+          document.title = settings.siteTitle.trim();
+        }
+        const faviconHref = settings.brandMedia?.favicon?.trim();
+        if (faviconHref) {
+          const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
+          if (link) {
+            link.href = faviconHref;
+          }
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen">
