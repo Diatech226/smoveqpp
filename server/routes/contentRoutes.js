@@ -68,6 +68,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
         .listBlogPosts()
         .filter((post) => post.status === 'published' && post.title?.trim() && post.slug?.trim() && post.featuredImage?.trim()),
     }));
+  router.get('/public/blog/taxonomy', (_req, res) => sendSuccess(res, 200, { taxonomy: contentService.getBlogTaxonomy() }));
   router.get('/public/settings', (_req, res) =>
     sendSuccess(res, 200, { settings: contentService.getPublicSettings() }));
 
@@ -328,14 +329,34 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   router.get('/settings', requirePermission(Permissions.CONTENT_READ), (req, res) =>
     sendSuccess(res, 200, { settings: contentService.getSettings() }));
 
+  router.get('/settings/history', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, 200, { history: contentService.listSettingsHistory(req.query?.limit) }));
+
+  router.post('/settings/:versionId/rollback', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.rollbackSettings(req.params.versionId, { changedBy: req.session?.userId ?? 'unknown' });
+    if (!result.ok) {
+      return sendError(res, 404, result.error.code, result.error.message);
+    }
+    auditService?.record(toAuditContext(req, 'cms_settings_rollback', 'success', {
+      entityType: 'cms_settings',
+      entityId: 'global',
+      metadata: { rollbackOf: req.params.versionId },
+    }));
+    return sendSuccess(res, 200, { settings: result.settings, rollbackOf: result.rollbackOf });
+  });
+
   router.post('/settings', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
-    const result = contentService.saveSettings(req.body);
+    const result = contentService.saveSettings(req.body, { changedBy: req.session?.userId ?? 'unknown' });
     if (!result.ok) {
       logContentFailure(req, 'cms_settings_save_failed', result.error.code);
       auditService?.record(toAuditContext(req, 'cms_settings_save', 'failure', { entityType: 'cms_settings', metadata: { code: result.error.code } }));
       return sendError(res, 400, result.error.code, result.error.message);
     }
-    auditService?.record(toAuditContext(req, 'cms_settings_save', 'success', { entityType: 'cms_settings', entityId: 'global' }));
+    auditService?.record(toAuditContext(req, 'cms_settings_save', 'success', {
+      entityType: 'cms_settings',
+      entityId: 'global',
+      metadata: { changedFields: result.audit?.changedFields || [] },
+    }));
     return sendSuccess(res, 200, { settings: result.settings });
   });
 

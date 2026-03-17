@@ -46,12 +46,20 @@ export interface CmsSettings {
     supportEmail: string;
     brandMedia?: {
       logo?: string;
+      logoDark?: string;
       favicon?: string;
       defaultSocialImage?: string;
     };
   };
   operationalSettings?: {
     instantPublishing: boolean;
+  };
+  taxonomySettings?: {
+    blog?: {
+      managedCategories?: string[];
+      managedTags?: string[];
+      enforceManagedTags?: boolean;
+    };
   };
 }
 
@@ -60,9 +68,19 @@ export interface PublicSiteSettings {
   supportEmail: string;
   brandMedia?: {
     logo?: string;
+    logoDark?: string;
     favicon?: string;
     defaultSocialImage?: string;
   };
+}
+
+export interface SettingsHistoryEntry {
+  versionId: string;
+  changedAt: string;
+  changedBy: string;
+  changedFields: string[];
+  changeSummary: string;
+  rollbackOf?: string;
 }
 
 export interface SyncDiagnostics {
@@ -299,6 +317,18 @@ export async function fetchPublicSettings(): Promise<PublicSiteSettings> {
     throw new ContentApiError(message, code, response.status);
   }
 
+  return body.data!.settings;
+}
+
+export async function fetchSettingsHistory(limit = 20): Promise<SettingsHistoryEntry[]> {
+  const body = await request<{ history: SettingsHistoryEntry[] }>(`/settings/history?limit=${limit}`);
+  return body.data?.history || [];
+}
+
+export async function rollbackSettingsVersion(versionId: string): Promise<CmsSettings> {
+  const body = await request<{ settings: CmsSettings }>(`/settings/${versionId}/rollback`, {
+    method: 'POST',
+  });
   return body.data!.settings;
 }
 

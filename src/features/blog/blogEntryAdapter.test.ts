@@ -9,6 +9,21 @@ describe('blogEntryAdapter', () => {
     expect(normalizeSlug('  Création !! Site WEB  ')).toBe('creation-site-web');
   });
 
+  it('deduplicates tags from CMS comma-separated input', () => {
+    const post = fromCmsBlogInput({
+      title: 'Tag test',
+      slug: 'tag-test',
+      excerpt: 'excerpt',
+      content: 'content',
+      author: 'author',
+      category: 'Branding',
+      tags: 'React, react, CMS',
+      status: 'draft',
+    });
+
+    expect(post.tags).toEqual(['React', 'CMS']);
+  });
+
   it('builds a canonical entry with safe SEO defaults', () => {
     const canonical = toCanonicalBlogEntry({
       ...defaultBlogPosts[0],

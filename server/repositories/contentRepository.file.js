@@ -14,6 +14,7 @@ const defaultState = {
   services: [],
   pageContent: null,
   settings: null,
+  settingsHistory: [],
   migrationHistory: [],
 };
 
@@ -36,6 +37,7 @@ function normalizeState(candidate = {}) {
     services: Array.isArray(candidate.services) ? candidate.services : [],
     pageContent: candidate.pageContent && typeof candidate.pageContent === 'object' ? candidate.pageContent : null,
     settings: candidate.settings && typeof candidate.settings === 'object' ? candidate.settings : null,
+    settingsHistory: Array.isArray(candidate.settingsHistory) ? candidate.settingsHistory : [],
     migrationHistory: Array.isArray(candidate.migrationHistory) ? candidate.migrationHistory : [],
   };
 }
@@ -71,6 +73,18 @@ function migrateState(state) {
         note: 'Backfilled blog status and media metadata defaults.',
       });
       migrated.schemaVersion = 2;
+      continue;
+    }
+
+    if (fromVersion < 3) {
+      migrated.settingsHistory = Array.isArray(migrated.settingsHistory) ? migrated.settingsHistory : [];
+      migrated.migrationHistory.push({
+        fromVersion,
+        toVersion: 3,
+        migratedAt: new Date().toISOString(),
+        note: 'Initialized settings history baseline for auditability and rollback.',
+      });
+      migrated.schemaVersion = 3;
       continue;
     }
 

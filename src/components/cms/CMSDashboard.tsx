@@ -42,7 +42,9 @@ import {
   fetchEditorialAnalytics,
   fetchBackendMediaReferences,
   fetchSyncDiagnostics,
+  fetchSettingsHistory,
   requestWithRetry,
+  rollbackSettingsVersion,
   saveBackendBlogPost,
   saveBackendPageContent,
   saveBackendProject,
@@ -54,6 +56,7 @@ import {
   ContentApiError,
   type CmsSettings,
   type EditorialAnalytics,
+  type SettingsHistoryEntry,
 } from '../../utils/contentApi';
 import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
 import { isMediaReference, resolveBlogMediaReference } from '../../features/blog/mediaReference';
@@ -135,11 +138,20 @@ interface ServiceFormState {
   status: 'draft' | 'published' | 'archived';
   featured: boolean;
   routeSlug: string;
+  overviewDescription: string;
+  ctaTitle: string;
+  ctaDescription: string;
+  ctaPrimaryLabel: string;
+  ctaPrimaryHref: string;
+  processTitle: string;
+  processSteps: string;
 }
 
 const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const SERVICE_COLOR_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
+const BLOG_MANAGED_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
+const BLOG_MANAGED_TAGS = ['React', 'Web Design', 'Performance', 'Innovation', 'Vidéo', 'Branding', 'Corporate', 'BTP', 'Logo Design', 'Identité Visuelle', 'Food', 'SEO', 'Social Media', 'CMS'];
 
 const isValidHttpUrl = (value: string): boolean => {
   try {
@@ -182,6 +194,13 @@ const EMPTY_SERVICE_FORM: ServiceFormState = {
   status: 'published',
   featured: false,
   routeSlug: '',
+  overviewDescription: '',
+  ctaTitle: '',
+  ctaDescription: '',
+  ctaPrimaryLabel: '',
+  ctaPrimaryHref: '',
+  processTitle: '',
+  processSteps: '',
 };
 
 const EMPTY_PROJECT_FORM: ProjectFormState = {
@@ -245,6 +264,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsValues, setSettingsValues] = useState<CmsSettings>({ siteTitle: 'SMOVE', supportEmail: 'contact@smove.africa', instantPublishing: true });
+  const [settingsHistory, setSettingsHistory] = useState<SettingsHistoryEntry[]>([]);
 
   const [projects, setProjects] = useState(() => projectRepository.getAll());
   const [projectsLoading, setProjectsLoading] = useState(true);
@@ -321,6 +341,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     settingsValues.operationalSettings?.instantPublishing ?? settingsValues.instantPublishing;
   const siteSettingsTitle = settingsValues.siteSettings?.siteTitle ?? settingsValues.siteTitle;
   const siteSettingsSupportEmail = settingsValues.siteSettings?.supportEmail ?? settingsValues.supportEmail;
+  const siteBrandMedia = settingsValues.siteSettings?.brandMedia || {};
+  const managedBlogCategories = settingsValues.taxonomySettings?.blog?.managedCategories || BLOG_MANAGED_CATEGORIES;
+  const managedBlogTags = settingsValues.taxonomySettings?.blog?.managedTags || BLOG_MANAGED_TAGS;
 
   useEffect(() => {
     let active = true;
@@ -412,6 +435,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         if (active) setSettingsValues(settings);
       } catch {
         markDegradedMode('Paramètres CMS: backend indisponible, valeurs locales conservées.');
+      }
+
+      try {
+        const history = await requestWithRetry(() => fetchSettingsHistory(20), { retries: 1, retryDelayMs: 250 });
+        if (active) setSettingsHistory(history);
+      } catch {
+        markDegradedMode('Historique des paramètres indisponible.');
       }
 
       try {
@@ -774,9 +804,31 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         instantPublishing: instantPublishingEnabled,
       }), { retries: 1, retryDelayMs: 300 });
       setSettingsValues(saved);
+      const history = await requestWithRetry(() => fetchSettingsHistory(20), { retries: 1, retryDelayMs: 250 });
+      setSettingsHistory(history);
       showSuccess('Paramètres enregistrés sur le backend.');
     } catch {
       setSectionError('Sauvegarde backend impossible. Réessayez.');
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const rollbackSettings = async (versionId: string) => {
+    if (!window.confirm('Restaurer cette version des paramètres globaux ?')) {
+      return;
+    }
+
+    setSettingsSaving(true);
+    setSectionError('');
+    try {
+      const restored = await requestWithRetry(() => rollbackSettingsVersion(versionId), { retries: 1, retryDelayMs: 250 });
+      setSettingsValues(restored);
+      const history = await requestWithRetry(() => fetchSettingsHistory(20), { retries: 1, retryDelayMs: 250 });
+      setSettingsHistory(history);
+      showSuccess('Paramètres restaurés depuis l’historique.');
+    } catch {
+      setSectionError('Rollback impossible pour cette version.');
     } finally {
       setSettingsSaving(false);
     }
@@ -1110,6 +1162,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       status: service.status ?? 'published',
       featured: Boolean(service.featured),
       routeSlug: service.routeSlug || service.slug,
+      overviewDescription: service.overviewDescription || '',
+      ctaTitle: service.ctaTitle || '',
+      ctaDescription: service.ctaDescription || '',
+      ctaPrimaryLabel: service.ctaPrimaryLabel || '',
+      ctaPrimaryHref: service.ctaPrimaryHref || '',
+      processTitle: service.processTitle || '',
+      processSteps: (service.processSteps || []).join('\n'),
     });
     setServiceFormErrors({});
     setServicesError('');
@@ -1171,6 +1230,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       status: serviceForm.status,
       featured: serviceForm.featured,
       routeSlug: serviceForm.routeSlug.trim() || serviceForm.slug.trim() || serviceForm.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
+      overviewDescription: serviceForm.overviewDescription.trim() || undefined,
+      ctaTitle: serviceForm.ctaTitle.trim() || undefined,
+      ctaDescription: serviceForm.ctaDescription.trim() || undefined,
+      ctaPrimaryLabel: serviceForm.ctaPrimaryLabel.trim() || undefined,
+      ctaPrimaryHref: serviceForm.ctaPrimaryHref.trim() || undefined,
+      processTitle: serviceForm.processTitle.trim() || undefined,
+      processSteps: serviceForm.processSteps.split('\n').map((entry) => entry.trim()).filter(Boolean),
     };
 
     try {
@@ -1587,6 +1653,70 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           </label>
 
           <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Résumé d'aperçu (section intro)</span>
+            <textarea
+              value={serviceForm.overviewDescription}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, overviewDescription: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Titre CTA</span>
+            <input
+              value={serviceForm.ctaTitle}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaTitle: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Description CTA</span>
+            <textarea
+              value={serviceForm.ctaDescription}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaDescription: event.target.value }))}
+              className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+
+          <div className="grid md:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Libellé CTA primaire</span>
+              <input
+                value={serviceForm.ctaPrimaryLabel}
+                onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaPrimaryLabel: event.target.value }))}
+                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Lien CTA primaire</span>
+              <input
+                value={serviceForm.ctaPrimaryHref}
+                onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaPrimaryHref: event.target.value }))}
+                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Titre processus</span>
+            <input
+              value={serviceForm.processTitle}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, processTitle: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Étapes du processus (une ligne par étape)</span>
+            <textarea
+              value={serviceForm.processSteps}
+              onChange={(event) => setServiceForm((prev) => ({ ...prev, processSteps: event.target.value }))}
+              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+          </label>
+
+          <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Statut</span>
             <select
               value={serviceForm.status}
@@ -1637,7 +1767,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             void saveBlogPost();
           }}
         >
-          {(['title', 'slug', 'author', 'category', 'tags', 'readTime'] as const).map((fieldKey) => (
+          {(['title', 'slug', 'author', 'readTime'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
               <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
               <input
@@ -1648,6 +1778,31 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               {blogFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors[fieldKey]}</p> : null}
             </label>
           ))}
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Catégorie (taxonomie gérée)</span>
+            <input
+              list="blog-managed-categories"
+              value={blogForm.category}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, category: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+            />
+            <datalist id="blog-managed-categories">
+              {managedBlogCategories.map((category) => (
+                <option key={category} value={category} />
+              ))}
+            </datalist>
+            <p className="text-[12px] text-[#6f7f85] mt-1">Utilisez prioritairement les catégories gérées pour éviter la dérive taxonomique.</p>
+          </label>
+          <label className="block">
+            <span className="text-[14px] text-[#6f7f85]">Tags (virgule séparateur, taxonomie gérée)</span>
+            <input
+              value={blogForm.tags}
+              onChange={(event) => setBlogForm((prev) => ({ ...prev, tags: event.target.value }))}
+              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+              placeholder={managedBlogTags.slice(0, 5).join(', ')}
+            />
+            <p className="text-[12px] text-[#6f7f85] mt-1">Tags gérés: {managedBlogTags.join(', ')}</p>
+          </label>
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Résumé</span>
             <textarea
@@ -2471,6 +2626,69 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 />
               </label>
               <p className="text-[12px] text-[#6f7f85]">Ces champs sont exposés au runtime public via <code>/content/public/settings</code>.</p>
+              <div className="grid md:grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-[14px] text-[#6f7f85]">Logo principal (URL ou media:asset-id)</span>
+                  <input
+                    value={siteBrandMedia.logo || ''}
+                    onChange={(event) => setSettingsValues((prev) => ({
+                      ...prev,
+                      siteSettings: {
+                        ...(prev.siteSettings || {}),
+                        brandMedia: { ...(prev.siteSettings?.brandMedia || {}), logo: event.target.value },
+                      },
+                    }))}
+                    className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[14px] text-[#6f7f85]">Logo sombre (optionnel)</span>
+                  <input
+                    value={siteBrandMedia.logoDark || ''}
+                    onChange={(event) => setSettingsValues((prev) => ({
+                      ...prev,
+                      siteSettings: {
+                        ...(prev.siteSettings || {}),
+                        brandMedia: { ...(prev.siteSettings?.brandMedia || {}), logoDark: event.target.value },
+                      },
+                    }))}
+                    className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[14px] text-[#6f7f85]">Favicon (URL ou media:asset-id)</span>
+                  <input
+                    value={siteBrandMedia.favicon || ''}
+                    onChange={(event) => setSettingsValues((prev) => ({
+                      ...prev,
+                      siteSettings: {
+                        ...(prev.siteSettings || {}),
+                        brandMedia: { ...(prev.siteSettings?.brandMedia || {}), favicon: event.target.value },
+                      },
+                    }))}
+                    className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[14px] text-[#6f7f85]">Image sociale par défaut</span>
+                  <input
+                    value={siteBrandMedia.defaultSocialImage || ''}
+                    onChange={(event) => setSettingsValues((prev) => ({
+                      ...prev,
+                      siteSettings: {
+                        ...(prev.siteSettings || {}),
+                        brandMedia: { ...(prev.siteSettings?.brandMedia || {}), defaultSocialImage: event.target.value },
+                      },
+                    }))}
+                    className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                  />
+                </label>
+              </div>
+              <div className="rounded-[10px] border border-[#eef3f5] p-3">
+                <p className="text-[12px] text-[#6f7f85] mb-2">Taxonomie blog gérée (baseline)</p>
+                <p className="text-[12px] text-[#273a41]"><strong>Catégories:</strong> {managedBlogCategories.join(', ')}</p>
+                <p className="text-[12px] text-[#273a41]"><strong>Tags:</strong> {managedBlogTags.join(', ')}</p>
+              </div>
               <label className="flex items-center justify-between rounded-[12px] border border-[#eef3f5] p-4">
                 <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Autoriser la publication immédiate</span>
                 <input
@@ -2499,6 +2717,26 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               >
                 {settingsSaving ? 'Sauvegarde...' : 'Sauvegarder'}
               </button>
+            </div>
+          </AdminPanel>
+          <AdminPanel title="Historique & rollback paramètres globaux">
+            {settingsHistory.length === 0 ? <AdminEmptyState label="Aucun historique enregistré." /> : null}
+            <div className="space-y-2">
+              {settingsHistory.map((entry) => (
+                <div key={entry.versionId} className="rounded-[10px] border border-[#eef3f5] px-3 py-2 flex items-center justify-between gap-3">
+                  <div className="text-[12px] text-[#4b5a60]">
+                    <p><strong>{entry.changedBy || 'unknown'}</strong> · {entry.changeSummary}</p>
+                    <p>{new Date(entry.changedAt).toLocaleString('fr-FR')} · {entry.changedFields.join(', ') || 'Aucun champ changé'}</p>
+                  </div>
+                  <button
+                    onClick={() => { void rollbackSettings(entry.versionId); }}
+                    disabled={settingsSaving}
+                    className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] text-[12px]"
+                  >
+                    Restaurer
+                  </button>
+                </div>
+              ))}
             </div>
           </AdminPanel>
         </div>

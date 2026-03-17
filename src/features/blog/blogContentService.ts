@@ -114,7 +114,7 @@ const toContractFromPosts = (posts: BlogPost[]): BlogContentContract => {
 
   const [firstPost] = canonicalEntries;
   const items = canonicalEntries.map((entry) => toListItem(entry, firstPost?.id));
-  const categories = ['Tous', ...new Set(items.map((post) => post.category))];
+  const categories = ['Tous', ...new Set(items.map((post) => post.category.trim() || 'Non classé'))];
 
   return {
     categories,

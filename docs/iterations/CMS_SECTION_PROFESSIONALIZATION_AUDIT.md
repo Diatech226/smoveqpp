@@ -6,6 +6,8 @@ This file tracks implementation progress against CMS professionalization iterati
 
 - Iteration 1: completed.
 - Iteration 2: completed baseline governance and public detail contracts.
+- Iteration 3: completed media lifecycle safety, settings split authority, and runtime diagnostics baseline.
+- Iteration 4: completed taxonomy governance baseline, service detail CMS authority expansion, brand assets authority, and settings rollback audit baseline.
 
 ## Iteration 2 outcomes
 
@@ -24,3 +26,12 @@ This file tracks implementation progress against CMS professionalization iterati
 - Public runtime now consumes authoritative CMS site settings through `/content/public/settings` (site title + support email) with static fallback on backend outages.
 - Added CMS synchronization diagnostics endpoint and dashboard warning signals for invalid media references / diagnostics unavailability.
 - Divergence visibility improved by surfacing backend diagnostics status rather than silently relying on local fallback state.
+
+## Iteration 4 outcomes
+
+- Blog taxonomy governance baseline added with managed categories/tags in settings and server-side normalization to reduce category/tag drift.
+- CMS blog editorial UX aligned with managed taxonomy expectations (guidance + deterministic category/tag handling).
+- Service detail CMS authority expanded with process and CTA/editable detail fields, consumed on public service pages via safe fallback rendering.
+- Settings authority extended to explicit brand assets (`logo`, `logoDark`, `favicon`, `defaultSocialImage`) with runtime consumption for logo/title/favicon surfaces.
+- Settings auditability and rollback baseline delivered with persisted settings history snapshots, changed-fields tracking, and rollback endpoint + CMS UI action.
+- Content schema version advanced to v3 with migration for `settingsHistory` initialization.

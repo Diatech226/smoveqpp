@@ -43,6 +43,13 @@ describe('blogContentService', () => {
     expect(contract.posts[0].media.alt.length).toBeGreaterThan(0);
   });
 
+  it('normalizes empty/whitespace categories to Non classé in public contract categories', () => {
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({ ...seed, id: 'cat-space', slug: 'cat-space', category: '   ', status: 'published' });
+    const contract = getBlogContentContract();
+    expect(contract.categories).toContain('Non classé');
+  });
+
   it('orders posts deterministically by date then slug', () => {
     const seed = blogRepository.getAll()[0];
 

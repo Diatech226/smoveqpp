@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 import { fetchPublicSettings } from '../utils/contentApi';
+import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [siteTitle, setSiteTitle] = useState('SMOVE');
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
+  const [logoSrc, setLogoSrc] = useState(imgTelegramCloudDocument);
 
   useEffect(() => {
     let active = true;
@@ -14,6 +16,7 @@ export default function Footer() {
         if (!active) return;
         if (settings.siteTitle?.trim()) setSiteTitle(settings.siteTitle.trim());
         if (settings.supportEmail?.trim()) setSupportEmail(settings.supportEmail.trim());
+        if (settings.brandMedia?.logo?.trim()) setLogoSrc(settings.brandMedia.logo.trim());
       })
       .catch(() => {
         // Keep static fallback copy when backend settings are unavailable.
@@ -33,6 +36,7 @@ export default function Footer() {
             <h3 className="font-['Medula_One:Regular',sans-serif] text-[20px] tracking-[2px] uppercase text-[#00b3e8] mb-6">
               {siteTitle}
             </h3>
+            <img src={logoSrc} alt={siteTitle} className="h-10 w-auto rounded-full mb-4" />
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] leading-[1.6] text-white/80 mb-6">
               Agence de communication digitale spécialisée dans la création de contenu, le développement web et la stratégie digitale.
             </p>
