@@ -20,10 +20,14 @@ export interface BlogPost {
     description?: string;
     canonicalSlug?: string;
     socialImage?: string;
+    noIndex?: boolean;
+    canonicalUrl?: string;
   };
   mediaRoles?: {
     featuredImage?: string;
     socialImage?: string;
+    coverImage?: string;
+    cardImage?: string;
   };
 }
 
@@ -91,7 +95,15 @@ export interface Project {
   mediaRoles?: {
     cardImage?: string;
     heroImage?: string;
+    coverImage?: string;
+    socialImage?: string;
     galleryImages?: string[];
+  };
+  seo?: {
+    title?: string;
+    description?: string;
+    canonicalSlug?: string;
+    socialImage?: string;
   };
 }
 
@@ -116,6 +128,12 @@ export interface Service {
   processTitle?: string;
   processSteps?: string[];
   iconLikeAsset?: string;
+  seo?: {
+    title?: string;
+    description?: string;
+    canonicalSlug?: string;
+    socialImage?: string;
+  };
   createdAt?: string;
   updatedAt?: string;
 }
@@ -151,13 +169,17 @@ export const isBlogPost = (value: unknown): value is BlogPost => {
         (seo.title === undefined || typeof seo.title === 'string') &&
         (seo.description === undefined || typeof seo.description === 'string') &&
         (seo.canonicalSlug === undefined || typeof seo.canonicalSlug === 'string') &&
-        (seo.socialImage === undefined || typeof seo.socialImage === 'string')))
+        (seo.socialImage === undefined || typeof seo.socialImage === 'string') &&
+        (seo.noIndex === undefined || typeof seo.noIndex === 'boolean') &&
+        (seo.canonicalUrl === undefined || typeof seo.canonicalUrl === 'string')))
     &&
     (v.mediaRoles === undefined ||
       (typeof v.mediaRoles === 'object' &&
         v.mediaRoles !== null &&
         (((v.mediaRoles as Record<string, unknown>).featuredImage === undefined) || typeof (v.mediaRoles as Record<string, unknown>).featuredImage === 'string') &&
-        (((v.mediaRoles as Record<string, unknown>).socialImage === undefined) || typeof (v.mediaRoles as Record<string, unknown>).socialImage === 'string')))
+        (((v.mediaRoles as Record<string, unknown>).socialImage === undefined) || typeof (v.mediaRoles as Record<string, unknown>).socialImage === 'string') &&
+        (((v.mediaRoles as Record<string, unknown>).coverImage === undefined) || typeof (v.mediaRoles as Record<string, unknown>).coverImage === 'string') &&
+        (((v.mediaRoles as Record<string, unknown>).cardImage === undefined) || typeof (v.mediaRoles as Record<string, unknown>).cardImage === 'string')))
   );
 };
 
@@ -239,7 +261,17 @@ export const isProject = (value: unknown): value is Project => {
         v.mediaRoles !== null &&
         (((v.mediaRoles as Record<string, unknown>).cardImage === undefined) || isString((v.mediaRoles as Record<string, unknown>).cardImage)) &&
         (((v.mediaRoles as Record<string, unknown>).heroImage === undefined) || isString((v.mediaRoles as Record<string, unknown>).heroImage)) &&
+        (((v.mediaRoles as Record<string, unknown>).coverImage === undefined) || isString((v.mediaRoles as Record<string, unknown>).coverImage)) &&
+        (((v.mediaRoles as Record<string, unknown>).socialImage === undefined) || isString((v.mediaRoles as Record<string, unknown>).socialImage)) &&
         (((v.mediaRoles as Record<string, unknown>).galleryImages === undefined) || isStringArray((v.mediaRoles as Record<string, unknown>).galleryImages))))
+    &&
+    (v.seo === undefined ||
+      (typeof v.seo === 'object' &&
+        v.seo !== null &&
+        (((v.seo as Record<string, unknown>).title === undefined) || isString((v.seo as Record<string, unknown>).title)) &&
+        (((v.seo as Record<string, unknown>).description === undefined) || isString((v.seo as Record<string, unknown>).description)) &&
+        (((v.seo as Record<string, unknown>).canonicalSlug === undefined) || isString((v.seo as Record<string, unknown>).canonicalSlug)) &&
+        (((v.seo as Record<string, unknown>).socialImage === undefined) || isString((v.seo as Record<string, unknown>).socialImage))))
   );
 };
 
@@ -275,6 +307,13 @@ export const isService = (value: unknown): value is Service => {
     (v.processTitle === undefined || isString(v.processTitle)) &&
     (v.processSteps === undefined || isStringArray(v.processSteps)) &&
     (v.iconLikeAsset === undefined || isString(v.iconLikeAsset)) &&
+    (v.seo === undefined ||
+      (typeof v.seo === 'object' &&
+        v.seo !== null &&
+        (((v.seo as Record<string, unknown>).title === undefined) || isString((v.seo as Record<string, unknown>).title)) &&
+        (((v.seo as Record<string, unknown>).description === undefined) || isString((v.seo as Record<string, unknown>).description)) &&
+        (((v.seo as Record<string, unknown>).canonicalSlug === undefined) || isString((v.seo as Record<string, unknown>).canonicalSlug)) &&
+        (((v.seo as Record<string, unknown>).socialImage === undefined) || isString((v.seo as Record<string, unknown>).socialImage)))) &&
     (v.status === undefined || v.status === 'draft' || v.status === 'published' || v.status === 'archived') &&
     (v.link === undefined || isString(v.link)) &&
     (v.featured === undefined || typeof v.featured === 'boolean') &&

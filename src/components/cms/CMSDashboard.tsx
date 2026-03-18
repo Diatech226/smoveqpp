@@ -42,6 +42,7 @@ import {
   fetchEditorialAnalytics,
   fetchBackendMediaReferences,
   fetchSyncDiagnostics,
+  fetchContentHealthSummary,
   fetchSettingsHistory,
   requestWithRetry,
   rollbackSettingsVersion,
@@ -57,6 +58,7 @@ import {
   type CmsSettings,
   type EditorialAnalytics,
   type SettingsHistoryEntry,
+  type ContentHealthSummary,
 } from '../../utils/contentApi';
 import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
 import { isMediaReference, resolveBlogMediaReference } from '../../features/blog/mediaReference';
@@ -251,6 +253,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>('authoritative_remote');
   const [runtimeWarnings, setRuntimeWarnings] = useState<string[]>([]);
   const [syncDiagnosticsWarning, setSyncDiagnosticsWarning] = useState('');
+  const [contentHealth, setContentHealth] = useState<ContentHealthSummary | null>(null);
   const [isHydratingBackend, setIsHydratingBackend] = useState(false);
 
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -455,6 +458,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       } catch {
         if (active) {
           setSyncDiagnosticsWarning('Diagnostics de synchronisation indisponibles (backend non joignable).');
+        }
+      }
+
+      try {
+        const health = await requestWithRetry(() => fetchContentHealthSummary(), { retries: 1, retryDelayMs: 250 });
+        if (active) setContentHealth(health);
+      } catch {
+        if (active) {
+          setContentHealth(null);
         }
       }
     };
@@ -1376,7 +1388,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             </label>
           ))}
           <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Image carte (URL ou media:asset-id)</span>
+            <span className="text-[14px] text-[#6f7f85]">Image carte (preset: cardImage, ratio conseillé 4:3)</span>
             <input
               value={projectForm.cardImage}
               onChange={(event) => setProjectForm((prev) => ({ ...prev, cardImage: event.target.value }))}
@@ -1384,12 +1396,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               placeholder="https://... ou media:asset-id"
             />
             {projectFormErrors.cardImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.cardImage}</p> : null}
+            <p className="text-[12px] text-[#6f7f85] mt-1">Utilisé sur les cartes projet et comme fallback social/cover.</p>
             {isProjectMediaReference(projectForm.cardImage) ? (
               <p className="text-[12px] text-[#6f7f85] mt-1">Référence média liée: {projectForm.cardImage}</p>
             ) : null}
           </label>
           <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Image hero détail (optionnel, URL ou media:asset-id)</span>
+            <span className="text-[14px] text-[#6f7f85]">Image hero détail (preset: heroImage, desktop/mobile fallback)</span>
             <input
               value={projectForm.heroImage}
               onChange={(event) => setProjectForm((prev) => ({ ...prev, heroImage: event.target.value }))}
@@ -1397,6 +1410,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               placeholder="URL ou media:asset-id (fallback sur image carte)"
             />
             {projectFormErrors.heroImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.heroImage}</p> : null}
+            <p className="text-[12px] text-[#6f7f85] mt-1">Si vide, le système réutilise cardImage automatiquement.</p>
           </label>
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Texte alternatif image</span>
@@ -1624,13 +1638,14 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           </label>
 
           <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Icon-like asset (optionnel, URL ou media:asset-id)</span>
+            <span className="text-[14px] text-[#6f7f85]">Icon-like asset (preset: iconLikeAsset)</span>
             <input
               value={serviceForm.iconLikeAsset}
               onChange={(event) => setServiceForm((prev) => ({ ...prev, iconLikeAsset: event.target.value }))}
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             />
             {serviceFormErrors.iconLikeAsset ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.iconLikeAsset}</p> : null}
+            <p className="text-[12px] text-[#6f7f85] mt-1">Peut servir d’image sociale de fallback pour la fiche service.</p>
           </label>
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Description</span>
@@ -1882,6 +1897,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
               placeholder="https://... ou media:asset-id"
             />
+            <p className="text-[12px] text-[#6f7f85] mt-1">Preset socialImage. Fallback automatique: image vedette.</p>
           </label>
           <label className="block">
             <span className="text-[14px] text-[#6f7f85]">Image vedette (requête image / média)</span>
@@ -2683,6 +2699,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
                   />
                 </label>
+                <p className="text-[12px] text-[#6f7f85]">Rôles attendus: brandLogo/logoDark, favicon, socialImage par défaut (URL ou media:asset-id).</p>
               </div>
               <div className="rounded-[10px] border border-[#eef3f5] p-3">
                 <p className="text-[12px] text-[#6f7f85] mb-2">Taxonomie blog gérée (baseline)</p>
@@ -2909,6 +2926,38 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   ))}
                 </div>
               </div>
+
+              {contentHealth ? (
+                <div className="bg-white rounded-[20px] p-6 shadow-sm">
+                  <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-4">Santé contenu & readiness</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-[13px]">
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">SEO manquant (publié)</p>
+                      <p className="text-[#273a41] font-bold">Blog {contentHealth.quality.seoIncomplete.blog} • Projets {contentHealth.quality.seoIncomplete.projects} • Services {contentHealth.quality.seoIncomplete.services}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">Médias manquants (publié)</p>
+                      <p className="text-[#273a41] font-bold">Blog {contentHealth.quality.missingPublishedMedia.blog} • Projets {contentHealth.quality.missingPublishedMedia.projects} • Services {contentHealth.quality.missingPublishedMedia.services}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">Routes services invalides</p>
+                      <p className="text-[#273a41] font-bold">{contentHealth.quality.invalidServiceRoutes}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">Médias sans alt</p>
+                      <p className="text-[#273a41] font-bold">{contentHealth.quality.mediaMissingAlt}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">Brand assets manquants</p>
+                      <p className="text-[#273a41] font-bold">{contentHealth.quality.missingBrandAssets}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">Blockers lancement</p>
+                      <p className="text-[#273a41] font-bold">{contentHealth.launchReadiness.blockers.length}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : (
             renderSectionContent()
