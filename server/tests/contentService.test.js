@@ -560,9 +560,11 @@ describe('ContentService production hardening', () => {
 
   it('persists home content but rejects invalid aboutImage media references', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const baseHomePayload = service.getPageContent().home;
 
     const rejected = service.savePageContent({
       home: {
+        ...baseHomePayload,
         heroBadge: 'Badge',
         heroTitleLine1: 'Line 1',
         heroTitleLine2: 'Line 2',
@@ -596,6 +598,7 @@ describe('ContentService production hardening', () => {
 
     const accepted = service.savePageContent({
       home: {
+        ...baseHomePayload,
         heroBadge: 'Badge',
         heroTitleLine1: 'Line 1',
         heroTitleLine2: 'Line 2',
@@ -613,6 +616,39 @@ describe('ContentService production hardening', () => {
     });
     expect(accepted.ok).toBe(true);
     expect(service.getPageContent().home.aboutImage).toBe('media:media-home');
+  });
+
+  it('rejects invalid homepage CTA links and keeps normalized defaults for missing new fields', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const legacyPayload = {
+      heroBadge: 'Legacy Badge',
+      heroTitleLine1: 'Legacy line 1',
+      heroTitleLine2: 'Legacy line 2',
+      heroDescription: 'Legacy description',
+      heroPrimaryCtaLabel: 'Legacy CTA 1',
+      heroSecondaryCtaLabel: 'Legacy CTA 2',
+      aboutBadge: 'Legacy About',
+      aboutTitle: 'Legacy title',
+      aboutParagraphOne: 'Legacy paragraph one',
+      aboutParagraphTwo: 'Legacy paragraph two',
+      aboutImage: '',
+      servicesIntroTitle: 'Legacy services',
+      servicesIntroSubtitle: 'Legacy subtitle',
+    };
+
+    const savedLegacy = service.savePageContent({ home: legacyPayload });
+    expect(savedLegacy.ok).toBe(true);
+    expect(savedLegacy.pageContent.home.heroPrimaryCtaHref).toBe('#services');
+    expect(savedLegacy.pageContent.home.portfolioTitle).toBe('Nos derniers projets');
+
+    const invalidHref = service.savePageContent({
+      home: {
+        ...savedLegacy.pageContent.home,
+        heroPrimaryCtaHref: 'ftp://bad-link',
+      },
+    });
+    expect(invalidHref.ok).toBe(false);
+    expect(invalidHref.error.code).toBe('PAGE_CONTENT_VALIDATION_ERROR');
   });
 
   it('returns media usage references to support safe delete guardrails', () => {

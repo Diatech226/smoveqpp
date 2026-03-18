@@ -71,6 +71,8 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   router.get('/public/blog/taxonomy', (_req, res) => sendSuccess(res, 200, { taxonomy: contentService.getBlogTaxonomy() }));
   router.get('/public/settings', (_req, res) =>
     sendSuccess(res, 200, { settings: contentService.getPublicSettings() }));
+  router.get('/public/page-content', (_req, res) =>
+    sendSuccess(res, 200, { pageContent: contentService.getPageContent() }));
 
   router.use(requireAuthenticated);
 

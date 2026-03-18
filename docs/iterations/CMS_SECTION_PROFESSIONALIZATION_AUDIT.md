@@ -10,6 +10,7 @@ This file tracks implementation progress against CMS professionalization iterati
 - Iteration 4: completed taxonomy governance baseline, service detail CMS authority expansion, brand assets authority, and settings rollback audit baseline.
 - Iteration 5: completed advanced media preset normalization, SEO contract deepening (blog/projects/services), CMS health dashboard baseline, and launch-readiness blocker summary.
 - Iteration 6: completed unified root dev startup (site + server + CMS) and settings authority implementation hardening with real governance controls.
+- Iteration 7: completed page-content tab harmonization, public page-content authority endpoint, and homepage section contract alignment.
 
 ## Iteration 2 outcomes
 
@@ -54,3 +55,11 @@ This file tracks implementation progress against CMS professionalization iterati
 - Blog taxonomy settings are now truly editable (`managedCategories`, `managedTags`, `enforceManagedTags`) instead of read-only/decorative display.
 - Settings save path now validates brand media references and prevents empty managed taxonomy lists before persistence.
 - Runtime consumers expanded: contact email card and default social metadata now consume authoritative public settings.
+
+## Iteration 7 outcomes
+
+- Page-content CMS scope now matches rendered homepage business copy, including hero, services intro, about CTA, portfolio intro + CTA, blog intro + CTA, and contact heading/button text.
+- Public runtime now reads authoritative homepage content from `/content/public/page-content` with safe local snapshot fallback only when backend is unavailable.
+- Page-content CTA link semantics were hardened (`#anchor`, `/path`, `https://`) and validated on both CMS and backend save paths.
+- Legacy page-content payloads are normalized forward-compatible to the expanded contract without requiring manual migrations.
+- Page-content form usability was improved with explicit grouping and field labels tied to real public sections (no decorative orphan fields).

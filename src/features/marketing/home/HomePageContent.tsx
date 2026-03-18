@@ -9,18 +9,28 @@ import { pageContentRepository } from '../../../repositories/pageContentReposito
 import { resolveBlogMediaReference } from '../../blog/mediaReference';
 import { serviceRepository } from '../../../repositories/serviceRepository';
 import { selectRenderablePublicServices } from '../serviceCatalog';
-import { fetchPublicServices } from '../../../utils/publicContentApi';
+import { fetchPublicPageContent, fetchPublicServices } from '../../../utils/publicContentApi';
 import { getBlogContentContractFromSource, type BlogListItem } from '../../blog/blogContentService';
 import { selectHomepageBlogPosts, selectHomepageServices } from './homePreview';
 
 function HomePageContent() {
-  const homeContent = useMemo(() => pageContentRepository.getHomePageContent(), []);
+  const [homeContent, setHomeContent] = useState(() => pageContentRepository.getHomePageContent());
   const aboutMedia = resolveBlogMediaReference(homeContent.aboutImage, 'SMOVE Team');
   const [servicesData, setServicesData] = useState(() => selectHomepageServices(serviceRepository.getAll()));
   const [blogPosts, setBlogPosts] = useState<BlogListItem[]>([]);
 
   useEffect(() => {
     let active = true;
+    void fetchPublicPageContent()
+      .then((remote) => {
+        if (!active) return;
+        const synced = pageContentRepository.saveHomePageContent(remote);
+        setHomeContent(synced);
+      })
+      .catch((error) => {
+        console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', error);
+      });
+
     void fetchPublicServices()
       .then((remote) => {
         if (!active) return;
@@ -56,7 +66,9 @@ function HomePageContent() {
         titleLine2={homeContent.heroTitleLine2}
         description={homeContent.heroDescription}
         primaryCtaLabel={homeContent.heroPrimaryCtaLabel}
+        primaryCtaHref={homeContent.heroPrimaryCtaHref}
         secondaryCtaLabel={homeContent.heroSecondaryCtaLabel}
+        secondaryCtaHref={homeContent.heroSecondaryCtaHref}
       />
 
       {/* Services Section */}
@@ -263,12 +275,12 @@ function HomePageContent() {
               </div>
 
               <motion.a
-                href="#portfolio"
+                href={homeContent.aboutCtaHref}
                 className="inline-flex items-center gap-2 bg-[#34c759] text-white px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
                 whileHover={{ scale: 1.05, x: 5 }}
                 whileTap={{ scale: 0.95 }}
               >
-                Découvrir notre équipe
+                {homeContent.aboutCtaLabel}
                 <ArrowRight size={20} />
               </motion.a>
             </motion.div>
@@ -296,13 +308,13 @@ function HomePageContent() {
               className="inline-block bg-[#ffc247]/10 text-[#ffc247] px-6 py-3 rounded-full font-['Abhaya_Libre:Bold',sans-serif] text-[14px] mb-6"
               whileHover={{ scale: 1.05 }}
             >
-              PORTFOLIO
+              {homeContent.portfolioBadge}
             </motion.div>
             <h2 className="font-['ABeeZee:Regular',sans-serif] text-[48px] md:text-[72px] text-[#273a41] mb-6">
-              Nos derniers projets
+              {homeContent.portfolioTitle}
             </h2>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-[#38484e] max-w-3xl mx-auto">
-              Découvrez comment nous avons aidé nos clients à atteindre leurs objectifs
+              {homeContent.portfolioSubtitle}
             </p>
           </motion.div>
 
@@ -315,12 +327,12 @@ function HomePageContent() {
             viewport={{ once: true }}
           >
             <motion.a
-              href="#projects"
+              href={homeContent.portfolioCtaHref}
               className="inline-block bg-gradient-to-r from-[#ffc247] to-[#ff9f47] text-white px-10 py-5 rounded-[20px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px]"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Voir tous nos projets
+              {homeContent.portfolioCtaLabel}
             </motion.a>
           </motion.div>
         </div>
@@ -346,13 +358,13 @@ function HomePageContent() {
               className="inline-block bg-[#a855f7]/10 text-[#a855f7] px-6 py-3 rounded-full font-['Abhaya_Libre:Bold',sans-serif] text-[14px] mb-6"
               whileHover={{ scale: 1.05 }}
             >
-              BLOG
+              {homeContent.blogBadge}
             </motion.div>
             <h2 className="font-['ABeeZee:Regular',sans-serif] text-[48px] md:text-[72px] text-[#273a41] mb-6">
-              Derniers articles
+              {homeContent.blogTitle}
             </h2>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-[#38484e] max-w-3xl mx-auto">
-              Actualités, conseils et insights sur le digital
+              {homeContent.blogSubtitle}
             </p>
           </motion.div>
 
@@ -423,12 +435,12 @@ function HomePageContent() {
             viewport={{ once: true }}
           >
             <motion.a
-              href="#blog"
+              href={homeContent.blogCtaHref}
               className="inline-block bg-gradient-to-r from-[#a855f7] to-[#9333ea] text-white px-10 py-5 rounded-[20px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px]"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Voir tous les articles
+              {homeContent.blogCtaLabel}
             </motion.a>
           </motion.div>
         </div>
@@ -472,10 +484,10 @@ function HomePageContent() {
             viewport={{ once: true }}
           >
             <h2 className="font-['ABeeZee:Regular',sans-serif] text-[48px] md:text-[72px] text-white mb-6">
-              Travaillons ensemble
+              {homeContent.contactTitle}
             </h2>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-white/90 max-w-2xl mx-auto">
-              Vous avez un projet en tête ? Contactez-nous et discutons de la manière dont nous pouvons vous aider à le réaliser.
+              {homeContent.contactSubtitle}
             </p>
           </motion.div>
 
@@ -538,7 +550,7 @@ function HomePageContent() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Envoyer le message
+                {homeContent.contactSubmitLabel}
               </motion.button>
             </form>
           </motion.div>
