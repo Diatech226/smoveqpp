@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
+import { fetchPublicSettings } from '../utils/contentApi';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -13,6 +14,21 @@ export default function ContactPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
+
+  useEffect(() => {
+    let active = true;
+    void fetchPublicSettings()
+      .then((settings) => {
+        if (!active) return;
+        if (settings.supportEmail?.trim()) setSupportEmail(settings.supportEmail.trim());
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,7 +242,7 @@ export default function ContactPage() {
                         Email
                       </h3>
                       <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#38484e]">
-                        contact@smove-communication.com
+                        {supportEmail}
                         <br />
                         Réponse sous 24h
                       </p>
