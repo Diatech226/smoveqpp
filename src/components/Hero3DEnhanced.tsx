@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useScroll, useSpring, useTransform } from 'motion/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type MouseEvent } from 'react';
 import { ArrowDown, ArrowRight, Sparkles } from 'lucide-react';
 
 interface Hero3DEnhancedProps {
@@ -8,7 +8,9 @@ interface Hero3DEnhancedProps {
   titleLine2?: string;
   description?: string;
   primaryCtaLabel?: string;
+  primaryCtaHref?: string;
   secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
 }
 
 export default function Hero3DEnhanced({
@@ -18,7 +20,9 @@ export default function Hero3DEnhanced({
   description =
     'Un hero premium avec animation 3D légère, pour valoriser votre image de marque et présenter vos services avec impact.',
   primaryCtaLabel = 'Découvrir nos services',
+  primaryCtaHref = '#services',
   secondaryCtaLabel = 'Lancer un projet',
+  secondaryCtaHref = '#contact',
 }: Hero3DEnhancedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -69,6 +73,13 @@ export default function Hero3DEnhanced({
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
     section?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCtaClick = (event: MouseEvent<HTMLAnchorElement>, href: string, fallbackSection: string) => {
+    if (!href.startsWith('#')) return;
+    event.preventDefault();
+    const sectionId = href.slice(1).trim();
+    scrollToSection(sectionId || fallbackSection);
   };
 
   return (
@@ -150,13 +161,12 @@ export default function Hero3DEnhanced({
             transition={{ duration: 0.8, delay: 0.3 }}
           >
             <motion.a
-              href="#services"
+              href={primaryCtaHref}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] text-white px-8 py-4 rounded-[16px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px]"
               whileHover={{ scale: 1.04, boxShadow: '0 20px 50px rgba(0, 179, 232, 0.35)' }}
               whileTap={{ scale: 0.96 }}
               onClick={(event) => {
-                event.preventDefault();
-                scrollToSection('services');
+                handleCtaClick(event, primaryCtaHref, 'services');
               }}
             >
               {primaryCtaLabel}
@@ -164,13 +174,12 @@ export default function Hero3DEnhanced({
             </motion.a>
 
             <motion.a
-              href="#contact"
+              href={secondaryCtaHref}
               className="inline-flex items-center gap-2 bg-white/10 border-2 border-white/30 text-white px-8 py-4 rounded-[16px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px] backdrop-blur-md"
               whileHover={{ scale: 1.04, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
               whileTap={{ scale: 0.96 }}
               onClick={(event) => {
-                event.preventDefault();
-                scrollToSection('contact');
+                handleCtaClick(event, secondaryCtaHref, 'contact');
               }}
             >
               {secondaryCtaLabel}

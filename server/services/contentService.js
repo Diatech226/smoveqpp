@@ -17,16 +17,34 @@ const defaultHomePageContent = {
   heroDescription:
     'Un hero premium avec animation 3D légère, pour valoriser votre image de marque et présenter vos services avec impact.',
   heroPrimaryCtaLabel: 'Découvrir nos services',
+  heroPrimaryCtaHref: '#services',
   heroSecondaryCtaLabel: 'Lancer un projet',
+  heroSecondaryCtaHref: '#contact',
   aboutBadge: 'À PROPOS DE NOUS',
   aboutTitle: 'Innovation & Excellence Digitale',
   aboutParagraphOne:
     "SMOVE Communication est une agence digitale basée en Côte d'Ivoire, spécialisée dans la création de solutions digitales innovantes. Nous accompagnons les entreprises dans leur transformation digitale avec passion et expertise.",
   aboutParagraphTwo:
     'Notre équipe de professionnels talentueux combine créativité, technologie et stratégie pour créer des expériences digitales qui marquent les esprits et génèrent des résultats mesurables.',
+  aboutCtaLabel: 'Découvrir notre équipe',
+  aboutCtaHref: '#portfolio',
   aboutImage: '',
   servicesIntroTitle: 'Ce que nous faisons',
   servicesIntroSubtitle: 'Des solutions digitales complètes pour propulser votre entreprise vers le succès',
+  portfolioBadge: 'PORTFOLIO',
+  portfolioTitle: 'Nos derniers projets',
+  portfolioSubtitle: 'Découvrez comment nous avons aidé nos clients à atteindre leurs objectifs',
+  portfolioCtaLabel: 'Voir tous nos projets',
+  portfolioCtaHref: '#projects',
+  blogBadge: 'BLOG',
+  blogTitle: 'Derniers articles',
+  blogSubtitle: 'Actualités, conseils et insights sur le digital',
+  blogCtaLabel: 'Voir tous les articles',
+  blogCtaHref: '#blog',
+  contactTitle: 'Travaillons ensemble',
+  contactSubtitle:
+    'Vous avez un projet en tête ? Contactez-nous et discutons de la manière dont nous pouvons vous aider à le réaliser.',
+  contactSubmitLabel: 'Envoyer le message',
 };
 
 
@@ -852,6 +870,14 @@ class ContentService {
     }
   }
 
+  isValidContentHref(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    const href = value.trim();
+    if (href.startsWith('#')) return href.length > 1;
+    if (href.startsWith('/')) return true;
+    return this.isValidHttpUrl(href);
+  }
+
   isMediaReference(value) {
     return typeof value === 'string' && value.trim().startsWith(MEDIA_REFERENCE_PREFIX);
   }
@@ -1203,6 +1229,11 @@ class ContentService {
       home.heroTitleLine1.trim().length > 0 &&
       typeof home.heroTitleLine2 === 'string' &&
       home.heroTitleLine2.trim().length > 0 &&
+      this.isValidContentHref(home.heroPrimaryCtaHref) &&
+      this.isValidContentHref(home.heroSecondaryCtaHref) &&
+      this.isValidContentHref(home.aboutCtaHref) &&
+      this.isValidContentHref(home.portfolioCtaHref) &&
+      this.isValidContentHref(home.blogCtaHref) &&
       (!home.aboutImage || this.isValidMediaLink(home.aboutImage));
   }
 

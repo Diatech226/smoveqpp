@@ -165,6 +165,13 @@ const isValidHttpUrl = (value: string): boolean => {
 };
 
 const isValidMediaField = (value: string): boolean => isValidMediaFieldValue(value);
+const isValidCmsHref = (value: string): boolean => {
+  const href = value.trim();
+  if (!href) return false;
+  if (href.startsWith('#')) return href.length > 1;
+  if (href.startsWith('/')) return true;
+  return isValidHttpUrl(href);
+};
 
 const parseManagedTaxonomyInput = (value: string): string[] => {
   const unique = new Set<string>();
@@ -900,6 +907,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     if (homeContentForm.aboutImage.trim() && !isValidMediaField(homeContentForm.aboutImage)) {
       setHomeContentError('Image À propos invalide. Utilisez une URL valide ou media:asset-id existant.');
+      return;
+    }
+    const hrefFields: Array<[string, string]> = [
+      [homeContentForm.heroPrimaryCtaHref, 'Lien CTA principal du hero'],
+      [homeContentForm.heroSecondaryCtaHref, 'Lien CTA secondaire du hero'],
+      [homeContentForm.aboutCtaHref, 'Lien CTA section À propos'],
+      [homeContentForm.portfolioCtaHref, 'Lien CTA section projets'],
+      [homeContentForm.blogCtaHref, 'Lien CTA section blog'],
+    ];
+    const invalidHref = hrefFields.find(([href]) => !isValidCmsHref(href));
+    if (invalidHref) {
+      setHomeContentError(`${invalidHref[1]} invalide. Utilisez une ancre (#section), un chemin (/route) ou une URL https.`);
       return;
     }
 
@@ -2513,13 +2532,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             <button type="button" onClick={saveHomePageContent} disabled={homeContentSaving || !canEditContent} className="px-3 py-2 rounded-[10px] bg-[#273a41] text-white disabled:opacity-60">{homeContentSaving ? 'Sauvegarde…' : 'Enregistrer'}</button>
             <button type="button" onClick={resetHomePageContent} className="px-3 py-2 border border-[#d8e4e8] rounded-[10px]">Recharger</button>
           </AdminActionBar>
+          <p className="text-[12px] text-[#6f7f85]">Cette section gouverne les textes et CTA de la homepage publique. Les liens CTA acceptent <code>#ancre</code>, <code>/route</code> ou URL <code>https://</code>.</p>
           <AdminPanel title="Hero">
             <div className="grid md:grid-cols-2 gap-3">
               <input value={homeContentForm.heroBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBadge: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Badge hero" />
               <input value={homeContentForm.heroTitleLine1} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroTitleLine1: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre ligne 1" />
               <input value={homeContentForm.heroTitleLine2} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroTitleLine2: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre ligne 2" />
               <input value={homeContentForm.heroPrimaryCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroPrimaryCtaLabel: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA principal" />
+              <input value={homeContentForm.heroPrimaryCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroPrimaryCtaHref: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Lien CTA principal (ex: #services)" />
               <input value={homeContentForm.heroSecondaryCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroSecondaryCtaLabel: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA secondaire" />
+              <input value={homeContentForm.heroSecondaryCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroSecondaryCtaHref: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Lien CTA secondaire (ex: #contact)" />
               <textarea value={homeContentForm.heroDescription} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroDescription: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[90px]" placeholder="Description hero" />
             </div>
           </AdminPanel>
@@ -2531,10 +2553,29 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               <input value={homeContentForm.aboutTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutTitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre à propos" />
               <textarea value={homeContentForm.aboutParagraphOne} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphOne: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[90px]" placeholder="Paragraphe 1" />
               <textarea value={homeContentForm.aboutParagraphTwo} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphTwo: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[90px]" placeholder="Paragraphe 2" />
+              <input value={homeContentForm.aboutCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutCtaLabel: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA à propos (label)" />
+              <input value={homeContentForm.aboutCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutCtaHref: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA à propos (lien)" />
               <select value={homeContentForm.aboutImage} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutImage: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2">
                 <option value="">Image about par défaut</option>
                 {mediaFiles.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
               </select>
+            </div>
+          </AdminPanel>
+          <AdminPanel title="Sections Projets + Blog + Contact">
+            <div className="grid md:grid-cols-2 gap-3">
+              <input value={homeContentForm.portfolioBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioBadge: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Badge portfolio" />
+              <input value={homeContentForm.portfolioTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioTitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre portfolio" />
+              <textarea value={homeContentForm.portfolioSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioSubtitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[70px]" placeholder="Sous-titre portfolio" />
+              <input value={homeContentForm.portfolioCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioCtaLabel: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA projets (label)" />
+              <input value={homeContentForm.portfolioCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioCtaHref: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA projets (lien)" />
+              <input value={homeContentForm.blogBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogBadge: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Badge blog" />
+              <input value={homeContentForm.blogTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogTitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre blog" />
+              <textarea value={homeContentForm.blogSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogSubtitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[70px]" placeholder="Sous-titre blog" />
+              <input value={homeContentForm.blogCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogCtaLabel: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA blog (label)" />
+              <input value={homeContentForm.blogCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogCtaHref: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="CTA blog (lien)" />
+              <input value={homeContentForm.contactTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactTitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Titre contact" />
+              <input value={homeContentForm.contactSubmitLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactSubmitLabel: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Libellé bouton contact" />
+              <textarea value={homeContentForm.contactSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactSubtitle: event.target.value }))} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 md:col-span-2 min-h-[90px]" placeholder="Sous-titre contact" />
             </div>
           </AdminPanel>
         </div>

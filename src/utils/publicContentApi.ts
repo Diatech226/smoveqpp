@@ -1,5 +1,6 @@
 import { RUNTIME_CONFIG } from '../config/runtimeConfig';
 import type { Project, Service } from '../domain/contentSchemas';
+import type { HomePageContentSettings } from '../data/pageContentSeed';
 import { ContentApiError } from './contentApi';
 
 interface ApiEnvelope<T> {
@@ -31,4 +32,9 @@ export async function fetchPublicProjects(): Promise<Project[]> {
 export async function fetchPublicServices(): Promise<Service[]> {
   const data = await request<{ services: Service[] }>('/services');
   return data.services;
+}
+
+export async function fetchPublicPageContent(): Promise<HomePageContentSettings> {
+  const data = await request<{ pageContent: { home: HomePageContentSettings } }>('/page-content');
+  return data.pageContent.home;
 }

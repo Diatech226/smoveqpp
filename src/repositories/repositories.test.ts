@@ -486,11 +486,14 @@ describe('pageContentRepository', () => {
       ...current,
       heroTitleLine1: 'Titre CMS',
       heroTitleLine2: 'Piloté par le CMS',
+      heroPrimaryCtaHref: '#services',
       aboutImage: 'media:asset-home',
+      portfolioTitle: 'Nos projets récents',
     });
 
     expect(saved.heroTitleLine1).toBe('Titre CMS');
     expect(pageContentRepository.getHomePageContent().heroTitleLine2).toBe('Piloté par le CMS');
     expect(pageContentRepository.getHomePageContent().aboutImage).toBe('media:asset-home');
+    expect(pageContentRepository.getHomePageContent().portfolioTitle).toBe('Nos projets récents');
   });
 });
