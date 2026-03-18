@@ -43,6 +43,19 @@ function AppContent() {
             link.href = faviconHref;
           }
         }
+
+        const defaultSocialImage = settings.brandMedia?.defaultSocialImage?.trim();
+        if (defaultSocialImage) {
+          const ogImageTag = document.querySelector("meta[property='og:image']") || document.createElement('meta');
+          ogImageTag.setAttribute('property', 'og:image');
+          ogImageTag.setAttribute('content', defaultSocialImage);
+          if (!ogImageTag.parentNode) document.head.appendChild(ogImageTag);
+
+          const twitterImageTag = document.querySelector("meta[name='twitter:image']") || document.createElement('meta');
+          twitterImageTag.setAttribute('name', 'twitter:image');
+          twitterImageTag.setAttribute('content', defaultSocialImage);
+          if (!twitterImageTag.parentNode) document.head.appendChild(twitterImageTag);
+        }
       })
       .catch(() => undefined);
 

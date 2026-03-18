@@ -1,7 +1,10 @@
 const { spawn } = require('child_process');
 
 function run(name, color, command, args) {
-  const child = spawn(command, args, { stdio: ['inherit', 'pipe', 'pipe'], shell: process.platform === 'win32' });
+  const child = spawn(command, args, {
+    stdio: ['inherit', 'pipe', 'pipe'],
+    shell: process.platform === 'win32',
+  });
 
   const prefix = `\x1b[${color}m[${name}]\x1b[0m`;
   child.stdout.on('data', (chunk) => process.stdout.write(`${prefix} ${chunk}`));
@@ -10,32 +13,29 @@ function run(name, color, command, args) {
   return child;
 }
 
-const client = run('client', '36', 'npm', ['run', 'dev:client']);
-const server = run('server', '35', 'npm', ['run', 'dev:server']);
+const processes = [
+  run('public', '36', 'npm', ['run', 'dev:client']),
+  run('server', '35', 'npm', ['run', 'dev:server']),
+  run('cms', '33', 'npm', ['run', 'dev:cms']),
+];
 
 let shuttingDown = false;
 
 function shutdown(code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
-  client.kill('SIGTERM');
-  server.kill('SIGTERM');
+  processes.forEach((proc) => proc.kill('SIGTERM'));
   setTimeout(() => process.exit(code), 200);
 }
 
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
-client.on('exit', (code) => {
-  if (code && code !== 0) {
-    console.error(`[dev] client exited with code ${code}`);
-    shutdown(code);
-  }
-});
-
-server.on('exit', (code) => {
-  if (code && code !== 0) {
-    console.error(`[dev] server exited with code ${code}`);
-    shutdown(code);
-  }
+processes.forEach((proc, index) => {
+  proc.on('exit', (code) => {
+    if (code && code !== 0) {
+      console.error(`[dev] process ${index} exited with code ${code}`);
+      shutdown(code);
+    }
+  });
 });

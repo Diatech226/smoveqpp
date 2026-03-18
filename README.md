@@ -74,25 +74,21 @@ npm install
 cp .env.example .env.local
 ```
 
-### 3) Run public app + backend
+### 3) Run public app + backend + standalone CMS
 ```bash
+npm --prefix cms install
+cp cms/.env.example cms/.env.local
 npm run dev
 ```
 - Public app: `http://127.0.0.1:5173`
 - Backend API: `http://127.0.0.1:3001`
-
-### 4) Run CMS app (standalone)
-```bash
-npm --prefix cms install
-cp cms/.env.example cms/.env.local
-npm run dev:cms
-```
 - CMS app: `http://127.0.0.1:5174/#cms`
 
 ### Alternative run commands
 ```bash
 npm run dev:client
 npm run dev:server
+npm run dev:cms
 npm run dev:all
 ```
 

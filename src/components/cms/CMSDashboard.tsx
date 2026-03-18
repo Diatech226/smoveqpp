@@ -166,6 +166,28 @@ const isValidHttpUrl = (value: string): boolean => {
 
 const isValidMediaField = (value: string): boolean => isValidMediaFieldValue(value);
 
+const parseManagedTaxonomyInput = (value: string): string[] => {
+  const unique = new Set<string>();
+  value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .forEach((entry) => {
+      const normalized = entry.replace(/\s+/g, ' ');
+      if (!normalized) return;
+      const key = normalized.toLocaleLowerCase('fr');
+      if (!unique.has(key)) unique.add(key);
+    });
+
+  return Array.from(unique.values()).map((key) => {
+    const fromSource = value
+      .split(/\r?\n/)
+      .map((entry) => entry.trim().replace(/\s+/g, ' '))
+      .find((entry) => entry.toLocaleLowerCase('fr') === key);
+    return fromSource || key;
+  });
+};
+
 const EMPTY_BLOG_FORM: BlogFormState = {
   title: '',
   slug: '',
@@ -347,6 +369,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const siteBrandMedia = settingsValues.siteSettings?.brandMedia || {};
   const managedBlogCategories = settingsValues.taxonomySettings?.blog?.managedCategories || BLOG_MANAGED_CATEGORIES;
   const managedBlogTags = settingsValues.taxonomySettings?.blog?.managedTags || BLOG_MANAGED_TAGS;
+  const enforceManagedTags = settingsValues.taxonomySettings?.blog?.enforceManagedTags !== false;
 
   useEffect(() => {
     let active = true;
@@ -797,6 +820,23 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       return;
     }
 
+    const brandMediaFields = [
+      settingsValues.siteSettings?.brandMedia?.logo || '',
+      settingsValues.siteSettings?.brandMedia?.logoDark || '',
+      settingsValues.siteSettings?.brandMedia?.favicon || '',
+      settingsValues.siteSettings?.brandMedia?.defaultSocialImage || '',
+    ];
+
+    if (brandMediaFields.some((value) => value.trim() && !isValidMediaField(value))) {
+      setSectionError('Les médias de marque doivent être des URLs valides ou media:asset-id existants.');
+      return;
+    }
+
+    if (managedBlogCategories.length === 0 || managedBlogTags.length === 0) {
+      setSectionError('La taxonomie blog doit inclure au moins une catégorie et un tag géré.');
+      return;
+    }
+
     setSettingsSaving(true);
     setSectionError('');
     try {
@@ -810,6 +850,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         operationalSettings: {
           ...(settingsValues.operationalSettings || {}),
           instantPublishing: instantPublishingEnabled,
+        },
+        taxonomySettings: {
+          blog: {
+            managedCategories: managedBlogCategories,
+            managedTags: managedBlogTags,
+            enforceManagedTags,
+          },
         },
         siteTitle: siteSettingsTitle,
         supportEmail: siteSettingsSupportEmail,
@@ -2622,118 +2669,185 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               </button>
             </AdminActionBar>
           ) : null}
-          <AdminPanel title="Paramètres (site + opérations)">
-            <div className="space-y-3">
-              <p className="text-[12px] text-[#6f7f85]">Autorité site: <span className="font-semibold">siteSettings</span> • Autorité opérationnelle: <span className="font-semibold">operationalSettings</span>.</p>
-              <label className="block">
-                <span className="text-[14px] text-[#6f7f85]">Nom du site</span>
-                <input
-                  value={siteSettingsTitle}
-                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...(prev.siteSettings || {}), siteTitle: event.target.value }, siteTitle: event.target.value }))}
-                  className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[14px] text-[#6f7f85]">Email support</span>
-                <input
-                  value={siteSettingsSupportEmail}
-                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...(prev.siteSettings || {}), supportEmail: event.target.value }, supportEmail: event.target.value }))}
-                  className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-                />
-              </label>
-              <p className="text-[12px] text-[#6f7f85]">Ces champs sont exposés au runtime public via <code>/content/public/settings</code>.</p>
-              <div className="grid md:grid-cols-2 gap-3">
+          <AdminPanel title="Paramètres globaux (autorité CMS)">
+            <div className="space-y-6">
+              <p className="text-[12px] text-[#6f7f85]">Autorité site: <span className="font-semibold">siteSettings</span> • Autorité opérationnelle: <span className="font-semibold">operationalSettings</span> • Autorité éditoriale: <span className="font-semibold">taxonomySettings</span>.</p>
+
+              <div className="rounded-[10px] border border-[#eef3f5] p-4 space-y-3">
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Identité du site</h3>
                 <label className="block">
-                  <span className="text-[14px] text-[#6f7f85]">Logo principal (URL ou media:asset-id)</span>
+                  <span className="text-[14px] text-[#6f7f85]">Nom du site</span>
                   <input
-                    value={siteBrandMedia.logo || ''}
-                    onChange={(event) => setSettingsValues((prev) => ({
-                      ...prev,
-                      siteSettings: {
-                        ...(prev.siteSettings || {}),
-                        brandMedia: { ...(prev.siteSettings?.brandMedia || {}), logo: event.target.value },
-                      },
-                    }))}
+                    value={siteSettingsTitle}
+                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...(prev.siteSettings || {}), siteTitle: event.target.value }, siteTitle: event.target.value }))}
                     className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[14px] text-[#6f7f85]">Logo sombre (optionnel)</span>
+                  <span className="text-[14px] text-[#6f7f85]">Email support</span>
                   <input
-                    value={siteBrandMedia.logoDark || ''}
-                    onChange={(event) => setSettingsValues((prev) => ({
-                      ...prev,
-                      siteSettings: {
-                        ...(prev.siteSettings || {}),
-                        brandMedia: { ...(prev.siteSettings?.brandMedia || {}), logoDark: event.target.value },
-                      },
-                    }))}
+                    value={siteSettingsSupportEmail}
+                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...(prev.siteSettings || {}), supportEmail: event.target.value }, supportEmail: event.target.value }))}
                     className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
                   />
                 </label>
-                <label className="block">
-                  <span className="text-[14px] text-[#6f7f85]">Favicon (URL ou media:asset-id)</span>
-                  <input
-                    value={siteBrandMedia.favicon || ''}
-                    onChange={(event) => setSettingsValues((prev) => ({
-                      ...prev,
-                      siteSettings: {
-                        ...(prev.siteSettings || {}),
-                        brandMedia: { ...(prev.siteSettings?.brandMedia || {}), favicon: event.target.value },
-                      },
-                    }))}
-                    className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-[14px] text-[#6f7f85]">Image sociale par défaut</span>
-                  <input
-                    value={siteBrandMedia.defaultSocialImage || ''}
-                    onChange={(event) => setSettingsValues((prev) => ({
-                      ...prev,
-                      siteSettings: {
-                        ...(prev.siteSettings || {}),
-                        brandMedia: { ...(prev.siteSettings?.brandMedia || {}), defaultSocialImage: event.target.value },
-                      },
-                    }))}
-                    className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-                  />
-                </label>
-                <p className="text-[12px] text-[#6f7f85]">Rôles attendus: brandLogo/logoDark, favicon, socialImage par défaut (URL ou media:asset-id).</p>
+                <p className="text-[12px] text-[#6f7f85]">Ces champs pilotent le runtime public via <code>/content/public/settings</code> (titre, email de contact).</p>
               </div>
-              <div className="rounded-[10px] border border-[#eef3f5] p-3">
-                <p className="text-[12px] text-[#6f7f85] mb-2">Taxonomie blog gérée (baseline)</p>
-                <p className="text-[12px] text-[#273a41]"><strong>Catégories:</strong> {managedBlogCategories.join(', ')}</p>
-                <p className="text-[12px] text-[#273a41]"><strong>Tags:</strong> {managedBlogTags.join(', ')}</p>
+
+              <div className="rounded-[10px] border border-[#eef3f5] p-4 space-y-3">
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Médias de marque</h3>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-[14px] text-[#6f7f85]">Logo principal (URL ou media:asset-id)</span>
+                    <input
+                      value={siteBrandMedia.logo || ''}
+                      onChange={(event) => setSettingsValues((prev) => ({
+                        ...prev,
+                        siteSettings: {
+                          ...(prev.siteSettings || {}),
+                          brandMedia: { ...(prev.siteSettings?.brandMedia || {}), logo: event.target.value },
+                        },
+                      }))}
+                      className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[14px] text-[#6f7f85]">Logo sombre (optionnel)</span>
+                    <input
+                      value={siteBrandMedia.logoDark || ''}
+                      onChange={(event) => setSettingsValues((prev) => ({
+                        ...prev,
+                        siteSettings: {
+                          ...(prev.siteSettings || {}),
+                          brandMedia: { ...(prev.siteSettings?.brandMedia || {}), logoDark: event.target.value },
+                        },
+                      }))}
+                      className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[14px] text-[#6f7f85]">Favicon (URL ou media:asset-id)</span>
+                    <input
+                      value={siteBrandMedia.favicon || ''}
+                      onChange={(event) => setSettingsValues((prev) => ({
+                        ...prev,
+                        siteSettings: {
+                          ...(prev.siteSettings || {}),
+                          brandMedia: { ...(prev.siteSettings?.brandMedia || {}), favicon: event.target.value },
+                        },
+                      }))}
+                      className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[14px] text-[#6f7f85]">Image sociale par défaut</span>
+                    <input
+                      value={siteBrandMedia.defaultSocialImage || ''}
+                      onChange={(event) => setSettingsValues((prev) => ({
+                        ...prev,
+                        siteSettings: {
+                          ...(prev.siteSettings || {}),
+                          brandMedia: { ...(prev.siteSettings?.brandMedia || {}), defaultSocialImage: event.target.value },
+                        },
+                      }))}
+                      className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                    />
+                  </label>
+                </div>
+                <p className="text-[12px] text-[#6f7f85]">Consommateurs runtime: navigation (logo), favicon navigateur et image sociale de fallback.</p>
               </div>
-              <label className="flex items-center justify-between rounded-[12px] border border-[#eef3f5] p-4">
-                <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Autoriser la publication immédiate</span>
-                <input
-                  type="checkbox"
-                  checked={instantPublishingEnabled}
-                  onChange={(event) => setSettingsValues((prev) => ({ ...prev, operationalSettings: { ...(prev.operationalSettings || {}), instantPublishing: event.target.checked }, instantPublishing: event.target.checked }))}
-                />
-              </label>
-              {instantPublishingEnabled ? null : (
-                <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
-              )}
-              <p className="text-[12px] text-[#6f7f85]">Ce garde-fou est appliqué côté serveur sur les transitions de publication.</p>
-              <button
-                onClick={() => {
-                  void hydrateBackendFromLocalSnapshot();
-                }}
-                disabled={isHydratingBackend}
-                className="border border-amber-300 text-amber-800 rounded-[10px] px-4 py-2 disabled:opacity-60"
-              >
-                {isHydratingBackend ? 'Hydratation...' : 'Hydrater backend depuis local'}
-              </button>
-              <button
-                onClick={saveSettings}
-                disabled={settingsSaving}
-                className="bg-[#273a41] text-white rounded-[10px] px-4 py-2 disabled:opacity-60"
-              >
-                {settingsSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-              </button>
+
+              <div className="rounded-[10px] border border-[#eef3f5] p-4 space-y-3">
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Gouvernance éditoriale (blog)</h3>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-[14px] text-[#6f7f85]">Catégories gérées (1 par ligne)</span>
+                    <textarea
+                      value={managedBlogCategories.join('\n')}
+                      onChange={(event) => setSettingsValues((prev) => ({
+                        ...prev,
+                        taxonomySettings: {
+                          ...(prev.taxonomySettings || {}),
+                          blog: {
+                            ...(prev.taxonomySettings?.blog || {}),
+                            managedCategories: parseManagedTaxonomyInput(event.target.value),
+                          },
+                        },
+                      }))}
+                      className="mt-1 min-h-[130px] w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[14px] text-[#6f7f85]">Tags gérés (1 par ligne)</span>
+                    <textarea
+                      value={managedBlogTags.join('\n')}
+                      onChange={(event) => setSettingsValues((prev) => ({
+                        ...prev,
+                        taxonomySettings: {
+                          ...(prev.taxonomySettings || {}),
+                          blog: {
+                            ...(prev.taxonomySettings?.blog || {}),
+                            managedTags: parseManagedTaxonomyInput(event.target.value),
+                          },
+                        },
+                      }))}
+                      className="mt-1 min-h-[130px] w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                    />
+                  </label>
+                </div>
+                <label className="flex items-center justify-between rounded-[12px] border border-[#eef3f5] p-4">
+                  <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Forcer les tags gérés</span>
+                  <input
+                    type="checkbox"
+                    checked={enforceManagedTags}
+                    onChange={(event) => setSettingsValues((prev) => ({
+                      ...prev,
+                      taxonomySettings: {
+                        ...(prev.taxonomySettings || {}),
+                        blog: {
+                          ...(prev.taxonomySettings?.blog || {}),
+                          enforceManagedTags: event.target.checked,
+                        },
+                      },
+                    }))}
+                  />
+                </label>
+                <p className="text-[12px] text-[#6f7f85]">Ces règles sont appliquées côté backend pendant les sauvegardes blog pour éviter les dérives taxonomiques.</p>
+              </div>
+
+              <div className="rounded-[10px] border border-[#eef3f5] p-4 space-y-3">
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Publication & récupération</h3>
+                <label className="flex items-center justify-between rounded-[12px] border border-[#eef3f5] p-4">
+                  <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Autoriser la publication immédiate</span>
+                  <input
+                    type="checkbox"
+                    checked={instantPublishingEnabled}
+                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, operationalSettings: { ...(prev.operationalSettings || {}), instantPublishing: event.target.checked }, instantPublishing: event.target.checked }))}
+                  />
+                </label>
+                {instantPublishingEnabled ? null : (
+                  <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
+                )}
+                <p className="text-[12px] text-[#6f7f85]">Ce garde-fou est appliqué côté serveur sur les transitions de publication.</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => {
+                      void hydrateBackendFromLocalSnapshot();
+                    }}
+                    disabled={isHydratingBackend}
+                    className="border border-amber-300 text-amber-800 rounded-[10px] px-4 py-2 disabled:opacity-60"
+                  >
+                    {isHydratingBackend ? 'Hydratation...' : 'Hydrater backend depuis local'}
+                  </button>
+                  <button
+                    onClick={saveSettings}
+                    disabled={settingsSaving}
+                    className="bg-[#273a41] text-white rounded-[10px] px-4 py-2 disabled:opacity-60"
+                  >
+                    {settingsSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                  </button>
+                </div>
+              </div>
             </div>
           </AdminPanel>
           <AdminPanel title="Historique & rollback paramètres globaux">

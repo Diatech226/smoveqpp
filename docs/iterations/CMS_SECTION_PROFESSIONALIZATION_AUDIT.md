@@ -9,6 +9,7 @@ This file tracks implementation progress against CMS professionalization iterati
 - Iteration 3: completed media lifecycle safety, settings split authority, and runtime diagnostics baseline.
 - Iteration 4: completed taxonomy governance baseline, service detail CMS authority expansion, brand assets authority, and settings rollback audit baseline.
 - Iteration 5: completed advanced media preset normalization, SEO contract deepening (blog/projects/services), CMS health dashboard baseline, and launch-readiness blocker summary.
+- Iteration 6: completed unified root dev startup (site + server + CMS) and settings authority implementation hardening with real governance controls.
 
 ## Iteration 2 outcomes
 
@@ -44,3 +45,12 @@ This file tracks implementation progress against CMS professionalization iterati
 - Projects and Services now normalize/validate stronger SEO contracts (`title`, `description`, `canonicalSlug`, `socialImage`) for route-safe metadata baselines.
 - Added backend content health summary endpoint and CMS overview health cards for published media/SEO completeness, route validity, alt coverage, and brand-asset readiness.
 - Launch-readiness baseline now surfaces explicit blockers from real content conditions (`published_content_missing_media`, `published_content_missing_seo`, `invalid_service_routes`, `missing_brand_assets`).
+
+
+## Iteration 6 outcomes
+
+- Root local startup is unified: `npm run dev` now launches public site, backend, and standalone CMS together.
+- CMS settings section was reorganized into operational domains (identity, brand media, taxonomy governance, publication guardrails) without visual redesign.
+- Blog taxonomy settings are now truly editable (`managedCategories`, `managedTags`, `enforceManagedTags`) instead of read-only/decorative display.
+- Settings save path now validates brand media references and prevents empty managed taxonomy lists before persistence.
+- Runtime consumers expanded: contact email card and default social metadata now consume authoritative public settings.
