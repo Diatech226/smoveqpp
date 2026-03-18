@@ -83,6 +83,10 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { analytics: contentService.getAnalytics() });
   });
 
+  router.get('/health-summary', requirePermission(Permissions.CONTENT_READ), (req, res) => {
+    return sendSuccess(res, 200, { health: contentService.getContentHealthSummary() });
+  });
+
   router.post('/blog', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const result = contentService.saveBlogPost(req.body);
     if (!result.ok) {

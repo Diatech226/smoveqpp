@@ -8,6 +8,7 @@ This file tracks implementation progress against CMS professionalization iterati
 - Iteration 2: completed baseline governance and public detail contracts.
 - Iteration 3: completed media lifecycle safety, settings split authority, and runtime diagnostics baseline.
 - Iteration 4: completed taxonomy governance baseline, service detail CMS authority expansion, brand assets authority, and settings rollback audit baseline.
+- Iteration 5: completed advanced media preset normalization, SEO contract deepening (blog/projects/services), CMS health dashboard baseline, and launch-readiness blocker summary.
 
 ## Iteration 2 outcomes
 
@@ -35,3 +36,11 @@ This file tracks implementation progress against CMS professionalization iterati
 - Settings authority extended to explicit brand assets (`logo`, `logoDark`, `favicon`, `defaultSocialImage`) with runtime consumption for logo/title/favicon surfaces.
 - Settings auditability and rollback baseline delivered with persisted settings history snapshots, changed-fields tracking, and rollback endpoint + CMS UI action.
 - Content schema version advanced to v3 with migration for `settingsHistory` initialization.
+
+## Iteration 5 outcomes
+
+- Advanced media-role maturity expanded with explicit preset semantics (`cardImage`, `heroImage`, `coverImage`, `socialImage`, `galleryImage`, `iconLikeAsset`, `brandLogo`, `favicon`) and broader role reference diagnostics coverage.
+- Blog SEO contracts deepened with normalized `canonicalSlug`, stronger social image fallback behavior, and baseline readiness fields for `noIndex` / `canonicalUrl`.
+- Projects and Services now normalize/validate stronger SEO contracts (`title`, `description`, `canonicalSlug`, `socialImage`) for route-safe metadata baselines.
+- Added backend content health summary endpoint and CMS overview health cards for published media/SEO completeness, route validity, alt coverage, and brand-asset readiness.
+- Launch-readiness baseline now surfaces explicit blockers from real content conditions (`published_content_missing_media`, `published_content_missing_seo`, `invalid_service_routes`, `missing_brand_assets`).

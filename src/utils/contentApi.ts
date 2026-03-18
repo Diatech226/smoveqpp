@@ -104,6 +104,33 @@ export interface SyncDiagnostics {
   };
 }
 
+export interface ContentHealthSummary {
+  publication: {
+    blog: Record<string, number>;
+    projects: Record<string, number>;
+    services: Record<string, number>;
+  };
+  quality: {
+    missingPublishedMedia: {
+      blog: number;
+      projects: number;
+      services: number;
+    };
+    seoIncomplete: {
+      blog: number;
+      projects: number;
+      services: number;
+    };
+    invalidServiceRoutes: number;
+    mediaMissingAlt: number;
+    missingBrandAssets: number;
+  };
+  launchReadiness: {
+    blockers: string[];
+  };
+  mediaRolePresets: string[];
+}
+
 const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content`;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -335,4 +362,9 @@ export async function rollbackSettingsVersion(versionId: string): Promise<CmsSet
 export async function fetchSyncDiagnostics(): Promise<SyncDiagnostics> {
   const body = await request<{ diagnostics: SyncDiagnostics }>('/sync-diagnostics');
   return body.data!.diagnostics;
+}
+
+export async function fetchContentHealthSummary(): Promise<ContentHealthSummary> {
+  const body = await request<{ health: ContentHealthSummary }>('/health-summary');
+  return body.data!.health;
 }

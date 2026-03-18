@@ -298,7 +298,10 @@ describe('ContentService project persistence', () => {
     expect(result.ok).toBe(true);
     expect(result.project.featuredImage).toBe('role-card-image');
     expect(result.project.mainImage).toBe('role-hero-image');
+    expect(result.project.mediaRoles.coverImage).toBe('role-hero-image');
+    expect(result.project.mediaRoles.socialImage).toBe('role-card-image');
     expect(result.project.mediaRoles.galleryImages).toEqual(['role-gallery-1', 'role-gallery-2']);
+    expect(result.project.seo.canonicalSlug).toBe('projet-media-roles');
   });
 
   it('rejects duplicate project slugs across different ids', () => {
@@ -848,5 +851,51 @@ describe('ContentService production hardening', () => {
     expect(saved.ok).toBe(true);
     expect(saved.service.processTitle).toBe('Notre Process');
     expect(saved.service.processSteps).toEqual(['Découverte', 'Livraison']);
+    expect(saved.service.seo.canonicalSlug).toBe('service-process');
+  });
+
+  it('builds a content health summary for operator dashboards and launch readiness', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        mediaFiles: [
+          {
+            id: 'asset-health-1',
+            name: 'asset.jpg',
+            type: 'image',
+            url: 'https://example.com/asset.jpg',
+            thumbnailUrl: 'https://example.com/asset.jpg',
+            size: 10,
+            uploadedDate: '2024-01-01T00:00:00.000Z',
+            uploadedBy: 'admin',
+            alt: '',
+            tags: [],
+          },
+        ],
+        blogPosts: [
+          {
+            id: 'post-health-1',
+            title: 'Post',
+            slug: 'post-health-1',
+            excerpt: 'Excerpt',
+            content: 'Content',
+            author: 'Author',
+            authorRole: 'Role',
+            category: 'Cat',
+            tags: [],
+            publishedDate: '2024-01-01T00:00:00.000Z',
+            readTime: '5 min',
+            featuredImage: 'media:asset-health-1',
+            images: [],
+            status: 'published',
+          },
+        ],
+      }),
+    });
+
+    const summary = service.getContentHealthSummary();
+    expect(summary.publication.blog.published).toBeGreaterThan(0);
+    expect(summary.quality.mediaMissingAlt).toBeGreaterThan(0);
+    expect(summary.mediaRolePresets).toContain('heroImage');
+    expect(summary.launchReadiness.blockers.length).toBeGreaterThan(0);
   });
 });
