@@ -1,11 +1,12 @@
 import { motion } from 'motion/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Code, Smartphone, ShoppingCart, Zap, CheckCircle, ArrowRight, Layers } from 'lucide-react';
 import Navigation from '../Navigation';
 import Footer from '../Footer';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { serviceRepository } from '../../repositories/serviceRepository';
 import { fetchPublicServices } from '../../utils/publicContentApi';
+import { useRemoteRepositorySync } from '../../features/content-sync/useRemoteRepositorySync';
 
 const technologies = [
   { name: 'React', color: '#61DAFB' },
@@ -71,15 +72,19 @@ const projects = [
 export default function WebDevelopmentPage() {
   const [serviceVersion, setServiceVersion] = useState(0);
 
-  useEffect(() => {
-    let active = true;
-    void fetchPublicServices().then((remote) => {
-      if (!active) return;
-      serviceRepository.replaceAll(remote);
-      setServiceVersion((value) => value + 1);
-    }).catch(() => undefined);
-    return () => { active = false; };
+  const applyRemoteServices = useCallback((remote: Awaited<ReturnType<typeof fetchPublicServices>>) => {
+    return serviceRepository.replaceAll(remote);
   }, []);
+
+  const handleServicesSynced = useCallback(() => {
+    setServiceVersion((value) => value + 1);
+  }, []);
+
+  useRemoteRepositorySync({
+    fetchRemote: fetchPublicServices,
+    applyRemote: applyRemoteServices,
+    onSynced: handleServicesSynced,
+  });
 
   const service = useMemo(() => serviceRepository.getPublished().find((entry) => entry.routeSlug === 'web-development' || entry.slug === 'web-development'), [serviceVersion]);
   const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);

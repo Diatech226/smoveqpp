@@ -1,30 +1,34 @@
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
 import { serviceRepository } from '../repositories/serviceRepository';
 import { selectRenderablePublicServices } from '../features/marketing/serviceCatalog';
 import { fetchPublicServices } from '../utils/publicContentApi';
+import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepositorySync';
 
 export default function ServicesHubPage() {
   const [services, setServices] = useState(() => selectRenderablePublicServices(serviceRepository.getAll()));
 
-  useEffect(() => {
-    let active = true;
-    void fetchPublicServices()
-      .then((remote) => {
-        if (!active) return;
-      const synced = serviceRepository.replaceAll(remote);
-      setServices(selectRenderablePublicServices(synced));
-      })
-      .catch((error) => {
-        console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);
-      });
-    return () => {
-      active = false;
-    };
+  const applyRemoteServices = useCallback((remote: Awaited<ReturnType<typeof fetchPublicServices>>) => {
+    return serviceRepository.replaceAll(remote);
   }, []);
+
+  const handleServicesSynced = useCallback((synced: ReturnType<typeof serviceRepository.replaceAll>) => {
+    setServices(selectRenderablePublicServices(synced));
+  }, []);
+
+  const handleServicesSyncError = useCallback((error: unknown) => {
+    console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);
+  }, []);
+
+  useRemoteRepositorySync({
+    fetchRemote: fetchPublicServices,
+    applyRemote: applyRemoteServices,
+    onSynced: handleServicesSynced,
+    onError: handleServicesSyncError,
+  });
   return (
     <div className="min-h-screen bg-white">
       <Navigation currentPath="/services" />

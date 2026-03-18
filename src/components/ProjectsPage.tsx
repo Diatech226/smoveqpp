@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Filter, Search, ArrowRight, ExternalLink } from 'lucide-react';
 import Navigation from './Navigation';
@@ -7,28 +7,32 @@ import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { fetchPublicProjects } from '../utils/publicContentApi';
 import { toProjectCardContract } from '../features/projects/projectCardAdapter';
+import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepositorySync';
 
 export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState(() => projectRepository.getPublished());
 
-  useEffect(() => {
-    let active = true;
-    void fetchPublicProjects()
-      .then((remote) => {
-        if (!active) return;
-      const synced = projectRepository.replaceAll(remote);
-      setProjects(synced.filter((project) => project.status !== 'draft' && project.status !== 'archived'));
-      })
-      .catch((error) => {
-        console.warn('[public-content] projects API unavailable, keeping repository snapshot.', error);
-      });
-    return () => {
-      active = false;
-    };
+  const applyRemoteProjects = useCallback((remote: Awaited<ReturnType<typeof fetchPublicProjects>>) => {
+    return projectRepository.replaceAll(remote);
   }, []);
-  const projectCategories = projectRepository.getCategories();
+
+  const handleProjectsSynced = useCallback((synced: ReturnType<typeof projectRepository.replaceAll>) => {
+    setProjects(synced.filter((project) => project.status !== 'draft' && project.status !== 'archived'));
+  }, []);
+
+  const handleProjectsSyncError = useCallback((error: unknown) => {
+    console.warn('[public-content] projects API unavailable, keeping repository snapshot.', error);
+  }, []);
+
+  useRemoteRepositorySync({
+    fetchRemote: fetchPublicProjects,
+    applyRemote: applyRemoteProjects,
+    onSynced: handleProjectsSynced,
+    onError: handleProjectsSyncError,
+  });
+  const projectCategories = useMemo(() => projectRepository.getCategories(), [projects]);
 
   const filteredProjects = projects.filter((project) => {
     const matchesCategory = selectedCategory === 'Tous' || project.category === selectedCategory;
