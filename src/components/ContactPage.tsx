@@ -21,7 +21,7 @@ export default function ContactPage() {
     void fetchPublicSettings()
       .then((settings) => {
         if (!active) return;
-        if (settings.supportEmail?.trim()) setSupportEmail(settings.supportEmail.trim());
+        if (settings.siteSettings.supportEmail.trim()) setSupportEmail(settings.siteSettings.supportEmail.trim());
       })
       .catch(() => undefined);
 

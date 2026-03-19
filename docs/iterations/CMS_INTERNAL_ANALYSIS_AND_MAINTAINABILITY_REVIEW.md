@@ -424,3 +424,11 @@ This is intentionally scoped and behavior-preserving.
 - ✅ Standardized `media:<id>` parser/validator semantics and URL acceptance/rejection behavior in both runtime layers.
 - ✅ Added behavior-focused contract tests covering slug normalization/validation, media parse+validation, and URL/href validity baselines.
 - ➡️ Next: continue extracting remaining in-file CMSDashboard validation hotspots and unify taxonomy/publish-readiness rules.
+
+## Iteration D status update (2026-03-19)
+- ✅ Nested settings contract is now explicitly canonical across backend normalization, CMS save flow, and public runtime consumers.
+- ✅ Legacy flat settings inputs are still accepted and repaired (`siteTitle`, `supportEmail`, `instantPublishing`, `taxonomy`) but are treated as compatibility-only aliases.
+- ✅ Public runtime consumers (title, support email, logo, favicon, default social image) now consume canonical nested settings.
+- ✅ Settings rollback/history remains intact with normalization on restore to prevent shape drift in older snapshots.
+- ✅ Added settings normalization tests for legacy flat input repair + canonical output and updated backend coverage for taxonomy/rollback compatibility.
+- 📄 Detailed implementation notes: `docs/iterations/ITERATION_D_SETTINGS_CONTRACT_SIMPLIFICATION_AND_GOVERNANCE_HARDENING.md`.

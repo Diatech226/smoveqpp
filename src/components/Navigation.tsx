@@ -25,7 +25,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
     void fetchPublicSettings()
       .then((settings) => {
         if (!active) return;
-        const brandLogo = settings.brandMedia?.logo?.trim();
+        const brandLogo = settings.siteSettings.brandMedia.logo.trim();
         if (brandLogo) setLogoSrc(brandLogo);
       })
       .catch(() => undefined);
