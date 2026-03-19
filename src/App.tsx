@@ -33,10 +33,10 @@ function AppContent() {
     void fetchPublicSettings()
       .then((settings) => {
         if (!active) return;
-        if (settings.siteTitle?.trim()) {
-          document.title = settings.siteTitle.trim();
+        if (settings.siteSettings.siteTitle.trim()) {
+          document.title = settings.siteSettings.siteTitle.trim();
         }
-        const faviconHref = settings.brandMedia?.favicon?.trim();
+        const faviconHref = settings.siteSettings.brandMedia.favicon.trim();
         if (faviconHref) {
           const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
           if (link) {
@@ -44,7 +44,7 @@ function AppContent() {
           }
         }
 
-        const defaultSocialImage = settings.brandMedia?.defaultSocialImage?.trim();
+        const defaultSocialImage = settings.siteSettings.brandMedia.defaultSocialImage.trim();
         if (defaultSocialImage) {
           const ogImageTag = document.querySelector("meta[property='og:image']") || document.createElement('meta');
           ogImageTag.setAttribute('property', 'og:image');

@@ -14,9 +14,9 @@ export default function Footer() {
     void fetchPublicSettings()
       .then((settings) => {
         if (!active) return;
-        if (settings.siteTitle?.trim()) setSiteTitle(settings.siteTitle.trim());
-        if (settings.supportEmail?.trim()) setSupportEmail(settings.supportEmail.trim());
-        if (settings.brandMedia?.logo?.trim()) setLogoSrc(settings.brandMedia.logo.trim());
+        if (settings.siteSettings.siteTitle.trim()) setSiteTitle(settings.siteSettings.siteTitle.trim());
+        if (settings.siteSettings.supportEmail.trim()) setSupportEmail(settings.siteSettings.supportEmail.trim());
+        if (settings.siteSettings.brandMedia.logo.trim()) setLogoSrc(settings.siteSettings.brandMedia.logo.trim());
       })
       .catch(() => {
         // Keep static fallback copy when backend settings are unavailable.

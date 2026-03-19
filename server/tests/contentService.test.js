@@ -771,16 +771,19 @@ describe('ContentService production hardening', () => {
     expect(refs.some((ref) => ref.domain === 'settings')).toBe(true);
   });
 
-  it('normalizes split settings authority while preserving backward-compatible top-level fields', () => {
+  it('normalizes legacy flat settings into canonical nested settings while preserving compatibility aliases', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 
     const saved = service.saveSettings({
-      siteSettings: {
-        siteTitle: 'SMOVE Pro',
-        supportEmail: 'ops@smove.africa',
-      },
-      operationalSettings: {
-        instantPublishing: false,
+      siteTitle: 'SMOVE Pro',
+      supportEmail: 'ops@smove.africa',
+      instantPublishing: false,
+      taxonomy: {
+        blog: {
+          managedCategories: ['Branding', 'branding', ' Web '],
+          managedTags: ['React', 'react', 'CMS'],
+          enforceManagedTags: true,
+        },
       },
     });
 
@@ -788,9 +791,12 @@ describe('ContentService production hardening', () => {
     expect(saved.settings.siteSettings.siteTitle).toBe('SMOVE Pro');
     expect(saved.settings.siteSettings.supportEmail).toBe('ops@smove.africa');
     expect(saved.settings.operationalSettings.instantPublishing).toBe(false);
+    expect(saved.settings.taxonomySettings.blog.managedCategories).toEqual(['Branding', 'Web']);
+    expect(saved.settings.taxonomySettings.blog.managedTags).toEqual(['React', 'CMS']);
     expect(saved.settings.siteTitle).toBe('SMOVE Pro');
     expect(saved.settings.supportEmail).toBe('ops@smove.africa');
     expect(saved.settings.instantPublishing).toBe(false);
+    expect(saved.settings.taxonomy.blog.managedCategories).toEqual(['Branding', 'Web']);
   });
 
   it('reports invalid media references in synchronization diagnostics', () => {
@@ -865,6 +871,8 @@ describe('ContentService production hardening', () => {
     const rollback = service.rollbackSettings(history[1].versionId, { changedBy: 'admin-1' });
     expect(rollback.ok).toBe(true);
     expect(rollback.settings.siteSettings.siteTitle).toBe('SMOVE A');
+    expect(rollback.settings.siteTitle).toBe('SMOVE A');
+    expect(rollback.settings.operationalSettings.instantPublishing).toBe(true);
   });
 
   it('accepts service process fields in CMS service payload', () => {

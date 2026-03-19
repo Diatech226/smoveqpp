@@ -243,7 +243,21 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [blogFormErrors, setBlogFormErrors] = useState<Partial<Record<keyof BlogFormState, string>>>({});
 
   const [settingsSaving, setSettingsSaving] = useState(false);
-  const [settingsValues, setSettingsValues] = useState<CmsSettings>({ siteTitle: 'SMOVE', supportEmail: 'contact@smove.africa', instantPublishing: true });
+  const [settingsValues, setSettingsValues] = useState<CmsSettings>({
+    siteSettings: {
+      siteTitle: 'SMOVE',
+      supportEmail: 'contact@smove.africa',
+      brandMedia: { logo: '', logoDark: '', favicon: '', defaultSocialImage: '' },
+    },
+    operationalSettings: { instantPublishing: true },
+    taxonomySettings: {
+      blog: {
+        managedCategories: BLOG_MANAGED_CATEGORIES,
+        managedTags: BLOG_MANAGED_TAGS,
+        enforceManagedTags: true,
+      },
+    },
+  });
   const [settingsHistory, setSettingsHistory] = useState<SettingsHistoryEntry[]>([]);
 
   const [projects, setProjects] = useState(() => projectRepository.getAll());
@@ -317,14 +331,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [auditEvents, setAuditEvents] = useState<AuthAuditEvent[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
-  const instantPublishingEnabled =
-    settingsValues.operationalSettings?.instantPublishing ?? settingsValues.instantPublishing;
-  const siteSettingsTitle = settingsValues.siteSettings?.siteTitle ?? settingsValues.siteTitle;
-  const siteSettingsSupportEmail = settingsValues.siteSettings?.supportEmail ?? settingsValues.supportEmail;
-  const siteBrandMedia = settingsValues.siteSettings?.brandMedia || {};
-  const managedBlogCategories = settingsValues.taxonomySettings?.blog?.managedCategories || BLOG_MANAGED_CATEGORIES;
-  const managedBlogTags = settingsValues.taxonomySettings?.blog?.managedTags || BLOG_MANAGED_TAGS;
-  const enforceManagedTags = settingsValues.taxonomySettings?.blog?.enforceManagedTags !== false;
+  const instantPublishingEnabled = settingsValues.operationalSettings.instantPublishing;
+  const siteSettingsTitle = settingsValues.siteSettings.siteTitle;
+  const siteSettingsSupportEmail = settingsValues.siteSettings.supportEmail;
+  const siteBrandMedia = settingsValues.siteSettings.brandMedia;
+  const managedBlogCategories = settingsValues.taxonomySettings.blog.managedCategories;
+  const managedBlogTags = settingsValues.taxonomySettings.blog.managedTags;
+  const enforceManagedTags = settingsValues.taxonomySettings.blog.enforceManagedTags;
 
   useEffect(() => {
     let active = true;
@@ -795,28 +808,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setSettingsSaving(true);
     setSectionError('');
     try {
-      const saved = await requestWithRetry(() => saveBackendSettings({
-        ...settingsValues,
-        siteSettings: {
-          ...(settingsValues.siteSettings || {}),
-          siteTitle: siteSettingsTitle,
-          supportEmail: siteSettingsSupportEmail,
-        },
-        operationalSettings: {
-          ...(settingsValues.operationalSettings || {}),
-          instantPublishing: instantPublishingEnabled,
-        },
-        taxonomySettings: {
-          blog: {
-            managedCategories: managedBlogCategories,
-            managedTags: managedBlogTags,
-            enforceManagedTags,
-          },
-        },
-        siteTitle: siteSettingsTitle,
-        supportEmail: siteSettingsSupportEmail,
-        instantPublishing: instantPublishingEnabled,
-      }), { retries: 1, retryDelayMs: 300 });
+      const saved = await requestWithRetry(() => saveBackendSettings(settingsValues), { retries: 1, retryDelayMs: 300 });
       setSettingsValues(saved);
       const history = await requestWithRetry(() => fetchSettingsHistory(20), { retries: 1, retryDelayMs: 250 });
       setSettingsHistory(history);
@@ -2056,18 +2048,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       await requestWithRetry(() => saveBackendPageContent(localHome), { retries: 1, retryDelayMs: 250 });
       await requestWithRetry(() => saveBackendSettings({
         ...settingsValues,
-        siteSettings: {
-          ...(settingsValues.siteSettings || {}),
-          siteTitle: siteSettingsTitle,
-          supportEmail: siteSettingsSupportEmail,
-        },
-        operationalSettings: {
-          ...(settingsValues.operationalSettings || {}),
-          instantPublishing: instantPublishingEnabled,
-        },
-        siteTitle: siteSettingsTitle,
-        supportEmail: siteSettingsSupportEmail,
-        instantPublishing: instantPublishingEnabled,
       }), { retries: 1, retryDelayMs: 250 });
 
       const [backendPosts, backendProjects, backendServices, backendHome, backendSettings] = await Promise.all([
@@ -2407,7 +2387,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   <span className="text-[14px] text-[#6f7f85]">Nom du site</span>
                   <input
                     value={siteSettingsTitle}
-                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...(prev.siteSettings || {}), siteTitle: event.target.value }, siteTitle: event.target.value }))}
+                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...prev.siteSettings, siteTitle: event.target.value } }))}
                     className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
                   />
                 </label>
@@ -2415,7 +2395,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   <span className="text-[14px] text-[#6f7f85]">Email support</span>
                   <input
                     value={siteSettingsSupportEmail}
-                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...(prev.siteSettings || {}), supportEmail: event.target.value }, supportEmail: event.target.value }))}
+                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...prev.siteSettings, supportEmail: event.target.value } }))}
                     className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
                   />
                 </label>
@@ -2432,8 +2412,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       onChange={(event) => setSettingsValues((prev) => ({
                         ...prev,
                         siteSettings: {
-                          ...(prev.siteSettings || {}),
-                          brandMedia: { ...(prev.siteSettings?.brandMedia || {}), logo: event.target.value },
+                          ...prev.siteSettings,
+                          brandMedia: { ...prev.siteSettings.brandMedia, logo: event.target.value },
                         },
                       }))}
                       className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
@@ -2446,8 +2426,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       onChange={(event) => setSettingsValues((prev) => ({
                         ...prev,
                         siteSettings: {
-                          ...(prev.siteSettings || {}),
-                          brandMedia: { ...(prev.siteSettings?.brandMedia || {}), logoDark: event.target.value },
+                          ...prev.siteSettings,
+                          brandMedia: { ...prev.siteSettings.brandMedia, logoDark: event.target.value },
                         },
                       }))}
                       className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
@@ -2460,8 +2440,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       onChange={(event) => setSettingsValues((prev) => ({
                         ...prev,
                         siteSettings: {
-                          ...(prev.siteSettings || {}),
-                          brandMedia: { ...(prev.siteSettings?.brandMedia || {}), favicon: event.target.value },
+                          ...prev.siteSettings,
+                          brandMedia: { ...prev.siteSettings.brandMedia, favicon: event.target.value },
                         },
                       }))}
                       className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
@@ -2474,8 +2454,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       onChange={(event) => setSettingsValues((prev) => ({
                         ...prev,
                         siteSettings: {
-                          ...(prev.siteSettings || {}),
-                          brandMedia: { ...(prev.siteSettings?.brandMedia || {}), defaultSocialImage: event.target.value },
+                          ...prev.siteSettings,
+                          brandMedia: { ...prev.siteSettings.brandMedia, defaultSocialImage: event.target.value },
                         },
                       }))}
                       className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
@@ -2495,9 +2475,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       onChange={(event) => setSettingsValues((prev) => ({
                         ...prev,
                         taxonomySettings: {
-                          ...(prev.taxonomySettings || {}),
+                          ...prev.taxonomySettings,
                           blog: {
-                            ...(prev.taxonomySettings?.blog || {}),
+                            ...prev.taxonomySettings.blog,
                             managedCategories: parseManagedTaxonomyInput(event.target.value),
                           },
                         },
@@ -2512,9 +2492,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       onChange={(event) => setSettingsValues((prev) => ({
                         ...prev,
                         taxonomySettings: {
-                          ...(prev.taxonomySettings || {}),
+                          ...prev.taxonomySettings,
                           blog: {
-                            ...(prev.taxonomySettings?.blog || {}),
+                            ...prev.taxonomySettings.blog,
                             managedTags: parseManagedTaxonomyInput(event.target.value),
                           },
                         },
@@ -2531,9 +2511,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     onChange={(event) => setSettingsValues((prev) => ({
                       ...prev,
                       taxonomySettings: {
-                        ...(prev.taxonomySettings || {}),
+                        ...prev.taxonomySettings,
                         blog: {
-                          ...(prev.taxonomySettings?.blog || {}),
+                          ...prev.taxonomySettings.blog,
                           enforceManagedTags: event.target.checked,
                         },
                       },
@@ -2550,7 +2530,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   <input
                     type="checkbox"
                     checked={instantPublishingEnabled}
-                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, operationalSettings: { ...(prev.operationalSettings || {}), instantPublishing: event.target.checked }, instantPublishing: event.target.checked }))}
+                    onChange={(event) => setSettingsValues((prev) => ({ ...prev, operationalSettings: { ...prev.operationalSettings, instantPublishing: event.target.checked } }))}
                   />
                 </label>
                 {instantPublishingEnabled ? null : (

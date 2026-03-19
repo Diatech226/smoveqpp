@@ -38,23 +38,31 @@ export interface MediaUploadPayload {
 }
 
 export interface CmsSettings {
-  siteTitle: string;
-  supportEmail: string;
-  instantPublishing: boolean;
-  siteSettings?: {
+  siteSettings: {
     siteTitle: string;
     supportEmail: string;
-    brandMedia?: {
-      logo?: string;
-      logoDark?: string;
-      favicon?: string;
-      defaultSocialImage?: string;
+    brandMedia: {
+      logo: string;
+      logoDark: string;
+      favicon: string;
+      defaultSocialImage: string;
     };
   };
-  operationalSettings?: {
+  operationalSettings: {
     instantPublishing: boolean;
   };
-  taxonomySettings?: {
+  taxonomySettings: {
+    blog: {
+      managedCategories: string[];
+      managedTags: string[];
+      enforceManagedTags: boolean;
+    };
+  };
+  // Flat aliases are compatibility-only.
+  siteTitle?: string;
+  supportEmail?: string;
+  instantPublishing?: boolean;
+  taxonomy?: {
     blog?: {
       managedCategories?: string[];
       managedTags?: string[];
@@ -64,8 +72,19 @@ export interface CmsSettings {
 }
 
 export interface PublicSiteSettings {
-  siteTitle: string;
-  supportEmail: string;
+  siteSettings: {
+    siteTitle: string;
+    supportEmail: string;
+    brandMedia: {
+      logo: string;
+      logoDark: string;
+      favicon: string;
+      defaultSocialImage: string;
+    };
+  };
+  // Flat aliases are compatibility-only.
+  siteTitle?: string;
+  supportEmail?: string;
   brandMedia?: {
     logo?: string;
     logoDark?: string;
@@ -132,6 +151,8 @@ export interface ContentHealthSummary {
 }
 
 const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content`;
+const DEFAULT_MANAGED_CATEGORIES = ['Communication digitale', 'Branding', 'Web'];
+const DEFAULT_MANAGED_TAGS = ['Conseil', 'Production', 'Growth'];
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -321,7 +342,7 @@ export async function saveBackendPageContent(home: HomePageContentSettings): Pro
 
 export async function fetchBackendSettings(): Promise<CmsSettings> {
   const body = await request<{ settings: CmsSettings }>('/settings');
-  return body.data!.settings;
+  return normalizeCmsSettings(body.data!.settings);
 }
 
 export async function saveBackendSettings(settings: CmsSettings): Promise<CmsSettings> {
@@ -329,7 +350,7 @@ export async function saveBackendSettings(settings: CmsSettings): Promise<CmsSet
     method: 'POST',
     body: JSON.stringify(settings),
   });
-  return body.data!.settings;
+  return normalizeCmsSettings(body.data!.settings);
 }
 
 export async function fetchPublicSettings(): Promise<PublicSiteSettings> {
@@ -344,7 +365,7 @@ export async function fetchPublicSettings(): Promise<PublicSiteSettings> {
     throw new ContentApiError(message, code, response.status);
   }
 
-  return body.data!.settings;
+  return normalizePublicSettings(body.data!.settings);
 }
 
 export async function fetchSettingsHistory(limit = 20): Promise<SettingsHistoryEntry[]> {
@@ -356,7 +377,99 @@ export async function rollbackSettingsVersion(versionId: string): Promise<CmsSet
   const body = await request<{ settings: CmsSettings }>(`/settings/${versionId}/rollback`, {
     method: 'POST',
   });
-  return body.data!.settings;
+  return normalizeCmsSettings(body.data!.settings);
+}
+
+export function normalizeCmsSettings(settings: Partial<CmsSettings> | null | undefined): CmsSettings {
+  const siteSettings = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
+  const operationalSettings = settings?.operationalSettings && typeof settings.operationalSettings === 'object' ? settings.operationalSettings : settings;
+  const taxonomySettings =
+    settings?.taxonomySettings && typeof settings.taxonomySettings === 'object'
+      ? settings.taxonomySettings
+      : settings?.taxonomy && typeof settings.taxonomy === 'object'
+        ? settings.taxonomy
+        : undefined;
+
+  const normalized: CmsSettings = {
+    siteSettings: {
+      siteTitle: typeof siteSettings?.siteTitle === 'string' && siteSettings.siteTitle.trim() ? siteSettings.siteTitle.trim() : 'SMOVE',
+      supportEmail:
+        typeof siteSettings?.supportEmail === 'string' && siteSettings.supportEmail.trim()
+          ? siteSettings.supportEmail.trim()
+          : 'contact@smove.africa',
+      brandMedia: {
+        logo: typeof siteSettings?.brandMedia?.logo === 'string' ? siteSettings.brandMedia.logo.trim() : '',
+        logoDark: typeof siteSettings?.brandMedia?.logoDark === 'string' ? siteSettings.brandMedia.logoDark.trim() : '',
+        favicon: typeof siteSettings?.brandMedia?.favicon === 'string' ? siteSettings.brandMedia.favicon.trim() : '',
+        defaultSocialImage:
+          typeof siteSettings?.brandMedia?.defaultSocialImage === 'string' ? siteSettings.brandMedia.defaultSocialImage.trim() : '',
+      },
+    },
+    operationalSettings: {
+      instantPublishing:
+        typeof operationalSettings?.instantPublishing === 'boolean'
+          ? operationalSettings.instantPublishing
+          : true,
+    },
+    taxonomySettings: {
+      blog: {
+        managedCategories: dedupeList(taxonomySettings?.blog?.managedCategories, DEFAULT_MANAGED_CATEGORIES),
+        managedTags: dedupeList(taxonomySettings?.blog?.managedTags, DEFAULT_MANAGED_TAGS),
+        enforceManagedTags: taxonomySettings?.blog?.enforceManagedTags !== false,
+      },
+    },
+  };
+
+  return {
+    ...normalized,
+    siteTitle: normalized.siteSettings.siteTitle,
+    supportEmail: normalized.siteSettings.supportEmail,
+    instantPublishing: normalized.operationalSettings.instantPublishing,
+    taxonomy: normalized.taxonomySettings,
+  };
+}
+
+export function normalizePublicSettings(settings: Partial<PublicSiteSettings> | null | undefined): PublicSiteSettings {
+  const siteSettings = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
+  const brandMedia = siteSettings?.brandMedia || settings?.brandMedia;
+
+  const normalized: PublicSiteSettings = {
+    siteSettings: {
+      siteTitle: typeof siteSettings?.siteTitle === 'string' && siteSettings.siteTitle.trim() ? siteSettings.siteTitle.trim() : 'SMOVE',
+      supportEmail:
+        typeof siteSettings?.supportEmail === 'string' && siteSettings.supportEmail.trim()
+          ? siteSettings.supportEmail.trim()
+          : 'contact@smove.africa',
+      brandMedia: {
+        logo: typeof brandMedia?.logo === 'string' ? brandMedia.logo.trim() : '',
+        logoDark: typeof brandMedia?.logoDark === 'string' ? brandMedia.logoDark.trim() : '',
+        favicon: typeof brandMedia?.favicon === 'string' ? brandMedia.favicon.trim() : '',
+        defaultSocialImage: typeof brandMedia?.defaultSocialImage === 'string' ? brandMedia.defaultSocialImage.trim() : '',
+      },
+    },
+  };
+
+  return {
+    ...normalized,
+    siteTitle: normalized.siteSettings.siteTitle,
+    supportEmail: normalized.siteSettings.supportEmail,
+    brandMedia: normalized.siteSettings.brandMedia,
+  };
+}
+
+function dedupeList(values: string[] | undefined, fallback: string[]): string[] {
+  const source = Array.isArray(values) ? values : fallback;
+  const seen = new Set<string>();
+  const output: string[] = [];
+  source.forEach((entry) => {
+    const value = `${entry || ''}`.trim();
+    if (!value) return;
+    const key = value.toLocaleLowerCase('fr');
+    if (seen.has(key)) return;
+    seen.add(key);
+    output.push(value);
+  });
+  return output.length ? output : [...fallback];
 }
 
 export async function fetchSyncDiagnostics(): Promise<SyncDiagnostics> {

@@ -268,7 +268,7 @@ class ContentService {
 
     const existing = posts.find((entry) => entry.id === normalized.id);
     if (normalized.status === 'published') {
-      if (!this.getSettings().instantPublishing) {
+      if (!this.getSettings().operationalSettings.instantPublishing) {
         return {
           ok: false,
           error: {
@@ -329,7 +329,7 @@ class ContentService {
     }
 
     const next = { ...current, status: targetStatus };
-    if (targetStatus === 'published' && !this.getSettings().instantPublishing) {
+    if (targetStatus === 'published' && !this.getSettings().operationalSettings.instantPublishing) {
       return {
         ok: false,
         error: {
@@ -1296,59 +1296,58 @@ class ContentService {
   }
 
   normalizeSettings(settings) {
-    const siteSettings = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
-    const operationalSettings = settings?.operationalSettings && typeof settings.operationalSettings === 'object' ? settings.operationalSettings : settings;
+    const siteSettingsCandidate = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
+    const operationalSettingsCandidate = settings?.operationalSettings && typeof settings.operationalSettings === 'object' ? settings.operationalSettings : settings;
+    const taxonomySettingsCandidate = settings?.taxonomySettings && typeof settings.taxonomySettings === 'object'
+      ? settings.taxonomySettings
+      : settings?.taxonomy && typeof settings.taxonomy === 'object'
+        ? settings.taxonomy
+        : {};
 
-    return {
+    const normalizedSiteTitle =
+      typeof siteSettingsCandidate?.siteTitle === 'string'
+        ? siteSettingsCandidate.siteTitle.trim() || defaultSettings.siteSettings.siteTitle
+        : defaultSettings.siteSettings.siteTitle;
+    const normalizedSupportEmail =
+      typeof siteSettingsCandidate?.supportEmail === 'string'
+        ? siteSettingsCandidate.supportEmail.trim() || defaultSettings.siteSettings.supportEmail
+        : defaultSettings.siteSettings.supportEmail;
+    const normalizedInstantPublishing =
+      typeof operationalSettingsCandidate?.instantPublishing === 'boolean'
+        ? operationalSettingsCandidate.instantPublishing
+        : defaultSettings.operationalSettings.instantPublishing;
+
+    const normalized = {
       siteSettings: {
-        siteTitle:
-          typeof siteSettings?.siteTitle === 'string'
-            ? siteSettings.siteTitle.trim() || defaultSettings.siteSettings.siteTitle
-            : defaultSettings.siteSettings.siteTitle,
-        supportEmail:
-          typeof siteSettings?.supportEmail === 'string'
-            ? siteSettings.supportEmail.trim() || defaultSettings.siteSettings.supportEmail
-            : defaultSettings.siteSettings.supportEmail,
+        siteTitle: normalizedSiteTitle,
+        supportEmail: normalizedSupportEmail,
         brandMedia: {
-          logo: typeof siteSettings?.brandMedia?.logo === 'string' ? siteSettings.brandMedia.logo.trim() : '',
-          logoDark: typeof siteSettings?.brandMedia?.logoDark === 'string' ? siteSettings.brandMedia.logoDark.trim() : '',
-          favicon: typeof siteSettings?.brandMedia?.favicon === 'string' ? siteSettings.brandMedia.favicon.trim() : '',
+          logo: typeof siteSettingsCandidate?.brandMedia?.logo === 'string' ? siteSettingsCandidate.brandMedia.logo.trim() : '',
+          logoDark: typeof siteSettingsCandidate?.brandMedia?.logoDark === 'string' ? siteSettingsCandidate.brandMedia.logoDark.trim() : '',
+          favicon: typeof siteSettingsCandidate?.brandMedia?.favicon === 'string' ? siteSettingsCandidate.brandMedia.favicon.trim() : '',
           defaultSocialImage:
-            typeof siteSettings?.brandMedia?.defaultSocialImage === 'string' ? siteSettings.brandMedia.defaultSocialImage.trim() : '',
+            typeof siteSettingsCandidate?.brandMedia?.defaultSocialImage === 'string' ? siteSettingsCandidate.brandMedia.defaultSocialImage.trim() : '',
         },
       },
       operationalSettings: {
-        instantPublishing:
-          typeof operationalSettings?.instantPublishing === 'boolean'
-            ? operationalSettings.instantPublishing
-            : defaultSettings.operationalSettings.instantPublishing,
+        instantPublishing: normalizedInstantPublishing,
       },
       taxonomySettings: {
         blog: {
-          managedCategories: this.normalizeManagedTaxonomyList(settings?.taxonomySettings?.blog?.managedCategories, MANAGED_BLOG_CATEGORIES),
-          managedTags: this.normalizeManagedTaxonomyList(settings?.taxonomySettings?.blog?.managedTags, MANAGED_BLOG_TAGS),
-          enforceManagedTags: settings?.taxonomySettings?.blog?.enforceManagedTags !== false,
+          managedCategories: this.normalizeManagedTaxonomyList(taxonomySettingsCandidate?.blog?.managedCategories, MANAGED_BLOG_CATEGORIES),
+          managedTags: this.normalizeManagedTaxonomyList(taxonomySettingsCandidate?.blog?.managedTags, MANAGED_BLOG_TAGS),
+          enforceManagedTags: taxonomySettingsCandidate?.blog?.enforceManagedTags !== false,
         },
       },
-      siteTitle:
-        typeof siteSettings?.siteTitle === 'string'
-          ? siteSettings.siteTitle.trim() || defaultSettings.siteSettings.siteTitle
-          : defaultSettings.siteSettings.siteTitle,
-      supportEmail:
-        typeof siteSettings?.supportEmail === 'string'
-          ? siteSettings.supportEmail.trim() || defaultSettings.siteSettings.supportEmail
-          : defaultSettings.siteSettings.supportEmail,
-      instantPublishing:
-        typeof operationalSettings?.instantPublishing === 'boolean'
-          ? operationalSettings.instantPublishing
-          : defaultSettings.operationalSettings.instantPublishing,
-      taxonomy: {
-        blog: {
-          managedCategories: this.normalizeManagedTaxonomyList(settings?.taxonomySettings?.blog?.managedCategories, MANAGED_BLOG_CATEGORIES),
-          managedTags: this.normalizeManagedTaxonomyList(settings?.taxonomySettings?.blog?.managedTags, MANAGED_BLOG_TAGS),
-          enforceManagedTags: settings?.taxonomySettings?.blog?.enforceManagedTags !== false,
-        },
-      },
+    };
+
+    return {
+      ...normalized,
+      // Backward-compat aliases for legacy clients and historical snapshots.
+      siteTitle: normalized.siteSettings.siteTitle,
+      supportEmail: normalized.siteSettings.supportEmail,
+      instantPublishing: normalized.operationalSettings.instantPublishing,
+      taxonomy: normalized.taxonomySettings,
     };
   }
 
