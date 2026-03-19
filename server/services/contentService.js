@@ -500,6 +500,12 @@ class ContentService {
     if (slugConflict) {
       return { ok: false, error: { code: 'SERVICE_SLUG_CONFLICT', message: 'Service slug already exists.' } };
     }
+    if (normalized.status === 'published') {
+      const publishability = this.evaluateServicePublishability(normalized);
+      if (!publishability.ok) {
+        return { ok: false, error: { code: 'SERVICE_NOT_PUBLISHABLE', message: publishability.message } };
+      }
+    }
 
     const index = services.findIndex((entry) => entry.id === normalized.id);
     if (index >= 0) services[index] = normalized;
@@ -744,6 +750,39 @@ class ContentService {
     const invalidServiceRoutes = services.filter((service) => !SLUG_PATTERN.test(service.routeSlug || '')).length;
     const mediaMissingAlt = mediaFiles.filter((asset) => !asset.alt || !asset.alt.trim()).length;
     const missingBrandAssets = ['logo', 'logoDark', 'favicon', 'defaultSocialImage'].filter((field) => !settings.siteSettings.brandMedia?.[field]).length;
+    const routeCollisions = this.collectRouteCollisions(services);
+    const unresolvedMediaReferences = this.collectAllMediaReferences().filter((entry) => !entry.isValid);
+    const legacyFieldUsage = {
+      blog: blogPosts.filter((post) => post.featuredImage && !post.mediaRoles?.coverImage).length,
+      projects: projects.filter((project) => (project.featuredImage || project.mainImage) && !project.mediaRoles?.cardImage).length,
+      services: services.filter((service) => !service.routeSlug || service.routeSlug === service.slug).length,
+    };
+
+    const readinessDiagnostics = {
+      blog: blogPosts.map((post) => ({
+        id: post.id,
+        label: post.title,
+        status: post.status,
+        issues: this.getBlogReadinessIssues(post),
+      })),
+      projects: projects.map((project) => ({
+        id: project.id,
+        label: project.title,
+        status: project.status,
+        issues: this.getProjectReadinessIssues(project),
+      })),
+      services: services.map((service) => ({
+        id: service.id,
+        label: service.title,
+        status: service.status,
+        issues: this.getServiceReadinessIssues(service),
+      })),
+    };
+
+    const blockerDiagnostics = [...readinessDiagnostics.blog, ...readinessDiagnostics.projects, ...readinessDiagnostics.services]
+      .filter((entry) => entry.issues.some((issue) => issue.severity === 'blocker'));
+    const warningDiagnostics = [...readinessDiagnostics.blog, ...readinessDiagnostics.projects, ...readinessDiagnostics.services]
+      .filter((entry) => entry.issues.some((issue) => issue.severity === 'warning'));
 
     return {
       publication: {
@@ -759,6 +798,9 @@ class ContentService {
           services: seoIncompleteServices,
         },
         invalidServiceRoutes,
+        routeCollisions: routeCollisions.length,
+        unresolvedMediaReferences: unresolvedMediaReferences.length,
+        legacyFieldUsage,
         mediaMissingAlt,
         missingBrandAssets,
       },
@@ -767,8 +809,28 @@ class ContentService {
           missingPublishedMedia.blog + missingPublishedMedia.projects + missingPublishedMedia.services > 0 ? 'published_content_missing_media' : null,
           seoIncompleteBlog + seoIncompleteProjects + seoIncompleteServices > 0 ? 'published_content_missing_seo' : null,
           invalidServiceRoutes > 0 ? 'invalid_service_routes' : null,
+          routeCollisions.length > 0 ? 'service_route_collisions' : null,
+          unresolvedMediaReferences.length > 0 ? 'unresolved_media_references' : null,
           missingBrandAssets > 0 ? 'missing_brand_assets' : null,
         ].filter(Boolean),
+        summary: {
+          blockerCount: blockerDiagnostics.length,
+          warningCount: warningDiagnostics.length,
+          publishReadyCount:
+            readinessDiagnostics.blog.filter((entry) => entry.status === 'published' && entry.issues.every((issue) => issue.severity !== 'blocker')).length +
+            readinessDiagnostics.projects.filter((entry) => entry.status === 'published' && entry.issues.every((issue) => issue.severity !== 'blocker')).length +
+            readinessDiagnostics.services.filter((entry) => entry.status === 'published' && entry.issues.every((issue) => issue.severity !== 'blocker')).length,
+          publishedCount:
+            readinessDiagnostics.blog.filter((entry) => entry.status === 'published').length +
+            readinessDiagnostics.projects.filter((entry) => entry.status === 'published').length +
+            readinessDiagnostics.services.filter((entry) => entry.status === 'published').length,
+        },
+        topIssues: blockerDiagnostics.concat(warningDiagnostics).slice(0, 8).map((entry) => ({
+          id: entry.id,
+          label: entry.label,
+          status: entry.status,
+          issues: entry.issues.slice(0, 3),
+        })),
       },
       mediaRolePresets: Array.from(MEDIA_ROLE_PRESETS),
     };
@@ -810,6 +872,101 @@ class ContentService {
       return { ok: false, message: 'Summary/description must contain at least 24 characters.' };
     }
     return { ok: true };
+  }
+
+  evaluateServicePublishability(service) {
+    const blockers = this.getServiceReadinessIssues(service).filter((issue) => issue.severity === 'blocker');
+    if (blockers.length > 0) {
+      return { ok: false, message: blockers[0].message };
+    }
+    return { ok: true };
+  }
+
+  getBlogReadinessIssues(post) {
+    const issues = [];
+    if (post.status !== 'published') return issues;
+    if (!post.title?.trim() || !post.slug?.trim() || !post.featuredImage?.trim()) {
+      issues.push({ severity: 'blocker', code: 'blog_missing_required_publish_fields', message: 'Article publié sans titre/slug/image vedette complète.' });
+    }
+    if (!this.isValidDate(post.publishedDate)) {
+      issues.push({ severity: 'blocker', code: 'blog_invalid_publish_date', message: 'Date de publication blog invalide.' });
+    }
+    if (!this.isValidMediaLink(post.featuredImage)) {
+      issues.push({ severity: 'blocker', code: 'blog_invalid_featured_media', message: 'Image vedette blog invalide (URL ou media:asset-id attendu).' });
+    }
+    if (!post.seo?.title || !post.seo?.description || !post.seo?.canonicalSlug) {
+      issues.push({ severity: 'warning', code: 'blog_seo_incomplete', message: 'SEO blog incomplet (title/description/canonicalSlug).' });
+    }
+    if (!post.seo?.socialImage && !post.mediaRoles?.socialImage) {
+      issues.push({ severity: 'warning', code: 'blog_missing_social_image', message: 'Aucune image sociale explicite pour le blog.' });
+    }
+    if (post.featuredImage && !post.mediaRoles?.coverImage) {
+      issues.push({ severity: 'warning', code: 'blog_legacy_media_field', message: 'Article blog reposant sur featuredImage legacy sans mediaRoles.coverImage.' });
+    }
+    return issues;
+  }
+
+  getProjectReadinessIssues(project) {
+    const issues = [];
+    if (project.status !== 'published') return issues;
+    if (!project.title?.trim() || !project.slug?.trim() || !project.featuredImage?.trim()) {
+      issues.push({ severity: 'blocker', code: 'project_missing_required_publish_fields', message: 'Projet publié sans titre/slug/image carte complète.' });
+    }
+    if (!this.isValidMediaLink(project.featuredImage)) {
+      issues.push({ severity: 'blocker', code: 'project_invalid_featured_media', message: 'Image carte projet invalide.' });
+    }
+    const summarySource = typeof project.summary === 'string' && project.summary.trim()
+      ? project.summary.trim()
+      : `${project.description || ''}`.trim();
+    if (!hasMinTrimmedLength(summarySource, 24)) {
+      issues.push({ severity: 'blocker', code: 'project_summary_too_short', message: 'Résumé/description projet insuffisant pour la publication.' });
+    }
+    if (!project.mediaRoles?.cardImage || !project.mediaRoles?.heroImage) {
+      issues.push({ severity: 'warning', code: 'project_missing_media_roles', message: 'Projet sans mediaRoles cardImage/heroImage complets.' });
+    }
+    if (!project.seo?.title || !project.seo?.description || !project.seo?.canonicalSlug) {
+      issues.push({ severity: 'warning', code: 'project_seo_incomplete', message: 'SEO projet incomplet (title/description/canonicalSlug).' });
+    }
+    if ((project.featuredImage || project.mainImage) && !project.mediaRoles?.cardImage) {
+      issues.push({ severity: 'warning', code: 'project_legacy_media_field', message: 'Projet s’appuie sur featuredImage/mainImage legacy.' });
+    }
+    return issues;
+  }
+
+  getServiceReadinessIssues(service) {
+    const issues = [];
+    if (service.status !== 'published') return issues;
+    if (!service.routeSlug || !isValidSlug(service.routeSlug)) {
+      issues.push({ severity: 'blocker', code: 'service_invalid_route_slug', message: 'Service publié avec routeSlug invalide.' });
+    }
+    if (!service.description?.trim() || !Array.isArray(service.features) || service.features.length === 0) {
+      issues.push({ severity: 'blocker', code: 'service_missing_core_fields', message: 'Service publié sans description/fonctionnalités complètes.' });
+    }
+    if (service.ctaPrimaryHref && !isValidContentHrefContract(service.ctaPrimaryHref)) {
+      issues.push({ severity: 'blocker', code: 'service_invalid_cta_href', message: 'CTA principal service invalide (ancre, route ou URL https).' });
+    }
+    if (!service.iconLikeAsset) {
+      issues.push({ severity: 'warning', code: 'service_missing_icon_asset', message: 'Service sans iconLikeAsset explicite pour les surfaces CMS.' });
+    }
+    if (!service.seo?.title || !service.seo?.description || !service.seo?.canonicalSlug) {
+      issues.push({ severity: 'warning', code: 'service_seo_incomplete', message: 'SEO service incomplet (title/description/canonicalSlug).' });
+    }
+    if (service.ctaPrimaryLabel && !service.ctaPrimaryHref) {
+      issues.push({ severity: 'warning', code: 'service_partial_cta', message: 'Service avec label CTA sans lien correspondant.' });
+    }
+    return issues;
+  }
+
+  collectRouteCollisions(services) {
+    const bySlug = new Map();
+    services.forEach((service) => {
+      const slug = `${service.routeSlug || ''}`.trim();
+      if (!slug) return;
+      const entries = bySlug.get(slug) || [];
+      entries.push(service.id);
+      bySlug.set(slug, entries);
+    });
+    return Array.from(bySlug.entries()).filter(([, ids]) => ids.length > 1).map(([slug, ids]) => ({ slug, ids }));
   }
 
   isAllowedTransition(current, target) {

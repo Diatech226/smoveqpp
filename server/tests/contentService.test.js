@@ -898,6 +898,26 @@ describe('ContentService production hardening', () => {
     expect(saved.service.seo.canonicalSlug).toBe('service-process');
   });
 
+  it('blocks publishing a service when route or CTA contract is invalid', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const saved = service.saveService({
+      id: 'service-invalid-publish',
+      title: 'Service invalide',
+      slug: 'service-invalide',
+      routeSlug: 'service-invalide',
+      description: 'Description suffisante pour un service publié.',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature'],
+      ctaPrimaryHref: 'mailto:contact@smove.africa',
+      status: 'published',
+      featured: false,
+    });
+
+    expect(saved.ok).toBe(false);
+    expect(saved.error.code).toBe('SERVICE_NOT_PUBLISHABLE');
+  });
+
   it('builds a content health summary for operator dashboards and launch readiness', () => {
     const service = new ContentService({
       contentRepository: new MemoryContentRepository({
@@ -939,7 +959,47 @@ describe('ContentService production hardening', () => {
     const summary = service.getContentHealthSummary();
     expect(summary.publication.blog.published).toBeGreaterThan(0);
     expect(summary.quality.mediaMissingAlt).toBeGreaterThan(0);
+    expect(summary.quality.unresolvedMediaReferences).toBeGreaterThanOrEqual(0);
     expect(summary.mediaRolePresets).toContain('heroImage');
     expect(summary.launchReadiness.blockers.length).toBeGreaterThan(0);
+    expect(summary.launchReadiness.summary.blockerCount).toBeGreaterThanOrEqual(0);
+  });
+
+  it('reports route collisions and actionable top issues in readiness summary', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        services: [
+          {
+            id: 'service-a',
+            title: 'Service A',
+            slug: 'service-a',
+            routeSlug: 'collision-route',
+            description: 'Description complète.',
+            icon: 'palette',
+            color: 'from-[#00b3e8] to-[#00c0e8]',
+            features: ['Feature A'],
+            status: 'published',
+            featured: false,
+          },
+          {
+            id: 'service-b',
+            title: 'Service B',
+            slug: 'service-b',
+            routeSlug: 'collision-route',
+            description: 'Description complète.',
+            icon: 'code',
+            color: 'from-[#00b3e8] to-[#00c0e8]',
+            features: ['Feature B'],
+            status: 'published',
+            featured: false,
+          },
+        ],
+      }),
+    });
+
+    const summary = service.getContentHealthSummary();
+    expect(summary.quality.routeCollisions).toBeGreaterThan(0);
+    expect(summary.launchReadiness.blockers).toContain('service_route_collisions');
+    expect((summary.launchReadiness.topIssues || []).length).toBeGreaterThan(0);
   });
 });

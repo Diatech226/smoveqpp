@@ -177,6 +177,12 @@ This gives resilience but introduces contract drift risk and duplicate sync logi
 ### Next improvements
 - Promote shared media reference utility contract to reduce frontend/backend divergence.
 
+#### Iteration E status update (2026-03-19)
+- ✅ Content health summary enriched with release-readiness counts (blockers/warnings/publish-ready ratio).
+- ✅ Route/media/legacy diagnostics extended (service route collisions, unresolved media references, compatibility-field usage counters).
+- ✅ CMS overview now surfaces actionable top issues to make operator triage faster.
+- ✅ Service publish path now enforces render-critical publishability constraints.
+
 ---
 
 ## 3.5 Settings
