@@ -1,0 +1,30 @@
+import type { Service } from '../../domain/contentSchemas';
+
+export const PREMIUM_SERVICE_ROUTES: Record<string, 'service-design' | 'service-web'> = {
+  'design-branding': 'service-design',
+  'web-development': 'service-web',
+};
+
+export const normalizeServiceSlug = (value: string | undefined): string =>
+  `${value || ''}`
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+export const resolveServiceRouteSlug = (service: Pick<Service, 'id' | 'slug' | 'routeSlug'>): string =>
+  normalizeServiceSlug(service.routeSlug || service.slug || service.id);
+
+export const resolveServiceRouteHref = (service: Pick<Service, 'id' | 'slug' | 'routeSlug'>): string => {
+  const routeSlug = resolveServiceRouteSlug(service);
+  const premiumRoute = PREMIUM_SERVICE_ROUTES[routeSlug];
+  if (premiumRoute) {
+    return `#${premiumRoute}`;
+  }
+
+  return `#service/${routeSlug}`;
+};
+
+export const isPremiumServiceSlug = (slug: string): boolean => Boolean(PREMIUM_SERVICE_ROUTES[slug]);

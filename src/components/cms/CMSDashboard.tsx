@@ -1200,6 +1200,19 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setServicesError('');
   };
 
+  const isValidPublicHref = (value: string): boolean => {
+    const href = value.trim();
+    if (!href) return false;
+    if (href.startsWith('#')) return href.length > 1;
+    if (href.startsWith('/')) return true;
+    try {
+      const parsed = new URL(href);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   const validateServiceForm = (form: ServiceFormState) => {
     const errors: Partial<Record<keyof ServiceFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
@@ -1221,6 +1234,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     if (form.iconLikeAsset.trim() && !isValidMediaField(form.iconLikeAsset)) {
       errors.iconLikeAsset = 'Icon asset invalide. Utilisez une URL valide ou media:asset-id existant.';
+    }
+    if (form.ctaPrimaryHref.trim() && !isValidPublicHref(form.ctaPrimaryHref)) {
+      errors.ctaPrimaryHref = 'Le CTA doit être une ancre (#contact), une route (/contact) ou une URL https://.';
     }
     return errors;
   };
@@ -1392,7 +1408,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         >
           {(['title', 'slug', 'client', 'category', 'year'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
               <input
                 value={projectForm[fieldKey]}
                 onChange={(event) => setProjectForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
@@ -1632,13 +1648,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         >
           {(['title', 'slug', 'routeSlug', 'icon', 'color'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
               <input
                 value={serviceForm[fieldKey]}
                 onChange={(event) => setServiceForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
                 className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
               />
               {serviceFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors[fieldKey]}</p> : null}
+              {fieldKey === 'routeSlug' ? (
+                <p className="text-[12px] text-[#6f7f85] mt-1">Utilisé pour la page publique: <code>#service/{resolveServiceRouteSlug({ id: serviceForm.id || 'service', slug: serviceForm.slug, routeSlug: serviceForm.routeSlug })}</code> (ou route premium si connue).</p>
+              ) : null}
             </label>
           ))}
 
@@ -1723,7 +1742,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 value={serviceForm.ctaPrimaryHref}
                 onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaPrimaryHref: event.target.value }))}
                 className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                placeholder="#contact, /contact ou https://..."
               />
+              {serviceFormErrors.ctaPrimaryHref ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.ctaPrimaryHref}</p> : null}
             </label>
           </div>
 
@@ -1798,7 +1819,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         >
           {(['title', 'slug', 'author', 'readTime'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
               <input
                 value={blogForm[fieldKey]}
                 onChange={(event) => setBlogForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}

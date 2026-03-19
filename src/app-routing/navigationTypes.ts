@@ -39,7 +39,8 @@ export type ResolvedPage =
   | 'cms-forbidden'
   | 'auth-loading'
   | `project-${string}`
-  | `blog-${string}`;
+  | `blog-${string}`
+  | `service-${string}`;
 
 export interface AuthRoutingState {
   isAuthenticated: boolean;

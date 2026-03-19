@@ -106,9 +106,10 @@ function HomePageContent() {
           {/* Services Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {renderableServices.map((service, index) => (
-              <motion.div
-                key={index}
-                className="group"
+              <motion.a
+                key={service.id}
+                href={service.routeHref}
+                className="group block"
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -142,7 +143,7 @@ function HomePageContent() {
                     </h3>
 
                     <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#38484e] group-hover:text-white/90 transition-colors mb-6 leading-relaxed">
-                      {service.description}
+                      {service.cardDescription}
                     </p>
 
                     <motion.div
@@ -154,7 +155,7 @@ function HomePageContent() {
                     </motion.div>
                   </div>
                 </motion.div>
-              </motion.div>
+              </motion.a>
             ))}
           </div>
 

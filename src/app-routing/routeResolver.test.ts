@@ -38,7 +38,12 @@ describe('routeResolver', () => {
   it('maps canonical service slugs to deterministic service pages', () => {
     expect(resolveRoute('#service/design-branding', baseAuth).page).toBe('service-design');
     expect(resolveRoute('#service/web-development', baseAuth).page).toBe('service-web');
-    expect(resolveRoute('#service/unknown', baseAuth).page).toBe('services-all');
+    expect(resolveRoute('#service/unknown', baseAuth).page).toBe('service-unknown');
+  });
+
+
+  it('falls back service root route to services hub when slug is empty', () => {
+    expect(resolveRoute('#service///', baseAuth).page).toBe('services-all');
   });
 
   it('falls back invalid routes to home', () => {

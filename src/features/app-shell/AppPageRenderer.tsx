@@ -6,6 +6,7 @@ import BlogDetailPage from '../../components/BlogDetailPage';
 import ServicesHubPage from '../../components/ServicesHubPage';
 import DesignBrandingPage from '../../components/services/DesignBrandingPage';
 import WebDevelopmentPage from '../../components/services/WebDevelopmentPage';
+import ServiceDetailPage from '../../components/services/ServiceDetailPage';
 import ProjectsPage from '../../components/ProjectsPage';
 import ProjectDetailPage from '../../components/ProjectDetailPage';
 import LoginPage from '../../components/auth/LoginPage';
@@ -113,6 +114,18 @@ export default function AppPageRenderer({
       <PublicSiteShell>
         <SectionErrorBoundary scope="blog-detail">
           <BlogDetailPage slug={slug} />
+        </SectionErrorBoundary>
+      </PublicSiteShell>
+    );
+  }
+
+
+  if (currentPage.startsWith('service-') && currentPage !== 'service-design' && currentPage !== 'service-web') {
+    const slug = currentPage.replace('service-', '');
+    return (
+      <PublicSiteShell>
+        <SectionErrorBoundary scope="service-detail">
+          <ServiceDetailPage slug={slug} />
         </SectionErrorBoundary>
       </PublicSiteShell>
     );

@@ -5,6 +5,7 @@ import Navigation from '../Navigation';
 import Footer from '../Footer';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { serviceRepository } from '../../repositories/serviceRepository';
+import { findPublishedServiceBySlug } from '../../features/marketing/serviceDetailContract';
 import { fetchPublicServices } from '../../utils/publicContentApi';
 import { useRemoteRepositorySync } from '../../features/content-sync/useRemoteRepositorySync';
 
@@ -63,7 +64,7 @@ export default function DesignBrandingPage() {
     onSynced: handleServicesSynced,
   });
 
-  const service = useMemo(() => serviceRepository.getPublished().find((entry) => entry.routeSlug === 'design-branding' || entry.slug === 'design-branding'), [serviceVersion]);
+  const service = useMemo(() => findPublishedServiceBySlug(serviceRepository.getAll(), 'design-branding'), [serviceVersion]);
   const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
   const process = (service?.processSteps && service.processSteps.length > 0 ? service.processSteps : defaultProcess.map((item) => item.title)).slice(0, 5);
   const ctaPrimaryLabel = service?.ctaPrimaryLabel || 'Contactez-nous';
@@ -100,10 +101,10 @@ export default function DesignBrandingPage() {
                 className="inline-block bg-[#00b3e8] text-white px-4 py-2 rounded-full font-['Abhaya_Libre:Bold',sans-serif] text-[14px] mb-6"
                 whileHover={{ scale: 1.05 }}
               >
-                Design & Branding
+                {service?.title || 'Design & Branding'}
               </motion.div>
               <h1 className="font-['ABeeZee:Regular',sans-serif] text-[56px] md:text-[72px] text-[#273a41] mb-6 leading-tight">
-                Créez une identité visuelle <span className="text-[#00b3e8]">inoubliable</span>
+                {service?.title || 'Créez une identité visuelle'} <span className="text-[#00b3e8]">inoubliable</span>
               </h1>
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-[#38484e] mb-8 leading-relaxed">
                 {service?.overviewDescription || service?.description || 'Transformez votre vision en une marque forte et cohérente qui résonne avec votre audience. Notre équipe de designers crée des identités visuelles qui marquent les esprits.'}
@@ -115,7 +116,7 @@ export default function DesignBrandingPage() {
                   whileHover={{ scale: 1.05, x: 5 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Démarrer un projet
+                  {service?.ctaPrimaryLabel || 'Démarrer un projet'}
                   <ArrowRight size={20} />
                 </motion.a>
                 <motion.a
@@ -181,7 +182,7 @@ export default function DesignBrandingPage() {
               Nos Services
             </h2>
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-[#38484e] max-w-2xl mx-auto">
-              Une gamme complète de services de design pour tous vos besoins visuels
+              {service?.shortDescription || 'Une gamme complète de services de design pour tous vos besoins visuels'}
             </p>
           </motion.div>
 
