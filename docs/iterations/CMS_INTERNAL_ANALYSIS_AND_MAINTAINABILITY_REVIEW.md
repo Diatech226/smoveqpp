@@ -412,3 +412,8 @@ To avoid broad speculative refactors while still improving velocity:
 - Applied the hook to multiple project/service public pages to reduce duplicated effect boilerplate and standardize fallback behavior.
 
 This is intentionally scoped and behavior-preserving.
+
+## Iteration A implementation status (2026-03-18)
+
+- Implemented: dashboard section decomposition (projects/services/blog/media/page content), frontend validation helper centralization, and helper tests.
+- Deferred intentionally: settings/users decomposition and shared async action hooks to keep behavior-risk low in first pass.
