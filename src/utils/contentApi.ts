@@ -141,11 +141,34 @@ export interface ContentHealthSummary {
       services: number;
     };
     invalidServiceRoutes: number;
+    routeCollisions?: number;
+    unresolvedMediaReferences?: number;
+    legacyFieldUsage?: {
+      blog: number;
+      projects: number;
+      services: number;
+    };
     mediaMissingAlt: number;
     missingBrandAssets: number;
   };
   launchReadiness: {
     blockers: string[];
+    summary?: {
+      blockerCount: number;
+      warningCount: number;
+      publishReadyCount: number;
+      publishedCount: number;
+    };
+    topIssues?: Array<{
+      id: string;
+      label: string;
+      status: string;
+      issues: Array<{
+        severity: 'blocker' | 'warning';
+        code: string;
+        message: string;
+      }>;
+    }>;
   };
   mediaRolePresets: string[];
 }

@@ -66,6 +66,7 @@ import { isProjectMediaReference } from '../../features/projects/projectMedia';
 import { toMediaReferenceValue } from '../../features/media/assetReference';
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
+import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
 import type { BlogPost, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -319,6 +320,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     register(homeContentForm.aboutImage, 'Home page • aboutImage');
     return index;
   }, [homeContentForm.aboutImage, posts, projects]);
+  const readinessSnapshot = useMemo(
+    () => (contentHealth ? deriveDashboardReadinessSnapshot(contentHealth) : null),
+    [contentHealth],
+  );
 
   const canEditContent = user?.role === 'admin' || user?.role === 'editor' || user?.role === 'author';
   const canReviewContent = user?.role === 'admin' || user?.role === 'editor';
@@ -2766,8 +2771,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       <p className="text-[#273a41] font-bold">{contentHealth.quality.invalidServiceRoutes}</p>
                     </div>
                     <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">Collisions de routes</p>
+                      <p className="text-[#273a41] font-bold">{contentHealth.quality.routeCollisions || 0}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
                       <p className="text-[#6f7f85]">Médias sans alt</p>
                       <p className="text-[#273a41] font-bold">{contentHealth.quality.mediaMissingAlt}</p>
+                    </div>
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">Références média non résolues</p>
+                      <p className="text-[#273a41] font-bold">{contentHealth.quality.unresolvedMediaReferences || 0}</p>
                     </div>
                     <div className="rounded-[12px] border border-[#e5edf0] p-3">
                       <p className="text-[#6f7f85]">Brand assets manquants</p>
@@ -2777,7 +2790,36 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                       <p className="text-[#6f7f85]">Blockers lancement</p>
                       <p className="text-[#273a41] font-bold">{contentHealth.launchReadiness.blockers.length}</p>
                     </div>
+                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
+                      <p className="text-[#6f7f85]">Legacy fields actifs</p>
+                      <p className="text-[#273a41] font-bold">
+                        Blog {contentHealth.quality.legacyFieldUsage?.blog || 0} • Projets {contentHealth.quality.legacyFieldUsage?.projects || 0} • Services {contentHealth.quality.legacyFieldUsage?.services || 0}
+                      </p>
+                    </div>
                   </div>
+                  {readinessSnapshot ? (
+                    <div className="mt-4 rounded-[12px] border border-[#e5edf0] p-4 text-[13px]">
+                      <p className="text-[#6f7f85]">Release baseline</p>
+                      <p className="text-[#273a41] font-bold">
+                        {readinessSnapshot.publishReadyCount}/{readinessSnapshot.publishedCount} publiés réellement prêts • {readinessSnapshot.blockerCount} blockers • {readinessSnapshot.warningCount} warnings
+                      </p>
+                      <p className="text-[#6f7f85] mt-1">
+                        Routes à résoudre: {readinessSnapshot.unresolvedRouteCount} • médias critiques à résoudre: {readinessSnapshot.unresolvedMediaCount}
+                      </p>
+                    </div>
+                  ) : null}
+                  {contentHealth.launchReadiness.topIssues && contentHealth.launchReadiness.topIssues.length > 0 ? (
+                    <div className="mt-4 rounded-[12px] border border-amber-200 bg-amber-50/40 p-4">
+                      <p className="text-[13px] font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Diagnostics actionnables prioritaires</p>
+                      <ul className="mt-2 space-y-1 text-[12px] text-[#42545a]">
+                        {contentHealth.launchReadiness.topIssues.slice(0, 6).map((entry) => (
+                          <li key={entry.id}>
+                            <span className="font-semibold">{entry.label}</span> — {entry.issues.map((issue) => issue.message).join(' | ')}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </>
