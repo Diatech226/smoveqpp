@@ -1,11 +1,25 @@
+const {
+  SLUG_PATTERN,
+  MEDIA_REFERENCE_PREFIX,
+  normalizeSlug: normalizeSharedSlug,
+  isValidSlug,
+  isHttpUrl,
+  isValidOptionalHttpUrl,
+  isValidContentHref: isValidContentHrefContract,
+  isMediaReference: isMediaReferenceContract,
+  mediaIdFromReference: mediaIdFromReferenceContract,
+  isValidMediaFieldValue,
+  requiredTrimmed,
+  hasMinTrimmedLength,
+  normalizeStringArray,
+} = require('../utils/contentContracts');
+
 const BLOG_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
 const MEDIA_TYPES = new Set(['image', 'video', 'document']);
 const PROJECT_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
 const SERVICE_STATUSES = new Set(['draft', 'published', 'archived']);
 const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const COLOR_GRADIENT_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const MEDIA_REFERENCE_PREFIX = 'media:';
 const MEDIA_ROLE_PRESETS = new Set(['cardImage', 'heroImage', 'coverImage', 'socialImage', 'galleryImage', 'iconLikeAsset', 'brandLogo', 'favicon']);
 const MANAGED_BLOG_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
 const MANAGED_BLOG_TAGS = ['React', 'Web Design', 'Performance', 'Innovation', 'Vidéo', 'Branding', 'Corporate', 'BTP', 'Logo Design', 'Identité Visuelle', 'Food', 'SEO', 'Social Media', 'CMS'];
@@ -792,7 +806,7 @@ class ContentService {
     if (!this.isValidMediaLink(project.featuredImage)) {
       return { ok: false, message: 'Featured image must be a valid URL or media reference.' };
     }
-    if (!summarySource || summarySource.length < 24) {
+    if (!hasMinTrimmedLength(summarySource, 24)) {
       return { ok: false, message: 'Summary/description must contain at least 24 characters.' };
     }
     return { ok: true };
@@ -861,29 +875,19 @@ class ContentService {
   }
 
   isValidHttpUrl(value) {
-    if (typeof value !== 'string' || !value.trim()) return false;
-    try {
-      const candidate = new URL(value);
-      return candidate.protocol === 'http:' || candidate.protocol === 'https:';
-    } catch {
-      return false;
-    }
+    return isHttpUrl(value);
   }
 
   isValidContentHref(value) {
-    if (typeof value !== 'string' || !value.trim()) return false;
-    const href = value.trim();
-    if (href.startsWith('#')) return href.length > 1;
-    if (href.startsWith('/')) return true;
-    return this.isValidHttpUrl(href);
+    return isValidContentHrefContract(value);
   }
 
   isMediaReference(value) {
-    return typeof value === 'string' && value.trim().startsWith(MEDIA_REFERENCE_PREFIX);
+    return isMediaReferenceContract(value);
   }
 
   mediaIdFromReference(value) {
-    return value.slice(MEDIA_REFERENCE_PREFIX.length).trim();
+    return mediaIdFromReferenceContract(value);
   }
 
   doesMediaReferenceExist(value) {
@@ -894,11 +898,10 @@ class ContentService {
   }
 
   isValidMediaLink(value) {
-    if (typeof value !== 'string' || !value.trim()) return false;
-    if (this.isMediaReference(value)) {
-      return this.doesMediaReferenceExist(value);
-    }
-    return this.isValidHttpUrl(value) || !value.includes('://');
+    return isValidMediaFieldValue(value, {
+      allowInlineText: true,
+      hasMediaById: (mediaId) => this.listMediaFiles().some((entry) => entry.id === mediaId),
+    });
   }
 
   validateBlogPost(post) {
@@ -924,20 +927,20 @@ class ContentService {
       (post.seo === undefined ||
         (typeof post.seo === 'object' &&
           (post.seo.socialImage === undefined || this.isValidMediaLink(post.seo.socialImage)) &&
-          (post.seo.canonicalSlug === undefined || SLUG_PATTERN.test(post.seo.canonicalSlug)))) &&
+          (post.seo.canonicalSlug === undefined || isValidSlug(post.seo.canonicalSlug)))) &&
       (post.mediaRoles === undefined ||
         (typeof post.mediaRoles === 'object' &&
           (post.mediaRoles.featuredImage === undefined || this.isValidMediaLink(post.mediaRoles.featuredImage)) &&
           (post.mediaRoles.socialImage === undefined || this.isValidMediaLink(post.mediaRoles.socialImage)) &&
           (post.mediaRoles.coverImage === undefined || this.isValidMediaLink(post.mediaRoles.coverImage)) &&
           (post.mediaRoles.cardImage === undefined || this.isValidMediaLink(post.mediaRoles.cardImage)))) &&
-      SLUG_PATTERN.test(post.slug.trim()) &&
+      isValidSlug(post.slug) &&
       BLOG_STATUSES.has(post.status)
     );
   }
 
   normalizeProject(project) {
-    const asTrimmedString = (value) => (typeof value === 'string' ? value.trim() : '');
+    const asTrimmedString = requiredTrimmed;
     const title = asTrimmedString(project?.title);
     const slug = this.normalizeSlug(asTrimmedString(project?.slug) || title || asTrimmedString(project?.id));
     const status = PROJECT_STATUSES.has(project?.status) ? project.status : 'published';
@@ -947,7 +950,7 @@ class ContentService {
     const roleHeroImage = asTrimmedString(project?.mediaRoles?.heroImage);
     const roleCoverImage = asTrimmedString(project?.mediaRoles?.coverImage);
     const roleSocialImage = asTrimmedString(project?.mediaRoles?.socialImage);
-    const roleGalleryImages = Array.isArray(project?.mediaRoles?.galleryImages) ? project.mediaRoles.galleryImages.map((entry) => `${entry}`.trim()).filter(Boolean) : [];
+    const roleGalleryImages = Array.isArray(project?.mediaRoles?.galleryImages) ? normalizeStringArray(project.mediaRoles.galleryImages) : [];
     const featuredImage = roleCardImage || asTrimmedString(project?.featuredImage) || asTrimmedString(project?.mainImage) || 'project cover image';
     const heroImage = roleHeroImage || asTrimmedString(project?.mainImage) || featuredImage;
 
@@ -965,13 +968,13 @@ class ContentService {
       description: asTrimmedString(project?.description) || asTrimmedString(project?.summary) || 'Description à compléter.',
       challenge: asTrimmedString(project?.challenge) || 'Challenge à compléter.',
       solution: asTrimmedString(project?.solution) || 'Solution à compléter.',
-      results: Array.isArray(project?.results) ? project.results.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
-      tags: Array.isArray(project?.tags) ? project.tags.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      results: normalizeStringArray(project?.results),
+      tags: normalizeStringArray(project?.tags),
       mainImage: heroImage,
       featuredImage,
       imageAlt: asTrimmedString(project?.imageAlt) || title || 'Projet SMOVE',
       images: Array.isArray(project?.images)
-        ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean)
+        ? normalizeStringArray(project.images)
         : heroImage
           ? [heroImage]
           : [],
@@ -983,7 +986,7 @@ class ContentService {
         galleryImages: roleGalleryImages.length > 0
           ? roleGalleryImages
           : Array.isArray(project?.images)
-            ? project.images.map((entry) => `${entry}`.trim()).filter(Boolean)
+            ? normalizeStringArray(project.images)
             : heroImage
               ? [heroImage]
               : [],
@@ -1036,7 +1039,7 @@ class ContentService {
         project.title.length > 0 &&
         typeof project.slug === 'string' &&
         project.slug.length > 0 &&
-        SLUG_PATTERN.test(project.slug) &&
+        isValidSlug(project.slug) &&
         typeof project.client === 'string' &&
         typeof project.category === 'string' &&
         typeof project.year === 'string' &&
@@ -1064,13 +1067,13 @@ class ContentService {
           (typeof project.seo === 'object' &&
             (project.seo.title === undefined || typeof project.seo.title === 'string') &&
             (project.seo.description === undefined || typeof project.seo.description === 'string') &&
-            (project.seo.canonicalSlug === undefined || SLUG_PATTERN.test(project.seo.canonicalSlug)) &&
+            (project.seo.canonicalSlug === undefined || isValidSlug(project.seo.canonicalSlug)) &&
             (project.seo.socialImage === undefined || this.isValidMediaLink(project.seo.socialImage)))) &&
-        (project.link === undefined || this.isValidHttpUrl(project.link)) &&
+        (project.link === undefined || isValidOptionalHttpUrl(project.link)) &&
         (project.links === undefined ||
           (typeof project.links === 'object' &&
-            (project.links.live === undefined || this.isValidHttpUrl(project.links.live)) &&
-            (project.links.caseStudy === undefined || this.isValidHttpUrl(project.links.caseStudy)))) &&
+            (project.links.live === undefined || isValidOptionalHttpUrl(project.links.live)) &&
+            (project.links.caseStudy === undefined || isValidOptionalHttpUrl(project.links.caseStudy)))) &&
         (project.testimonial === undefined ||
           (typeof project.testimonial === 'object' &&
             typeof project.testimonial.text === 'string' &&
@@ -1085,7 +1088,7 @@ class ContentService {
 
 
   normalizeService(service) {
-    const asTrimmedString = (value) => (typeof value === 'string' ? value.trim() : '');
+    const asTrimmedString = requiredTrimmed;
     const title = asTrimmedString(service?.title);
     const nowIso = new Date().toISOString();
     const routeSlug = this.normalizeSlug(asTrimmedString(service?.routeSlug) || asTrimmedString(service?.slug) || title || asTrimmedString(service?.id));
@@ -1108,9 +1111,9 @@ class ContentService {
       ctaPrimaryLabel: asTrimmedString(service?.ctaPrimaryLabel) || undefined,
       ctaPrimaryHref: asTrimmedString(service?.ctaPrimaryHref) || undefined,
       processTitle: asTrimmedString(service?.processTitle) || undefined,
-      processSteps: Array.isArray(service?.processSteps) ? service.processSteps.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      processSteps: normalizeStringArray(service?.processSteps),
       color: asTrimmedString(service?.color) || 'from-[#00b3e8] to-[#00c0e8]',
-      features: Array.isArray(service?.features) ? service.features.map((entry) => `${entry}`.trim()).filter(Boolean) : [],
+      features: normalizeStringArray(service?.features),
       status: SERVICE_STATUSES.has(service?.status) ? service.status : 'published',
       featured: Boolean(service?.featured),
       seo: {
@@ -1133,16 +1136,16 @@ class ContentService {
         service.title.length > 0 &&
         typeof service.slug === 'string' &&
         service.slug.length > 0 &&
-        SLUG_PATTERN.test(service.slug) &&
+        isValidSlug(service.slug) &&
         typeof service.routeSlug === 'string' &&
         service.routeSlug.length > 0 &&
-        SLUG_PATTERN.test(service.routeSlug) &&
+        isValidSlug(service.routeSlug) &&
         (service.iconLikeAsset === undefined || this.isValidMediaLink(service.iconLikeAsset)) &&
         (service.seo === undefined ||
           (typeof service.seo === 'object' &&
             (service.seo.title === undefined || typeof service.seo.title === 'string') &&
             (service.seo.description === undefined || typeof service.seo.description === 'string') &&
-            (service.seo.canonicalSlug === undefined || SLUG_PATTERN.test(service.seo.canonicalSlug)) &&
+            (service.seo.canonicalSlug === undefined || isValidSlug(service.seo.canonicalSlug)) &&
             (service.seo.socialImage === undefined || this.isValidMediaLink(service.seo.socialImage)))) &&
         typeof service.description === 'string' &&
         service.description.length > 0 &&
@@ -1161,13 +1164,7 @@ class ContentService {
   }
 
   normalizeSlug(input) {
-    return `${input || ''}`
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    return normalizeSharedSlug(input);
   }
 
   normalizeMediaFile(file) {

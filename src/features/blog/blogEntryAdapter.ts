@@ -1,4 +1,5 @@
 import type { BlogPost } from '../../domain/contentSchemas';
+import { normalizeSlug as normalizeSharedSlug } from '../../shared/contentContracts';
 import { BLOG_MEDIA_FALLBACK_QUERY, resolveBlogMediaReference } from './mediaReference';
 
 export interface CanonicalBlogSeo {
@@ -56,18 +57,8 @@ export interface CmsBlogInput {
   socialImage?: string;
 }
 
-export function normalizeSlug(rawSlug: string, fallbackTitle?: string): string {
-  const base = (rawSlug || fallbackTitle || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s-]/g, ' ')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-
-  return base || 'article-sans-titre';
-}
+export const normalizeSlug = (rawSlug: string, fallbackTitle?: string): string =>
+  normalizeSharedSlug(rawSlug, fallbackTitle, 'article-sans-titre');
 
 function safeDateString(value: string): string {
   const parsed = Date.parse(value);

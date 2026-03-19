@@ -417,3 +417,10 @@ This is intentionally scoped and behavior-preserving.
 
 - Implemented: dashboard section decomposition (projects/services/blog/media/page content), frontend validation helper centralization, and helper tests.
 - Deferred intentionally: settings/users decomposition and shared async action hooks to keep behavior-risk low in first pass.
+
+## Iteration C status update (2026-03-19)
+- ✅ Added shared slug, URL/href, media-reference, and lightweight text/array validation contracts for frontend (`src/shared/contentContracts.ts`) and backend (`server/utils/contentContracts.js`).
+- ✅ Migrated high-risk callsites across Blog/Projects/Services/CMS validation/backend content service to these contracts.
+- ✅ Standardized `media:<id>` parser/validator semantics and URL acceptance/rejection behavior in both runtime layers.
+- ✅ Added behavior-focused contract tests covering slug normalization/validation, media parse+validation, and URL/href validity baselines.
+- ➡️ Next: continue extracting remaining in-file CMSDashboard validation hotspots and unify taxonomy/publish-readiness rules.

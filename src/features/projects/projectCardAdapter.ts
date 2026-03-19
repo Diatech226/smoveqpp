@@ -1,5 +1,6 @@
 import type { Project } from '../../domain/contentSchemas';
 import { resolveProjectFeaturedImage } from './projectMedia';
+import { normalizeSlug } from '../../shared/contentContracts';
 
 export interface ProjectCardContract {
   id: string;
@@ -13,16 +14,6 @@ export interface ProjectCardContract {
   mediaQuery: string;
   mediaAlt: string;
 }
-
-const normalizeSlug = (value: string, fallback: string): string =>
-  (value || fallback)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s-]/g, ' ')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
 
 export function toProjectCardContract(project: Project): ProjectCardContract {
   const media = resolveProjectFeaturedImage(project);

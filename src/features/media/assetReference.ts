@@ -1,7 +1,15 @@
 import type { MediaFile } from '../../domain/contentSchemas';
 import { mediaRepository } from '../../repositories/mediaRepository';
+import {
+  MEDIA_REFERENCE_PREFIX,
+  isMediaReference,
+  isValidMediaFieldValue as isValidMediaFieldContract,
+  mediaIdFromReference,
+  mediaReferenceExists,
+  toMediaReference,
+} from '../../shared/contentContracts';
 
-export const MEDIA_REFERENCE_PREFIX = 'media:';
+export { MEDIA_REFERENCE_PREFIX };
 
 export interface ResolvedAssetReference {
   reference: string;
@@ -17,31 +25,20 @@ const normalizeText = (value: string | undefined, fallback: string): string => {
   return normalized ? normalized : fallback;
 };
 
-export const isMediaReferenceValue = (value: string | undefined): boolean =>
-  typeof value === 'string' && value.trim().startsWith(MEDIA_REFERENCE_PREFIX);
+export const isMediaReferenceValue = (value: string | undefined): boolean => isMediaReference(value);
 
-export const toMediaReferenceValue = (mediaId: string): string => `${MEDIA_REFERENCE_PREFIX}${mediaId.trim()}`;
+export const toMediaReferenceValue = (mediaId: string): string => toMediaReference(mediaId);
 
-export const mediaIdFromReference = (reference: string): string => reference.slice(MEDIA_REFERENCE_PREFIX.length).trim();
+export { mediaIdFromReference };
 
-export const mediaReferenceExists = (reference: string): boolean => {
-  if (!isMediaReferenceValue(reference)) return false;
-  const mediaId = mediaIdFromReference(reference);
-  return Boolean(mediaId && mediaRepository.getById(mediaId));
-};
+export const mediaReferenceExistsInRepository = (reference: string): boolean =>
+  mediaReferenceExists(reference, (mediaId) => Boolean(mediaRepository.getById(mediaId)));
 
-export const isValidMediaFieldValue = (value: string): boolean => {
-  const normalized = value.trim();
-  if (!normalized) return false;
-  if (isMediaReferenceValue(normalized)) return mediaReferenceExists(normalized);
-
-  try {
-    const parsed = new URL(normalized);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return !normalized.includes('://');
-  }
-};
+export const isValidMediaFieldValue = (value: string): boolean =>
+  isValidMediaFieldContract(value, {
+    allowInlineText: true,
+    hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)),
+  });
 
 export const resolveAssetReference = (
   reference: string | undefined,

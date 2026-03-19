@@ -4,6 +4,7 @@ import { readFromStorage, writeToStorage } from './storage/localStorageStore';
 import { isMediaReference } from '../features/blog/mediaReference';
 import { mediaRepository } from './mediaRepository';
 import { normalizeSlug } from '../features/blog/blogEntryAdapter';
+import { isValidMediaFieldValue as isValidMediaFieldContract } from '../shared/contentContracts';
 
 const BLOG_STORAGE_KEY = 'smove_blog_posts';
 
@@ -100,22 +101,11 @@ const coerceBlogPost = (value: unknown): BlogPost | null => {
 };
 
 
-const isValidMediaField = (value: string): boolean => {
-  const normalized = value.trim();
-  if (!normalized) return false;
-
-  if (isMediaReference(normalized)) {
-    const mediaId = normalized.slice('media:'.length).trim();
-    return Boolean(mediaId && mediaRepository.getById(mediaId));
-  }
-
-  try {
-    const parsed = new URL(normalized);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return !normalized.includes('://');
-  }
-};
+const isValidMediaField = (value: string): boolean =>
+  isValidMediaFieldContract(value, {
+    allowInlineText: true,
+    hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)),
+  });
 
 const isMigratableBlogPostArray = (value: unknown): value is BlogPost[] =>
   Array.isArray(value) && value.every((entry) => coerceBlogPost(entry) !== null);

@@ -1,21 +1,9 @@
 import { isValidMediaFieldValue } from '../../../features/media/assetReference';
+import { isHttpUrl, isValidContentHref } from '../../../shared/contentContracts';
 
-export const isValidHttpUrl = (value: string): boolean => {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
+export const isValidHttpUrl = (value: string): boolean => isHttpUrl(value);
 
-export const isValidCmsHref = (value: string): boolean => {
-  const href = value.trim();
-  if (!href) return false;
-  if (href.startsWith('#')) return href.length > 1;
-  if (href.startsWith('/')) return true;
-  return isValidHttpUrl(href);
-};
+export const isValidCmsHref = (value: string): boolean => isValidContentHref(value);
 
 export const isValidMediaField = (value: string): boolean => isValidMediaFieldValue(value);
 

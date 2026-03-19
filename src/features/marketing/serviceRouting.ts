@@ -1,18 +1,12 @@
 import type { Service } from '../../domain/contentSchemas';
+import { normalizeSlug } from '../../shared/contentContracts';
 
 export const PREMIUM_SERVICE_ROUTES: Record<string, 'service-design' | 'service-web'> = {
   'design-branding': 'service-design',
   'web-development': 'service-web',
 };
 
-export const normalizeServiceSlug = (value: string | undefined): string =>
-  `${value || ''}`
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+export const normalizeServiceSlug = (value: string | undefined): string => normalizeSlug(value);
 
 export const resolveServiceRouteSlug = (service: Pick<Service, 'id' | 'slug' | 'routeSlug'>): string =>
   normalizeServiceSlug(service.routeSlug || service.slug || service.id);
