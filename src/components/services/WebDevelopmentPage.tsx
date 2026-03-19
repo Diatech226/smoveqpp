@@ -5,6 +5,7 @@ import Navigation from '../Navigation';
 import Footer from '../Footer';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { serviceRepository } from '../../repositories/serviceRepository';
+import { findPublishedServiceBySlug } from '../../features/marketing/serviceDetailContract';
 import { fetchPublicServices } from '../../utils/publicContentApi';
 import { useRemoteRepositorySync } from '../../features/content-sync/useRemoteRepositorySync';
 
@@ -86,7 +87,7 @@ export default function WebDevelopmentPage() {
     onSynced: handleServicesSynced,
   });
 
-  const service = useMemo(() => serviceRepository.getPublished().find((entry) => entry.routeSlug === 'web-development' || entry.slug === 'web-development'), [serviceVersion]);
+  const service = useMemo(() => findPublishedServiceBySlug(serviceRepository.getAll(), 'web-development'), [serviceVersion]);
   const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
   const process = (service?.processSteps && service.processSteps.length > 0 ? service.processSteps : defaultProcess).slice(0, 5);
 
@@ -158,10 +159,10 @@ export default function WebDevelopmentPage() {
                 className="inline-block bg-gradient-to-r from-[#34c759] to-[#2da84a] text-white px-4 py-2 rounded-full font-['Abhaya_Libre:Bold',sans-serif] text-[14px] mb-6"
                 whileHover={{ scale: 1.05 }}
               >
-                Développement Web & Mobile
+                {service?.title || 'Développement Web & Mobile'}
               </motion.div>
               <h1 className="font-['ABeeZee:Regular',sans-serif] text-[56px] md:text-[72px] text-white mb-6 leading-tight">
-                Transformez vos idées en <span className="text-[#34c759]">applications</span>
+                {service?.title || 'Transformez vos idées en'} <span className="text-[#34c759]">applications</span>
               </h1>
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px] text-white/80 mb-8 leading-relaxed">
                 {service?.overviewDescription || service?.description || 'De la simple vitrine au système complexe, nous développons des solutions web et mobile performantes, scalables et sécurisées.'}
@@ -199,7 +200,7 @@ export default function WebDevelopmentPage() {
                   whileHover={{ scale: 1.05, x: 5 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Démarrer un projet
+                  {service?.ctaPrimaryLabel || 'Démarrer un projet'}
                   <ArrowRight size={20} />
                 </motion.a>
                 <motion.a

@@ -64,6 +64,7 @@ import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAd
 import { isMediaReference, resolveBlogMediaReference } from '../../features/blog/mediaReference';
 import { isProjectMediaReference } from '../../features/projects/projectMedia';
 import { isValidMediaFieldValue, toMediaReferenceValue } from '../../features/media/assetReference';
+import { resolveServiceRouteHref, resolveServiceRouteSlug } from '../../features/marketing/serviceRouting';
 import type { BlogPost, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -1252,6 +1253,19 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setServicesError('');
   };
 
+  const isValidPublicHref = (value: string): boolean => {
+    const href = value.trim();
+    if (!href) return false;
+    if (href.startsWith('#')) return href.length > 1;
+    if (href.startsWith('/')) return true;
+    try {
+      const parsed = new URL(href);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   const validateServiceForm = (form: ServiceFormState) => {
     const errors: Partial<Record<keyof ServiceFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
@@ -1273,6 +1287,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     if (form.iconLikeAsset.trim() && !isValidMediaField(form.iconLikeAsset)) {
       errors.iconLikeAsset = 'Icon asset invalide. Utilisez une URL valide ou media:asset-id existant.';
+    }
+    if (form.ctaPrimaryHref.trim() && !isValidPublicHref(form.ctaPrimaryHref)) {
+      errors.ctaPrimaryHref = 'Le CTA doit être une ancre (#contact), une route (/contact) ou une URL https://.';
     }
     return errors;
   };
@@ -1444,7 +1461,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         >
           {(['title', 'slug', 'client', 'category', 'year'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
               <input
                 value={projectForm[fieldKey]}
                 onChange={(event) => setProjectForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
@@ -1684,13 +1701,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         >
           {(['title', 'slug', 'routeSlug', 'icon', 'color'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
               <input
                 value={serviceForm[fieldKey]}
                 onChange={(event) => setServiceForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
                 className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
               />
               {serviceFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors[fieldKey]}</p> : null}
+              {fieldKey === 'routeSlug' ? (
+                <p className="text-[12px] text-[#6f7f85] mt-1">Utilisé pour la page publique: <code>#service/{resolveServiceRouteSlug({ id: serviceForm.id || 'service', slug: serviceForm.slug, routeSlug: serviceForm.routeSlug })}</code> (ou route premium si connue).</p>
+              ) : null}
             </label>
           ))}
 
@@ -1775,7 +1795,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 value={serviceForm.ctaPrimaryHref}
                 onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaPrimaryHref: event.target.value }))}
                 className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                placeholder="#contact, /contact ou https://..."
               />
+              {serviceFormErrors.ctaPrimaryHref ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.ctaPrimaryHref}</p> : null}
             </label>
           </div>
 
@@ -1850,7 +1872,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         >
           {(['title', 'slug', 'author', 'readTime'] as const).map((fieldKey) => (
             <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
               <input
                 value={blogForm[fieldKey]}
                 onChange={(event) => setBlogForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
@@ -2304,7 +2326,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   <div key={service.id} className="rounded-[12px] border border-[#eef3f5] px-4 py-3 flex items-center justify-between gap-4">
                     <div>
                       <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{service.title}</p>
-                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">/{service.slug}</p>
+                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[14px]">Slug: /{service.slug}</p>
+                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[#6f7f85] text-[13px]">Route publique: <code>{resolveServiceRouteHref(service)}</code></p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-[12px] px-2 py-1 rounded-full ${service.status === 'published' ? 'bg-green-50 text-green-700' : service.status === 'archived' ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-700'}`}>

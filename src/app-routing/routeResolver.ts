@@ -1,5 +1,6 @@
 import { HOME_SECTIONS, isCmsRoute, resolveAuthPageGuard, resolveCmsRouteGuard } from './guards';
 import type { AppRoute, AuthRoutingState, RouteResolution } from './navigationTypes';
+import { PREMIUM_SERVICE_ROUTES, normalizeServiceSlug } from '../features/marketing/serviceRouting';
 
 export function parseHashRoute(hash: string): AppRoute {
   const rawRoute = (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';
@@ -62,14 +63,15 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
 
 
   if (route.startsWith('service/')) {
-    const slug = route.slice('service/'.length).trim().toLowerCase();
-    if (slug === 'design-branding') {
-      return { page: 'service-design', sectionToScroll: null };
+    const slug = normalizeServiceSlug(route.slice('service/'.length));
+    if (!slug) {
+      return { page: 'services-all', sectionToScroll: null };
     }
-    if (slug === 'web-development') {
-      return { page: 'service-web', sectionToScroll: null };
+    const premiumRoute = PREMIUM_SERVICE_ROUTES[slug];
+    if (premiumRoute) {
+      return { page: premiumRoute, sectionToScroll: null };
     }
-    return { page: 'services-all', sectionToScroll: null };
+    return { page: `service-${slug}`, sectionToScroll: null };
   }
 
   if (route.startsWith('blog/')) {

@@ -163,7 +163,7 @@ export default function ServicesHubPage() {
                     </h2>
                     
                     <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#38484e] group-hover:text-white/90 transition-colors mb-6 leading-relaxed">
-                      {service.description}
+                      {service.cardDescription}
                     </p>
                     
                     {/* Features */}
