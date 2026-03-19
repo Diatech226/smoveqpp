@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveServiceRouteHref, toRenderableService } from './serviceCatalog';
+import { toRenderableService } from './serviceCatalog';
+import { normalizeServiceSlug, resolveServiceRouteHref } from './serviceRouting';
 import type { Service } from '../../domain/contentSchemas';
 
 const baseService: Service = {
@@ -29,8 +30,18 @@ describe('serviceCatalog', () => {
     expect(resolveServiceRouteHref({ id: '3', slug: 'custom', routeSlug: 'custom' })).toBe('#service/custom');
   });
 
+  it('normalizes service slugs safely', () => {
+    expect(normalizeServiceSlug('  Création 3D  ')).toBe('creation-3d');
+    expect(normalizeServiceSlug('')).toBe('');
+  });
+
   it('falls back to safe default color for invalid values', () => {
     const renderable = toRenderableService({ ...baseService, color: 'invalid-gradient' });
     expect(renderable.color).toBe('from-[#00b3e8] to-[#00c0e8]');
+  });
+
+  it('uses short description for card copy when available', () => {
+    const renderable = toRenderableService({ ...baseService, shortDescription: 'Short copy' });
+    expect(renderable.cardDescription).toBe('Short copy');
   });
 });

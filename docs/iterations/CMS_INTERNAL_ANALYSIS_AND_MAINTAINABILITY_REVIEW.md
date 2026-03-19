@@ -148,6 +148,12 @@ This gives resilience but introduces contract drift risk and duplicate sync logi
 - Introduce a reusable CMS-driven service detail template for non-hardcoded slugs.
 - Keep current branded templates but ensure baseline CMS fields render consistently.
 
+#### Iteration B status update (2026-03-19)
+- ✅ Shared route contract introduced for Services (`#service/{slug}` + premium overrides).
+- ✅ Generic CMS-driven detail route/page added for non-premium services.
+- ✅ Premium templates preserved and converged on baseline CMS fields (title/overview/features/CTA/process).
+- ✅ CMS services editing now surfaces public route destination and CTA href validation.
+
 ---
 
 ## 3.4 Media library
