@@ -2,19 +2,10 @@ import { isProjectArray, type Project } from '../domain/contentSchemas';
 import { projects as staticProjects } from '../data/projects';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
 import { PROJECT_MEDIA_FALLBACK_QUERY } from '../features/projects/projectMedia';
-import { isMediaReferenceValue } from '../features/media/assetReference';
 import { mediaRepository } from './mediaRepository';
+import { hasMinTrimmedLength, isHttpUrl, isValidMediaFieldValue, normalizeSlug, normalizeStringArray, requiredTrimmed } from '../shared/contentContracts';
 
 const PROJECT_STORAGE_KEY = 'smove_projects';
-
-const toSlug = (value: string): string =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
 
 const toIsoOrNow = (value?: string): string => {
   if (!value) return new Date().toISOString();
@@ -23,61 +14,37 @@ const toIsoOrNow = (value?: string): string => {
   return new Date(date).toISOString();
 };
 
-const asTrimmedString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
-
-
-const isValidHttpUrl = (value: string): boolean => {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
-
-const isValidMediaField = (value: string): boolean => {
-  const normalized = value.trim();
-  if (!normalized) return false;
-
-  if (isMediaReferenceValue(normalized)) {
-    const mediaId = normalized.slice('media:'.length).trim();
-    return Boolean(mediaId && mediaRepository.getById(mediaId));
-  }
-
-  return isValidHttpUrl(normalized) || !normalized.includes('://');
-};
-
 const normalizeProject = (project: Partial<Project> & { id: string }): Project => {
-  const title = asTrimmedString(project.title);
+  const title = requiredTrimmed(project.title);
   const now = new Date().toISOString();
-  const slug = toSlug(asTrimmedString(project.slug) || title || project.id);
-  const summary = asTrimmedString(project.summary);
-  const description = asTrimmedString(project.description) || summary || 'Description à compléter.';
-  const roleCardImage = asTrimmedString(project.mediaRoles?.cardImage);
-  const roleHeroImage = asTrimmedString(project.mediaRoles?.heroImage);
+  const slug = normalizeSlug(requiredTrimmed(project.slug), title, project.id);
+  const summary = requiredTrimmed(project.summary);
+  const description = requiredTrimmed(project.description) || summary || 'Description à compléter.';
+  const roleCardImage = requiredTrimmed(project.mediaRoles?.cardImage);
+  const roleHeroImage = requiredTrimmed(project.mediaRoles?.heroImage);
   const roleGalleryImages = Array.isArray(project.mediaRoles?.galleryImages)
-    ? project.mediaRoles?.galleryImages.map((entry) => asTrimmedString(entry)).filter(Boolean)
+    ? normalizeStringArray(project.mediaRoles?.galleryImages)
     : [];
-  const featuredImage = roleCardImage || asTrimmedString(project.featuredImage) || asTrimmedString(project.mainImage) || PROJECT_MEDIA_FALLBACK_QUERY;
-  const heroImage = roleHeroImage || asTrimmedString(project.mainImage) || featuredImage;
+  const featuredImage = roleCardImage || requiredTrimmed(project.featuredImage) || requiredTrimmed(project.mainImage) || PROJECT_MEDIA_FALLBACK_QUERY;
+  const heroImage = roleHeroImage || requiredTrimmed(project.mainImage) || featuredImage;
 
   return {
     ...project,
-    id: asTrimmedString(project.id),
+    id: requiredTrimmed(project.id),
     title,
-    client: asTrimmedString(project.client),
-    category: asTrimmedString(project.category),
-    year: asTrimmedString(project.year) || new Date().getFullYear().toString(),
+    client: requiredTrimmed(project.client),
+    category: requiredTrimmed(project.category),
+    year: requiredTrimmed(project.year) || new Date().getFullYear().toString(),
     description,
-    challenge: asTrimmedString(project.challenge) || 'Challenge à compléter.',
-    solution: asTrimmedString(project.solution) || 'Solution à compléter.',
-    results: Array.isArray(project.results) ? project.results.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
-    tags: Array.isArray(project.tags) ? project.tags.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
+    challenge: requiredTrimmed(project.challenge) || 'Challenge à compléter.',
+    solution: requiredTrimmed(project.solution) || 'Solution à compléter.',
+    results: Array.isArray(project.results) ? normalizeStringArray(project.results) : [],
+    tags: Array.isArray(project.tags) ? normalizeStringArray(project.tags) : [],
     mainImage: heroImage,
     featuredImage,
-    imageAlt: asTrimmedString(project.imageAlt) || title || 'Projet SMOVE',
+    imageAlt: requiredTrimmed(project.imageAlt) || title || 'Projet SMOVE',
     images: Array.isArray(project.images)
-      ? project.images.map((entry) => asTrimmedString(entry)).filter(Boolean)
+      ? normalizeStringArray(project.images)
       : heroImage
         ? [heroImage]
         : [],
@@ -87,7 +54,7 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
       galleryImages: roleGalleryImages.length > 0
         ? roleGalleryImages
         : Array.isArray(project.images)
-          ? project.images.map((entry) => asTrimmedString(entry)).filter(Boolean)
+          ? normalizeStringArray(project.images)
           : heroImage
             ? [heroImage]
             : [],
@@ -98,24 +65,24 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
     status: (project.status === 'draft' || project.status === 'in_review' || project.status === 'published' || project.status === 'archived') ? project.status : 'published',
     createdAt: toIsoOrNow(project.createdAt),
     updatedAt: now,
-    link: asTrimmedString((project as Project).link) || asTrimmedString(project.links?.live) || undefined,
+    link: requiredTrimmed((project as Project).link) || requiredTrimmed(project.links?.live) || undefined,
     links: project.links
       ? {
-          live: asTrimmedString(project.links.live) || asTrimmedString((project as Project).link) || undefined,
-          caseStudy: asTrimmedString(project.links.caseStudy) || undefined,
+          live: requiredTrimmed(project.links.live) || requiredTrimmed((project as Project).link) || undefined,
+          caseStudy: requiredTrimmed(project.links.caseStudy) || undefined,
         }
-      : asTrimmedString((project as Project).link)
-        ? { live: asTrimmedString((project as Project).link) }
+      : requiredTrimmed((project as Project).link)
+        ? { live: requiredTrimmed((project as Project).link) }
         : undefined,
     testimonial:
       project.testimonial &&
-      asTrimmedString(project.testimonial.text) &&
-      asTrimmedString(project.testimonial.author) &&
-      asTrimmedString(project.testimonial.position)
+      requiredTrimmed(project.testimonial.text) &&
+      requiredTrimmed(project.testimonial.author) &&
+      requiredTrimmed(project.testimonial.position)
         ? {
-            text: asTrimmedString(project.testimonial.text),
-            author: asTrimmedString(project.testimonial.author),
-            position: asTrimmedString(project.testimonial.position),
+            text: requiredTrimmed(project.testimonial.text),
+            author: requiredTrimmed(project.testimonial.author),
+            position: requiredTrimmed(project.testimonial.position),
           }
         : undefined,
   };
@@ -214,19 +181,19 @@ class LocalProjectRepository implements ProjectRepository {
 
     if (trustedProject.status === 'published') {
       const summarySource = trustedProject.summary?.trim() || trustedProject.description.trim();
-      if (!summarySource || summarySource.length < 24) {
+      if (!hasMinTrimmedLength(summarySource, 24)) {
         throw new Error('Project cannot publish: summary/content too short');
       }
     }
 
-    if (!isValidMediaField(trustedProject.featuredImage) || trustedProject.images.some((image) => !isValidMediaField(image))) {
+    if (!isValidMediaFieldValue(trustedProject.featuredImage, { allowInlineText: true, hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)) }) || trustedProject.images.some((image) => !isValidMediaFieldValue(image, { allowInlineText: true, hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)) }))) {
       throw new Error('Invalid project media payload');
     }
 
     if (
-      (trustedProject.link && !isValidHttpUrl(trustedProject.link)) ||
-      (trustedProject.links?.live && !isValidHttpUrl(trustedProject.links.live)) ||
-      (trustedProject.links?.caseStudy && !isValidHttpUrl(trustedProject.links.caseStudy))
+      (trustedProject.link && !isHttpUrl(trustedProject.link)) ||
+      (trustedProject.links?.live && !isHttpUrl(trustedProject.links.live)) ||
+      (trustedProject.links?.caseStudy && !isHttpUrl(trustedProject.links.caseStudy))
     ) {
       throw new Error('Invalid project link payload');
     }

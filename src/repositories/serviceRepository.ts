@@ -1,19 +1,9 @@
 import { isServiceArray, type Service } from '../domain/contentSchemas';
 import { services as staticServices } from '../data/services';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
+import { normalizeSlug, requiredTrimmed, normalizeStringArray } from '../shared/contentContracts';
 
 const SERVICE_STORAGE_KEY = 'smove_services';
-
-const asTrimmedString = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
-
-const toSlug = (value: string): string =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
 
 const toIsoOrNow = (value?: string): string => {
   if (!value) return new Date().toISOString();
@@ -23,30 +13,30 @@ const toIsoOrNow = (value?: string): string => {
 
 const normalizeService = (service: Partial<Service> & { id: string }): Service => {
   const now = new Date().toISOString();
-  const title = asTrimmedString(service.title);
+  const title = requiredTrimmed(service.title);
 
   return {
     ...service,
-    id: asTrimmedString(service.id),
+    id: requiredTrimmed(service.id),
     title,
-    slug: toSlug(asTrimmedString(service.slug) || title || service.id),
-    description: asTrimmedString(service.description),
-    shortDescription: asTrimmedString(service.shortDescription) || undefined,
-    icon: asTrimmedString(service.icon) || 'palette',
-    iconLikeAsset: asTrimmedString(service.iconLikeAsset) || undefined,
-    routeSlug: toSlug(asTrimmedString(service.routeSlug) || asTrimmedString(service.slug) || title || service.id),
-    overviewTitle: asTrimmedString((service as Service).overviewTitle) || undefined,
-    overviewDescription: asTrimmedString((service as Service).overviewDescription) || undefined,
-    ctaTitle: asTrimmedString((service as Service).ctaTitle) || undefined,
-    ctaDescription: asTrimmedString((service as Service).ctaDescription) || undefined,
-    ctaPrimaryLabel: asTrimmedString((service as Service).ctaPrimaryLabel) || undefined,
-    ctaPrimaryHref: asTrimmedString((service as Service).ctaPrimaryHref) || undefined,
-    processTitle: asTrimmedString((service as Service).processTitle) || undefined,
+    slug: normalizeSlug(requiredTrimmed(service.slug), title, service.id),
+    description: requiredTrimmed(service.description),
+    shortDescription: requiredTrimmed(service.shortDescription) || undefined,
+    icon: requiredTrimmed(service.icon) || 'palette',
+    iconLikeAsset: requiredTrimmed(service.iconLikeAsset) || undefined,
+    routeSlug: normalizeSlug(requiredTrimmed(service.routeSlug) || requiredTrimmed(service.slug), title, service.id),
+    overviewTitle: requiredTrimmed((service as Service).overviewTitle) || undefined,
+    overviewDescription: requiredTrimmed((service as Service).overviewDescription) || undefined,
+    ctaTitle: requiredTrimmed((service as Service).ctaTitle) || undefined,
+    ctaDescription: requiredTrimmed((service as Service).ctaDescription) || undefined,
+    ctaPrimaryLabel: requiredTrimmed((service as Service).ctaPrimaryLabel) || undefined,
+    ctaPrimaryHref: requiredTrimmed((service as Service).ctaPrimaryHref) || undefined,
+    processTitle: requiredTrimmed((service as Service).processTitle) || undefined,
     processSteps: Array.isArray((service as Service).processSteps)
-      ? (service as Service).processSteps!.map((entry) => asTrimmedString(entry)).filter(Boolean)
+      ? normalizeStringArray((service as Service).processSteps)
       : [],
-    color: asTrimmedString(service.color) || 'from-[#00b3e8] to-[#00c0e8]',
-    features: Array.isArray(service.features) ? service.features.map((entry) => asTrimmedString(entry)).filter(Boolean) : [],
+    color: requiredTrimmed(service.color) || 'from-[#00b3e8] to-[#00c0e8]',
+    features: normalizeStringArray(service.features),
     status: service.status ?? 'published',
     featured: Boolean(service.featured),
     createdAt: toIsoOrNow(service.createdAt),
