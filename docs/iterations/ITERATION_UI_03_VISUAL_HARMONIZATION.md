@@ -21,6 +21,7 @@ A compact but deliberate rhythm was standardized for CMS containers:
 - Action bars: `p-4`, `gap-3`
 - List rows: `px-4 py-3`, with consistent inter-row `space-y-3`
 - Sticky action surfaces: preserved with slightly elevated container shadow for clarity
+- Nested content blocks: standardized to `rounded-[14px]`, `p-4/p-5`, and consistent neutral borders
 
 Outcome:
 
@@ -36,6 +37,7 @@ Typography hierarchy was aligned to be clearer and more consistent:
 - Row title: readable dense heading (`~17px`, Abhaya Libre Bold)
 - Body/helper: `~14-15px`, muted neutral text
 - Metadata: `~12-13px`, lower-contrast neutral
+- Shared field label/helper styles now reuse admin primitives to keep metadata and assistive copy visually consistent
 
 Outcome:
 
@@ -70,6 +72,7 @@ Outcome:
 - Unified radius and border language (`rounded-[14px..16px]`, subtle neutral borders)
 - Added subtle soft shadow depth to key cards/panels
 - Kept visual weight light to preserve admin density
+- Added reusable admin field token classes for inputs/textareas to align focus, spacing, and contrast
 
 ### List rows
 

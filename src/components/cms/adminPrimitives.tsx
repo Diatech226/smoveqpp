@@ -11,13 +11,20 @@ const ADMIN_CARD_SURFACE = 'bg-white border border-[#e4edf1] rounded-[16px] shad
 const ADMIN_TEXT_TITLE = 'text-[#223740]';
 const ADMIN_TEXT_BODY = 'text-[#5f727a]';
 const ADMIN_TEXT_META = 'text-[#839198]';
+const ADMIN_FIELD_SURFACE = 'rounded-[12px] border border-[#d8e4e8] bg-white px-3 py-2 text-[14px] text-[#273a41] shadow-[0_1px_2px_rgba(20,51,63,0.04)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00b3e8]/30 focus-visible:border-[#00b3e8]';
+
+export const ADMIN_INPUT_CLASS = ADMIN_FIELD_SURFACE;
+export const ADMIN_TEXTAREA_CLASS = `${ADMIN_FIELD_SURFACE} min-h-[88px]`;
+export const ADMIN_FIELD_LABEL_CLASS = "font-['Abhaya_Libre:Bold',sans-serif] text-[13px] text-[#344850]";
+export const ADMIN_HELPER_TEXT_CLASS = "font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#74868d]";
+export const ADMIN_SECTION_SUBCARD = 'rounded-[14px] border border-[#e7eff3] bg-[#fbfdfe] p-4 md:p-5';
 
 export function AdminPageHeader({ title, subtitle, actions }: AdminPageHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 border-b border-[#e9f0f3] pb-4 md:flex-row md:items-end md:justify-between">
+    <div className="flex flex-col gap-4 border-b border-[#e9f0f3] pb-5 md:flex-row md:items-end md:justify-between">
       <div className="space-y-1">
         <h2 className={`font-['ABeeZee:Regular',sans-serif] text-[29px] leading-tight ${ADMIN_TEXT_TITLE}`}>{title}</h2>
-        {subtitle ? <p className={`font-['Abhaya_Libre:Regular',sans-serif] text-[15px] ${ADMIN_TEXT_BODY}`}>{subtitle}</p> : null}
+        {subtitle ? <p className={`max-w-3xl font-['Abhaya_Libre:Regular',sans-serif] text-[15px] leading-relaxed ${ADMIN_TEXT_BODY}`}>{subtitle}</p> : null}
       </div>
       {actions ? <div className="flex items-center gap-3">{actions}</div> : null}
     </div>
@@ -25,7 +32,7 @@ export function AdminPageHeader({ title, subtitle, actions }: AdminPageHeaderPro
 }
 
 export function AdminActionBar({ children }: { children: ReactNode }) {
-  return <div className={`${ADMIN_CARD_SURFACE} flex flex-wrap items-center gap-3 p-4`}>{children}</div>;
+  return <div className={`${ADMIN_CARD_SURFACE} flex flex-wrap items-center gap-3 p-4 md:p-5`}>{children}</div>;
 }
 
 type AdminButtonIntent = 'primary' | 'secondary' | 'danger' | 'workflow';
