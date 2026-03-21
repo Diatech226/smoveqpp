@@ -3,7 +3,7 @@
 ## Iteration status
 
 - Iteration 1 — **Action Hierarchy & Safety Standardization**: ✅ Implemented (March 21, 2026)
-- Iteration 2 — Pending
+- Iteration 2 — **Form Ergonomics & Information Architecture Refinement**: ✅ Implemented (March 21, 2026)
 - Iteration 3 — Pending
 
 ## Iteration 1 scope implemented
@@ -38,6 +38,7 @@ This iteration standardizes CMS action intent and placement without changing bac
 
 ## What remains for next UI/UX iteration
 
-- Improve field-level information architecture inside long forms (grouping of inputs).
-- Harmonize supporting helper text hierarchy and spacing rhythm.
-- Refine empty/success/error state consistency beyond actions.
+- Continue with visual consistency pass (spacing tokens and typographic rhythm) across non-form CMS panels.
+- Evaluate lightweight progressive disclosure for advanced fields where editor load remains high.
+- Refine global validation summaries across sections while preserving existing logic.
+- See detailed implementation notes in `docs/iterations/ITERATION_UI_02_FORM_ERGONOMICS_AND_INFORMATION_ARCHITECTURE.md`.

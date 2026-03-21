@@ -1396,214 +1396,109 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
   const renderProjectForm = () => {
     const title = projectEditorMode === 'create' ? 'Créer un projet' : 'Modifier un projet';
+    const projectGroupHasErrors = (keys: Array<keyof ProjectFormState>) => keys.some((key) => Boolean(projectFormErrors[key]));
 
     return (
       <AdminPanel title={title}>
         <form
-          className="space-y-4"
+          className="space-y-5"
           onSubmit={(event) => {
             event.preventDefault();
             void saveProject();
           }}
         >
-          {(['title', 'slug', 'client', 'category', 'year'] as const).map((fieldKey) => (
-            <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
-              <input
-                value={projectForm[fieldKey]}
-                onChange={(event) => setProjectForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
-                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              />
-              {projectFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors[fieldKey]}</p> : null}
-            </label>
-          ))}
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Image carte (preset: cardImage, ratio conseillé 4:3)</span>
-            <input
-              value={projectForm.cardImage}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, cardImage: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              placeholder="https://... ou media:asset-id"
-            />
-            {projectFormErrors.cardImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.cardImage}</p> : null}
-            <p className="text-[12px] text-[#6f7f85] mt-1">Utilisé sur les cartes projet et comme fallback social/cover.</p>
-            {isProjectMediaReference(projectForm.cardImage) ? (
-              <p className="text-[12px] text-[#6f7f85] mt-1">Référence média liée: {projectForm.cardImage}</p>
-            ) : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Image hero détail (preset: heroImage, desktop/mobile fallback)</span>
-            <input
-              value={projectForm.heroImage}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, heroImage: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              placeholder="URL ou media:asset-id (fallback sur image carte)"
-            />
-            {projectFormErrors.heroImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.heroImage}</p> : null}
-            <p className="text-[12px] text-[#6f7f85] mt-1">Si vide, le système réutilise cardImage automatiquement.</p>
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Texte alternatif image</span>
-            <input
-              value={projectForm.imageAlt}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, imageAlt: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-          {mediaFiles.length > 0 ? (
-            <div className="rounded-[10px] bg-[#f5f9fa] p-3">
-              <p className="text-[13px] text-[#6f7f85] mb-2">Sélecteur média (même contrat Blog/Projet: media:asset-id)</p>
-              <div className="flex flex-wrap gap-2">
-                {mediaFiles.slice(0, 6).map((file) => (
-                  <button
-                    type="button"
-                    key={file.id}
-                    onClick={() =>
-                      setProjectForm((prev) => ({
-                        ...prev,
-                        cardImage: toMediaReferenceValue(file.id),
-                        heroImage: prev.heroImage.trim() || toMediaReferenceValue(file.id),
-                        imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name,
-                      }))
-                    }
-                    className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]"
-                  >
-                    {file.name}
-                  </button>
-                ))}
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h4 className="text-[16px] font-semibold text-[#273a41]">Identité & routage</h4>
+                <p className="text-[12px] text-[#6f7f85]">Base du projet pour les listes portfolio et l’URL publique.</p>
               </div>
+              {projectGroupHasErrors(['title', 'slug', 'client', 'category', 'year']) ? <span className="text-[12px] text-red-600">Champs requis à corriger</span> : null}
             </div>
-          ) : null}
-          <label className="block">
-            <span className="text-[13px] text-[#6f7f85]">Importer une image projet</span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                void handleMediaUpload(event);
-              }}
-              className="mt-1 w-full rounded-[10px] border border-dashed border-[#d8e4e8] px-3 py-2 text-[13px]"
-            />
-          </label>
+            <div className="grid md:grid-cols-2 gap-3">
+              {(['title', 'slug', 'client', 'category', 'year'] as const).map((fieldKey) => (
+                <label key={fieldKey} className="block">
+                  <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+                  <input
+                    value={projectForm[fieldKey]}
+                    onChange={(event) => setProjectForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
+                    className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
+                  />
+                  {projectFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors[fieldKey]}</p> : null}
+                </label>
+              ))}
+            </div>
+          </div>
 
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Résumé court (optionnel)</span>
-            <textarea
-              value={projectForm.summary}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, summary: event.target.value }))}
-              className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {projectFormErrors.summary ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.summary}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Statut</span>
-            <select
-              value={projectForm.status}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, status: event.target.value as ProjectFormState['status'] }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            >
-              <option value="draft">Brouillon</option>
-              <option value="in_review">En revue</option>
-              <option value="published">Publié</option>
-              <option value="archived">Archivé</option>
-            </select>
-          </label>
-          <label className="inline-flex items-center gap-2 text-[14px] text-[#6f7f85]">
-            <input
-              type="checkbox"
-              checked={projectForm.featured}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, featured: event.target.checked }))}
-            />
-            Projet mis en avant
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Description</span>
-            <textarea
-              value={projectForm.description}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, description: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {projectFormErrors.description ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.description}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Challenge</span>
-            <textarea
-              value={projectForm.challenge}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, challenge: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {projectFormErrors.challenge ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.challenge}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Solution</span>
-            <textarea
-              value={projectForm.solution}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, solution: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {projectFormErrors.solution ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.solution}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Résultats (une ligne par résultat)</span>
-            <textarea
-              value={projectForm.results}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, results: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Tags (séparés par virgule)</span>
-            <input
-              value={projectForm.tags}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, tags: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Galerie d’images (une URL/référence média par ligne)</span>
-            <textarea
-              value={projectForm.galleryImages}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, galleryImages: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              placeholder="media:asset-1\nhttps://..."
-            />
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Lien Case Study (optionnel)</span>
-            <input
-              value={projectForm.caseStudyLink}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, caseStudyLink: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              placeholder="https://..."
-            />
-            {projectFormErrors.caseStudyLink ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.caseStudyLink}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Témoignage client</span>
-            <textarea
-              value={projectForm.testimonialText}
-              onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialText: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {projectFormErrors.testimonialText ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.testimonialText}</p> : null}
-          </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <h4 className="text-[16px] font-semibold text-[#273a41]">Médias</h4>
+            <p className="text-[12px] text-[#6f7f85]">Visuels affichés sur les cartes projets, la page détail et les aperçus sociaux.</p>
             <label className="block">
-              <span className="text-[14px] text-[#6f7f85]">Auteur du témoignage</span>
-              <input
-                value={projectForm.testimonialAuthor}
-                onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialAuthor: event.target.value }))}
-                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              />
+              <span className="text-[14px] text-[#6f7f85]">Image de carte</span>
+              <input value={projectForm.cardImage} onChange={(event) => setProjectForm((prev) => ({ ...prev, cardImage: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="https://... ou media:asset-id" />
+              {projectFormErrors.cardImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.cardImage}</p> : null}
+              <p className="text-[12px] text-[#6f7f85] mt-1">Utilisée sur les cartes du portfolio.</p>
             </label>
             <label className="block">
-              <span className="text-[14px] text-[#6f7f85]">Poste / rôle</span>
-              <input
-                value={projectForm.testimonialPosition}
-                onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialPosition: event.target.value }))}
-                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              />
+              <span className="text-[14px] text-[#6f7f85]">Image hero détail</span>
+              <input value={projectForm.heroImage} onChange={(event) => setProjectForm((prev) => ({ ...prev, heroImage: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="URL ou media:asset-id (fallback: image carte)" />
+              {projectFormErrors.heroImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.heroImage}</p> : null}
             </label>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Texte alternatif image</span>
+              <input value={projectForm.imageAlt} onChange={(event) => setProjectForm((prev) => ({ ...prev, imageAlt: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
+            </label>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Galerie d’images (une référence par ligne)</span>
+              <textarea value={projectForm.galleryImages} onChange={(event) => setProjectForm((prev) => ({ ...prev, galleryImages: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="media:asset-1\nhttps://..." />
+            </label>
+            {isProjectMediaReference(projectForm.cardImage) ? <p className="text-[12px] text-[#6f7f85]">Référence média liée (carte): {projectForm.cardImage}</p> : null}
+            {mediaFiles.length > 0 ? (
+              <div className="rounded-[10px] bg-[#f5f9fa] p-3">
+                <p className="text-[13px] text-[#6f7f85] mb-2">Sélecteur média rapide</p>
+                <div className="flex flex-wrap gap-2">
+                  {mediaFiles.slice(0, 6).map((file) => (
+                    <button type="button" key={file.id} onClick={() => setProjectForm((prev) => ({ ...prev, cardImage: toMediaReferenceValue(file.id), heroImage: prev.heroImage.trim() || toMediaReferenceValue(file.id), imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name }))} className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]">
+                      {file.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <label className="block">
+              <span className="text-[13px] text-[#6f7f85]">Importer une image projet</span>
+              <input type="file" accept="image/*" onChange={(event) => { void handleMediaUpload(event); }} className="mt-1 w-full rounded-[10px] border border-dashed border-[#d8e4e8] px-3 py-2 text-[13px]" />
+            </label>
+          </div>
+
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h4 className="text-[16px] font-semibold text-[#273a41]">Narratif & résultats</h4>
+                <p className="text-[12px] text-[#6f7f85]">Contenu utilisé sur les pages détail projet.</p>
+              </div>
+              {projectGroupHasErrors(['summary', 'description', 'challenge', 'solution', 'testimonialText']) ? <span className="text-[12px] text-red-600">Vérifier ce bloc</span> : null}
+            </div>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Résumé court (carte)</span><textarea value={projectForm.summary} onChange={(event) => setProjectForm((prev) => ({ ...prev, summary: event.target.value }))} className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{projectFormErrors.summary ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.summary}</p> : null}</label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Description complète</span><textarea value={projectForm.description} onChange={(event) => setProjectForm((prev) => ({ ...prev, description: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{projectFormErrors.description ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.description}</p> : null}</label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Challenge</span><textarea value={projectForm.challenge} onChange={(event) => setProjectForm((prev) => ({ ...prev, challenge: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{projectFormErrors.challenge ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.challenge}</p> : null}</label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Solution</span><textarea value={projectForm.solution} onChange={(event) => setProjectForm((prev) => ({ ...prev, solution: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{projectFormErrors.solution ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.solution}</p> : null}</label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Résultats (une ligne par résultat)</span><textarea value={projectForm.results} onChange={(event) => setProjectForm((prev) => ({ ...prev, results: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Tags (séparés par virgule)</span><input value={projectForm.tags} onChange={(event) => setProjectForm((prev) => ({ ...prev, tags: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+          </div>
+
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <h4 className="text-[16px] font-semibold text-[#273a41]">CTA, témoignage & publication</h4>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Lien Case Study</span><input value={projectForm.caseStudyLink} onChange={(event) => setProjectForm((prev) => ({ ...prev, caseStudyLink: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="https://..." />{projectFormErrors.caseStudyLink ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.caseStudyLink}</p> : null}</label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Témoignage client</span><textarea value={projectForm.testimonialText} onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialText: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{projectFormErrors.testimonialText ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.testimonialText}</p> : null}</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block"><span className="text-[14px] text-[#6f7f85]">Auteur du témoignage</span><input value={projectForm.testimonialAuthor} onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialAuthor: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+              <label className="block"><span className="text-[14px] text-[#6f7f85]">Poste / rôle</span><input value={projectForm.testimonialPosition} onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialPosition: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              <label className="block"><span className="text-[14px] text-[#6f7f85]">Statut de publication</span><select value={projectForm.status} onChange={(event) => setProjectForm((prev) => ({ ...prev, status: event.target.value as ProjectFormState['status'] }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"><option value="draft">Brouillon</option><option value="in_review">En revue</option><option value="published">Publié</option><option value="archived">Archivé</option></select></label>
+              <label className="inline-flex items-center gap-2 text-[14px] text-[#6f7f85] mt-7"><input type="checkbox" checked={projectForm.featured} onChange={(event) => setProjectForm((prev) => ({ ...prev, featured: event.target.checked }))} />Afficher en projet mis en avant</label>
+            </div>
           </div>
           <AdminStickyFormActions>
             <AdminActionCluster>
@@ -1624,157 +1519,65 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
   const renderServiceForm = () => {
     const title = serviceEditorMode === 'create' ? 'Créer un service' : 'Modifier un service';
+    const serviceGroupHasErrors = (keys: Array<keyof ServiceFormState>) => keys.some((key) => Boolean(serviceFormErrors[key]));
 
     return (
       <AdminPanel title={title}>
         <form
-          className="space-y-4"
+          className="space-y-5"
           onSubmit={(event) => {
             event.preventDefault();
             void saveService();
           }}
         >
-          {(['title', 'slug', 'routeSlug', 'icon', 'color'] as const).map((fieldKey) => (
-            <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
-              <input
-                value={serviceForm[fieldKey]}
-                onChange={(event) => setServiceForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
-                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              />
-              {serviceFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors[fieldKey]}</p> : null}
-              {fieldKey === 'routeSlug' ? (
-                <p className="text-[12px] text-[#6f7f85] mt-1">Utilisé pour la page publique: <code>#service/{resolveServiceRouteSlug({ id: serviceForm.id || 'service', slug: serviceForm.slug, routeSlug: serviceForm.routeSlug })}</code> (ou route premium si connue).</p>
-              ) : null}
-            </label>
-          ))}
-
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Description courte (optionnel)</span>
-            <input
-              value={serviceForm.shortDescription}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, shortDescription: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Icon-like asset (preset: iconLikeAsset)</span>
-            <input
-              value={serviceForm.iconLikeAsset}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, iconLikeAsset: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {serviceFormErrors.iconLikeAsset ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.iconLikeAsset}</p> : null}
-            <p className="text-[12px] text-[#6f7f85] mt-1">Peut servir d’image sociale de fallback pour la fiche service.</p>
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Description</span>
-            <textarea
-              value={serviceForm.description}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, description: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {serviceFormErrors.description ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.description}</p> : null}
-          </label>
-
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Fonctionnalités (une ligne par item)</span>
-            <textarea
-              value={serviceForm.features}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, features: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {serviceFormErrors.features ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.features}</p> : null}
-          </label>
-
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Résumé d'aperçu (section intro)</span>
-            <textarea
-              value={serviceForm.overviewDescription}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, overviewDescription: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Titre CTA</span>
-            <input
-              value={serviceForm.ctaTitle}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaTitle: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Description CTA</span>
-            <textarea
-              value={serviceForm.ctaDescription}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaDescription: event.target.value }))}
-              className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-[14px] text-[#6f7f85]">Libellé CTA primaire</span>
-              <input
-                value={serviceForm.ctaPrimaryLabel}
-                onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaPrimaryLabel: event.target.value }))}
-                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[14px] text-[#6f7f85]">Lien CTA primaire</span>
-              <input
-                value={serviceForm.ctaPrimaryHref}
-                onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaPrimaryHref: event.target.value }))}
-                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-                placeholder="#contact, /contact ou https://..."
-              />
-              {serviceFormErrors.ctaPrimaryHref ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.ctaPrimaryHref}</p> : null}
-            </label>
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h4 className="text-[16px] font-semibold text-[#273a41]">Identité & routage</h4>
+                <p className="text-[12px] text-[#6f7f85]">Infos visibles sur la page services et utilisées pour la route détail.</p>
+              </div>
+              {serviceGroupHasErrors(['title', 'slug', 'routeSlug', 'icon', 'color']) ? <span className="text-[12px] text-red-600">Bloc à corriger</span> : null}
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              {(['title', 'slug', 'routeSlug', 'icon', 'color'] as const).map((fieldKey) => (
+                <label key={fieldKey} className="block">
+                  <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'Slug de route publique' : fieldKey}</span>
+                  <input value={serviceForm[fieldKey]} onChange={(event) => setServiceForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
+                  {serviceFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors[fieldKey]}</p> : null}
+                  {fieldKey === 'routeSlug' ? <p className="text-[12px] text-[#6f7f85] mt-1">Prévisualisation: <code>#service/{resolveServiceRouteSlug({ id: serviceForm.id || 'service', slug: serviceForm.slug, routeSlug: serviceForm.routeSlug })}</code>.</p> : null}
+                </label>
+              ))}
+            </div>
           </div>
 
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Titre processus</span>
-            <input
-              value={serviceForm.processTitle}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, processTitle: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <h4 className="text-[16px] font-semibold text-[#273a41]">Contenu principal</h4>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Description courte (carte)</span><input value={serviceForm.shortDescription} onChange={(event) => setServiceForm((prev) => ({ ...prev, shortDescription: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Description détaillée</span><textarea value={serviceForm.description} onChange={(event) => setServiceForm((prev) => ({ ...prev, description: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{serviceFormErrors.description ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.description}</p> : null}</label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Résumé d’introduction</span><textarea value={serviceForm.overviewDescription} onChange={(event) => setServiceForm((prev) => ({ ...prev, overviewDescription: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Fonctionnalités (une ligne par item)</span><textarea value={serviceForm.features} onChange={(event) => setServiceForm((prev) => ({ ...prev, features: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{serviceFormErrors.features ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.features}</p> : null}</label>
+          </div>
 
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Étapes du processus (une ligne par étape)</span>
-            <textarea
-              value={serviceForm.processSteps}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, processSteps: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <h4 className="text-[16px] font-semibold text-[#273a41]">Media & CTA</h4>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Visuel / icône de référence</span><input value={serviceForm.iconLikeAsset} onChange={(event) => setServiceForm((prev) => ({ ...prev, iconLikeAsset: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{serviceFormErrors.iconLikeAsset ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.iconLikeAsset}</p> : null}<p className="text-[12px] text-[#6f7f85] mt-1">Utilisé en fallback social si aucun média dédié.</p></label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Titre CTA</span><input value={serviceForm.ctaTitle} onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaTitle: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Description CTA</span><textarea value={serviceForm.ctaDescription} onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaDescription: event.target.value }))} className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+            <div className="grid md:grid-cols-2 gap-3">
+              <label className="block"><span className="text-[14px] text-[#6f7f85]">Libellé CTA primaire</span><input value={serviceForm.ctaPrimaryLabel} onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaPrimaryLabel: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+              <label className="block"><span className="text-[14px] text-[#6f7f85]">Lien CTA primaire</span><input value={serviceForm.ctaPrimaryHref} onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaPrimaryHref: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="#contact, /contact ou https://..." />{serviceFormErrors.ctaPrimaryHref ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.ctaPrimaryHref}</p> : null}</label>
+            </div>
+          </div>
 
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Statut</span>
-            <select
-              value={serviceForm.status}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, status: event.target.value as ServiceFormState['status'] }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            >
-              <option value="draft">Brouillon</option>
-              <option value="published">Publié</option>
-              <option value="archived">Archivé</option>
-            </select>
-          </label>
-
-          <label className="inline-flex items-center gap-2 text-[14px] text-[#6f7f85]">
-            <input
-              type="checkbox"
-              checked={serviceForm.featured}
-              onChange={(event) => setServiceForm((prev) => ({ ...prev, featured: event.target.checked }))}
-            />
-            Service mis en avant
-          </label>
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <h4 className="text-[16px] font-semibold text-[#273a41]">Processus & publication</h4>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Titre processus</span><input value={serviceForm.processTitle} onChange={(event) => setServiceForm((prev) => ({ ...prev, processTitle: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Étapes du processus (une ligne par étape)</span><textarea value={serviceForm.processSteps} onChange={(event) => setServiceForm((prev) => ({ ...prev, processSteps: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
+            <div className="grid md:grid-cols-2 gap-3">
+              <label className="block"><span className="text-[14px] text-[#6f7f85]">Statut</span><select value={serviceForm.status} onChange={(event) => setServiceForm((prev) => ({ ...prev, status: event.target.value as ServiceFormState['status'] }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"><option value="draft">Brouillon</option><option value="published">Publié</option><option value="archived">Archivé</option></select></label>
+              <label className="inline-flex items-center gap-2 text-[14px] text-[#6f7f85] mt-7"><input type="checkbox" checked={serviceForm.featured} onChange={(event) => setServiceForm((prev) => ({ ...prev, featured: event.target.checked }))} />Service mis en avant (cartes)</label>
+            </div>
+          </div>
 
           <AdminStickyFormActions>
             <AdminActionCluster>
@@ -1793,135 +1596,73 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
   const renderBlogForm = () => {
     const title = blogEditorMode === 'create' ? 'Créer un article' : 'Modifier un article';
+    const blogGroupHasErrors = (keys: Array<keyof BlogFormState>) => keys.some((key) => Boolean(blogFormErrors[key]));
 
     return (
       <AdminPanel title={title}>
         <form
-          className="space-y-4"
+          className="space-y-5"
           onSubmit={(event) => {
             event.preventDefault();
             void saveBlogPost();
           }}
         >
-          {(['title', 'slug', 'author', 'readTime'] as const).map((fieldKey) => (
-            <label key={fieldKey} className="block">
-              <span className="text-[14px] text-[#6f7f85]">{fieldKey === 'routeSlug' ? 'routeSlug (URL publique du service)' : fieldKey}</span>
-              <input
-                value={blogForm[fieldKey]}
-                onChange={(event) => setBlogForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))}
-                className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              />
-              {blogFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors[fieldKey]}</p> : null}
-            </label>
-          ))}
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Catégorie (taxonomie gérée)</span>
-            <input
-              list="blog-managed-categories"
-              value={blogForm.category}
-              onChange={(event) => setBlogForm((prev) => ({ ...prev, category: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            <datalist id="blog-managed-categories">
-              {managedBlogCategories.map((category) => (
-                <option key={category} value={category} />
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h4 className="text-[16px] font-semibold text-[#273a41]">Identité & taxonomie</h4>
+                <p className="text-[12px] text-[#6f7f85]">Champs visibles en carte blog et pour le classement éditorial.</p>
+              </div>
+              {blogGroupHasErrors(['title', 'slug', 'author', 'readTime', 'category']) ? <span className="text-[12px] text-red-600">Bloc à corriger</span> : null}
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              {(['title', 'slug', 'author', 'readTime'] as const).map((fieldKey) => (
+                <label key={fieldKey} className="block">
+                  <span className="text-[14px] text-[#6f7f85]">{fieldKey}</span>
+                  <input value={blogForm[fieldKey]} onChange={(event) => setBlogForm((prev) => ({ ...prev, [fieldKey]: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
+                  {blogFormErrors[fieldKey] ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors[fieldKey]}</p> : null}
+                </label>
               ))}
-            </datalist>
-            <p className="text-[12px] text-[#6f7f85] mt-1">Utilisez prioritairement les catégories gérées pour éviter la dérive taxonomique.</p>
-          </label>
+            </div>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Catégorie (taxonomie gérée)</span>
+              <input list="blog-managed-categories" value={blogForm.category} onChange={(event) => setBlogForm((prev) => ({ ...prev, category: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
+              <datalist id="blog-managed-categories">{managedBlogCategories.map((category) => (<option key={category} value={category} />))}</datalist>
+              <p className="text-[12px] text-[#6f7f85] mt-1">Préférer les catégories gérées pour la cohérence du blog.</p>
+            </label>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Tags (séparés par virgules)</span>
+              <input value={blogForm.tags} onChange={(event) => setBlogForm((prev) => ({ ...prev, tags: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder={managedBlogTags.slice(0, 5).join(', ')} />
+              <p className="text-[12px] text-[#6f7f85] mt-1">Tags gérés: {managedBlogTags.join(', ')}</p>
+            </label>
+          </div>
+
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-[16px] font-semibold text-[#273a41]">Contenu article</h4>
+              {blogGroupHasErrors(['excerpt', 'content']) ? <span className="text-[12px] text-red-600">Résumé / contenu requis</span> : null}
+            </div>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Résumé (affiché en carte)</span><textarea value={blogForm.excerpt} onChange={(event) => setBlogForm((prev) => ({ ...prev, excerpt: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{blogFormErrors.excerpt ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.excerpt}</p> : null}</label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Contenu complet</span><textarea value={blogForm.content} onChange={(event) => setBlogForm((prev) => ({ ...prev, content: event.target.value }))} className="mt-1 w-full min-h-[160px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{blogFormErrors.content ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.content}</p> : null}</label>
+          </div>
+
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <h4 className="text-[16px] font-semibold text-[#273a41]">SEO & médias</h4>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">SEO title</span><input value={blogForm.seoTitle} onChange={(event) => setBlogForm((prev) => ({ ...prev, seoTitle: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /><p className="text-[12px] text-[#6f7f85] mt-1">Utilisé dans les résultats de recherche et partages.</p></label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">SEO description</span><textarea value={blogForm.seoDescription} onChange={(event) => setBlogForm((prev) => ({ ...prev, seoDescription: event.target.value }))} className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{blogFormErrors.seoDescription ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.seoDescription}</p> : null}</label>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Canonical slug (optionnel)</span><input value={blogForm.canonicalSlug} onChange={(event) => setBlogForm((prev) => ({ ...prev, canonicalSlug: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
           <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Tags (virgule séparateur, taxonomie gérée)</span>
-            <input
-              value={blogForm.tags}
-              onChange={(event) => setBlogForm((prev) => ({ ...prev, tags: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-              placeholder={managedBlogTags.slice(0, 5).join(', ')}
-            />
-            <p className="text-[12px] text-[#6f7f85] mt-1">Tags gérés: {managedBlogTags.join(', ')}</p>
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Résumé</span>
-            <textarea
-              value={blogForm.excerpt}
-              onChange={(event) => setBlogForm((prev) => ({ ...prev, excerpt: event.target.value }))}
-              className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {blogFormErrors.excerpt ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.excerpt}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Contenu</span>
-            <textarea
-              value={blogForm.content}
-              onChange={(event) => setBlogForm((prev) => ({ ...prev, content: event.target.value }))}
-              className="mt-1 w-full min-h-[140px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {blogFormErrors.content ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.content}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Statut</span>
-            <select
-              value={blogForm.status}
-              onChange={(event) => setBlogForm((prev) => ({ ...prev, status: event.target.value as BlogPost['status'] }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            >
-              <option value="draft">Brouillon</option>
-              <option value="in_review">En revue</option>
-              <option value="published">Publié</option>
-              <option value="archived">Archivé</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Date de publication</span>
-            <input
-              type="datetime-local"
-              value={toDateTimeLocalValue(blogForm.publishedDate)}
-              onChange={(event) =>
-                setBlogForm((prev) => ({
-                  ...prev,
-                  publishedDate: toIsoDateTime(event.target.value) || prev.publishedDate,
-                }))
-              }
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {blogFormErrors.publishedDate ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.publishedDate}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">SEO title</span>
-            <input
-              value={blogForm.seoTitle}
-              onChange={(event) => setBlogForm((prev) => ({ ...prev, seoTitle: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">SEO description</span>
-            <textarea
-              value={blogForm.seoDescription}
-              onChange={(event) => setBlogForm((prev) => ({ ...prev, seoDescription: event.target.value }))}
-              className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-            {blogFormErrors.seoDescription ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.seoDescription}</p> : null}
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Canonical slug (optionnel)</span>
-            <input
-              value={blogForm.canonicalSlug}
-              onChange={(event) => setBlogForm((prev) => ({ ...prev, canonicalSlug: event.target.value }))}
-              className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Image sociale (SEO)</span>
+            <span className="text-[14px] text-[#6f7f85]">Image sociale (aperçus)</span>
             <input
               value={blogForm.socialImage}
               onChange={(event) => setBlogForm((prev) => ({ ...prev, socialImage: event.target.value }))}
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
               placeholder="https://... ou media:asset-id"
             />
-            <p className="text-[12px] text-[#6f7f85] mt-1">Preset socialImage. Fallback automatique: image vedette.</p>
+            <p className="text-[12px] text-[#6f7f85] mt-1">Utilisée pour les partages sociaux. Fallback: image vedette.</p>
           </label>
           <label className="block">
-            <span className="text-[14px] text-[#6f7f85]">Image vedette (requête image / média)</span>
+            <span className="text-[14px] text-[#6f7f85]">Image vedette (carte + hero détail)</span>
             <input
               value={blogForm.featuredImage}
               onChange={(event) => setBlogForm((prev) => ({ ...prev, featuredImage: event.target.value }))}
@@ -1973,6 +1714,28 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               Aperçu média: {resolveBlogMediaReference(blogForm.featuredImage, blogForm.title || 'Article').caption}
             </div>
           ) : null}
+          </div>
+
+          <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-[16px] font-semibold text-[#273a41]">Publication</h4>
+              {blogGroupHasErrors(['publishedDate']) ? <span className="text-[12px] text-red-600">Date invalide</span> : null}
+            </div>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Statut</span>
+              <select value={blogForm.status} onChange={(event) => setBlogForm((prev) => ({ ...prev, status: event.target.value as BlogPost['status'] }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2">
+                <option value="draft">Brouillon</option>
+                <option value="in_review">En revue</option>
+                <option value="published">Publié</option>
+                <option value="archived">Archivé</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Date de publication</span>
+              <input type="datetime-local" value={toDateTimeLocalValue(blogForm.publishedDate)} onChange={(event) => setBlogForm((prev) => ({ ...prev, publishedDate: toIsoDateTime(event.target.value) || prev.publishedDate }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
+              {blogFormErrors.publishedDate ? <p className="text-[12px] text-red-600 mt-1">{blogFormErrors.publishedDate}</p> : null}
+            </label>
+          </div>
           <AdminStickyFormActions>
             <AdminActionCluster>
               <AdminButton type="button" onClick={resetBlogEditor}>Annuler</AdminButton>
@@ -2369,10 +2132,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           ) : null}
           <AdminPanel title="Paramètres globaux (autorité CMS)">
             <div className="space-y-6">
-              <p className="text-[12px] text-[#6f7f85]">Autorité site: <span className="font-semibold">siteSettings</span> • Autorité opérationnelle: <span className="font-semibold">operationalSettings</span> • Autorité éditoriale: <span className="font-semibold">taxonomySettings</span>.</p>
+              <p className="text-[12px] text-[#6f7f85]">Autorité site: <span className="font-semibold">siteSettings</span> • Autorité opérationnelle: <span className="font-semibold">operationalSettings</span> • Autorité éditoriale: <span className="font-semibold">taxonomySettings</span>. Les champs ci-dessous sont regroupés par impact public.</p>
 
               <div className="rounded-[10px] border border-[#eef3f5] p-4 space-y-3">
-                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Identité du site</h3>
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Site / marque</h3>
                 <label className="block">
                   <span className="text-[14px] text-[#6f7f85]">Nom du site</span>
                   <input
@@ -2389,7 +2152,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
                   />
                 </label>
-                <p className="text-[12px] text-[#6f7f85]">Ces champs pilotent le runtime public via <code>/content/public/settings</code> (titre, email de contact).</p>
+                <p className="text-[12px] text-[#6f7f85]">Ces champs alimentent l’en-tête publique et les coordonnées de contact.</p>
               </div>
 
               <div className="rounded-[10px] border border-[#eef3f5] p-4 space-y-3">
@@ -2452,11 +2215,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     />
                   </label>
                 </div>
-                <p className="text-[12px] text-[#6f7f85]">Consommateurs runtime: navigation (logo), favicon navigateur et image sociale de fallback.</p>
+                <p className="text-[12px] text-[#6f7f85]">Affecte la navigation, l’onglet navigateur et les aperçus sociaux par défaut.</p>
               </div>
 
               <div className="rounded-[10px] border border-[#eef3f5] p-4 space-y-3">
-                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Gouvernance éditoriale (blog)</h3>
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Taxonomie & gouvernance éditoriale</h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   <label className="block">
                     <span className="text-[14px] text-[#6f7f85]">Catégories gérées (1 par ligne)</span>
@@ -2510,11 +2273,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     }))}
                   />
                 </label>
-                <p className="text-[12px] text-[#6f7f85]">Ces règles sont appliquées côté backend pendant les sauvegardes blog pour éviter les dérives taxonomiques.</p>
+                <p className="text-[12px] text-[#6f7f85]">Ces listes encadrent les choix proposés aux éditeurs dans le formulaire Blog.</p>
               </div>
 
               <div className="rounded-[10px] border border-[#eef3f5] p-4 space-y-3">
-                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Publication & récupération</h3>
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Opérations & actions administratives</h3>
                 <label className="flex items-center justify-between rounded-[12px] border border-[#eef3f5] p-4">
                   <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Autoriser la publication immédiate</span>
                   <input
@@ -2526,7 +2289,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 {instantPublishingEnabled ? null : (
                   <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
                 )}
-                <p className="text-[12px] text-[#6f7f85]">Ce garde-fou est appliqué côté serveur sur les transitions de publication.</p>
+                <p className="text-[12px] text-[#6f7f85]">La publication immédiate agit comme garde-fou global pour les actions “Publier”.</p>
                 <div className="flex flex-wrap items-center gap-4">
                   <AdminActionCluster danger>
                     <AdminButton
@@ -2536,7 +2299,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     disabled={isHydratingBackend}
                     intent="danger"
                   >
-                    {isHydratingBackend ? 'Hydratation...' : 'Hydrater backend depuis local'}
+                    {isHydratingBackend ? 'Hydratation...' : 'Action risquée: hydrater backend depuis local'}
                     </AdminButton>
                   </AdminActionCluster>
                   <AdminActionCluster>
