@@ -41,6 +41,7 @@ This iteration standardizes CMS action intent and placement without changing bac
 - Unified card/panel and row treatment for projects, services, blog entries, media cards, and content blocks.
 - Structured list rows into clear scan lanes (left = title/meta, middle = status, right = actions).
 - Normalized feedback/intent states across success, error, warning, and loading components.
+- Consolidated shared admin visual tokens (field/input, helper, sub-card) to reduce local style drift in page-content and media areas.
 
 ## Iteration sequence completion notes
 
