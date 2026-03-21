@@ -70,11 +70,14 @@ import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSumma
 import type { BlogPost, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
+  AdminActionCluster,
+  AdminButton,
   AdminEmptyState,
   AdminErrorState,
   AdminLoadingState,
   AdminPageHeader,
   AdminPanel,
+  AdminStickyFormActions,
   AdminSuccessFeedback,
 } from './adminPrimitives';
 
@@ -1447,18 +1450,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2"
             />
           </label>
-          <AdminActionBar>
-            <button
-              type="submit"
-              disabled={isSavingProject}
-              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
-            >
-              <Save size={16} /> {isSavingProject ? 'Validation...' : projectEditorMode === 'create' ? 'Valider et créer le projet' : 'Valider et enregistrer'}
-            </button>
-            <button type="button" onClick={resetProjectEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
-              Annuler
-            </button>
-          </AdminActionBar>
           {mediaFiles.length > 0 ? (
             <div className="rounded-[10px] bg-[#f5f9fa] p-3">
               <p className="text-[13px] text-[#6f7f85] mb-2">Sélecteur média (même contrat Blog/Projet: media:asset-id)</p>
@@ -1614,18 +1605,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               />
             </label>
           </div>
-          <AdminActionBar>
-            <button
-              type="submit"
-              disabled={isSavingProject}
-              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
-            >
-              <Save size={16} /> {isSavingProject ? 'Validation...' : projectEditorMode === 'create' ? 'Valider et créer le projet' : 'Valider et enregistrer'}
-            </button>
-            <button type="button" onClick={resetProjectEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
-              Annuler
-            </button>
-          </AdminActionBar>
+          <AdminStickyFormActions>
+            <AdminActionCluster>
+              <AdminButton type="button" onClick={resetProjectEditor}>
+                Annuler
+              </AdminButton>
+            </AdminActionCluster>
+            <AdminActionCluster>
+              <AdminButton type="submit" disabled={isSavingProject} intent="primary">
+                <Save size={16} /> {isSavingProject ? 'Validation...' : projectEditorMode === 'create' ? 'Valider et créer le projet' : 'Valider et enregistrer'}
+              </AdminButton>
+            </AdminActionCluster>
+          </AdminStickyFormActions>
         </form>
       </AdminPanel>
     );
@@ -1785,18 +1776,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             Service mis en avant
           </label>
 
-          <AdminActionBar>
-            <button
-              onClick={saveService}
-              disabled={isSavingService}
-              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
-            >
-              <Save size={16} /> {isSavingService ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-            <button onClick={resetServiceEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
-              Annuler
-            </button>
-          </AdminActionBar>
+          <AdminStickyFormActions>
+            <AdminActionCluster>
+              <AdminButton onClick={resetServiceEditor}>Annuler</AdminButton>
+            </AdminActionCluster>
+            <AdminActionCluster>
+              <AdminButton type="submit" disabled={isSavingService} intent="primary">
+                <Save size={16} /> {isSavingService ? 'Enregistrement...' : 'Enregistrer'}
+              </AdminButton>
+            </AdminActionCluster>
+          </AdminStickyFormActions>
         </form>
       </AdminPanel>
     );
@@ -1984,38 +1973,35 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               Aperçu média: {resolveBlogMediaReference(blogForm.featuredImage, blogForm.title || 'Article').caption}
             </div>
           ) : null}
-          <AdminActionBar>
-            <button
-              type="submit"
-              disabled={isSavingPost}
-              className="inline-flex items-center gap-2 bg-[#273a41] text-white px-4 py-2 rounded-[10px] disabled:opacity-60"
-            >
-              <Save size={16} /> {isSavingPost ? 'Enregistrement...' : blogEditorMode === 'create' ? 'Valider et créer l’article' : 'Valider et enregistrer'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void saveBlogPost('draft');
-              }}
-              disabled={isSavingPost}
-              className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41] disabled:opacity-60"
-            >
-              Enregistrer en brouillon
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void saveBlogPost('in_review');
-              }}
-              disabled={isSavingPost || !canEditContent || !instantPublishingEnabled}
-              className="px-4 py-2 rounded-[10px] bg-[#00b3e8] text-white disabled:opacity-60"
-            >
-              Soumettre en revue
-            </button>
-            <button type="button" onClick={resetBlogEditor} className="px-4 py-2 rounded-[10px] border border-[#d8e4e8] text-[#273a41]">
-              Annuler
-            </button>
-          </AdminActionBar>
+          <AdminStickyFormActions>
+            <AdminActionCluster>
+              <AdminButton type="button" onClick={resetBlogEditor}>Annuler</AdminButton>
+              <AdminButton
+                type="button"
+                onClick={() => {
+                  void saveBlogPost('draft');
+                }}
+                disabled={isSavingPost}
+              >
+                Enregistrer en brouillon
+              </AdminButton>
+            </AdminActionCluster>
+            <AdminActionCluster>
+              <AdminButton
+                type="button"
+                onClick={() => {
+                  void saveBlogPost('in_review');
+                }}
+                disabled={isSavingPost || !canEditContent || !instantPublishingEnabled}
+                intent="workflow"
+              >
+                Soumettre en revue
+              </AdminButton>
+              <AdminButton type="submit" disabled={isSavingPost} intent="primary">
+                <Save size={16} /> {isSavingPost ? 'Enregistrement...' : blogEditorMode === 'create' ? 'Valider et créer l’article' : 'Valider et enregistrer'}
+              </AdminButton>
+            </AdminActionCluster>
+          </AdminStickyFormActions>
           {!canEditContent ? (
             <p className="text-[12px] text-amber-700">Soumission en revue réservée aux rôles auteur/éditeur/administrateur.</p>
           ) : null}
@@ -2261,7 +2247,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             title="Utilisateurs"
             subtitle="Gestion des comptes (rôle, statut, fournisseur, vérification) avec traçabilité d’audit."
             actions={
-              <button
+              <AdminButton
                 type="button"
                 onClick={() => {
                   void loadAdminUsers();
@@ -2269,10 +2255,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     void loadAuditEvents();
                   }
                 }}
-                className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] text-[14px]"
+                size="sm"
               >
                 Rafraîchir
-              </button>
+              </AdminButton>
             }
           />
           {adminUsersError ? <AdminErrorState label={adminUsersError} /> : null}
@@ -2364,22 +2350,21 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               {instantPublishingEnabled ? null : (
                 <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
               )}
-              <button
+              <AdminButton
                 onClick={() => {
                   void hydrateBackendFromLocalSnapshot();
                 }}
                 disabled={isHydratingBackend}
-                className="border border-amber-300 text-amber-800 rounded-[10px] px-4 py-2 disabled:opacity-60"
+                intent="danger"
               >
                 {isHydratingBackend ? 'Hydratation...' : 'Hydrater backend depuis local'}
-              </button>
-              <button
+              </AdminButton>
+              <AdminButton
                 onClick={saveSettings}
                 disabled={settingsSaving}
-                className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] inline-flex items-center gap-2 disabled:opacity-60"
               >
                 <RotateCcw size={15} /> Réessayer
-              </button>
+              </AdminButton>
             </AdminActionBar>
           ) : null}
           <AdminPanel title="Paramètres globaux (autorité CMS)">
@@ -2542,23 +2527,23 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
                 )}
                 <p className="text-[12px] text-[#6f7f85]">Ce garde-fou est appliqué côté serveur sur les transitions de publication.</p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
+                <div className="flex flex-wrap items-center gap-4">
+                  <AdminActionCluster danger>
+                    <AdminButton
                     onClick={() => {
                       void hydrateBackendFromLocalSnapshot();
                     }}
                     disabled={isHydratingBackend}
-                    className="border border-amber-300 text-amber-800 rounded-[10px] px-4 py-2 disabled:opacity-60"
+                    intent="danger"
                   >
                     {isHydratingBackend ? 'Hydratation...' : 'Hydrater backend depuis local'}
-                  </button>
-                  <button
-                    onClick={saveSettings}
-                    disabled={settingsSaving}
-                    className="bg-[#273a41] text-white rounded-[10px] px-4 py-2 disabled:opacity-60"
-                  >
-                    {settingsSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-                  </button>
+                    </AdminButton>
+                  </AdminActionCluster>
+                  <AdminActionCluster>
+                    <AdminButton onClick={saveSettings} disabled={settingsSaving} intent="primary">
+                      {settingsSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                    </AdminButton>
+                  </AdminActionCluster>
                 </div>
               </div>
             </div>
@@ -2572,13 +2557,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                     <p><strong>{entry.changedBy || 'unknown'}</strong> · {entry.changeSummary}</p>
                     <p>{new Date(entry.changedAt).toLocaleString('fr-FR')} · {entry.changedFields.join(', ') || 'Aucun champ changé'}</p>
                   </div>
-                  <button
+                  <AdminButton
                     onClick={() => { void rollbackSettings(entry.versionId); }}
                     disabled={settingsSaving}
-                    className="px-3 py-2 border border-[#d8e4e8] rounded-[10px] text-[12px]"
+                    size="sm"
                   >
                     Restaurer
-                  </button>
+                  </AdminButton>
                 </div>
               ))}
             </div>
@@ -2661,8 +2646,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               </h1>
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4] mt-1">Bienvenue, {user?.name}</p>
             </div>
-            <a href="#home" className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4] hover:text-[#273a41]">
-              Voir le site →
+            <a
+              href="#home"
+              className="inline-flex items-center gap-2 rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px] text-[#273a41] hover:bg-[#f5f9fa]"
+            >
+              <Eye size={15} /> Voir le site
             </a>
           </div>
         </header>

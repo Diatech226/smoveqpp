@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { AlertCircle, CheckCircle2, Inbox, Loader2 } from 'lucide-react';
 
 interface AdminPageHeaderProps {
@@ -23,6 +23,45 @@ export function AdminPageHeader({ title, subtitle, actions }: AdminPageHeaderPro
 
 export function AdminActionBar({ children }: { children: ReactNode }) {
   return <div className="bg-white border border-[#eef3f5] rounded-[16px] p-4 flex flex-wrap items-center gap-3">{children}</div>;
+}
+
+type AdminButtonIntent = 'primary' | 'secondary' | 'danger' | 'workflow';
+type AdminButtonSize = 'sm' | 'md';
+
+interface AdminButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  intent?: AdminButtonIntent;
+  size?: AdminButtonSize;
+}
+
+export function AdminButton({ intent = 'secondary', size = 'md', className = '', type = 'button', ...props }: AdminButtonProps) {
+  const intentClass =
+    intent === 'primary'
+      ? 'bg-[#273a41] text-white border border-[#273a41] hover:bg-[#1f3036]'
+      : intent === 'danger'
+        ? 'border border-red-200 text-red-700 bg-red-50 hover:bg-red-100'
+        : intent === 'workflow'
+          ? 'border border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100'
+          : 'border border-[#d8e4e8] text-[#273a41] bg-white hover:bg-[#f5f9fa]';
+  const sizeClass = size === 'sm' ? 'px-3 py-2 text-[13px]' : 'px-4 py-2 text-[14px]';
+  const baseClass = `inline-flex items-center justify-center gap-2 rounded-[10px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${intentClass} ${sizeClass}`;
+
+  return <button type={type} className={`${baseClass} ${className}`.trim()} {...props} />;
+}
+
+export function AdminActionCluster({ children, danger = false }: { children: ReactNode; danger?: boolean }) {
+  return (
+    <div className={`flex flex-wrap items-center gap-2 ${danger ? 'pl-3 border-l border-red-200' : ''}`}>
+      {children}
+    </div>
+  );
+}
+
+export function AdminStickyFormActions({ children }: { children: ReactNode }) {
+  return (
+    <div className="sticky bottom-4 z-20 rounded-[14px] border border-[#d8e4e8] bg-white/95 backdrop-blur px-4 py-3 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">{children}</div>
+    </div>
+  );
 }
 
 export function AdminPanel({ title, children }: { title: string; children: ReactNode }) {
