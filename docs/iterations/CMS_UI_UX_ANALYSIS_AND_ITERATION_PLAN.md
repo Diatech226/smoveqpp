@@ -4,7 +4,7 @@
 
 - Iteration 1 — **Action Hierarchy & Safety Standardization**: ✅ Implemented (March 21, 2026)
 - Iteration 2 — **Form Ergonomics & Information Architecture Refinement**: ✅ Implemented (March 21, 2026)
-- Iteration 3 — Pending
+- Iteration 3 — **CMS ↔ Public Visual Language Harmonization**: ✅ Implemented (March 21, 2026)
 
 ## Iteration 1 scope implemented
 
@@ -28,17 +28,22 @@ This iteration standardizes CMS action intent and placement without changing bac
    - Delete/hydrate-risk actions use a dedicated danger intent (`intent="danger"`).
    - Destructive controls are grouped in explicit danger clusters with visual separation (`AdminActionCluster danger`).
 
-## Standardization applied
+## Iteration 2 scope implemented
 
-- Shared action primitives added for intent taxonomy and grouping.
-- Projects, Services, Blog list-row actions grouped into workflow / management / destructive clusters.
-- Page Content and long-form editors now use sticky, consistent save/cancel bars.
-- Settings risky controls (hydrate) are visually framed as destructive and separated from save.
-- Header-level utility action (“Voir le site”) aligned with secondary action framing.
+- Improved form readability and editing ergonomics while preserving existing contracts and logic.
+- Standardized sticky save regions and grouped primary/secondary actions in editor flows.
+- Reduced accidental-action risk through clearer separation of workflow and destructive controls.
 
-## What remains for next UI/UX iteration
+## Iteration 3 scope implemented
 
-- Continue with visual consistency pass (spacing tokens and typographic rhythm) across non-form CMS panels.
-- Evaluate lightweight progressive disclosure for advanced fields where editor load remains high.
-- Refine global validation summaries across sections while preserving existing logic.
-- See detailed implementation notes in `docs/iterations/ITERATION_UI_02_FORM_ERGONOMICS_AND_INFORMATION_ARCHITECTURE.md`.
+- Harmonized CMS visual language with public site cues (color semantics, card surfaces, subtle depth, rhythm).
+- Standardized admin typography hierarchy for section titles, panel headings, metadata, and helper text.
+- Unified card/panel and row treatment for projects, services, blog entries, media cards, and content blocks.
+- Structured list rows into clear scan lanes (left = title/meta, middle = status, right = actions).
+- Normalized feedback/intent states across success, error, warning, and loading components.
+
+## Iteration sequence completion notes
+
+- All three CMS UI/UX iterations are now complete.
+- This final pass intentionally avoids workflow or backend changes and focuses only on visual-system polish.
+- Detailed implementation decisions are documented in `docs/iterations/ITERATION_UI_03_VISUAL_HARMONIZATION.md`.
