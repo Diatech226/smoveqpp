@@ -13,12 +13,11 @@ export const resolveServiceRouteSlug = (service: Pick<Service, 'id' | 'slug' | '
 
 export const resolveServiceRouteHref = (service: Pick<Service, 'id' | 'slug' | 'routeSlug'>): string => {
   const routeSlug = resolveServiceRouteSlug(service);
-  const premiumRoute = PREMIUM_SERVICE_ROUTES[routeSlug];
-  if (premiumRoute) {
-    return `#${premiumRoute}`;
+  if (!routeSlug) {
+    return '#services-all';
   }
 
-  return `#service/${routeSlug}`;
+  return `#/services/${routeSlug}`;
 };
 
 export const isPremiumServiceSlug = (slug: string): boolean => Boolean(PREMIUM_SERVICE_ROUTES[slug]);

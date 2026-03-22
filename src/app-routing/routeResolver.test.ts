@@ -37,7 +37,11 @@ describe('routeResolver', () => {
 
   it('maps canonical service slugs to deterministic service pages', () => {
     expect(resolveRoute('#service/design-branding', baseAuth).page).toBe('service-design');
+    expect(resolveRoute('#/services/design-branding', baseAuth).page).toBe('service-design');
     expect(resolveRoute('#service/web-development', baseAuth).page).toBe('service-web');
+    expect(resolveRoute('#/services/web-development', baseAuth).page).toBe('service-web');
+    expect(resolveRoute('#service-growth-marketing', baseAuth).page).toBe('service-growth-marketing');
+    expect(resolveRoute('#/services/growth-marketing', baseAuth).page).toBe('service-growth-marketing');
     expect(resolveRoute('#service/unknown', baseAuth).page).toBe('service-unknown');
   });
 

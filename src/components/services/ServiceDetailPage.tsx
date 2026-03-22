@@ -78,12 +78,21 @@ export default function ServiceDetailPage({ slug }: ServiceDetailPageProps) {
             className="aspect-[4/3] rounded-[24px] overflow-hidden shadow-2xl"
             whileHover={{ scale: 1.02 }}
           >
-            <ImageWithFallback
-              src={detail.heroMedia.isMediaAsset ? detail.heroMedia.src : ''}
-              alt={detail.heroMedia.alt}
-              query={detail.heroMedia.src}
-              className="w-full h-full object-cover"
-            />
+            {detail.heroMedia.isMediaAsset ? (
+              <ImageWithFallback
+                src={detail.heroMedia.src}
+                alt={detail.heroMedia.alt}
+                query={detail.heroMedia.src}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className={`w-full h-full bg-gradient-to-br ${renderable.color} flex items-center justify-center`}>
+                <div className="text-center text-white px-6">
+                  <renderable.iconComponent size={72} className="mx-auto mb-4" />
+                  <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[20px]">{detail.heroMedia.alt}</p>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
