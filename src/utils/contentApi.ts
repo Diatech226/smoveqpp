@@ -242,6 +242,25 @@ export async function fetchPublicBlogPosts(): Promise<BlogPost[]> {
   return body.data?.posts || [];
 }
 
+export async function fetchPublicBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+  const response = await fetch(`${CONTENT_BASE_URL}/public/blog/${encodeURIComponent(slug)}`, {
+    credentials: 'include',
+  });
+
+  const body = (await response.json().catch(() => null)) as ApiEnvelope<{ post: BlogPost }> | null;
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok || !body?.success) {
+    const code = body?.error?.code || `CONTENT_API_${response.status}`;
+    const message = body?.error?.message || `CONTENT_API_${response.status}`;
+    throw new ContentApiError(message, code, response.status);
+  }
+
+  return body.data?.post || null;
+}
+
 export async function saveBackendBlogPost(post: BlogPost): Promise<BlogPost> {
   const body = await request<{ post: BlogPost }>('/blog', {
     method: 'POST',

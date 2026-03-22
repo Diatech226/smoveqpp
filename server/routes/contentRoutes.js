@@ -59,6 +59,14 @@ function parseUploadPayload(payload) {
 
 function createContentRoutes({ contentService, auditService, mediaStorage }) {
   const router = express.Router();
+  const normalizePublicBlogSlug = (value) =>
+    `${value || ''}`
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+  const isPublicBlogEligible = (post) => post.status === 'published' && post.title?.trim() && post.slug?.trim() && post.featuredImage?.trim();
 
   router.get('/public/projects', (_req, res) => sendSuccess(res, 200, { projects: contentService.listProjects().filter((p) => p.status === 'published') }));
   router.get('/public/services', (_req, res) => sendSuccess(res, 200, { services: contentService.listServices().filter((s) => s.status === 'published') }));
@@ -66,8 +74,26 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     sendSuccess(res, 200, {
       posts: contentService
         .listBlogPosts()
-        .filter((post) => post.status === 'published' && post.title?.trim() && post.slug?.trim() && post.featuredImage?.trim()),
+        .filter(isPublicBlogEligible),
     }));
+  router.get('/public/blog/:slug', (req, res) => {
+    const slug = normalizePublicBlogSlug(req.params.slug);
+    if (!slug) {
+      return sendError(res, 400, 'BLOG_NOT_FOUND', 'Blog post not found.');
+    }
+
+    const publishedPosts = contentService.listBlogPosts().filter(isPublicBlogEligible);
+    const post =
+      publishedPosts.find((entry) => normalizePublicBlogSlug(entry?.seo?.canonicalSlug) === slug) ||
+      publishedPosts.find((entry) => normalizePublicBlogSlug(entry.slug) === slug) ||
+      publishedPosts.find((entry) => normalizePublicBlogSlug(entry.id) === slug);
+
+    if (!post) {
+      return sendError(res, 404, 'BLOG_NOT_FOUND', 'Blog post not found.');
+    }
+
+    return sendSuccess(res, 200, { post });
+  });
   router.get('/public/blog/taxonomy', (_req, res) => sendSuccess(res, 200, { taxonomy: contentService.getBlogTaxonomy() }));
   router.get('/public/settings', (_req, res) =>
     sendSuccess(res, 200, { settings: contentService.getPublicSettings() }));
