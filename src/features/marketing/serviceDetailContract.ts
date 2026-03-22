@@ -27,7 +27,7 @@ export interface ServiceDetailContract {
   };
 }
 
-const isPublicService = (service: Service): boolean => service.status !== 'draft' && service.status !== 'archived';
+const isPublicService = (service: Service): boolean => service.status === 'published';
 
 const normalizeText = (value: string | undefined): string => (value || '').trim();
 

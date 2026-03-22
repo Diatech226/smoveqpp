@@ -85,7 +85,7 @@ class LocalServiceRepository implements ServiceRepository {
   }
 
   getPublished(): Service[] {
-    return this.getAll().filter((service) => service.status !== 'draft' && service.status !== 'archived');
+    return this.getAll().filter((service) => service.status === 'published');
   }
 
   getById(id: string): Service | undefined {

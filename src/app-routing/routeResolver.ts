@@ -7,6 +7,29 @@ export function parseHashRoute(hash: string): AppRoute {
   return rawRoute.split('?')[0] as AppRoute;
 }
 
+const extractServiceSlug = (route: string): string | null => {
+  const normalized = route.trim();
+  if (!normalized) return null;
+
+  if (normalized.startsWith('/services/')) {
+    return normalizeServiceSlug(normalized.slice('/services/'.length));
+  }
+
+  if (normalized.startsWith('services/')) {
+    return normalizeServiceSlug(normalized.slice('services/'.length));
+  }
+
+  if (normalized.startsWith('service/')) {
+    return normalizeServiceSlug(normalized.slice('service/'.length));
+  }
+
+  if (normalized.startsWith('service-')) {
+    return normalizeServiceSlug(normalized.slice('service-'.length));
+  }
+
+  return null;
+};
+
 export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolution {
   const route = parseHashRoute(hash);
 
@@ -61,9 +84,16 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
   }
 
 
+  if (route === 'service-design' || route === 'service-web') {
+    return {
+      page: route,
+      sectionToScroll: null,
+    };
+  }
 
-  if (route.startsWith('service/')) {
-    const slug = normalizeServiceSlug(route.slice('service/'.length));
+  const serviceSlug = extractServiceSlug(route);
+  if (serviceSlug !== null) {
+    const slug = normalizeServiceSlug(serviceSlug);
     if (!slug) {
       return { page: 'services-all', sectionToScroll: null };
     }
@@ -95,8 +125,6 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     'home',
     'projects',
     'services-all',
-    'service-design',
-    'service-web',
     'portfolio',
     'blog',
     'apropos',

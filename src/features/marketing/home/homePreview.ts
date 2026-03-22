@@ -11,9 +11,10 @@ export function selectHomepageProjects(projects: Project[]): Project[] {
 }
 
 export function selectHomepageServices(services: Service[]): Service[] {
-  return services
-    .filter((service) => service.status !== 'draft' && service.status !== 'archived')
-    .slice(0, HOMEPAGE_PREVIEW_LIMIT);
+  const published = services.filter((service) => service.status === 'published');
+  const featured = published.filter((service) => Boolean(service.featured));
+  const regular = published.filter((service) => !service.featured);
+  return [...featured, ...regular].slice(0, HOMEPAGE_PREVIEW_LIMIT);
 }
 
 export function selectHomepageBlogPosts(posts: BlogListItem[]): BlogListItem[] {
