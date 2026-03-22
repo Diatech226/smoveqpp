@@ -14,6 +14,7 @@ export interface ResolvedProjectMedia {
 export interface CanonicalProjectMediaRoles {
   cardImage: string;
   heroImage: string;
+  socialImage: string;
   galleryImages: string[];
 }
 
@@ -21,23 +22,30 @@ export const toProjectMediaReference = (mediaId: string) => toMediaReferenceValu
 
 export const isProjectMediaReference = (value?: string) => isMediaReferenceValue(value);
 
-export function toCanonicalProjectMediaRoles(project: Pick<Project, 'featuredImage' | 'mainImage' | 'images' | 'mediaRoles'>): CanonicalProjectMediaRoles {
+export function toCanonicalProjectMediaRoles(
+  project: Pick<Project, 'featuredImage' | 'mainImage' | 'images' | 'mediaRoles' | 'seo'>,
+): CanonicalProjectMediaRoles {
   const legacyFeatured = asTrimmed(project.featuredImage);
   const legacyMain = asTrimmed(project.mainImage);
   const roleCard = asTrimmed(project.mediaRoles?.cardImage);
   const roleHero = asTrimmed(project.mediaRoles?.heroImage);
+  const roleCover = asTrimmed(project.mediaRoles?.coverImage);
+  const roleSocial = asTrimmed(project.mediaRoles?.socialImage);
+  const seoSocial = asTrimmed(project.seo?.socialImage);
   const roleGallery = Array.isArray(project.mediaRoles?.galleryImages)
     ? project.mediaRoles?.galleryImages.map((entry) => asTrimmed(entry)).filter(Boolean)
     : [];
 
-  const cardImage = roleCard || legacyFeatured || legacyMain || PROJECT_MEDIA_FALLBACK_QUERY;
-  const heroImage = roleHero || legacyMain || legacyFeatured || cardImage;
+  const cardImage = roleCard || roleHero || roleCover || legacyFeatured || legacyMain || PROJECT_MEDIA_FALLBACK_QUERY;
+  const heroImage = roleHero || roleCover || roleCard || legacyMain || legacyFeatured || cardImage;
+  const socialImage = roleSocial || seoSocial || roleCard || roleHero || legacyFeatured || legacyMain || cardImage;
   const legacyGallery = Array.isArray(project.images) ? project.images.map((entry) => asTrimmed(entry)).filter(Boolean) : [];
   const galleryImages = roleGallery.length > 0 ? roleGallery : legacyGallery.length > 0 ? legacyGallery : [heroImage];
 
   return {
     cardImage,
     heroImage,
+    socialImage,
     galleryImages,
   };
 }

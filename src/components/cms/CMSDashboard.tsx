@@ -60,15 +60,15 @@ import {
   type SettingsHistoryEntry,
   type ContentHealthSummary,
 } from '../../utils/contentApi';
-import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
-import { evaluateBlogEditorialReadiness } from '../../features/blog/blogEditorialContract';
+import { fromCmsBlogInputWithExisting, normalizeSlug } from '../../features/blog/blogEntryAdapter';
 import { isMediaReference, resolveBlogMediaReference } from '../../features/blog/mediaReference';
-import { isProjectMediaReference } from '../../features/projects/projectMedia';
+import { isProjectMediaReference, resolveProjectFeaturedImage, resolveProjectHeroMedia } from '../../features/projects/projectMedia';
 import { toMediaReferenceValue } from '../../features/media/assetReference';
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
 import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
-import type { BlogPost, Service } from '../../domain/contentSchemas';
+import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
+import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
   AdminActionCluster,
@@ -123,6 +123,7 @@ interface ProjectFormState {
   tags: string;
   cardImage: string;
   heroImage: string;
+  socialImage: string;
   imageAlt: string;
   externalLink: string;
   caseStudyLink: string;
@@ -157,6 +158,7 @@ interface ServiceFormState {
 }
 
 const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const BLOG_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const SERVICE_COLOR_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
 const BLOG_MANAGED_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
@@ -217,6 +219,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   tags: '',
   cardImage: '',
   heroImage: '',
+  socialImage: '',
   imageAlt: '',
   externalLink: '',
   caseStudyLink: '',
@@ -229,28 +232,72 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
 const isValidIsoDate = (value: string): boolean => !Number.isNaN(Date.parse(value));
 
 const getBlogPublishabilityErrors = (form: BlogFormState): Partial<Record<keyof BlogFormState, string>> => {
-  const editorial = evaluateBlogEditorialReadiness(form, {
-    isValidMediaField,
-    managedTags: BLOG_MANAGED_TAGS,
-    enforceManagedTags: true,
-  });
   const errors: Partial<Record<keyof BlogFormState, string>> = {};
-  if (editorial.blockers.some((entry) => entry.includes('Titre'))) errors.title = 'Le titre est requis pour publication.';
-  if (editorial.blockers.some((entry) => entry.includes('Slug invalide'))) {
+  if (!form.title.trim()) errors.title = 'Le titre est requis pour publication.';
+
+  const normalized = normalizeSlug(form.slug, form.title);
+  if (!normalized || !BLOG_SLUG_PATTERN.test(normalized)) {
     errors.slug = 'Slug invalide pour publication (format attendu: mots-separes-par-tirets).';
   }
-  if (editorial.blockers.some((entry) => entry.includes('Image vedette'))) {
+
+  if (!form.featuredImage.trim()) {
+    errors.featuredImage = 'L’image vedette est requise pour publication.';
+  } else if (!isValidMediaField(form.featuredImage)) {
     errors.featuredImage = 'Utilisez une URL valide ou une référence media:asset-id existante.';
   }
-  if (!isValidIsoDate(form.publishedDate)) errors.publishedDate = 'Date de publication invalide.';
+
+  if (!isValidIsoDate(form.publishedDate)) {
+    errors.publishedDate = 'Date de publication invalide.';
+  }
 
   return errors;
+};
+
+const toBlogFormState = (post: BlogPost): BlogFormState => {
+  const featuredImage =
+    post.mediaRoles?.featuredImage?.trim() ||
+    post.mediaRoles?.coverImage?.trim() ||
+    post.mediaRoles?.cardImage?.trim() ||
+    post.featuredImage ||
+    post.images?.[0] ||
+    '';
+  const socialImage = post.mediaRoles?.socialImage?.trim() || post.seo?.socialImage?.trim() || featuredImage;
+  return {
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    content: post.content,
+    author: post.author,
+    category: post.category,
+    tags: post.tags.join(', '),
+    featuredImage,
+    readTime: post.readTime,
+    status: post.status,
+    seoTitle: post.seo?.title || '',
+    seoDescription: post.seo?.description || '',
+    canonicalSlug: post.seo?.canonicalSlug || post.slug,
+    socialImage,
+    publishedDate: post.publishedDate,
+  };
+};
+
+const toProjectGalleryLines = (project: Project): string => {
+  const roleGallery = Array.isArray(project.mediaRoles?.galleryImages) ? project.mediaRoles.galleryImages : [];
+  const legacyGallery = Array.isArray(project.images) ? project.images : [];
+  const heroFallback =
+    project.mediaRoles?.heroImage ||
+    project.mediaRoles?.coverImage ||
+    project.mainImage ||
+    project.featuredImage ||
+    '';
+  const gallery = roleGallery.length > 0 ? roleGallery : legacyGallery.length > 0 ? legacyGallery : heroFallback ? [heroFallback] : [];
+  return gallery.map((entry) => entry.trim()).filter(Boolean).join('\n');
 };
 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
   const { user, logout, canAccessCMS, fetchAdminUsers, fetchAdminAuditEvents, updateAdminUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sectionBusy, setSectionBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [sectionError, setSectionError] = useState('');
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>('authoritative_remote');
@@ -304,6 +351,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [selectedMediaId, setSelectedMediaId] = useState<string>('');
   const [mediaUploadError, setMediaUploadError] = useState('');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [selectedMediaAuthoritativeReferences, setSelectedMediaAuthoritativeReferences] = useState<BackendMediaReference[]>([]);
+  const [selectedMediaReferencesLoading, setSelectedMediaReferencesLoading] = useState(false);
+  const [selectedMediaReferencesError, setSelectedMediaReferencesError] = useState('');
   const [homeContentForm, setHomeContentForm] = useState<HomePageContentSettings>(() => pageContentRepository.getHomePageContent());
   const [homeContentSaving, setHomeContentSaving] = useState(false);
   const [homeContentError, setHomeContentError] = useState('');
@@ -345,6 +395,38 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     register(homeContentForm.aboutImage, 'Home page • aboutImage');
     return index;
   }, [homeContentForm.aboutImage, posts, projects]);
+
+  useEffect(() => {
+    if (!selectedMediaId) {
+      setSelectedMediaAuthoritativeReferences([]);
+      setSelectedMediaReferencesLoading(false);
+      setSelectedMediaReferencesError('');
+      return;
+    }
+
+    let isActive = true;
+    setSelectedMediaReferencesLoading(true);
+    setSelectedMediaReferencesError('');
+
+    void requestWithRetry(() => fetchBackendMediaReferences(selectedMediaId), { retries: 1, retryDelayMs: 250 })
+      .then((references) => {
+        if (!isActive) return;
+        setSelectedMediaAuthoritativeReferences(references);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setSelectedMediaAuthoritativeReferences([]);
+        setSelectedMediaReferencesError("Références serveur indisponibles. Vérifiez avant d'archiver.");
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setSelectedMediaReferencesLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedMediaId]);
   const readinessSnapshot = useMemo(
     () => (contentHealth ? deriveDashboardReadinessSnapshot(contentHealth) : null),
     [contentHealth],
@@ -507,28 +589,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       value: cmsStats.projectCount,
       icon: FolderOpen,
       color: 'from-[#00b3e8] to-[#00c0e8]',
-      change: '+12%',
     },
     {
       label: 'Articles Blog',
       value: posts.length,
       icon: FileText,
       color: 'from-[#a855f7] to-[#9333ea]',
-      change: '+8%',
     },
     {
       label: 'Fichiers Média',
       value: cmsStats.mediaCount,
       icon: ImageIcon,
       color: 'from-[#ffc247] to-[#ff9f47]',
-      change: '+15%',
-    },
-    {
-      label: 'Vues Totales',
-      value: '12.5k',
-      icon: Eye,
-      color: 'from-[#34c759] to-[#2da84a]',
-      change: '+23%',
     },
   ];
 
@@ -543,25 +615,19 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
 
-  const recentActivity = [
-    { action: 'Nouveau projet ajouté', item: 'SMOVE Platform', time: 'Il y a 2h', type: 'project' },
-    { action: 'Article publié', item: 'Création site web', time: 'Il y a 5h', type: 'blog' },
-    { action: 'Image uploadée', item: 'hero-banner.jpg', time: 'Il y a 1j', type: 'media' },
-    { action: 'Projet modifié', item: 'ECLA BTP', time: 'Il y a 2j', type: 'project' },
-  ];
-
   const handleLogout = async () => {
     await logout();
     window.location.hash = 'login';
   };
 
   const handleSectionChange = (section: string) => {
-    setSectionBusy(currentSection);
+    if (section === currentSection) {
+      return;
+    }
+
     setSectionError('');
-    setTimeout(() => {
-      onSectionChange(section);
-      setSectionBusy(null);
-    }, 200);
+
+    onSectionChange(section);
   };
 
   const showSuccess = (message: string) => {
@@ -629,24 +695,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const startEditPost = (post: BlogPost) => {
-    setBlogForm({
-      id: post.id,
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt,
-      content: post.content,
-      author: post.author,
-      category: post.category,
-      tags: post.tags.join(', '),
-      featuredImage: post.featuredImage,
-      readTime: post.readTime,
-      status: post.status,
-      seoTitle: post.seo?.title || '',
-      seoDescription: post.seo?.description || '',
-      canonicalSlug: post.seo?.canonicalSlug || post.slug,
-      socialImage: post.seo?.socialImage || '',
-      publishedDate: post.publishedDate,
-    });
+    setBlogForm(toBlogFormState(post));
     setBlogFormErrors({});
     setBlogEditorMode('edit');
   };
@@ -737,24 +786,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     const existing = posts.find((post) => post.id === blogForm.id);
     if (!existing) return true;
-    const normalizedExisting: BlogFormState = {
-      id: existing.id,
-      title: existing.title,
-      slug: existing.slug,
-      excerpt: existing.excerpt,
-      content: existing.content,
-      author: existing.author,
-      category: existing.category,
-      tags: existing.tags.join(', '),
-      featuredImage: existing.featuredImage,
-      readTime: existing.readTime,
-      status: existing.status,
-      seoTitle: existing.seo?.title || '',
-      seoDescription: existing.seo?.description || '',
-      canonicalSlug: existing.seo?.canonicalSlug || existing.slug,
-      socialImage: existing.seo?.socialImage || '',
-      publishedDate: existing.publishedDate,
-    };
+    const normalizedExisting: BlogFormState = toBlogFormState(existing);
     return JSON.stringify(normalizedExisting) !== JSON.stringify(blogForm);
   }, [blogEditorMode, blogForm, posts]);
 
@@ -781,7 +813,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setPostsError('');
 
     try {
-      const payload = fromCmsBlogInput(formToSave);
+      const existingPost = formToSave.id ? posts.find((entry) => entry.id === formToSave.id) : undefined;
+      const payload = fromCmsBlogInputWithExisting(formToSave, existingPost);
       const saved = await requestWithRetry(() => saveBackendBlogPost(payload), { retries: 1, retryDelayMs: 250 });
       blogRepository.save(saved);
       setPosts((prev) => {
@@ -953,6 +986,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const startEditProject = (project: (typeof projects)[number]) => {
+    const resolvedCard = resolveProjectFeaturedImage(project).reference;
+    const resolvedHero = resolveProjectHeroMedia(project).reference;
+    const resolvedSocial = project.mediaRoles?.socialImage || project.seo?.socialImage || resolvedCard || resolvedHero;
     setProjectEditorMode('edit');
     setProjectForm({
       id: project.id,
@@ -969,12 +1005,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       solution: project.solution,
       results: project.results.join('\n'),
       tags: project.tags.join(', '),
-      cardImage: project.mediaRoles?.cardImage || project.featuredImage || project.mainImage,
-      heroImage: project.mediaRoles?.heroImage || project.mainImage || project.featuredImage,
+      cardImage: resolvedCard,
+      heroImage: resolvedHero,
+      socialImage: resolvedSocial,
       imageAlt: project.imageAlt || project.title,
-      externalLink: project.link || project.links?.live || '',
+      externalLink: project.links?.live || project.link || '',
       caseStudyLink: project.links?.caseStudy || '',
-      galleryImages: project.images.join('\n'),
+      galleryImages: toProjectGalleryLines(project),
       testimonialText: project.testimonial?.text || '',
       testimonialAuthor: project.testimonial?.author || '',
       testimonialPosition: project.testimonial?.position || '',
@@ -998,6 +1035,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     if (form.heroImage.trim() && !isValidMediaField(form.heroImage)) {
       errors.heroImage = 'Image hero invalide. Utilisez une URL valide ou media:asset-id existant.';
+    }
+    if (form.socialImage.trim() && !isValidMediaField(form.socialImage)) {
+      errors.socialImage = 'Image sociale invalide. Utilisez une URL valide ou media:asset-id existant.';
     }
     if (form.caseStudyLink.trim() && !/^https?:\/\//i.test(form.caseStudyLink.trim())) {
       errors.caseStudyLink = 'Le lien case study doit commencer par http:// ou https://.';
@@ -1117,7 +1157,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       mediaRoles: {
         cardImage: projectForm.cardImage.trim() || heroImage || 'project cover image',
         heroImage: heroImage || 'project cover image',
+        coverImage: heroImage || projectForm.cardImage.trim() || 'project cover image',
+        socialImage: projectForm.socialImage.trim() || projectForm.cardImage.trim() || heroImage || 'project cover image',
         galleryImages: images,
+      },
+      seo: {
+        socialImage: projectForm.socialImage.trim() || projectForm.cardImage.trim() || heroImage || 'project cover image',
       },
       imageAlt: projectForm.imageAlt.trim() || projectForm.title.trim(),
       images,
@@ -1394,19 +1439,33 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
-  const deleteSelectedMedia = async () => {
+  const deleteSelectedMedia = async (authoritativeReferences: BackendMediaReference[]) => {
     if (!selectedMedia) return;
     if (!canDeleteContent) {
-      setSectionError('Suppression média non autorisée: rôle administrateur requis.');
+      setSectionError("Archivage média non autorisé: rôle administrateur requis.");
       return;
     }
-    const localReferences = mediaUsageIndex.get(selectedMedia.id) || [];
-    if (localReferences.length > 0) {
-      setSectionError(`Suppression refusée: média référencé localement (${localReferences.slice(0, 3).join(' | ')}).`);
+    if (selectedMediaReferencesLoading) {
+      setSectionError("Analyse des références en cours. Réessayez l'archivage dans quelques secondes.");
       return;
     }
 
-    if (!window.confirm(`Archiver le média "${selectedMedia.label || selectedMedia.name}" ?`)) {
+    if (authoritativeReferences.length > 0) {
+      const summary = summarizeReferences(authoritativeReferences);
+      const scope = summary.byDomain.map((entry) => `${entry.label}:${entry.count}`).join(' • ');
+      setSectionError(`Archivage bloqué: ${summary.total} référence(s) active(s) détectée(s)${scope ? ` (${scope})` : ''}.`);
+      return;
+    }
+
+    const localReferences = mediaUsageIndex.get(selectedMedia.id) || [];
+    const localHint = localReferences.length > 0 ? `\nIndice local (non bloquant): ${localReferences.slice(0, 3).join(' | ')}` : '';
+    const confirmMessage = [
+      `Archiver le média "${selectedMedia.label || selectedMedia.name}" ?`,
+      'Cette action archive le fichier (pas de suppression définitive).',
+      'Le média archivé sort des sélecteurs actifs et peut être restauré ultérieurement via workflow dédié.',
+      localHint,
+    ].filter(Boolean).join('\n');
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -1416,15 +1475,17 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       refreshed.forEach((file) => mediaRepository.save(file));
       setSelectedMediaId('');
       setMediaVersion((version) => version + 1);
-      showSuccess('Média archivé (suppression irréversible évitée).');
+      showSuccess('Média archivé avec protections de référence actives.');
     } catch (error) {
       if (error instanceof ContentApiError && error.code === 'MEDIA_IN_USE') {
         const references = await requestWithRetry(() => fetchBackendMediaReferences(selectedMedia.id), { retries: 1, retryDelayMs: 250 }).catch(() => []);
-        const sample = references.slice(0, 3).map((ref) => `${ref.domain}:${ref.field}`).join(' | ');
-        setSectionError(`Suppression refusée: ce média est référencé par du contenu${sample ? ` (${sample})` : ''}.`);
+        setSelectedMediaAuthoritativeReferences(references);
+        const summary = summarizeReferences(references);
+        const sample = summary.sample.slice(0, 3).join(' | ');
+        setSectionError(`Archivage bloqué côté serveur: média référencé${sample ? ` (${sample})` : ''}.`);
         return;
       }
-      setSectionError('Suppression média impossible. Réessayez.');
+      setSectionError('Archivage média impossible. Réessayez.');
     }
   };
 
@@ -1480,6 +1541,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               {projectFormErrors.heroImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.heroImage}</p> : null}
             </label>
             <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Image sociale (partages)</span>
+              <input value={projectForm.socialImage} onChange={(event) => setProjectForm((prev) => ({ ...prev, socialImage: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="URL ou media:asset-id (fallback: image carte)" />
+              {projectFormErrors.socialImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.socialImage}</p> : null}
+            </label>
+            <label className="block">
               <span className="text-[14px] text-[#6f7f85]">Texte alternatif image</span>
               <input value={projectForm.imageAlt} onChange={(event) => setProjectForm((prev) => ({ ...prev, imageAlt: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
             </label>
@@ -1493,11 +1559,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 <p className="text-[13px] text-[#6f7f85] mb-2">Sélecteur média rapide</p>
                 <div className="flex flex-wrap gap-2">
                   {mediaFiles.slice(0, 6).map((file) => (
-                    <button type="button" key={file.id} onClick={() => setProjectForm((prev) => ({ ...prev, cardImage: toMediaReferenceValue(file.id), heroImage: prev.heroImage.trim() || toMediaReferenceValue(file.id), imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name }))} className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]">
+                    <button type="button" key={file.id} onClick={() => setProjectForm((prev) => ({ ...prev, cardImage: toMediaReferenceValue(file.id), heroImage: prev.heroImage.trim() || toMediaReferenceValue(file.id), socialImage: prev.socialImage.trim() || toMediaReferenceValue(file.id), imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name }))} className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]">
                       {file.name}
                     </button>
                   ))}
                 </div>
+              </div>
+            ) : null}
+            {(projectForm.cardImage || projectForm.heroImage || projectForm.socialImage) ? (
+              <div className="rounded-[10px] border border-[#eef3f5] px-3 py-2 text-[12px] text-[#6f7f85]">
+                Aperçu références — carte: {resolveProjectFeaturedImage({ title: projectForm.title || 'Projet', imageAlt: projectForm.imageAlt, featuredImage: projectForm.cardImage, mainImage: projectForm.heroImage, mediaRoles: { cardImage: projectForm.cardImage, heroImage: projectForm.heroImage } }).caption} · hero: {resolveProjectHeroMedia({ title: projectForm.title || 'Projet', imageAlt: projectForm.imageAlt, featuredImage: projectForm.cardImage, mainImage: projectForm.heroImage, mediaRoles: { cardImage: projectForm.cardImage, heroImage: projectForm.heroImage } }).caption}
               </div>
             ) : null}
             <label className="block">
@@ -1524,6 +1595,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
           <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
             <h4 className="text-[16px] font-semibold text-[#273a41]">CTA, témoignage & publication</h4>
+            <label className="block"><span className="text-[14px] text-[#6f7f85]">Lien projet live (CTA détail)</span><input value={projectForm.externalLink} onChange={(event) => setProjectForm((prev) => ({ ...prev, externalLink: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="https://..." />{projectFormErrors.externalLink ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.externalLink}</p> : null}</label>
             <label className="block"><span className="text-[14px] text-[#6f7f85]">Lien Case Study</span><input value={projectForm.caseStudyLink} onChange={(event) => setProjectForm((prev) => ({ ...prev, caseStudyLink: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="https://..." />{projectFormErrors.caseStudyLink ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.caseStudyLink}</p> : null}</label>
             <label className="block"><span className="text-[14px] text-[#6f7f85]">Témoignage client</span><textarea value={projectForm.testimonialText} onChange={(event) => setProjectForm((prev) => ({ ...prev, testimonialText: event.target.value }))} className="mt-1 w-full min-h-[90px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{projectFormErrors.testimonialText ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.testimonialText}</p> : null}</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1634,11 +1706,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     const blogGroupHasErrors = (keys: Array<keyof BlogFormState>) => keys.some((key) => Boolean(blogFormErrors[key]));
     const publishabilityErrors = getBlogPublishabilityErrors(blogForm);
     const isPublishReady = Object.keys(publishabilityErrors).length === 0;
-    const editorialReadiness = evaluateBlogEditorialReadiness(blogForm, {
-      isValidMediaField,
-      managedTags: managedBlogTags,
-      enforceManagedTags,
-    });
     const publishabilityLabels: Record<keyof BlogFormState, string> = {
       id: 'ID',
       title: 'titre',
@@ -1791,13 +1858,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             ) : (
               <p className="text-[12px] text-emerald-700">Contrat de publication valide (titre, slug, image, date).</p>
             )}
-            {editorialReadiness.warnings.length > 0 ? (
-              <ul className="rounded-[10px] bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-800 list-disc list-inside space-y-1">
-                {editorialReadiness.warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            ) : null}
             <label className="block">
               <span className="text-[14px] text-[#6f7f85]">Statut</span>
               <select value={blogForm.status} onChange={(event) => setBlogForm((prev) => ({ ...prev, status: event.target.value as BlogPost['status'] }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2">
@@ -1979,10 +2039,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   }
 
   const renderSectionContent = () => {
-    if (sectionBusy) {
-      return <AdminLoadingState label="Chargement de la section..." />;
-    }
-
     if (currentSection === 'projects') {
       return (
         <ProjectsSection
@@ -2057,7 +2113,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           filteredMediaFiles={filteredMediaFiles}
           selectedMediaId={selectedMediaId}
           selectedMedia={selectedMedia}
-          mediaUsageIndex={mediaUsageIndex}
+          authoritativeReferences={selectedMediaAuthoritativeReferences}
+          authoritativeReferencesLoading={selectedMediaReferencesLoading}
+          authoritativeReferencesError={selectedMediaReferencesError}
+          localFallbackUsages={selectedMedia ? (mediaUsageIndex.get(selectedMedia.id) || []) : []}
           canDeleteContent={canDeleteContent}
           deleteSelectedMedia={deleteSelectedMedia}
         />
@@ -2521,70 +2580,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {feedback ? <AdminSuccessFeedback label={feedback} /> : null}
           {currentSection === 'overview' ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {stats.map((stat, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-[20px] p-6 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`w-12 h-12 rounded-[12px] bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
-                        <stat.icon className="text-white" size={24} />
-                      </div>
-                      <span className="text-[#34c759] font-['Abhaya_Libre:Bold',sans-serif] text-[14px]">{stat.change}</span>
-                    </div>
-                    <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[32px] text-[#273a41] mb-1">{stat.value}</h3>
-                    <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {[['projects', 'Nouveau Projet', 'Ajouter un projet', 'from-[#00b3e8] to-[#00c0e8]'], ['blog', 'Nouvel Article', 'Rédiger un article', 'from-[#a855f7] to-[#9333ea]'], ['media', 'Upload Média', 'Ajouter des fichiers', 'from-[#ffc247] to-[#ff9f47]']].map(([id, title, subtitle, color]) => (
-                  <button
-                    key={id}
-                    onClick={() => handleSectionChange(id)}
-                    className={`bg-gradient-to-r ${color} text-white p-6 rounded-[20px] flex items-center justify-between group`}
-                  >
-                    <div className="text-left">
-                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">{title}</p>
-                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">{subtitle}</p>
-                    </div>
-                    <Plus className="group-hover:rotate-90 transition-transform" size={32} />
-                  </button>
-                ))}
-              </div>
-
-              <div className="bg-white rounded-[20px] p-6 shadow-sm">
-                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-6">Activité Récente</h3>
-                <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-4 p-4 rounded-[12px] hover:bg-[#f5f9fa] transition-colors"
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        activity.type === 'project'
-                          ? 'bg-[#00b3e8]/10 text-[#00b3e8]'
-                          : activity.type === 'blog'
-                            ? 'bg-[#a855f7]/10 text-[#a855f7]'
-                            : 'bg-[#ffc247]/10 text-[#ffc247]'
-                      }`}>
-                        {activity.type === 'project' ? <FolderOpen size={20} /> : activity.type === 'blog' ? <FileText size={20} /> : <ImageIcon size={20} />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-[#273a41]">{activity.action}</p>
-                        <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">{activity.item}</p>
-                      </div>
-                      <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">{activity.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {contentHealth ? (
                 <div className="bg-white rounded-[20px] p-6 shadow-sm">
                   <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-4">Santé contenu & readiness</h3>
+                  <p className="mb-4 text-[12px] text-[#6f7f85]">Source: endpoint backend /content/health. Fraîcheur: calculée à la requête (timestamp non exposé).</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-[13px]">
                     <div className="rounded-[12px] border border-[#e5edf0] p-3">
                       <p className="text-[#6f7f85]">SEO manquant (publié)</p>
@@ -2650,9 +2649,57 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   ) : null}
                 </div>
               ) : null}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                {stats.map((stat, index) => (
+                  <div
+                    key={index}
+                    className="bg-white rounded-[20px] p-6 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`w-12 h-12 rounded-[12px] bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
+                        <stat.icon className="text-white" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[32px] text-[#273a41] mb-1">{stat.value}</h3>
+                    <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">{stat.label}</p>
+                    <p className="mt-2 text-[11px] text-[#7d8b90]">Source: référentiel CMS local chargé au runtime.</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {[['projects', 'Nouveau Projet', 'Ajouter un projet', 'from-[#00b3e8] to-[#00c0e8]'], ['blog', 'Nouvel Article', 'Rédiger un article', 'from-[#a855f7] to-[#9333ea]'], ['media', 'Upload Média', 'Ajouter des fichiers', 'from-[#ffc247] to-[#ff9f47]']].map(([id, title, subtitle, color]) => (
+                  <button
+                    key={id}
+                    onClick={() => handleSectionChange(id)}
+                    className={`bg-gradient-to-r ${color} text-white p-6 rounded-[20px] flex items-center justify-between group`}
+                  >
+                    <div className="text-left">
+                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">{title}</p>
+                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">{subtitle}</p>
+                    </div>
+                    <Plus className="group-hover:rotate-90 transition-transform" size={32} />
+                  </button>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-[20px] p-6 shadow-sm">
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-2">Activité récente</h3>
+                <p className="text-[12px] text-[#6f7f85]">Source: timeline backend non encore connectée.</p>
+                <div className="mt-4 rounded-[12px] border border-dashed border-[#d6e4ea] bg-[#f9fcfd] p-4 text-[13px] text-[#5e7077]">
+                  Le flux d’activité est momentanément indisponible. Cette zone sera réactivée dès que la source d’événements CMS (sauvegardes, transitions, uploads, settings) sera branchée côté backend.
+                </div>
+              </div>
             </>
-          ) : (
-            renderSectionContent()
+) : (
+            <section
+              key={currentSection}
+              className="relative isolate min-h-[calc(100vh-12rem)] overflow-x-hidden"
+              aria-live="polite"
+            >
+              {renderSectionContent()}
+            </section>
           )}
         </div>
       </main>

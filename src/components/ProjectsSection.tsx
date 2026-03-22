@@ -7,16 +7,17 @@ import { fetchPublicProjects } from '../utils/publicContentApi';
 import { toProjectCardContract } from '../features/projects/projectCardAdapter';
 import { selectHomepageProjects } from '../features/marketing/home/homePreview';
 import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepositorySync';
+import { selectPublishedProjects } from '../features/projects/projectSelectors';
 
 export default function ProjectsSection() {
-  const [featuredProjects, setFeaturedProjects] = useState(() => selectHomepageProjects(projectRepository.getAll()));
+  const [featuredProjects, setFeaturedProjects] = useState(() => selectHomepageProjects(projectRepository.getPublished()));
 
   const applyRemoteProjects = useCallback((remote: Awaited<ReturnType<typeof fetchPublicProjects>>) => {
     return projectRepository.replaceAll(remote);
   }, []);
 
   const handleProjectsSynced = useCallback((synced: ReturnType<typeof projectRepository.replaceAll>) => {
-    setFeaturedProjects(selectHomepageProjects(synced));
+    setFeaturedProjects(selectHomepageProjects(selectPublishedProjects(synced)));
   }, []);
 
   const handleProjectsSyncError = useCallback((error: unknown) => {

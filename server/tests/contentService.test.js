@@ -281,6 +281,35 @@ describe('ContentService project persistence', () => {
     expect(result.project.testimonial.author).toBe('Mariam');
   });
 
+  it('normalizes legacy project link fields into canonical links contract', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-legacy-link-fields',
+      title: 'Projet Legacy Links',
+      slug: 'projet-legacy-links',
+      client: 'Client',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: [],
+      tags: [],
+      mainImage: 'image projet',
+      featuredImage: 'image projet',
+      images: [],
+      status: 'published',
+      externalLink: 'https://smove.africa/live-legacy',
+      caseStudyLink: 'https://smove.africa/case-legacy',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.project.link).toBe('https://smove.africa/live-legacy');
+    expect(result.project.links.live).toBe('https://smove.africa/live-legacy');
+    expect(result.project.links.caseStudy).toBe('https://smove.africa/case-legacy');
+  });
+
 
   it('accepts project payloads with only title and image as meaningful required fields', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
@@ -341,6 +370,41 @@ describe('ContentService project persistence', () => {
     expect(result.project.mediaRoles.socialImage).toBe('role-card-image');
     expect(result.project.mediaRoles.galleryImages).toEqual(['role-gallery-1', 'role-gallery-2']);
     expect(result.project.seo.canonicalSlug).toBe('projet-media-roles');
+  });
+
+  it('uses media roles as primary source even when legacy project media is empty', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-media-role-primary',
+      title: 'Projet role first',
+      slug: 'projet-role-first',
+      client: 'Client',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: [],
+      tags: [],
+      featuredImage: '',
+      mainImage: '',
+      images: [],
+      mediaRoles: {
+        heroImage: 'role-hero-only',
+        galleryImages: ['role-gallery'],
+      },
+      seo: {
+        socialImage: 'seo-social-role',
+      },
+      status: 'published',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.project.featuredImage).toBe('role-hero-only');
+    expect(result.project.mainImage).toBe('role-hero-only');
+    expect(result.project.images).toEqual(['role-gallery']);
+    expect(result.project.mediaRoles.socialImage).toBe('seo-social-role');
   });
 
   it('rejects duplicate project slugs across different ids', () => {

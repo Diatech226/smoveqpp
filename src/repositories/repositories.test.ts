@@ -280,15 +280,17 @@ describe('projectRepository and cmsRepository', () => {
     expect(updated.createdAt).toBe('2024-01-01T00:00:00.000Z');
   });
 
-  it('filters draft/archived projects from public listing helper', () => {
+  it('filters draft/in_review/archived projects from public listing helper', () => {
     const seed = projectRepository.getAll()[0];
 
     projectRepository.save({ ...seed, id: 'project-draft-only', status: 'draft', slug: 'project-draft-only' });
+    projectRepository.save({ ...seed, id: 'project-review-only', status: 'in_review', slug: 'project-review-only' });
     projectRepository.save({ ...seed, id: 'project-archived-only', status: 'archived', slug: 'project-archived-only' });
 
     const publishedIds = projectRepository.getPublished().map((project) => project.id);
 
     expect(publishedIds).not.toContain('project-draft-only');
+    expect(publishedIds).not.toContain('project-review-only');
     expect(publishedIds).not.toContain('project-archived-only');
   });
 
@@ -373,6 +375,48 @@ describe('projectRepository and cmsRepository', () => {
     expect(saved?.links?.caseStudy).toBe('https://smove.africa/case-study');
     expect(saved?.testimonial?.author).toBe('Nadia');
     expect(saved?.testimonial?.position).toBe('Directrice Marketing');
+  });
+
+  it('normalizes legacy external/case-study link fields into canonical links', () => {
+    const seed = projectRepository.getAll()[0];
+    const saved = projectRepository.save({
+      ...seed,
+      id: 'project-legacy-links',
+      slug: 'project-legacy-links',
+      title: 'Projet Legacy Links',
+      link: '',
+      links: undefined,
+      ...( {
+        externalLink: 'https://smove.africa/live-legacy',
+        caseStudyLink: 'https://smove.africa/case-legacy',
+      } as unknown as Partial<Project>),
+    });
+
+    expect(saved.link).toBe('https://smove.africa/live-legacy');
+    expect(saved.links?.live).toBe('https://smove.africa/live-legacy');
+    expect(saved.links?.caseStudy).toBe('https://smove.africa/case-legacy');
+  });
+
+  it('prioritizes role-based gallery and hero media over legacy fields during project normalization', () => {
+    const seed = projectRepository.getAll()[0];
+    const saved = projectRepository.save({
+      ...seed,
+      id: 'project-role-media-priority',
+      slug: 'project-role-media-priority',
+      title: 'Projet Media Priority',
+      featuredImage: 'legacy-card',
+      mainImage: 'legacy-hero',
+      images: ['legacy-gallery'],
+      mediaRoles: {
+        heroImage: 'role-hero',
+        galleryImages: ['role-gallery-1', 'role-gallery-2'],
+      },
+    });
+
+    expect(saved.featuredImage).toBe('role-hero');
+    expect(saved.mainImage).toBe('role-hero');
+    expect(saved.images).toEqual(['role-gallery-1', 'role-gallery-2']);
+    expect(saved.mediaRoles?.galleryImages).toEqual(['role-gallery-1', 'role-gallery-2']);
   });
 
 

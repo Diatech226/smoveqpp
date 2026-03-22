@@ -20,5 +20,14 @@ export const toRenderableService = (service: Service) => ({
   cardDescription: service.shortDescription || service.description,
 });
 
+const compareServicesForPublicDisplay = (a: Service, b: Service): number => {
+  const featuredCompare = Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+  if (featuredCompare !== 0) return featuredCompare;
+  return a.title.localeCompare(b.title, 'fr');
+};
+
 export const selectRenderablePublicServices = (services: Service[]) =>
-  services.filter((service) => service.status !== 'draft' && service.status !== 'archived').map(toRenderableService);
+  services
+    .filter((service) => service.status === 'published')
+    .sort(compareServicesForPublicDisplay)
+    .map(toRenderableService);

@@ -33,9 +33,17 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
     };
   }, []);
 
-  const project = useMemo(() => projectRepository.getBySlug(projectId) || projectRepository.getById(projectId), [projectId, projectVersion]);
+  const project = useMemo(
+    () =>
+      projectRepository
+        .getPublished()
+        .find((entry) => (entry.slug || '').trim() === projectId || entry.id === projectId),
+    [projectId, projectVersion],
+  );
   const projectMedia = useMemo(() => (project ? resolveProjectHeroMedia(project) : null), [project]);
   const galleryMedia = useMemo(() => (project ? resolveProjectGalleryMedia(project) : []), [project]);
+  const liveLink = project?.links?.live?.trim() || project?.link?.trim() || '';
+  const caseStudyLink = project?.links?.caseStudy?.trim() || '';
 
   if (!project) {
     return (
@@ -166,6 +174,32 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
                 Démarrer un projet similaire
                 <ExternalLink size={20} />
               </motion.a>
+              {liveLink || caseStudyLink ? (
+                <div className="flex flex-wrap gap-3 mt-4">
+                  {liveLink ? (
+                    <a
+                      href={liveLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] text-[14px]"
+                    >
+                      Voir le projet live
+                      <ExternalLink size={16} />
+                    </a>
+                  ) : null}
+                  {caseStudyLink ? (
+                    <a
+                      href={caseStudyLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-[#273a41] font-['Abhaya_Libre:Bold',sans-serif] text-[14px]"
+                    >
+                      Lire la case study
+                      <ExternalLink size={16} />
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
             </motion.div>
 
             {/* Right: Main Image */}
