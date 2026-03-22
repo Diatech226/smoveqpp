@@ -254,7 +254,6 @@ const getBlogPublishabilityErrors = (form: BlogFormState): Partial<Record<keyof 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
   const { user, logout, canAccessCMS, fetchAdminUsers, fetchAdminAuditEvents, updateAdminUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sectionBusy, setSectionBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [sectionError, setSectionError] = useState('');
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>('authoritative_remote');
@@ -578,12 +577,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const handleSectionChange = (section: string) => {
-    setSectionBusy(currentSection);
+    if (section === currentSection) {
+      return;
+    }
+
     setSectionError('');
-    setTimeout(() => {
-      onSectionChange(section);
-      setSectionBusy(null);
-    }, 200);
+
+    onSectionChange(section);
   };
 
   const showSuccess = (message: string) => {
@@ -2008,10 +2008,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   }
 
   const renderSectionContent = () => {
-    if (sectionBusy) {
-      return <AdminLoadingState label="Chargement de la section..." />;
-    }
-
     if (currentSection === 'projects') {
       return (
         <ProjectsSection
@@ -2665,8 +2661,14 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 </div>
               </div>
             </>
-          ) : (
-            renderSectionContent()
+) : (
+            <section
+              key={currentSection}
+              className="relative isolate min-h-[calc(100vh-12rem)] overflow-x-hidden"
+              aria-live="polite"
+            >
+              {renderSectionContent()}
+            </section>
           )}
         </div>
       </main>
