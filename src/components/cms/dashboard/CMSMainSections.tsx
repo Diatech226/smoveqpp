@@ -20,6 +20,7 @@ import {
 } from '../adminPrimitives';
 import { toMediaReferenceValue } from '../../../features/media/assetReference';
 import type { HomePageContentSettings } from '../../../data/pageContentSeed';
+import { getMetadataCompleteness, summarizeReferences, type BackendMediaReference } from './mediaGovernance';
 
 const ROW_CONTAINER = 'rounded-[14px] border border-[#e4edf1] bg-[#fcfeff] px-4 py-3.5 shadow-[0_4px_14px_rgba(20,51,63,0.04)]';
 const ROW_TITLE = "font-['Abhaya_Libre:Bold',sans-serif] text-[17px] text-[#273a41] leading-tight";
@@ -230,12 +231,34 @@ interface MediaSectionProps {
   filteredMediaFiles: MediaFile[];
   selectedMediaId: string;
   selectedMedia?: MediaFile;
-  mediaUsageIndex: Map<string, string[]>;
+  authoritativeReferences: BackendMediaReference[];
+  authoritativeReferencesLoading: boolean;
+  authoritativeReferencesError: string;
+  localFallbackUsages: string[];
   canDeleteContent: boolean;
-  deleteSelectedMedia: () => void;
+  deleteSelectedMedia: (references: BackendMediaReference[]) => void;
 }
 
-export function MediaSection({ mediaQuery, setMediaQuery, setSelectedMediaId, isUploadingMedia, handleMediaUpload, canEditContent, mediaUploadError, filteredMediaFiles, selectedMediaId, selectedMedia, mediaUsageIndex, canDeleteContent, deleteSelectedMedia }: MediaSectionProps) {
+export function MediaSection({
+  mediaQuery,
+  setMediaQuery,
+  setSelectedMediaId,
+  isUploadingMedia,
+  handleMediaUpload,
+  canEditContent,
+  mediaUploadError,
+  filteredMediaFiles,
+  selectedMediaId,
+  selectedMedia,
+  authoritativeReferences,
+  authoritativeReferencesLoading,
+  authoritativeReferencesError,
+  localFallbackUsages,
+  canDeleteContent,
+  deleteSelectedMedia,
+}: MediaSectionProps) {
+  const selectedReferenceSummary = summarizeReferences(authoritativeReferences);
+  const selectedMetadataCompleteness = selectedMedia ? getMetadataCompleteness(selectedMedia) : null;
   return (
     <div className="space-y-6">
       <AdminPageHeader title="Médiathèque" subtitle="Fichiers validés et prêts à être utilisés dans le contenu CMS." />
@@ -245,7 +268,7 @@ export function MediaSection({ mediaQuery, setMediaQuery, setSelectedMediaId, is
         <AdminButton type="button" onClick={() => { setMediaQuery(''); setSelectedMediaId(''); }}>Réinitialiser</AdminButton>
       </AdminActionBar>
       {mediaUploadError ? <AdminErrorState label={mediaUploadError} /> : null}
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><AdminPanel title="Ressources médias">{filteredMediaFiles.length === 0 ? <AdminEmptyState label="Aucun média correspondant. Ajoutez des ressources ou modifiez la recherche." /> : <div className="grid gap-3 md:grid-cols-2">{filteredMediaFiles.map((file) => (<button type="button" key={file.id} onClick={() => setSelectedMediaId(file.id)} className={`rounded-[14px] border p-4 text-left transition ${selectedMediaId === file.id ? 'border-[#00b3e8] bg-[#f0fbff] shadow-[0_0_0_1px_rgba(0,179,232,0.15)]' : 'border-[#e4edf1] bg-[#fcfeff] hover:border-[#d6e4ea]'}`}><p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{file.label || file.name}</p><p className="font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-[#6f7f85]">{file.type} • {Math.round(file.size / 1024)} KB • {(mediaUsageIndex.get(file.id)?.length || 0)} référence(s)</p><p className="mt-1 text-[12px] text-[#8a969b]">{file.alt || 'alt non renseigné'}</p></button>))}</div>}</AdminPanel><AdminPanel title="Détails du média">{!selectedMedia ? <AdminEmptyState label="Sélectionnez une ressource pour voir son contrat d’asset." /> : <div className="space-y-3 text-[14px] text-[#4b5a60]"><p><span className={ADMIN_FIELD_LABEL_CLASS}>ID:</span> {selectedMedia.id}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Source:</span> {selectedMedia.source || 'local-storage'}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Alt:</span> {selectedMedia.alt || '—'}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Titre:</span> {selectedMedia.title || selectedMedia.name}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Créé:</span> {selectedMedia.createdAt || selectedMedia.uploadedDate}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Mis à jour:</span> {selectedMedia.updatedAt || selectedMedia.uploadedDate}</p><div className="pt-1"><code className="rounded bg-[#f5f9fa] px-2 py-1 text-[12px]">{toMediaReferenceValue(selectedMedia.id)}</code></div>{(mediaUsageIndex.get(selectedMedia.id)?.length || 0) > 0 ? <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">Références actives:<ul className="ml-4 mt-1 list-disc">{(mediaUsageIndex.get(selectedMedia.id) || []).slice(0, 6).map((usage) => (<li key={usage}>{usage}</li>))}</ul></div> : null}<AdminActionCluster danger><AdminButton type="button" onClick={deleteSelectedMedia} disabled={!canDeleteContent} intent="danger" size="sm">Supprimer ce média</AdminButton></AdminActionCluster></div>}</AdminPanel></div>
+      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]"><AdminPanel title="Ressources médias">{filteredMediaFiles.length === 0 ? <AdminEmptyState label="Aucun média correspondant. Ajoutez des ressources ou modifiez la recherche." /> : <div className="grid gap-3 md:grid-cols-2">{filteredMediaFiles.map((file) => (<button type="button" key={file.id} onClick={() => setSelectedMediaId(file.id)} className={`rounded-[14px] border p-4 text-left transition ${selectedMediaId === file.id ? 'border-[#00b3e8] bg-[#f0fbff] shadow-[0_0_0_1px_rgba(0,179,232,0.15)]' : 'border-[#e4edf1] bg-[#fcfeff] hover:border-[#d6e4ea]'}`}><p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{file.label || file.name}</p><p className="font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-[#6f7f85]">{file.type} • {Math.round(file.size / 1024)} KB</p><p className="mt-1 text-[12px] text-[#8a969b]">{file.alt || 'alt non renseigné'}</p></button>))}</div>}</AdminPanel><AdminPanel title="Détails du média">{!selectedMedia ? <AdminEmptyState label="Sélectionnez une ressource pour inspecter et gouverner cet asset." /> : <div className="space-y-4 text-[14px] text-[#4b5a60]"><div className={ADMIN_SECTION_SUBCARD}><p className="mb-2 text-[13px] font-semibold text-[#273a41]">Inspection asset</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>ID:</span> {selectedMedia.id}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Source:</span> {selectedMedia.source || 'local-storage'}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Titre:</span> {selectedMedia.title || selectedMedia.name}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Créé:</span> {selectedMedia.createdAt || selectedMedia.uploadedDate}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Mis à jour:</span> {selectedMedia.updatedAt || selectedMedia.uploadedDate}</p><p><span className={ADMIN_FIELD_LABEL_CLASS}>Référence:</span> <code className="rounded bg-[#f5f9fa] px-2 py-1 text-[12px]">{toMediaReferenceValue(selectedMedia.id)}</code></p></div><div className={ADMIN_SECTION_SUBCARD}><p className="mb-2 text-[13px] font-semibold text-[#273a41]">Gouvernance • Où utilisé (source serveur)</p>{authoritativeReferencesLoading ? <p className="text-[12px] text-[#6f7f85]">Analyse des références actives…</p> : null}{authoritativeReferencesError ? <p className="text-[12px] text-amber-700">{authoritativeReferencesError}</p> : null}{!authoritativeReferencesLoading ? <p className="text-[12px] text-[#5e7077]">{selectedReferenceSummary.total === 0 ? 'Aucune référence active détectée par le graphe backend.' : `${selectedReferenceSummary.total} référence(s) active(s) détectée(s).`}</p> : null}{selectedReferenceSummary.byDomain.length > 0 ? <ul className="mt-2 space-y-1 text-[12px] text-[#4b5a60]">{selectedReferenceSummary.byDomain.map((domain) => (<li key={domain.domain}>• {domain.label}: {domain.count}</li>))}</ul> : null}{selectedReferenceSummary.sample.length > 0 ? <ul className="mt-2 list-disc space-y-1 pl-5 text-[12px] text-[#5b6a70]">{selectedReferenceSummary.sample.map((usage) => (<li key={usage}>{usage}</li>))}</ul> : null}{!authoritativeReferencesLoading && authoritativeReferences.length === 0 && localFallbackUsages.length > 0 ? <p className="mt-2 text-[12px] text-amber-700">Indice local non-bloquant: {localFallbackUsages.slice(0, 3).join(' | ')}</p> : null}</div><div className={ADMIN_SECTION_SUBCARD}><p className="mb-2 text-[13px] font-semibold text-[#273a41]">Complétude métadonnées</p>{selectedMetadataCompleteness ? <ul className="space-y-1 text-[12px]"><li>Alt: {selectedMetadataCompleteness.alt ? 'présent' : 'manquant'}</li><li>Caption: {selectedMetadataCompleteness.caption ? 'présente' : 'manquante'}</li><li>Tags: {selectedMetadataCompleteness.tags ? 'présents' : 'manquants'}</li></ul> : null}</div><div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-3 text-[12px] text-rose-800"><p className="mb-2 font-semibold">Danger zone</p><p>Action d’archivage protégée: impossible si des références actives existent.</p><p className="mt-1">{selectedReferenceSummary.total > 0 ? 'État actuel: archivage bloqué (références actives).' : 'État actuel: archivage autorisé (aucune référence active).'}</p><AdminActionCluster danger><AdminButton type="button" onClick={() => deleteSelectedMedia(authoritativeReferences)} disabled={!canDeleteContent || authoritativeReferencesLoading} intent="danger" size="sm">Archiver ce média</AdminButton></AdminActionCluster></div></div>}</AdminPanel></div>
     </div>
   );
 }
