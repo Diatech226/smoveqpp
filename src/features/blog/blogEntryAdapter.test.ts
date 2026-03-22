@@ -50,6 +50,19 @@ describe('blogEntryAdapter', () => {
     expect(canonical.seo.socialImage).toBe('role-featured-image');
   });
 
+  it('uses deterministic featured media precedence for rendering (featured > cover > card > legacy)', () => {
+    const canonical = toCanonicalBlogEntry({
+      ...defaultBlogPosts[0],
+      featuredImage: 'legacy-image',
+      mediaRoles: {
+        coverImage: 'cover-image',
+        cardImage: 'card-image',
+      },
+    });
+
+    expect(canonical.featuredImage).toBe('cover-image');
+  });
+
   it('maps cms form payload to strict BlogPost schema', () => {
     const result = fromCmsBlogInput({
       title: '  Nouveau billet  ',

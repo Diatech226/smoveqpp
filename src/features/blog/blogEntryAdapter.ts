@@ -69,7 +69,11 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
   const excerpt = post.excerpt || post.content.slice(0, 160) || 'Contenu indisponible.';
   const title = post.title || 'Article sans titre';
   const slug = normalizeSlug(post.slug, title);
-  const featuredImageRef = post.mediaRoles?.featuredImage?.trim() || post.featuredImage;
+  const featuredImageRef =
+    post.mediaRoles?.featuredImage?.trim() ||
+    post.mediaRoles?.coverImage?.trim() ||
+    post.mediaRoles?.cardImage?.trim() ||
+    post.featuredImage;
   const media = resolveBlogMediaReference(featuredImageRef, title);
   const seoTitle = post.seo?.title?.trim() || title;
   const seoDescription = post.seo?.description?.trim() || excerpt;
@@ -113,6 +117,9 @@ export function evaluatePublishability(entry: CanonicalBlogEntry): Publishabilit
   }
   if (!entry.featuredImage.trim()) {
     reasons.push('missing_featured_image');
+  }
+  if (Number.isNaN(Date.parse(entry.publishedDate))) {
+    reasons.push('invalid_published_date');
   }
 
   return {

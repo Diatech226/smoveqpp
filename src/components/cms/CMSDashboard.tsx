@@ -156,6 +156,7 @@ interface ServiceFormState {
 }
 
 const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const BLOG_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const SERVICE_COLOR_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
 const BLOG_MANAGED_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
@@ -223,6 +224,30 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   testimonialText: '',
   testimonialAuthor: '',
   testimonialPosition: '',
+};
+
+const isValidIsoDate = (value: string): boolean => !Number.isNaN(Date.parse(value));
+
+const getBlogPublishabilityErrors = (form: BlogFormState): Partial<Record<keyof BlogFormState, string>> => {
+  const errors: Partial<Record<keyof BlogFormState, string>> = {};
+  if (!form.title.trim()) errors.title = 'Le titre est requis pour publication.';
+
+  const normalized = normalizeSlug(form.slug, form.title);
+  if (!normalized || !BLOG_SLUG_PATTERN.test(normalized)) {
+    errors.slug = 'Slug invalide pour publication (format attendu: mots-separes-par-tirets).';
+  }
+
+  if (!form.featuredImage.trim()) {
+    errors.featuredImage = 'L’image vedette est requise pour publication.';
+  } else if (!isValidMediaField(form.featuredImage)) {
+    errors.featuredImage = 'Utilisez une URL valide ou une référence media:asset-id existante.';
+  }
+
+  if (!isValidIsoDate(form.publishedDate)) {
+    errors.publishedDate = 'Date de publication invalide.';
+  }
+
+  return errors;
 };
 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
@@ -561,6 +586,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (error instanceof ContentApiError && error.code === 'BLOG_VALIDATION_ERROR') {
       return 'Le format article est invalide (slug/date/image/URL).';
     }
+    if (error instanceof ContentApiError && error.code === 'BLOG_NOT_PUBLISHABLE') {
+      return 'Article non publiable: vérifiez titre, slug, image vedette et date de publication.';
+    }
+    if (error instanceof ContentApiError && error.code === 'BLOG_INVALID_STATUS_TRANSITION') {
+      return 'Transition invalide: passez en revue avant publication.';
+    }
+    if (error instanceof ContentApiError && error.code === 'BLOG_INSTANT_PUBLISHING_DISABLED') {
+      return 'Publication instantanée désactivée: utilisez le statut "En revue".';
+    }
     if (error instanceof BlogRepositoryError && error.code === 'BLOG_SLUG_CONFLICT') {
       return 'Ce slug existe déjà. Utilisez un slug unique.';
     }
@@ -623,6 +657,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const validateBlogForm = (form: BlogFormState) => {
     const errors: Partial<Record<keyof BlogFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
+    if (!normalizeSlug(form.slug, form.title)) errors.slug = 'Le slug est requis.';
     if (!form.featuredImage.trim()) errors.featuredImage = 'L’image vedette est requise pour les cartes.';
     if (form.featuredImage.trim() && !isValidMediaField(form.featuredImage)) {
       errors.featuredImage = 'Utilisez une URL valide ou une référence media:asset-id existante.';
@@ -632,6 +667,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     if (form.seoDescription && form.seoDescription.trim().length > 320) {
       errors.seoDescription = 'La description SEO doit rester concise (320 caractères max).';
+    }
+    if (form.status === 'published') {
+      Object.assign(errors, getBlogPublishabilityErrors(form));
     }
     return errors;
   };
@@ -1597,6 +1635,26 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const renderBlogForm = () => {
     const title = blogEditorMode === 'create' ? 'Créer un article' : 'Modifier un article';
     const blogGroupHasErrors = (keys: Array<keyof BlogFormState>) => keys.some((key) => Boolean(blogFormErrors[key]));
+    const publishabilityErrors = getBlogPublishabilityErrors(blogForm);
+    const isPublishReady = Object.keys(publishabilityErrors).length === 0;
+    const publishabilityLabels: Record<keyof BlogFormState, string> = {
+      id: 'ID',
+      title: 'titre',
+      slug: 'slug',
+      excerpt: 'résumé',
+      content: 'contenu',
+      author: 'auteur',
+      category: 'catégorie',
+      tags: 'tags',
+      featuredImage: 'image vedette',
+      readTime: 'temps de lecture',
+      status: 'statut',
+      seoTitle: 'SEO title',
+      seoDescription: 'SEO description',
+      canonicalSlug: 'canonical slug',
+      socialImage: 'image sociale',
+      publishedDate: 'date de publication',
+    };
 
     return (
       <AdminPanel title={title}>
@@ -1721,6 +1779,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               <h4 className="text-[16px] font-semibold text-[#273a41]">Publication</h4>
               {blogGroupHasErrors(['publishedDate']) ? <span className="text-[12px] text-red-600">Date invalide</span> : null}
             </div>
+            {!isPublishReady ? (
+              <p className="text-[12px] text-amber-700">
+                Prêt brouillon/revue, mais pas publiable: compléter{' '}
+                {Object.keys(publishabilityErrors)
+                  .map((key) => publishabilityLabels[key as keyof BlogFormState] || key)
+                  .join(', ')}.
+              </p>
+            ) : (
+              <p className="text-[12px] text-emerald-700">Contrat de publication valide (titre, slug, image, date).</p>
+            )}
             <label className="block">
               <span className="text-[14px] text-[#6f7f85]">Statut</span>
               <select value={blogForm.status} onChange={(event) => setBlogForm((prev) => ({ ...prev, status: event.target.value as BlogPost['status'] }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2">

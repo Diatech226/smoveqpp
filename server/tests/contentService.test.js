@@ -106,6 +106,45 @@ describe('ContentService blog persistence', () => {
     expect(transition.error.code).toBe('BLOG_INSTANT_PUBLISHING_DISABLED');
   });
 
+  it('enforces the same publishability contract for save-as-published and transition-to-published', () => {
+    const repo = new MemoryContentRepository({
+      blogPosts: [
+        {
+          id: 'parity-1',
+          title: 'Parity',
+          slug: 'parity',
+          excerpt: 'Excerpt',
+          content: 'Content',
+          author: 'Author',
+          authorRole: 'Role',
+          category: 'Cat',
+          tags: [],
+          publishedDate: '2024-01-01T00:00:00.000Z',
+          readTime: '2 min',
+          featuredImage: 'img',
+          images: [],
+          status: 'draft',
+        },
+      ],
+    });
+    const service = new ContentService({ contentRepository: repo });
+
+    const inReview = service.transitionBlogStatus('parity-1', 'in_review');
+    expect(inReview.ok).toBe(true);
+
+    // Transition path should reject invalid publish date.
+    const patched = service.saveBlogPost({ ...inReview.post, publishedDate: 'invalid-date', status: 'in_review' });
+    expect(patched.ok).toBe(true);
+    const transition = service.transitionBlogStatus('parity-1', 'published');
+    expect(transition.ok).toBe(false);
+    expect(transition.error.code).toBe('BLOG_NOT_PUBLISHABLE');
+
+    // Save path with direct published status should reject with same code.
+    const directPublish = service.saveBlogPost({ ...inReview.post, id: 'parity-2', slug: 'parity-2', status: 'published', publishedDate: 'invalid-date' });
+    expect(directPublish.ok).toBe(false);
+    expect(directPublish.error.code).toBe('BLOG_NOT_PUBLISHABLE');
+  });
+
 });
 
 
