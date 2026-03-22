@@ -1,6 +1,6 @@
 import { blogRepository } from '../../repositories/blogRepository';
 import type { BlogPost } from '../../domain/contentSchemas';
-import { fetchPublicBlogPosts } from '../../utils/contentApi';
+import { fetchPublicBlogPostBySlug, fetchPublicBlogPosts } from '../../utils/contentApi';
 import { evaluatePublishability, toCanonicalBlogEntry } from './blogEntryAdapter';
 
 export interface BlogListItem {
@@ -55,6 +55,8 @@ export interface BlogContentContract {
   posts: BlogListItem[];
 }
 
+type CanonicalEntry = ReturnType<typeof toCanonicalBlogEntry>;
+
 const formatDate = (value: string) => {
   const parsed = Date.parse(value);
   if (Number.isNaN(parsed)) {
@@ -63,10 +65,10 @@ const formatDate = (value: string) => {
   return new Date(parsed).toLocaleDateString('fr-FR');
 };
 
-const isRenderablePublishedEntry = (entry: ReturnType<typeof toCanonicalBlogEntry>) =>
+const isRenderablePublishedEntry = (entry: CanonicalEntry) =>
   evaluatePublishability(entry).publishable;
 
-const toListItem = (entry: ReturnType<typeof toCanonicalBlogEntry>, featuredId?: string): BlogListItem => ({
+const toListItem = (entry: CanonicalEntry, featuredId?: string): BlogListItem => ({
   id: entry.id,
   slug: entry.slug,
   title: entry.title,
@@ -85,7 +87,7 @@ const toListItem = (entry: ReturnType<typeof toCanonicalBlogEntry>, featuredId?:
 });
 
 
-const toDetailContract = (entry: ReturnType<typeof toCanonicalBlogEntry>): BlogDetailContract => ({
+const toDetailContract = (entry: CanonicalEntry): BlogDetailContract => ({
   id: entry.id,
   slug: entry.seo.canonicalSlug || entry.slug,
   title: entry.title,
@@ -122,6 +124,33 @@ const toContractFromPosts = (posts: BlogPost[]): BlogContentContract => {
   };
 };
 
+const toRenderableCanonicalEntries = (posts: BlogPost[]): CanonicalEntry[] =>
+  posts
+    .map(toCanonicalBlogEntry)
+    .filter(isRenderablePublishedEntry)
+    .sort((a, b) => {
+      const byDate = Date.parse(b.publishedDate) - Date.parse(a.publishedDate);
+      return byDate !== 0 ? byDate : a.slug.localeCompare(b.slug);
+    });
+
+const normalizedSlug = (slug: string) =>
+  slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+const findBySlug = (entries: CanonicalEntry[], slug: string): CanonicalEntry | undefined => {
+  const normalized = normalizedSlug(slug);
+  if (!normalized) return undefined;
+
+  // Deterministic precedence:
+  // 1) canonical SEO slug
+  // 2) normalized primary slug
+  // 3) id fallback (legacy compatibility)
+  return (
+    entries.find((entry) => entry.seo.canonicalSlug === normalized) ||
+    entries.find((entry) => entry.slug === normalized) ||
+    entries.find((entry) => entry.id === normalized)
+  );
+};
+
 export function getBlogContentContract(): BlogContentContract {
   return toContractFromPosts(blogRepository.getAll());
 }
@@ -144,20 +173,16 @@ export async function getBlogPostBySlugContract(slug: string): Promise<BlogDetai
     return undefined;
   }
 
-  const normalizedSlug = slug.trim().toLowerCase();
-  const sourcePosts = await getBlogContentContractFromSource();
-  const fromList = sourcePosts.posts.find((post) => post.slug === normalizedSlug || post.seo.canonicalSlug === normalizedSlug);
-  if (fromList) {
-    const repositoryPost = blogRepository.getAll().find((entry) => entry.slug === fromList.slug && entry.status === 'published');
-    if (repositoryPost) {
-      const canonical = toCanonicalBlogEntry(repositoryPost);
-      if (evaluatePublishability(canonical).publishable) return toDetailContract(canonical);
+  try {
+    const remotePost = await fetchPublicBlogPostBySlug(slug);
+    if (remotePost) {
+      const canonical = toCanonicalBlogEntry(remotePost);
+      if (isRenderablePublishedEntry(canonical)) return toDetailContract(canonical);
     }
+  } catch (error) {
+    console.warn('[public-content] blog detail API unavailable, using local repository snapshot.', error);
   }
 
-  const fallback = blogRepository
-    .getAll()
-    .map(toCanonicalBlogEntry)
-    .find((entry) => evaluatePublishability(entry).publishable && (entry.slug === normalizedSlug || entry.seo.canonicalSlug === normalizedSlug));
+  const fallback = findBySlug(toRenderableCanonicalEntries(blogRepository.getAll()), slug);
   return fallback ? toDetailContract(fallback) : undefined;
 }

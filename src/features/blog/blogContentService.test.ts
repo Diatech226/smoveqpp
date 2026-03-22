@@ -65,6 +65,12 @@ describe('blogContentService', () => {
 
   it('resolves a published post by canonical slug', async () => {
     const published = blogRepository.getPublished()[0];
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, data: { post: published } }),
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
     const result = await getBlogPostBySlugContract(published.slug);
 
     expect(result?.slug).toBe(published.slug);
@@ -123,6 +129,56 @@ describe('blogContentService', () => {
     expect(detail?.slug).toBe('detail-safe');
     expect(detail?.category).toBe('Non classé');
     expect(detail?.seo.socialImage?.length).toBeGreaterThan(0);
+  });
+
+  it('resolves detail from authoritative remote source without requiring local repository parity', async () => {
+    const published = blogRepository.getPublished()[0];
+    blogRepository.delete(published.id);
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        success: true,
+        data: {
+          post: {
+            ...published,
+            id: 'remote-detail-1',
+            slug: 'remote-detail-1',
+            seo: { ...(published.seo || {}), canonicalSlug: 'remote-detail-canonical' },
+            content: 'Remote authoritative body',
+            status: 'published',
+          },
+        },
+      }),
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const detail = await getBlogPostBySlugContract('remote-detail-canonical');
+    expect(detail?.slug).toBe('remote-detail-canonical');
+    expect(detail?.content).toBe('Remote authoritative body');
+  });
+
+  it('uses deterministic slug precedence (canonical slug before primary slug)', async () => {
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({
+      ...seed,
+      id: 'slug-primary',
+      slug: 'collision-slug',
+      seo: { ...(seed.seo || {}), canonicalSlug: 'other-canonical' },
+      status: 'published',
+    });
+    blogRepository.save({
+      ...seed,
+      id: 'slug-canonical',
+      slug: 'fallback-slug',
+      seo: { ...(seed.seo || {}), canonicalSlug: 'collision-slug' },
+      status: 'published',
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    const detail = await getBlogPostBySlugContract('collision-slug');
+    expect(detail?.id).toBe('slug-canonical');
   });
 
   it('prefers backend public blog source when available', async () => {
