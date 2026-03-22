@@ -4,7 +4,7 @@ import type { Project, Service } from '../../../domain/contentSchemas';
 import { selectRenderablePublicServices } from '../serviceCatalog';
 import { HOMEPAGE_PREVIEW_LIMIT, selectHomepageBlogPosts, selectHomepageProjects, selectHomepageServices } from './homePreview';
 
-const makeProject = (id: string, status: Project['status'] = 'published'): Project => ({
+const makeProject = (id: string, status: Project['status'] = 'published', featured = false): Project => ({
   id,
   title: `Projet ${id}`,
   slug: id,
@@ -20,6 +20,7 @@ const makeProject = (id: string, status: Project['status'] = 'published'): Proje
   mainImage: 'image',
   images: ['image'],
   status,
+  featured,
 });
 
 const makeService = (id: string, status: Service['status'] = 'published'): Service => ({
@@ -50,16 +51,17 @@ const makeBlogPost = (id: string): BlogListItem => ({
 });
 
 describe('homepage preview selectors', () => {
-  it('limits homepage projects to 3 published entries while keeping order', () => {
+  it('limits homepage projects to 3 published entries, excludes in_review, and prioritizes featured', () => {
     const projects = [
-      makeProject('project-1'),
-      makeProject('project-2'),
-      makeProject('project-3'),
-      makeProject('project-4'),
+      makeProject('project-1', 'published', false),
+      makeProject('project-2', 'published', true),
+      makeProject('project-3', 'in_review', true),
+      makeProject('project-4', 'published', true),
+      makeProject('project-6'),
       makeProject('project-5', 'draft'),
     ];
 
-    expect(selectHomepageProjects(projects).map((project) => project.id)).toEqual(['project-1', 'project-2', 'project-3']);
+    expect(selectHomepageProjects(projects).map((project) => project.id)).toEqual(['project-2', 'project-4', 'project-1']);
     expect(selectHomepageProjects(projects)).toHaveLength(HOMEPAGE_PREVIEW_LIMIT);
   });
 

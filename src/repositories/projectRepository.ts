@@ -22,11 +22,14 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
   const description = requiredTrimmed(project.description) || summary || 'Description à compléter.';
   const roleCardImage = requiredTrimmed(project.mediaRoles?.cardImage);
   const roleHeroImage = requiredTrimmed(project.mediaRoles?.heroImage);
+  const roleSocialImage = requiredTrimmed(project.mediaRoles?.socialImage) || requiredTrimmed(project.seo?.socialImage);
   const roleGalleryImages = Array.isArray(project.mediaRoles?.galleryImages)
     ? normalizeStringArray(project.mediaRoles?.galleryImages)
     : [];
   const featuredImage = roleCardImage || requiredTrimmed(project.featuredImage) || requiredTrimmed(project.mainImage) || PROJECT_MEDIA_FALLBACK_QUERY;
   const heroImage = roleHeroImage || requiredTrimmed(project.mainImage) || featuredImage;
+  const liveLink = requiredTrimmed(project.links?.live) || requiredTrimmed((project as Project).link) || requiredTrimmed((project as { externalLink?: string }).externalLink);
+  const caseStudyLink = requiredTrimmed(project.links?.caseStudy) || requiredTrimmed((project as { caseStudyLink?: string }).caseStudyLink);
 
   return {
     ...project,
@@ -51,6 +54,8 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
     mediaRoles: {
       cardImage: featuredImage,
       heroImage,
+      coverImage: heroImage,
+      socialImage: roleSocialImage || featuredImage,
       galleryImages: roleGalleryImages.length > 0
         ? roleGalleryImages
         : Array.isArray(project.images)
@@ -65,15 +70,13 @@ const normalizeProject = (project: Partial<Project> & { id: string }): Project =
     status: (project.status === 'draft' || project.status === 'in_review' || project.status === 'published' || project.status === 'archived') ? project.status : 'published',
     createdAt: toIsoOrNow(project.createdAt),
     updatedAt: now,
-    link: requiredTrimmed((project as Project).link) || requiredTrimmed(project.links?.live) || undefined,
-    links: project.links
+    link: liveLink || undefined,
+    links: liveLink || caseStudyLink
       ? {
-          live: requiredTrimmed(project.links.live) || requiredTrimmed((project as Project).link) || undefined,
-          caseStudy: requiredTrimmed(project.links.caseStudy) || undefined,
+          live: liveLink || undefined,
+          caseStudy: caseStudyLink || undefined,
         }
-      : requiredTrimmed((project as Project).link)
-        ? { live: requiredTrimmed((project as Project).link) }
-        : undefined,
+      : undefined,
     testimonial:
       project.testimonial &&
       requiredTrimmed(project.testimonial.text) &&
