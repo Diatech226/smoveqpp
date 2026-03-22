@@ -19,7 +19,7 @@ export default function ProjectsPage() {
   }, []);
 
   const handleProjectsSynced = useCallback((synced: ReturnType<typeof projectRepository.replaceAll>) => {
-    setProjects(synced.filter((project) => project.status !== 'draft' && project.status !== 'archived'));
+    setProjects(synced.filter((project) => project.status === 'published'));
   }, []);
 
   const handleProjectsSyncError = useCallback((error: unknown) => {

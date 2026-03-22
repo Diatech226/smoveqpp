@@ -281,6 +281,35 @@ describe('ContentService project persistence', () => {
     expect(result.project.testimonial.author).toBe('Mariam');
   });
 
+  it('normalizes legacy project link fields into canonical links contract', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-legacy-link-fields',
+      title: 'Projet Legacy Links',
+      slug: 'projet-legacy-links',
+      client: 'Client',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: [],
+      tags: [],
+      mainImage: 'image projet',
+      featuredImage: 'image projet',
+      images: [],
+      status: 'published',
+      externalLink: 'https://smove.africa/live-legacy',
+      caseStudyLink: 'https://smove.africa/case-legacy',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.project.link).toBe('https://smove.africa/live-legacy');
+    expect(result.project.links.live).toBe('https://smove.africa/live-legacy');
+    expect(result.project.links.caseStudy).toBe('https://smove.africa/case-legacy');
+  });
+
 
   it('accepts project payloads with only title and image as meaningful required fields', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });

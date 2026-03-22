@@ -1110,6 +1110,13 @@ class ContentService {
     const roleGalleryImages = Array.isArray(project?.mediaRoles?.galleryImages) ? normalizeStringArray(project.mediaRoles.galleryImages) : [];
     const featuredImage = roleCardImage || asTrimmedString(project?.featuredImage) || asTrimmedString(project?.mainImage) || 'project cover image';
     const heroImage = roleHeroImage || asTrimmedString(project?.mainImage) || featuredImage;
+    const liveLink =
+      asTrimmedString(project?.links?.live) ||
+      asTrimmedString(project?.link) ||
+      asTrimmedString(project?.externalLink);
+    const caseStudyLink =
+      asTrimmedString(project?.links?.caseStudy) ||
+      asTrimmedString(project?.caseStudyLink);
 
     const canonicalSlug = this.normalizeSlug(asTrimmedString(project?.seo?.canonicalSlug) || slug || title);
 
@@ -1160,15 +1167,13 @@ class ContentService {
       reviewedBy: typeof project?.reviewedBy === 'string' ? project.reviewedBy.trim() || undefined : undefined,
       createdAt: project?.createdAt || nowIso,
       updatedAt: nowIso,
-      link: asTrimmedString(project?.link) || (project?.links && typeof project.links.live === 'string' ? project.links.live.trim() : '') || undefined,
-      links: project?.links && typeof project.links === 'object'
+      link: liveLink || undefined,
+      links: liveLink || caseStudyLink
         ? {
-            live: typeof project.links.live === 'string' ? project.links.live.trim() : asTrimmedString(project?.link) || undefined,
-            caseStudy: typeof project.links.caseStudy === 'string' ? project.links.caseStudy.trim() : undefined,
+            live: liveLink || undefined,
+            caseStudy: caseStudyLink || undefined,
           }
-        : asTrimmedString(project?.link)
-          ? { live: asTrimmedString(project?.link) }
-          : undefined,
+        : undefined,
       testimonial:
         project?.testimonial &&
         typeof project.testimonial === 'object' &&
