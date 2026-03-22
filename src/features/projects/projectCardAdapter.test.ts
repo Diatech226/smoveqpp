@@ -58,6 +58,34 @@ describe('projectCardAdapter', () => {
     expect(roles.galleryImages).toEqual(['role-gallery-1', 'role-gallery-2']);
   });
 
+  it('uses role-driven fallback when only hero/cover role is provided', () => {
+    const roles = toCanonicalProjectMediaRoles({
+      featuredImage: '',
+      mainImage: '',
+      images: [],
+      mediaRoles: {
+        heroImage: 'role-hero-only',
+      },
+    });
+
+    expect(roles.cardImage).toBe('role-hero-only');
+    expect(roles.heroImage).toBe('role-hero-only');
+  });
+
+  it('prefers cover role as secondary hero source before legacy fields', () => {
+    const roles = toCanonicalProjectMediaRoles({
+      featuredImage: 'legacy-card',
+      mainImage: 'legacy-main',
+      images: [],
+      mediaRoles: {
+        coverImage: 'role-cover',
+      },
+    });
+
+    expect(roles.heroImage).toBe('role-cover');
+    expect(roles.cardImage).toBe('role-cover');
+  });
+
   it('uses deterministic social fallback precedence (role social > seo social > card)', () => {
     const fromSeo = toCanonicalProjectMediaRoles({
       featuredImage: 'legacy-card',

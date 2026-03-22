@@ -1107,9 +1107,29 @@ class ContentService {
     const roleHeroImage = asTrimmedString(project?.mediaRoles?.heroImage);
     const roleCoverImage = asTrimmedString(project?.mediaRoles?.coverImage);
     const roleSocialImage = asTrimmedString(project?.mediaRoles?.socialImage);
+    const seoSocialImage = asTrimmedString(project?.seo?.socialImage);
     const roleGalleryImages = Array.isArray(project?.mediaRoles?.galleryImages) ? normalizeStringArray(project.mediaRoles.galleryImages) : [];
-    const featuredImage = roleCardImage || asTrimmedString(project?.featuredImage) || asTrimmedString(project?.mainImage) || 'project cover image';
-    const heroImage = roleHeroImage || asTrimmedString(project?.mainImage) || featuredImage;
+    const featuredImage =
+      roleCardImage ||
+      roleHeroImage ||
+      roleCoverImage ||
+      asTrimmedString(project?.featuredImage) ||
+      asTrimmedString(project?.mainImage) ||
+      'project cover image';
+    const heroImage =
+      roleHeroImage ||
+      roleCoverImage ||
+      roleCardImage ||
+      asTrimmedString(project?.mainImage) ||
+      asTrimmedString(project?.featuredImage) ||
+      featuredImage;
+    const galleryImages = roleGalleryImages.length > 0
+      ? roleGalleryImages
+      : Array.isArray(project?.images)
+        ? normalizeStringArray(project.images)
+        : heroImage
+          ? [heroImage]
+          : [];
     const liveLink =
       asTrimmedString(project?.links?.live) ||
       asTrimmedString(project?.link) ||
@@ -1137,29 +1157,19 @@ class ContentService {
       mainImage: heroImage,
       featuredImage,
       imageAlt: asTrimmedString(project?.imageAlt) || title || 'Projet SMOVE',
-      images: Array.isArray(project?.images)
-        ? normalizeStringArray(project.images)
-        : heroImage
-          ? [heroImage]
-          : [],
+      images: galleryImages,
       mediaRoles: {
         cardImage: featuredImage,
         heroImage,
         coverImage: roleCoverImage || heroImage || featuredImage,
-        socialImage: roleSocialImage || featuredImage,
-        galleryImages: roleGalleryImages.length > 0
-          ? roleGalleryImages
-          : Array.isArray(project?.images)
-            ? normalizeStringArray(project.images)
-            : heroImage
-              ? [heroImage]
-              : [],
+        socialImage: roleSocialImage || seoSocialImage || roleCardImage || roleHeroImage || featuredImage,
+        galleryImages,
       },
       seo: {
         title: asTrimmedString(project?.seo?.title) || title || 'Projet SMOVE',
         description: asTrimmedString(project?.seo?.description) || asTrimmedString(project?.summary) || asTrimmedString(project?.description) || 'Projet SMOVE',
         canonicalSlug,
-        socialImage: roleSocialImage || featuredImage,
+        socialImage: roleSocialImage || seoSocialImage || roleCardImage || roleHeroImage || featuredImage,
       },
       featured: Boolean(project?.featured),
       status,

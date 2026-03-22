@@ -372,6 +372,41 @@ describe('ContentService project persistence', () => {
     expect(result.project.seo.canonicalSlug).toBe('projet-media-roles');
   });
 
+  it('uses media roles as primary source even when legacy project media is empty', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveProject({
+      id: 'project-media-role-primary',
+      title: 'Projet role first',
+      slug: 'projet-role-first',
+      client: 'Client',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: [],
+      tags: [],
+      featuredImage: '',
+      mainImage: '',
+      images: [],
+      mediaRoles: {
+        heroImage: 'role-hero-only',
+        galleryImages: ['role-gallery'],
+      },
+      seo: {
+        socialImage: 'seo-social-role',
+      },
+      status: 'published',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.project.featuredImage).toBe('role-hero-only');
+    expect(result.project.mainImage).toBe('role-hero-only');
+    expect(result.project.images).toEqual(['role-gallery']);
+    expect(result.project.mediaRoles.socialImage).toBe('seo-social-role');
+  });
+
   it('rejects duplicate project slugs across different ids', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 

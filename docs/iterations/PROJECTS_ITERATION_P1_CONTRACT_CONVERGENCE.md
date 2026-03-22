@@ -8,20 +8,22 @@ Converge the Projects contract across CMS forms, repository normalization, backe
 ## Authoritative media-role contract
 
 ### Canonical precedence
-- Card image: `mediaRoles.cardImage` → `featuredImage` → `mainImage` → fallback query.
-- Hero image: `mediaRoles.heroImage` → `mainImage` → `featuredImage` → card image.
+- Card image: `mediaRoles.cardImage` → `mediaRoles.heroImage` → `mediaRoles.coverImage` → `featuredImage` → `mainImage` → fallback query.
+- Hero image: `mediaRoles.heroImage` → `mediaRoles.coverImage` → `mediaRoles.cardImage` → `mainImage` → `featuredImage` → card image.
 - Gallery images: `mediaRoles.galleryImages[]` → legacy `images[]` → `[hero image]`.
-- Social image: `mediaRoles.socialImage` → `seo.socialImage` → card image.
+- Social image: `mediaRoles.socialImage` → `seo.socialImage` → role card/hero fallback chain → card image.
 
 ### Compatibility retained
 - Legacy `featuredImage`, `mainImage`, and `images` are still accepted and normalized.
 - Repository and backend normalization keep legacy-compatible outputs while emitting deterministic role fields.
+- CMS edit/save flow now rehydrates and persists gallery via `mediaRoles.galleryImages` first (legacy `images` as fallback) to keep edit/render parity.
 
 ## Published-only public selection rules
 
 - Homepage project selector now includes only `status === 'published'`.
 - Homepage selector prioritizes `featured` within published projects, then fills with other published projects.
 - Projects listing remote fallback also enforces `status === 'published'`.
+- Public selectors share a dedicated published-only selector helper so fallback paths cannot leak `in_review`.
 - Project detail route resolution now only resolves from `projectRepository.getPublished()`.
 
 ## CTA/link contract decision

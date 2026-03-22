@@ -397,6 +397,28 @@ describe('projectRepository and cmsRepository', () => {
     expect(saved.links?.caseStudy).toBe('https://smove.africa/case-legacy');
   });
 
+  it('prioritizes role-based gallery and hero media over legacy fields during project normalization', () => {
+    const seed = projectRepository.getAll()[0];
+    const saved = projectRepository.save({
+      ...seed,
+      id: 'project-role-media-priority',
+      slug: 'project-role-media-priority',
+      title: 'Projet Media Priority',
+      featuredImage: 'legacy-card',
+      mainImage: 'legacy-hero',
+      images: ['legacy-gallery'],
+      mediaRoles: {
+        heroImage: 'role-hero',
+        galleryImages: ['role-gallery-1', 'role-gallery-2'],
+      },
+    });
+
+    expect(saved.featuredImage).toBe('role-hero');
+    expect(saved.mainImage).toBe('role-hero');
+    expect(saved.images).toEqual(['role-gallery-1', 'role-gallery-2']);
+    expect(saved.mediaRoles?.galleryImages).toEqual(['role-gallery-1', 'role-gallery-2']);
+  });
+
 
   it('rejects invalid project links and dangling gallery media references', () => {
     const seed = projectRepository.getAll()[0];
