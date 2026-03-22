@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluatePublishability, fromCmsBlogInput, normalizeSlug, toCanonicalBlogEntry } from './blogEntryAdapter';
+import { evaluatePublishability, fromCmsBlogInput, fromCmsBlogInputWithExisting, normalizeSlug, toCanonicalBlogEntry } from './blogEntryAdapter';
 import { defaultBlogPosts } from '../../data/blogSeed';
 import { toMediaReference } from './mediaReference';
 import { mediaRepository } from '../../repositories/mediaRepository';
@@ -118,6 +118,35 @@ describe('blogEntryAdapter', () => {
 
     expect(result.tags).toEqual(['react', 'cms', 'vite']);
     expect(result.featuredImage).toBe('hero image');
+  });
+
+  it('hydrates legacy role images when updating an existing blog article', () => {
+    const existing = {
+      ...defaultBlogPosts[0],
+      featuredImage: '',
+      images: ['legacy-inline-image'],
+      mediaRoles: {
+        coverImage: 'legacy-cover-image',
+        socialImage: 'legacy-social-image',
+      },
+    };
+    const updated = fromCmsBlogInputWithExisting(
+      {
+        id: existing.id,
+        title: existing.title,
+        slug: existing.slug,
+        excerpt: existing.excerpt,
+        content: existing.content,
+        author: existing.author,
+        category: existing.category,
+        status: 'draft',
+      },
+      existing,
+    );
+
+    expect(updated.featuredImage).toBe('legacy-cover-image');
+    expect(updated.seo?.socialImage).toBe('legacy-social-image');
+    expect(updated.images).toEqual(['legacy-cover-image', 'legacy-inline-image']);
   });
   it('resolves media references through repository assets when available', () => {
     mediaRepository.save({
