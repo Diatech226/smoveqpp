@@ -67,6 +67,7 @@ import { toMediaReferenceValue } from '../../features/media/assetReference';
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
 import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
+import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import type { BlogPost, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -307,6 +308,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [selectedMediaId, setSelectedMediaId] = useState<string>('');
   const [mediaUploadError, setMediaUploadError] = useState('');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [selectedMediaAuthoritativeReferences, setSelectedMediaAuthoritativeReferences] = useState<BackendMediaReference[]>([]);
+  const [selectedMediaReferencesLoading, setSelectedMediaReferencesLoading] = useState(false);
+  const [selectedMediaReferencesError, setSelectedMediaReferencesError] = useState('');
   const [homeContentForm, setHomeContentForm] = useState<HomePageContentSettings>(() => pageContentRepository.getHomePageContent());
   const [homeContentSaving, setHomeContentSaving] = useState(false);
   const [homeContentError, setHomeContentError] = useState('');
@@ -348,6 +352,38 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     register(homeContentForm.aboutImage, 'Home page • aboutImage');
     return index;
   }, [homeContentForm.aboutImage, posts, projects]);
+
+  useEffect(() => {
+    if (!selectedMediaId) {
+      setSelectedMediaAuthoritativeReferences([]);
+      setSelectedMediaReferencesLoading(false);
+      setSelectedMediaReferencesError('');
+      return;
+    }
+
+    let isActive = true;
+    setSelectedMediaReferencesLoading(true);
+    setSelectedMediaReferencesError('');
+
+    void requestWithRetry(() => fetchBackendMediaReferences(selectedMediaId), { retries: 1, retryDelayMs: 250 })
+      .then((references) => {
+        if (!isActive) return;
+        setSelectedMediaAuthoritativeReferences(references);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setSelectedMediaAuthoritativeReferences([]);
+        setSelectedMediaReferencesError("Références serveur indisponibles. Vérifiez avant d'archiver.");
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setSelectedMediaReferencesLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedMediaId]);
   const readinessSnapshot = useMemo(
     () => (contentHealth ? deriveDashboardReadinessSnapshot(contentHealth) : null),
     [contentHealth],
@@ -1399,19 +1435,33 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
-  const deleteSelectedMedia = async () => {
+  const deleteSelectedMedia = async (authoritativeReferences: BackendMediaReference[]) => {
     if (!selectedMedia) return;
     if (!canDeleteContent) {
-      setSectionError('Suppression média non autorisée: rôle administrateur requis.');
+      setSectionError("Archivage média non autorisé: rôle administrateur requis.");
       return;
     }
-    const localReferences = mediaUsageIndex.get(selectedMedia.id) || [];
-    if (localReferences.length > 0) {
-      setSectionError(`Suppression refusée: média référencé localement (${localReferences.slice(0, 3).join(' | ')}).`);
+    if (selectedMediaReferencesLoading) {
+      setSectionError("Analyse des références en cours. Réessayez l'archivage dans quelques secondes.");
       return;
     }
 
-    if (!window.confirm(`Archiver le média "${selectedMedia.label || selectedMedia.name}" ?`)) {
+    if (authoritativeReferences.length > 0) {
+      const summary = summarizeReferences(authoritativeReferences);
+      const scope = summary.byDomain.map((entry) => `${entry.label}:${entry.count}`).join(' • ');
+      setSectionError(`Archivage bloqué: ${summary.total} référence(s) active(s) détectée(s)${scope ? ` (${scope})` : ''}.`);
+      return;
+    }
+
+    const localReferences = mediaUsageIndex.get(selectedMedia.id) || [];
+    const localHint = localReferences.length > 0 ? `\nIndice local (non bloquant): ${localReferences.slice(0, 3).join(' | ')}` : '';
+    const confirmMessage = [
+      `Archiver le média "${selectedMedia.label || selectedMedia.name}" ?`,
+      'Cette action archive le fichier (pas de suppression définitive).',
+      'Le média archivé sort des sélecteurs actifs et peut être restauré ultérieurement via workflow dédié.',
+      localHint,
+    ].filter(Boolean).join('\n');
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -1421,15 +1471,17 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       refreshed.forEach((file) => mediaRepository.save(file));
       setSelectedMediaId('');
       setMediaVersion((version) => version + 1);
-      showSuccess('Média archivé (suppression irréversible évitée).');
+      showSuccess('Média archivé avec protections de référence actives.');
     } catch (error) {
       if (error instanceof ContentApiError && error.code === 'MEDIA_IN_USE') {
         const references = await requestWithRetry(() => fetchBackendMediaReferences(selectedMedia.id), { retries: 1, retryDelayMs: 250 }).catch(() => []);
-        const sample = references.slice(0, 3).map((ref) => `${ref.domain}:${ref.field}`).join(' | ');
-        setSectionError(`Suppression refusée: ce média est référencé par du contenu${sample ? ` (${sample})` : ''}.`);
+        setSelectedMediaAuthoritativeReferences(references);
+        const summary = summarizeReferences(references);
+        const sample = summary.sample.slice(0, 3).join(' | ');
+        setSectionError(`Archivage bloqué côté serveur: média référencé${sample ? ` (${sample})` : ''}.`);
         return;
       }
-      setSectionError('Suppression média impossible. Réessayez.');
+      setSectionError('Archivage média impossible. Réessayez.');
     }
   };
 
@@ -2051,7 +2103,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           filteredMediaFiles={filteredMediaFiles}
           selectedMediaId={selectedMediaId}
           selectedMedia={selectedMedia}
-          mediaUsageIndex={mediaUsageIndex}
+          authoritativeReferences={selectedMediaAuthoritativeReferences}
+          authoritativeReferencesLoading={selectedMediaReferencesLoading}
+          authoritativeReferencesError={selectedMediaReferencesError}
+          localFallbackUsages={selectedMedia ? (mediaUsageIndex.get(selectedMedia.id) || []) : []}
           canDeleteContent={canDeleteContent}
           deleteSelectedMedia={deleteSelectedMedia}
         />
