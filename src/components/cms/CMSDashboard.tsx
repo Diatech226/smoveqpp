@@ -60,15 +60,15 @@ import {
   type SettingsHistoryEntry,
   type ContentHealthSummary,
 } from '../../utils/contentApi';
-import { fromCmsBlogInput, normalizeSlug } from '../../features/blog/blogEntryAdapter';
+import { fromCmsBlogInputWithExisting, normalizeSlug } from '../../features/blog/blogEntryAdapter';
 import { isMediaReference, resolveBlogMediaReference } from '../../features/blog/mediaReference';
-import { isProjectMediaReference } from '../../features/projects/projectMedia';
+import { isProjectMediaReference, resolveProjectFeaturedImage, resolveProjectHeroMedia } from '../../features/projects/projectMedia';
 import { toMediaReferenceValue } from '../../features/media/assetReference';
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
 import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
-import type { BlogPost, Service } from '../../domain/contentSchemas';
+import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
   AdminActionCluster,
@@ -123,6 +123,7 @@ interface ProjectFormState {
   tags: string;
   cardImage: string;
   heroImage: string;
+  socialImage: string;
   imageAlt: string;
   externalLink: string;
   caseStudyLink: string;
@@ -218,6 +219,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   tags: '',
   cardImage: '',
   heroImage: '',
+  socialImage: '',
   imageAlt: '',
   externalLink: '',
   caseStudyLink: '',
@@ -249,6 +251,48 @@ const getBlogPublishabilityErrors = (form: BlogFormState): Partial<Record<keyof 
   }
 
   return errors;
+};
+
+const toBlogFormState = (post: BlogPost): BlogFormState => {
+  const featuredImage =
+    post.mediaRoles?.featuredImage?.trim() ||
+    post.mediaRoles?.coverImage?.trim() ||
+    post.mediaRoles?.cardImage?.trim() ||
+    post.featuredImage ||
+    post.images?.[0] ||
+    '';
+  const socialImage = post.mediaRoles?.socialImage?.trim() || post.seo?.socialImage?.trim() || featuredImage;
+  return {
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    content: post.content,
+    author: post.author,
+    category: post.category,
+    tags: post.tags.join(', '),
+    featuredImage,
+    readTime: post.readTime,
+    status: post.status,
+    seoTitle: post.seo?.title || '',
+    seoDescription: post.seo?.description || '',
+    canonicalSlug: post.seo?.canonicalSlug || post.slug,
+    socialImage,
+    publishedDate: post.publishedDate,
+  };
+};
+
+const toProjectGalleryLines = (project: Project): string => {
+  const roleGallery = Array.isArray(project.mediaRoles?.galleryImages) ? project.mediaRoles.galleryImages : [];
+  const legacyGallery = Array.isArray(project.images) ? project.images : [];
+  const heroFallback =
+    project.mediaRoles?.heroImage ||
+    project.mediaRoles?.coverImage ||
+    project.mainImage ||
+    project.featuredImage ||
+    '';
+  const gallery = roleGallery.length > 0 ? roleGallery : legacyGallery.length > 0 ? legacyGallery : heroFallback ? [heroFallback] : [];
+  return gallery.map((entry) => entry.trim()).filter(Boolean).join('\n');
 };
 
 export default function CMSDashboard({ currentSection, onSectionChange }: CMSDashboardProps) {
@@ -651,24 +695,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const startEditPost = (post: BlogPost) => {
-    setBlogForm({
-      id: post.id,
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt,
-      content: post.content,
-      author: post.author,
-      category: post.category,
-      tags: post.tags.join(', '),
-      featuredImage: post.featuredImage,
-      readTime: post.readTime,
-      status: post.status,
-      seoTitle: post.seo?.title || '',
-      seoDescription: post.seo?.description || '',
-      canonicalSlug: post.seo?.canonicalSlug || post.slug,
-      socialImage: post.seo?.socialImage || '',
-      publishedDate: post.publishedDate,
-    });
+    setBlogForm(toBlogFormState(post));
     setBlogFormErrors({});
     setBlogEditorMode('edit');
   };
@@ -759,24 +786,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     const existing = posts.find((post) => post.id === blogForm.id);
     if (!existing) return true;
-    const normalizedExisting: BlogFormState = {
-      id: existing.id,
-      title: existing.title,
-      slug: existing.slug,
-      excerpt: existing.excerpt,
-      content: existing.content,
-      author: existing.author,
-      category: existing.category,
-      tags: existing.tags.join(', '),
-      featuredImage: existing.featuredImage,
-      readTime: existing.readTime,
-      status: existing.status,
-      seoTitle: existing.seo?.title || '',
-      seoDescription: existing.seo?.description || '',
-      canonicalSlug: existing.seo?.canonicalSlug || existing.slug,
-      socialImage: existing.seo?.socialImage || '',
-      publishedDate: existing.publishedDate,
-    };
+    const normalizedExisting: BlogFormState = toBlogFormState(existing);
     return JSON.stringify(normalizedExisting) !== JSON.stringify(blogForm);
   }, [blogEditorMode, blogForm, posts]);
 
@@ -803,7 +813,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setPostsError('');
 
     try {
-      const payload = fromCmsBlogInput(formToSave);
+      const existingPost = formToSave.id ? posts.find((entry) => entry.id === formToSave.id) : undefined;
+      const payload = fromCmsBlogInputWithExisting(formToSave, existingPost);
       const saved = await requestWithRetry(() => saveBackendBlogPost(payload), { retries: 1, retryDelayMs: 250 });
       blogRepository.save(saved);
       setPosts((prev) => {
@@ -975,6 +986,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const startEditProject = (project: (typeof projects)[number]) => {
+    const resolvedCard = resolveProjectFeaturedImage(project).reference;
+    const resolvedHero = resolveProjectHeroMedia(project).reference;
+    const resolvedSocial = project.mediaRoles?.socialImage || project.seo?.socialImage || resolvedCard || resolvedHero;
     setProjectEditorMode('edit');
     setProjectForm({
       id: project.id,
@@ -991,12 +1005,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       solution: project.solution,
       results: project.results.join('\n'),
       tags: project.tags.join(', '),
-      cardImage: project.mediaRoles?.cardImage || project.featuredImage || project.mainImage,
-      heroImage: project.mediaRoles?.heroImage || project.mediaRoles?.coverImage || project.mainImage || project.featuredImage,
+      cardImage: resolvedCard,
+      heroImage: resolvedHero,
+      socialImage: resolvedSocial,
       imageAlt: project.imageAlt || project.title,
       externalLink: project.links?.live || project.link || '',
       caseStudyLink: project.links?.caseStudy || '',
-      galleryImages: (project.mediaRoles?.galleryImages || project.images).join('\n'),
+      galleryImages: toProjectGalleryLines(project),
       testimonialText: project.testimonial?.text || '',
       testimonialAuthor: project.testimonial?.author || '',
       testimonialPosition: project.testimonial?.position || '',
@@ -1020,6 +1035,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     if (form.heroImage.trim() && !isValidMediaField(form.heroImage)) {
       errors.heroImage = 'Image hero invalide. Utilisez une URL valide ou media:asset-id existant.';
+    }
+    if (form.socialImage.trim() && !isValidMediaField(form.socialImage)) {
+      errors.socialImage = 'Image sociale invalide. Utilisez une URL valide ou media:asset-id existant.';
     }
     if (form.caseStudyLink.trim() && !/^https?:\/\//i.test(form.caseStudyLink.trim())) {
       errors.caseStudyLink = 'Le lien case study doit commencer par http:// ou https://.';
@@ -1140,8 +1158,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         cardImage: projectForm.cardImage.trim() || heroImage || 'project cover image',
         heroImage: heroImage || 'project cover image',
         coverImage: heroImage || projectForm.cardImage.trim() || 'project cover image',
-        socialImage: projectForm.cardImage.trim() || heroImage || 'project cover image',
+        socialImage: projectForm.socialImage.trim() || projectForm.cardImage.trim() || heroImage || 'project cover image',
         galleryImages: images,
+      },
+      seo: {
+        socialImage: projectForm.socialImage.trim() || projectForm.cardImage.trim() || heroImage || 'project cover image',
       },
       imageAlt: projectForm.imageAlt.trim() || projectForm.title.trim(),
       images,
@@ -1520,6 +1541,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               {projectFormErrors.heroImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.heroImage}</p> : null}
             </label>
             <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Image sociale (partages)</span>
+              <input value={projectForm.socialImage} onChange={(event) => setProjectForm((prev) => ({ ...prev, socialImage: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="URL ou media:asset-id (fallback: image carte)" />
+              {projectFormErrors.socialImage ? <p className="text-[12px] text-red-600 mt-1">{projectFormErrors.socialImage}</p> : null}
+            </label>
+            <label className="block">
               <span className="text-[14px] text-[#6f7f85]">Texte alternatif image</span>
               <input value={projectForm.imageAlt} onChange={(event) => setProjectForm((prev) => ({ ...prev, imageAlt: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
             </label>
@@ -1533,11 +1559,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 <p className="text-[13px] text-[#6f7f85] mb-2">Sélecteur média rapide</p>
                 <div className="flex flex-wrap gap-2">
                   {mediaFiles.slice(0, 6).map((file) => (
-                    <button type="button" key={file.id} onClick={() => setProjectForm((prev) => ({ ...prev, cardImage: toMediaReferenceValue(file.id), heroImage: prev.heroImage.trim() || toMediaReferenceValue(file.id), imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name }))} className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]">
+                    <button type="button" key={file.id} onClick={() => setProjectForm((prev) => ({ ...prev, cardImage: toMediaReferenceValue(file.id), heroImage: prev.heroImage.trim() || toMediaReferenceValue(file.id), socialImage: prev.socialImage.trim() || toMediaReferenceValue(file.id), imageAlt: prev.imageAlt.trim() || file.alt || prev.title || file.name }))} className="text-[12px] border border-[#d8e4e8] rounded-full px-3 py-1 hover:border-[#00b3e8]">
                       {file.name}
                     </button>
                   ))}
                 </div>
+              </div>
+            ) : null}
+            {(projectForm.cardImage || projectForm.heroImage || projectForm.socialImage) ? (
+              <div className="rounded-[10px] border border-[#eef3f5] px-3 py-2 text-[12px] text-[#6f7f85]">
+                Aperçu références — carte: {resolveProjectFeaturedImage({ title: projectForm.title || 'Projet', imageAlt: projectForm.imageAlt, featuredImage: projectForm.cardImage, mainImage: projectForm.heroImage, mediaRoles: { cardImage: projectForm.cardImage, heroImage: projectForm.heroImage } }).caption} · hero: {resolveProjectHeroMedia({ title: projectForm.title || 'Projet', imageAlt: projectForm.imageAlt, featuredImage: projectForm.cardImage, mainImage: projectForm.heroImage, mediaRoles: { cardImage: projectForm.cardImage, heroImage: projectForm.heroImage } }).caption}
               </div>
             ) : null}
             <label className="block">

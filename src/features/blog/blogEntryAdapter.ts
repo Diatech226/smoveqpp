@@ -129,15 +129,36 @@ export function evaluatePublishability(entry: CanonicalBlogEntry): Publishabilit
 }
 
 export function fromCmsBlogInput(input: CmsBlogInput): BlogPost {
+  return fromCmsBlogInputWithExisting(input);
+}
+
+export function fromCmsBlogInputWithExisting(input: CmsBlogInput, existingPost?: BlogPost): BlogPost {
   const title = input.title.trim();
   const slug = normalizeSlug(input.slug, title);
   const fallbackContent = input.content.trim() || 'Contenu à compléter.';
   const excerpt = input.excerpt.trim() || fallbackContent.slice(0, 160) || `Résumé à compléter pour ${title || 'cet article'}.`;
 
   const category = input.category.trim() || 'Non classé';
+  const fallbackFeatured =
+    existingPost?.mediaRoles?.featuredImage?.trim() ||
+    existingPost?.mediaRoles?.coverImage?.trim() ||
+    existingPost?.mediaRoles?.cardImage?.trim() ||
+    existingPost?.featuredImage?.trim() ||
+    BLOG_MEDIA_FALLBACK_QUERY;
+  const featuredImage = input.featuredImage?.trim() || fallbackFeatured;
+  const fallbackSocial =
+    existingPost?.mediaRoles?.socialImage?.trim() ||
+    existingPost?.seo?.socialImage?.trim() ||
+    featuredImage;
+  const socialImage = input.socialImage?.trim() || fallbackSocial;
+  const existingImages = Array.isArray(existingPost?.images)
+    ? existingPost.images.map((entry) => entry.trim()).filter(Boolean)
+    : [];
+  const images = Array.from(new Set([featuredImage, ...existingImages].filter(Boolean)));
+
   const seen = new Set<string>();
   return {
-    id: input.id || `post-${Date.now()}`,
+    id: input.id || existingPost?.id || `post-${Date.now()}`,
     title,
     slug,
     excerpt,
@@ -157,18 +178,21 @@ export function fromCmsBlogInput(input: CmsBlogInput): BlogPost {
       }),
     publishedDate: input.publishedDate || new Date().toISOString(),
     readTime: input.readTime?.trim() || '5 min',
-    featuredImage: input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
-    images: input.featuredImage?.trim() ? [input.featuredImage.trim()] : [],
+    featuredImage,
+    images,
     status: input.status,
     seo: {
       title: input.seoTitle?.trim() || title,
       description: input.seoDescription?.trim() || excerpt,
       canonicalSlug: normalizeSlug(input.canonicalSlug || slug, title),
-      socialImage: input.socialImage?.trim() || input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
+      socialImage,
     },
     mediaRoles: {
-      featuredImage: input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
-      socialImage: input.socialImage?.trim() || input.featuredImage?.trim() || BLOG_MEDIA_FALLBACK_QUERY,
+      ...existingPost?.mediaRoles,
+      featuredImage,
+      socialImage,
+      coverImage: existingPost?.mediaRoles?.coverImage?.trim() || featuredImage,
+      cardImage: existingPost?.mediaRoles?.cardImage?.trim() || featuredImage,
     },
   };
 }
