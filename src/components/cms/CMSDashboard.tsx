@@ -546,28 +546,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       value: cmsStats.projectCount,
       icon: FolderOpen,
       color: 'from-[#00b3e8] to-[#00c0e8]',
-      change: '+12%',
     },
     {
       label: 'Articles Blog',
       value: posts.length,
       icon: FileText,
       color: 'from-[#a855f7] to-[#9333ea]',
-      change: '+8%',
     },
     {
       label: 'Fichiers Média',
       value: cmsStats.mediaCount,
       icon: ImageIcon,
       color: 'from-[#ffc247] to-[#ff9f47]',
-      change: '+15%',
-    },
-    {
-      label: 'Vues Totales',
-      value: '12.5k',
-      icon: Eye,
-      color: 'from-[#34c759] to-[#2da84a]',
-      change: '+23%',
     },
   ];
 
@@ -580,13 +570,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     { id: 'content', label: 'Contenus pages', icon: FileText },
     { id: 'users', label: 'Utilisateurs', icon: Users },
     { id: 'settings', label: 'Paramètres', icon: Settings },
-  ];
-
-  const recentActivity = [
-    { action: 'Nouveau projet ajouté', item: 'SMOVE Platform', time: 'Il y a 2h', type: 'project' },
-    { action: 'Article publié', item: 'Création site web', time: 'Il y a 5h', type: 'blog' },
-    { action: 'Image uploadée', item: 'hero-banner.jpg', time: 'Il y a 1j', type: 'media' },
-    { action: 'Projet modifié', item: 'ECLA BTP', time: 'Il y a 2j', type: 'project' },
   ];
 
   const handleLogout = async () => {
@@ -2570,70 +2553,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {feedback ? <AdminSuccessFeedback label={feedback} /> : null}
           {currentSection === 'overview' ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {stats.map((stat, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-[20px] p-6 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`w-12 h-12 rounded-[12px] bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
-                        <stat.icon className="text-white" size={24} />
-                      </div>
-                      <span className="text-[#34c759] font-['Abhaya_Libre:Bold',sans-serif] text-[14px]">{stat.change}</span>
-                    </div>
-                    <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[32px] text-[#273a41] mb-1">{stat.value}</h3>
-                    <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {[['projects', 'Nouveau Projet', 'Ajouter un projet', 'from-[#00b3e8] to-[#00c0e8]'], ['blog', 'Nouvel Article', 'Rédiger un article', 'from-[#a855f7] to-[#9333ea]'], ['media', 'Upload Média', 'Ajouter des fichiers', 'from-[#ffc247] to-[#ff9f47]']].map(([id, title, subtitle, color]) => (
-                  <button
-                    key={id}
-                    onClick={() => handleSectionChange(id)}
-                    className={`bg-gradient-to-r ${color} text-white p-6 rounded-[20px] flex items-center justify-between group`}
-                  >
-                    <div className="text-left">
-                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">{title}</p>
-                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">{subtitle}</p>
-                    </div>
-                    <Plus className="group-hover:rotate-90 transition-transform" size={32} />
-                  </button>
-                ))}
-              </div>
-
-              <div className="bg-white rounded-[20px] p-6 shadow-sm">
-                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-6">Activité Récente</h3>
-                <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-4 p-4 rounded-[12px] hover:bg-[#f5f9fa] transition-colors"
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        activity.type === 'project'
-                          ? 'bg-[#00b3e8]/10 text-[#00b3e8]'
-                          : activity.type === 'blog'
-                            ? 'bg-[#a855f7]/10 text-[#a855f7]'
-                            : 'bg-[#ffc247]/10 text-[#ffc247]'
-                      }`}>
-                        {activity.type === 'project' ? <FolderOpen size={20} /> : activity.type === 'blog' ? <FileText size={20} /> : <ImageIcon size={20} />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-[#273a41]">{activity.action}</p>
-                        <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">{activity.item}</p>
-                      </div>
-                      <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-[#9ba1a4]">{activity.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {contentHealth ? (
                 <div className="bg-white rounded-[20px] p-6 shadow-sm">
                   <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-4">Santé contenu & readiness</h3>
+                  <p className="mb-4 text-[12px] text-[#6f7f85]">Source: endpoint backend /content/health. Fraîcheur: calculée à la requête (timestamp non exposé).</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-[13px]">
                     <div className="rounded-[12px] border border-[#e5edf0] p-3">
                       <p className="text-[#6f7f85]">SEO manquant (publié)</p>
@@ -2699,6 +2622,48 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   ) : null}
                 </div>
               ) : null}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                {stats.map((stat, index) => (
+                  <div
+                    key={index}
+                    className="bg-white rounded-[20px] p-6 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`w-12 h-12 rounded-[12px] bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
+                        <stat.icon className="text-white" size={24} />
+                      </div>
+                    </div>
+                    <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[32px] text-[#273a41] mb-1">{stat.value}</h3>
+                    <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">{stat.label}</p>
+                    <p className="mt-2 text-[11px] text-[#7d8b90]">Source: référentiel CMS local chargé au runtime.</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {[['projects', 'Nouveau Projet', 'Ajouter un projet', 'from-[#00b3e8] to-[#00c0e8]'], ['blog', 'Nouvel Article', 'Rédiger un article', 'from-[#a855f7] to-[#9333ea]'], ['media', 'Upload Média', 'Ajouter des fichiers', 'from-[#ffc247] to-[#ff9f47]']].map(([id, title, subtitle, color]) => (
+                  <button
+                    key={id}
+                    onClick={() => handleSectionChange(id)}
+                    className={`bg-gradient-to-r ${color} text-white p-6 rounded-[20px] flex items-center justify-between group`}
+                  >
+                    <div className="text-left">
+                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">{title}</p>
+                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">{subtitle}</p>
+                    </div>
+                    <Plus className="group-hover:rotate-90 transition-transform" size={32} />
+                  </button>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-[20px] p-6 shadow-sm">
+                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-2">Activité récente</h3>
+                <p className="text-[12px] text-[#6f7f85]">Source: timeline backend non encore connectée.</p>
+                <div className="mt-4 rounded-[12px] border border-dashed border-[#d6e4ea] bg-[#f9fcfd] p-4 text-[13px] text-[#5e7077]">
+                  Le flux d’activité est momentanément indisponible. Cette zone sera réactivée dès que la source d’événements CMS (sauvegardes, transitions, uploads, settings) sera branchée côté backend.
+                </div>
+              </div>
             </>
           ) : (
             renderSectionContent()
