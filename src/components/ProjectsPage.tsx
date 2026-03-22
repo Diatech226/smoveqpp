@@ -8,6 +8,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { fetchPublicProjects } from '../utils/publicContentApi';
 import { toProjectCardContract } from '../features/projects/projectCardAdapter';
 import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepositorySync';
+import { selectPublishedProjects } from '../features/projects/projectSelectors';
 
 export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
@@ -19,7 +20,7 @@ export default function ProjectsPage() {
   }, []);
 
   const handleProjectsSynced = useCallback((synced: ReturnType<typeof projectRepository.replaceAll>) => {
-    setProjects(synced.filter((project) => project.status === 'published'));
+    setProjects(selectPublishedProjects(synced));
   }, []);
 
   const handleProjectsSyncError = useCallback((error: unknown) => {
