@@ -46,6 +46,7 @@ export interface MediaAsset {
   source?: string;
   createdAt?: string;
   updatedAt?: string;
+  archivedAt?: string | null;
 
   // Legacy compatibility fields
   name: string;
@@ -209,6 +210,7 @@ export const isMediaFile = (value: unknown): value is MediaFile => {
     (v.source === undefined || isString(v.source)) &&
     (v.createdAt === undefined || isString(v.createdAt)) &&
     (v.updatedAt === undefined || isString(v.updatedAt)) &&
+    (v.archivedAt === undefined || v.archivedAt === null || isString(v.archivedAt)) &&
     (v.caption === undefined || isString(v.caption)) &&
     isStringArray(v.tags)
   );

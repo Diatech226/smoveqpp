@@ -148,6 +148,38 @@ describe('blogEntryAdapter', () => {
     expect(updated.seo?.socialImage).toBe('legacy-social-image');
     expect(updated.images).toEqual(['legacy-cover-image', 'legacy-inline-image']);
   });
+
+  it('realigns card/cover media roles when featured image is replaced in CMS', () => {
+    const existing = {
+      ...defaultBlogPosts[0],
+      mediaRoles: {
+        featuredImage: 'media:old-featured',
+        coverImage: 'media:old-cover',
+        cardImage: 'media:old-card',
+        socialImage: 'media:old-social',
+      },
+    };
+
+    const updated = fromCmsBlogInputWithExisting(
+      {
+        id: existing.id,
+        title: existing.title,
+        slug: existing.slug,
+        excerpt: existing.excerpt,
+        content: existing.content,
+        author: existing.author,
+        category: existing.category,
+        featuredImage: 'media:new-featured',
+        status: 'draft',
+      },
+      existing,
+    );
+
+    expect(updated.mediaRoles?.featuredImage).toBe('media:new-featured');
+    expect(updated.mediaRoles?.coverImage).toBe('media:new-featured');
+    expect(updated.mediaRoles?.cardImage).toBe('media:new-featured');
+  });
+
   it('resolves media references through repository assets when available', () => {
     mediaRepository.save({
       id: 'asset-1',
@@ -170,6 +202,34 @@ describe('blogEntryAdapter', () => {
 
     expect(canonical.featuredImage).toBe('data:image/png;base64,abc');
     expect(canonical.media.alt).toBe('Couverture article');
+  });
+
+  it('resolves seo social image media references into render-safe URLs', () => {
+    mediaRepository.save({
+      id: 'asset-social-1',
+      name: 'social.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,social1',
+      thumbnailUrl: 'data:image/png;base64,social1',
+      size: 100,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Social article',
+      caption: 'Social',
+      tags: [],
+    });
+
+    const canonical = toCanonicalBlogEntry({
+      ...defaultBlogPosts[0],
+      featuredImage: 'legacy-featured-image',
+      seo: {
+        ...defaultBlogPosts[0].seo,
+        socialImage: toMediaReference('asset-social-1'),
+      },
+      mediaRoles: {},
+    });
+
+    expect(canonical.seo.socialImage).toBe('data:image/png;base64,social1');
   });
 
 

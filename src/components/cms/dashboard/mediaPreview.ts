@@ -37,13 +37,14 @@ export function resolveCmsPreviewReference(reference: string | undefined, fallba
   if (isMediaReferenceValue(normalizedReference)) {
     const mediaId = mediaIdFromReference(normalizedReference) || undefined;
     if (resolved.isFallback || !isRenderableUrl(resolved.src)) {
+      const isArchived = resolved.mediaState === 'archived';
       return {
         ...resolved,
         mediaId,
         state: 'unresolved',
         source: 'media-reference',
         sourceLabel: 'Référence média',
-        statusLabel: 'Non résolu',
+        statusLabel: isArchived ? 'Archivé' : 'Non résolu',
         statusTone: 'warning',
       };
     }

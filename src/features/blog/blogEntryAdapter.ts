@@ -78,7 +78,8 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
   const seoTitle = post.seo?.title?.trim() || title;
   const seoDescription = post.seo?.description?.trim() || excerpt;
   const canonicalSlug = normalizeSlug(post.seo?.canonicalSlug || slug, title);
-  const socialImage = post.mediaRoles?.socialImage?.trim() || post.seo?.socialImage?.trim() || media.src;
+  const socialImageRef = post.mediaRoles?.socialImage?.trim() || post.seo?.socialImage?.trim() || featuredImageRef || media.src;
+  const socialMedia = resolveBlogMediaReference(socialImageRef, title);
 
   return {
     id: post.id,
@@ -96,7 +97,7 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
       title: seoTitle,
       description: seoDescription,
       canonicalSlug,
-      socialImage,
+      socialImage: socialMedia.src,
     },
     media,
   };
@@ -151,6 +152,7 @@ export function fromCmsBlogInputWithExisting(input: CmsBlogInput, existingPost?:
     existingPost?.seo?.socialImage?.trim() ||
     featuredImage;
   const socialImage = input.socialImage?.trim() || fallbackSocial;
+  const featuredImageUpdated = Boolean(input.featuredImage?.trim());
   const existingImages = Array.isArray(existingPost?.images)
     ? existingPost.images.map((entry) => entry.trim()).filter(Boolean)
     : [];
@@ -191,8 +193,8 @@ export function fromCmsBlogInputWithExisting(input: CmsBlogInput, existingPost?:
       ...existingPost?.mediaRoles,
       featuredImage,
       socialImage,
-      coverImage: existingPost?.mediaRoles?.coverImage?.trim() || featuredImage,
-      cardImage: existingPost?.mediaRoles?.cardImage?.trim() || featuredImage,
+      coverImage: featuredImageUpdated ? featuredImage : (existingPost?.mediaRoles?.coverImage?.trim() || featuredImage),
+      cardImage: featuredImageUpdated ? featuredImage : (existingPost?.mediaRoles?.cardImage?.trim() || featuredImage),
     },
   };
 }

@@ -48,7 +48,7 @@ describe('deriveDashboardReadinessSnapshot', () => {
       publishReadyCount: 2,
       publishedCount: 4,
       unresolvedRouteCount: 2,
-      unresolvedMediaCount: 5,
+      unresolvedMediaCount: 6,
     });
   });
 

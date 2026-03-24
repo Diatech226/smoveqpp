@@ -18,6 +18,7 @@ export interface ResolvedAssetReference {
   caption: string;
   isMediaAsset: boolean;
   isFallback: boolean;
+  mediaState: 'resolved' | 'missing' | 'archived' | 'direct-url' | 'fallback';
 }
 
 const normalizeText = (value: string | undefined, fallback: string): string => {
@@ -52,6 +53,18 @@ export const resolveAssetReference = (
     const media: MediaFile | undefined = mediaId ? mediaRepository.getById(mediaId) : undefined;
 
     if (media?.url) {
+      if (media.archivedAt) {
+        return {
+          reference: normalizedReference,
+          src: fallbackQuery,
+          alt: fallbackAlt,
+          caption: fallbackAlt,
+          isMediaAsset: true,
+          isFallback: true,
+          mediaState: 'archived',
+        };
+      }
+
       return {
         reference: normalizedReference,
         src: media.url,
@@ -59,6 +72,7 @@ export const resolveAssetReference = (
         caption: normalizeText(media.caption, media.title || media.name || fallbackAlt),
         isMediaAsset: true,
         isFallback: false,
+        mediaState: 'resolved',
       };
     }
 
@@ -69,6 +83,7 @@ export const resolveAssetReference = (
       caption: fallbackAlt,
       isMediaAsset: true,
       isFallback: true,
+      mediaState: 'missing',
     };
   }
 
@@ -80,6 +95,7 @@ export const resolveAssetReference = (
       caption: fallbackAlt,
       isMediaAsset: false,
       isFallback: false,
+      mediaState: 'direct-url',
     };
   }
 
@@ -90,5 +106,6 @@ export const resolveAssetReference = (
     caption: fallbackAlt,
     isMediaAsset: false,
     isFallback: true,
+    mediaState: 'fallback',
   };
 };
