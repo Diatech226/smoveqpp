@@ -742,8 +742,12 @@ class ContentService {
     const seoIncompleteServices = services.filter((service) => service.status === 'published' && (!service.seo?.title || !service.seo?.description || !service.seo?.canonicalSlug)).length;
 
     const missingPublishedMedia = {
-      blog: blogPosts.filter((post) => post.status === 'published' && !post.mediaRoles?.coverImage).length,
-      projects: projects.filter((project) => project.status === 'published' && (!project.mediaRoles?.cardImage || !project.mediaRoles?.heroImage)).length,
+      blog: blogPosts.filter((post) => post.status === 'published' && !this.getCanonicalBlogFeaturedReference(post)).length,
+      projects: projects.filter((project) => {
+        if (project.status !== 'published') return false;
+        const refs = this.getCanonicalProjectCriticalReferences(project);
+        return !refs.cardImage || !refs.heroImage;
+      }).length,
       services: services.filter((service) => service.status === 'published' && !service.iconLikeAsset).length,
     };
 
@@ -752,6 +756,27 @@ class ContentService {
     const missingBrandAssets = ['logo', 'logoDark', 'favicon', 'defaultSocialImage'].filter((field) => !settings.siteSettings.brandMedia?.[field]).length;
     const routeCollisions = this.collectRouteCollisions(services);
     const unresolvedMediaReferences = this.collectAllMediaReferences().filter((entry) => !entry.isValid);
+    const unresolvedPublishedBlogCardMedia = unresolvedMediaReferences.filter((entry) =>
+      entry.status === 'published' &&
+      entry.domain === 'blog' &&
+      ['featuredImage', 'mediaRoles.featuredImage', 'mediaRoles.coverImage', 'mediaRoles.cardImage'].includes(entry.field),
+    );
+    const unresolvedPublishedProjectCardMedia = unresolvedMediaReferences.filter((entry) =>
+      entry.status === 'published' &&
+      entry.domain === 'project' &&
+      ['featuredImage', 'mediaRoles.cardImage', 'mediaRoles.coverImage'].includes(entry.field),
+    );
+    const unresolvedPublishedProjectHeroMedia = unresolvedMediaReferences.filter((entry) =>
+      entry.status === 'published' &&
+      entry.domain === 'project' &&
+      ['mainImage', 'mediaRoles.heroImage', 'mediaRoles.coverImage'].includes(entry.field),
+    );
+    const unresolvedPublishedProjectGalleryMedia = unresolvedMediaReferences.filter((entry) =>
+      entry.status === 'published' &&
+      entry.domain === 'project' &&
+      (entry.field.startsWith('images[') || entry.field.startsWith('mediaRoles.galleryImages[')),
+    );
+    const archivedMediaReferencedByPublished = unresolvedMediaReferences.filter((entry) => entry.status === 'published' && entry.resolution === 'archived');
     const legacyFieldUsage = {
       blog: blogPosts.filter((post) => post.featuredImage && !post.mediaRoles?.coverImage).length,
       projects: projects.filter((project) => (project.featuredImage || project.mainImage) && !project.mediaRoles?.cardImage).length,
@@ -800,6 +825,13 @@ class ContentService {
         invalidServiceRoutes,
         routeCollisions: routeCollisions.length,
         unresolvedMediaReferences: unresolvedMediaReferences.length,
+        unresolvedPublishedCriticalMedia: {
+          blogCard: unresolvedPublishedBlogCardMedia.length,
+          projectCard: unresolvedPublishedProjectCardMedia.length,
+          projectHero: unresolvedPublishedProjectHeroMedia.length,
+          projectGallery: unresolvedPublishedProjectGalleryMedia.length,
+          archivedReferencedByPublished: archivedMediaReferencedByPublished.length,
+        },
         legacyFieldUsage,
         mediaMissingAlt,
         missingBrandAssets,
@@ -891,7 +923,8 @@ class ContentService {
     if (!this.isValidDate(post.publishedDate)) {
       issues.push({ severity: 'blocker', code: 'blog_invalid_publish_date', message: 'Date de publication blog invalide.' });
     }
-    if (!this.isValidMediaLink(post.featuredImage)) {
+    const featuredReference = this.getCanonicalBlogFeaturedReference(post);
+    if (!this.isValidMediaLink(featuredReference)) {
       issues.push({ severity: 'blocker', code: 'blog_invalid_featured_media', message: 'Image vedette blog invalide (URL ou media:asset-id attendu).' });
     }
     if (!post.seo?.title || !post.seo?.description || !post.seo?.canonicalSlug) {
@@ -912,8 +945,15 @@ class ContentService {
     if (!project.title?.trim() || !project.slug?.trim() || !project.featuredImage?.trim()) {
       issues.push({ severity: 'blocker', code: 'project_missing_required_publish_fields', message: 'Projet publié sans titre/slug/image carte complète.' });
     }
-    if (!this.isValidMediaLink(project.featuredImage)) {
+    const refs = this.getCanonicalProjectCriticalReferences(project);
+    if (!this.isValidMediaLink(refs.cardImage)) {
       issues.push({ severity: 'blocker', code: 'project_invalid_featured_media', message: 'Image carte projet invalide.' });
+    }
+    if (!this.isValidMediaLink(refs.heroImage)) {
+      issues.push({ severity: 'blocker', code: 'project_invalid_hero_media', message: 'Image hero projet invalide.' });
+    }
+    if (refs.galleryImages.some((image) => !this.isValidMediaLink(image))) {
+      issues.push({ severity: 'warning', code: 'project_invalid_gallery_media', message: 'Galerie projet avec média non résolu (fallback utilisé en public).' });
     }
     const summarySource = typeof project.summary === 'string' && project.summary.trim()
       ? project.summary.trim()
@@ -931,6 +971,37 @@ class ContentService {
       issues.push({ severity: 'warning', code: 'project_legacy_media_field', message: 'Projet s’appuie sur featuredImage/mainImage legacy.' });
     }
     return issues;
+  }
+
+  getCanonicalBlogFeaturedReference(post) {
+    return requiredTrimmed(post?.mediaRoles?.featuredImage) ||
+      requiredTrimmed(post?.mediaRoles?.coverImage) ||
+      requiredTrimmed(post?.mediaRoles?.cardImage) ||
+      requiredTrimmed(post?.featuredImage);
+  }
+
+  getCanonicalProjectCriticalReferences(project) {
+    const cardImage = requiredTrimmed(project?.mediaRoles?.cardImage) ||
+      requiredTrimmed(project?.mediaRoles?.heroImage) ||
+      requiredTrimmed(project?.mediaRoles?.coverImage) ||
+      requiredTrimmed(project?.featuredImage) ||
+      requiredTrimmed(project?.mainImage);
+    const heroImage = requiredTrimmed(project?.mediaRoles?.heroImage) ||
+      requiredTrimmed(project?.mediaRoles?.coverImage) ||
+      requiredTrimmed(project?.mediaRoles?.cardImage) ||
+      requiredTrimmed(project?.mainImage) ||
+      requiredTrimmed(project?.featuredImage) ||
+      cardImage;
+    const galleryImages =
+      Array.isArray(project?.mediaRoles?.galleryImages) && project.mediaRoles.galleryImages.length > 0
+        ? normalizeStringArray(project.mediaRoles.galleryImages)
+        : Array.isArray(project?.images) && project.images.length > 0
+          ? normalizeStringArray(project.images)
+          : heroImage
+            ? [heroImage]
+            : [];
+
+    return { cardImage, heroImage, galleryImages };
   }
 
   getServiceReadinessIssues(service) {
@@ -1413,7 +1484,7 @@ class ContentService {
 
   collectAllMediaReferences() {
     const references = [];
-    const activeMediaIds = new Set(this.listMediaFiles({ includeArchived: true }).filter((entry) => !entry.archivedAt).map((entry) => entry.id));
+    const mediaFilesById = new Map(this.listMediaFiles({ includeArchived: true }).map((entry) => [entry.id, entry]));
 
     const register = (value, payload) => {
       if (typeof value !== 'string') return;
@@ -1421,33 +1492,36 @@ class ContentService {
       if (!trimmed.startsWith(MEDIA_REFERENCE_PREFIX)) return;
       const mediaId = this.mediaIdFromReference(trimmed);
       if (!mediaId) return;
+      const mediaFile = mediaFilesById.get(mediaId);
+      const resolution = !mediaFile ? 'missing' : mediaFile.archivedAt ? 'archived' : 'active';
       references.push({
         ...payload,
         value: trimmed,
         mediaId,
-        isValid: activeMediaIds.has(mediaId),
+        isValid: resolution === 'active',
+        resolution,
       });
     };
 
     this.listBlogPosts().forEach((post) => {
-      register(post.featuredImage, { domain: 'blog', id: post.id, field: 'featuredImage', label: post.title });
-      register(post.mediaRoles?.featuredImage, { domain: 'blog', id: post.id, field: 'mediaRoles.featuredImage', label: post.title });
-      register(post.seo?.socialImage, { domain: 'blog', id: post.id, field: 'seo.socialImage', label: post.title });
-      register(post.mediaRoles?.socialImage, { domain: 'blog', id: post.id, field: 'mediaRoles.socialImage', label: post.title });
-      register(post.mediaRoles?.coverImage, { domain: 'blog', id: post.id, field: 'mediaRoles.coverImage', label: post.title });
-      register(post.mediaRoles?.cardImage, { domain: 'blog', id: post.id, field: 'mediaRoles.cardImage', label: post.title });
-      (Array.isArray(post.images) ? post.images : []).forEach((image, index) => register(image, { domain: 'blog', id: post.id, field: `images[${index}]`, label: post.title }));
+      register(post.featuredImage, { domain: 'blog', id: post.id, status: post.status, field: 'featuredImage', label: post.title });
+      register(post.mediaRoles?.featuredImage, { domain: 'blog', id: post.id, status: post.status, field: 'mediaRoles.featuredImage', label: post.title });
+      register(post.seo?.socialImage, { domain: 'blog', id: post.id, status: post.status, field: 'seo.socialImage', label: post.title });
+      register(post.mediaRoles?.socialImage, { domain: 'blog', id: post.id, status: post.status, field: 'mediaRoles.socialImage', label: post.title });
+      register(post.mediaRoles?.coverImage, { domain: 'blog', id: post.id, status: post.status, field: 'mediaRoles.coverImage', label: post.title });
+      register(post.mediaRoles?.cardImage, { domain: 'blog', id: post.id, status: post.status, field: 'mediaRoles.cardImage', label: post.title });
+      (Array.isArray(post.images) ? post.images : []).forEach((image, index) => register(image, { domain: 'blog', id: post.id, status: post.status, field: `images[${index}]`, label: post.title }));
     });
 
     this.listProjects().forEach((project) => {
-      register(project.featuredImage, { domain: 'project', id: project.id, field: 'featuredImage', label: project.title });
-      register(project.mainImage, { domain: 'project', id: project.id, field: 'mainImage', label: project.title });
-      (Array.isArray(project.images) ? project.images : []).forEach((image, index) => register(image, { domain: 'project', id: project.id, field: `images[${index}]`, label: project.title }));
-      register(project.mediaRoles?.cardImage, { domain: 'project', id: project.id, field: 'mediaRoles.cardImage', label: project.title });
-      register(project.mediaRoles?.heroImage, { domain: 'project', id: project.id, field: 'mediaRoles.heroImage', label: project.title });
-      register(project.mediaRoles?.coverImage, { domain: 'project', id: project.id, field: 'mediaRoles.coverImage', label: project.title });
-      register(project.mediaRoles?.socialImage, { domain: 'project', id: project.id, field: 'mediaRoles.socialImage', label: project.title });
-      (project.mediaRoles?.galleryImages || []).forEach((image, index) => register(image, { domain: 'project', id: project.id, field: `mediaRoles.galleryImages[${index}]`, label: project.title }));
+      register(project.featuredImage, { domain: 'project', id: project.id, status: project.status, field: 'featuredImage', label: project.title });
+      register(project.mainImage, { domain: 'project', id: project.id, status: project.status, field: 'mainImage', label: project.title });
+      (Array.isArray(project.images) ? project.images : []).forEach((image, index) => register(image, { domain: 'project', id: project.id, status: project.status, field: `images[${index}]`, label: project.title }));
+      register(project.mediaRoles?.cardImage, { domain: 'project', id: project.id, status: project.status, field: 'mediaRoles.cardImage', label: project.title });
+      register(project.mediaRoles?.heroImage, { domain: 'project', id: project.id, status: project.status, field: 'mediaRoles.heroImage', label: project.title });
+      register(project.mediaRoles?.coverImage, { domain: 'project', id: project.id, status: project.status, field: 'mediaRoles.coverImage', label: project.title });
+      register(project.mediaRoles?.socialImage, { domain: 'project', id: project.id, status: project.status, field: 'mediaRoles.socialImage', label: project.title });
+      (project.mediaRoles?.galleryImages || []).forEach((image, index) => register(image, { domain: 'project', id: project.id, status: project.status, field: `mediaRoles.galleryImages[${index}]`, label: project.title }));
     });
 
     this.listServices().forEach((service) => {

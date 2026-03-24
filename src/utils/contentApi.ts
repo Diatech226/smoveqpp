@@ -108,11 +108,13 @@ export interface SyncDiagnostics {
   invalidMediaReferences: Array<{
     domain: string;
     id: string;
+    status?: string;
     field: string;
     label: string;
     value: string;
     mediaId: string;
     isValid: boolean;
+    resolution?: 'active' | 'archived' | 'missing';
   }>;
   summary: {
     invalidMediaReferenceCount: number;
@@ -143,6 +145,13 @@ export interface ContentHealthSummary {
     invalidServiceRoutes: number;
     routeCollisions?: number;
     unresolvedMediaReferences?: number;
+    unresolvedPublishedCriticalMedia?: {
+      blogCard: number;
+      projectCard: number;
+      projectHero: number;
+      projectGallery: number;
+      archivedReferencedByPublished: number;
+    };
     legacyFieldUsage?: {
       blog: number;
       projects: number;

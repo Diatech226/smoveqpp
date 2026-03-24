@@ -35,6 +35,15 @@ describe('projectCardAdapter', () => {
     expect(card.summary).toBe('Résumé court');
   });
 
+  it('renders direct URL project card media without transformation', () => {
+    const card = toProjectCardContract({
+      ...baseProject,
+      featuredImage: 'https://cdn.example.com/projects/direct-card.jpg',
+    });
+
+    expect(card.mediaSrc).toBe('https://cdn.example.com/projects/direct-card.jpg');
+  });
+
 
 
 
@@ -112,6 +121,30 @@ describe('projectCardAdapter', () => {
     });
 
     expect(hero.src).toBe('hero-image');
+  });
+
+  it('resolves project detail hero media when saved as media:asset-id', () => {
+    mediaRepository.save({
+      id: 'project-hero-asset-1',
+      name: 'project-hero.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,hero123',
+      thumbnailUrl: 'data:image/png;base64,hero123',
+      size: 128,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Hero projet',
+      caption: 'Hero',
+      tags: [],
+    });
+
+    const hero = resolveProjectHeroMedia({
+      ...baseProject,
+      mediaRoles: { cardImage: 'card-image', heroImage: toProjectMediaReference('project-hero-asset-1'), galleryImages: [] },
+    });
+
+    expect(hero.src).toBe('data:image/png;base64,hero123');
+    expect(hero.alt).toBe('Hero projet');
   });
 
   it('uses description fallback when summary is missing for project cards', () => {
@@ -193,6 +226,65 @@ describe('projectCardAdapter', () => {
     expect(gallery[0].src).toBe('data:image/png;base64,gallery1');
     expect(gallery[0].alt).toBe('Galerie projet');
     expect(gallery[1].src).toBe('manual fallback image');
+  });
+
+  it('preserves project gallery ordering while resolving media references', () => {
+    mediaRepository.save({
+      id: 'project-gallery-ordered-1',
+      name: 'gallery-1.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,gallery-ordered-1',
+      thumbnailUrl: 'data:image/png;base64,gallery-ordered-1',
+      size: 100,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Gallery 1',
+      caption: '',
+      tags: [],
+    });
+    mediaRepository.save({
+      id: 'project-gallery-ordered-2',
+      name: 'gallery-2.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,gallery-ordered-2',
+      thumbnailUrl: 'data:image/png;base64,gallery-ordered-2',
+      size: 100,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Gallery 2',
+      caption: '',
+      tags: [],
+    });
+
+    const gallery = resolveProjectGalleryMedia({
+      ...baseProject,
+      images: [toProjectMediaReference('project-gallery-ordered-2'), 'https://cdn.example.com/gallery/manual.jpg'],
+      mediaRoles: {
+        cardImage: baseProject.featuredImage,
+        heroImage: baseProject.mainImage,
+        galleryImages: [toProjectMediaReference('project-gallery-ordered-1'), toProjectMediaReference('project-gallery-ordered-2')],
+      },
+    });
+
+    expect(gallery.map((entry) => entry.src)).toEqual([
+      'data:image/png;base64,gallery-ordered-1',
+      'data:image/png;base64,gallery-ordered-2',
+    ]);
+  });
+
+  it('keeps unresolved gallery references render-safe (no raw media: value)', () => {
+    mediaRepository.replaceAll([]);
+    const gallery = resolveProjectGalleryMedia({
+      ...baseProject,
+      mediaRoles: {
+        cardImage: baseProject.featuredImage,
+        heroImage: baseProject.mainImage,
+        galleryImages: [toProjectMediaReference('missing-gallery-asset')],
+      },
+    });
+
+    expect(gallery[0].src.startsWith('media:')).toBe(false);
+    expect(gallery[0].src).toBe(PROJECT_MEDIA_FALLBACK_QUERY);
   });
 
 });

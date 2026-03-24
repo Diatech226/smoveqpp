@@ -1063,9 +1063,97 @@ describe('ContentService production hardening', () => {
     expect(summary.publication.blog.published).toBeGreaterThan(0);
     expect(summary.quality.mediaMissingAlt).toBeGreaterThan(0);
     expect(summary.quality.unresolvedMediaReferences).toBeGreaterThanOrEqual(0);
+    expect(summary.quality.unresolvedPublishedCriticalMedia.blogCard).toBeGreaterThanOrEqual(0);
+    expect(summary.quality.unresolvedPublishedCriticalMedia.projectCard).toBeGreaterThanOrEqual(0);
+    expect(summary.quality.unresolvedPublishedCriticalMedia.projectHero).toBeGreaterThanOrEqual(0);
+    expect(summary.quality.unresolvedPublishedCriticalMedia.projectGallery).toBeGreaterThanOrEqual(0);
     expect(summary.mediaRolePresets).toContain('heroImage');
     expect(summary.launchReadiness.blockers.length).toBeGreaterThan(0);
     expect(summary.launchReadiness.summary.blockerCount).toBeGreaterThanOrEqual(0);
+  });
+
+  it('flags unresolved published blog/project critical media with archived-vs-missing diagnostics', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        mediaFiles: [
+          {
+            id: 'asset-active-1',
+            name: 'active.jpg',
+            type: 'image',
+            url: 'https://example.com/active.jpg',
+            thumbnailUrl: 'https://example.com/active.jpg',
+            size: 10,
+            uploadedDate: '2024-01-01T00:00:00.000Z',
+            uploadedBy: 'admin',
+            alt: 'active',
+            tags: [],
+          },
+          {
+            id: 'asset-archived-1',
+            name: 'archived.jpg',
+            type: 'image',
+            url: 'https://example.com/archived.jpg',
+            thumbnailUrl: 'https://example.com/archived.jpg',
+            size: 10,
+            uploadedDate: '2024-01-01T00:00:00.000Z',
+            uploadedBy: 'admin',
+            alt: 'archived',
+            tags: [],
+            archivedAt: '2025-01-01T00:00:00.000Z',
+          },
+        ],
+        blogPosts: [
+          {
+            id: 'blog-published-1',
+            title: 'Blog broken card',
+            slug: 'blog-broken-card',
+            excerpt: 'Excerpt',
+            content: 'Content',
+            author: 'Author',
+            authorRole: 'Role',
+            category: 'Cat',
+            tags: [],
+            publishedDate: '2024-01-01T00:00:00.000Z',
+            readTime: '5 min',
+            featuredImage: 'media:asset-missing-1',
+            images: [],
+            status: 'published',
+          },
+        ],
+        projects: [
+          {
+            id: 'project-published-1',
+            title: 'Project broken media',
+            slug: 'project-broken-media',
+            summary: 'Résumé suffisamment long pour publication valide.',
+            client: 'Client',
+            category: 'Web',
+            year: '2026',
+            description: 'Description suffisamment longue pour être valide côté publication.',
+            challenge: 'Challenge',
+            solution: 'Solution',
+            results: [],
+            tags: [],
+            featuredImage: 'media:asset-archived-1',
+            mainImage: 'media:asset-missing-hero',
+            images: ['media:asset-missing-gallery'],
+            mediaRoles: {
+              cardImage: 'media:asset-archived-1',
+              heroImage: 'media:asset-missing-hero',
+              galleryImages: ['media:asset-missing-gallery'],
+            },
+            status: 'published',
+          },
+        ],
+      }),
+    });
+
+    const summary = service.getContentHealthSummary();
+    expect(summary.quality.unresolvedPublishedCriticalMedia.blogCard).toBeGreaterThan(0);
+    expect(summary.quality.unresolvedPublishedCriticalMedia.projectCard).toBeGreaterThan(0);
+    expect(summary.quality.unresolvedPublishedCriticalMedia.projectHero).toBeGreaterThan(0);
+    expect(summary.quality.unresolvedPublishedCriticalMedia.projectGallery).toBeGreaterThan(0);
+    expect(summary.quality.unresolvedPublishedCriticalMedia.archivedReferencedByPublished).toBeGreaterThan(0);
   });
 
   it('reports route collisions and actionable top issues in readiness summary', () => {

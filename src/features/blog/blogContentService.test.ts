@@ -261,6 +261,21 @@ describe('blogContentService', () => {
     expect(post?.image).toBe('data:image/png;base64,blogasset123');
   });
 
+  it('handles unresolved featured media references deterministically in public blog card contract', () => {
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({
+      ...seed,
+      id: 'media-image-missing-post',
+      slug: 'media-image-missing-post',
+      featuredImage: toMediaReference('missing-blog-asset'),
+      status: 'published',
+    });
+
+    const post = getBlogContentContract().posts.find((entry) => entry.slug === 'media-image-missing-post');
+    expect(post?.image).toBeDefined();
+    expect(post?.image.startsWith('media:')).toBe(false);
+  });
+
   it('resolves detail featuredImage to a renderable src when the blog entry uses a media reference', async () => {
     mediaRepository.save({
       id: 'blog-detail-asset-1',
@@ -288,6 +303,22 @@ describe('blogContentService', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     const detail = await getBlogPostBySlugContract('media-detail-post');
     expect(detail?.featuredImage).toBe('data:image/png;base64,blogdetail123');
+  });
+
+  it('handles unresolved featured media references deterministically in blog detail contract', async () => {
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({
+      ...seed,
+      id: 'media-detail-missing-post',
+      slug: 'media-detail-missing-post',
+      featuredImage: toMediaReference('missing-blog-detail-asset'),
+      status: 'published',
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    const detail = await getBlogPostBySlugContract('media-detail-missing-post');
+    expect(detail?.featuredImage).toBeDefined();
+    expect(detail?.featuredImage.startsWith('media:')).toBe(false);
   });
 
   it('hydrates public media before mapping remote blog list entries in cold sessions', async () => {
