@@ -30,6 +30,7 @@ const normalizeMedia = (file: MediaFile): MediaFile => {
     metadata: file.metadata || {},
     createdAt: file.createdAt || file.uploadedDate || nowIso,
     updatedAt: file.updatedAt || nowIso,
+    archivedAt: typeof file.archivedAt === 'string' ? file.archivedAt : null,
   };
 };
 

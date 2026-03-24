@@ -16,7 +16,8 @@ export const deriveDashboardReadinessSnapshot = (health: ContentHealthSummary): 
     ? health.quality.unresolvedPublishedCriticalMedia.blogCard +
       health.quality.unresolvedPublishedCriticalMedia.projectCard +
       health.quality.unresolvedPublishedCriticalMedia.projectHero +
-      health.quality.unresolvedPublishedCriticalMedia.projectGallery
+      health.quality.unresolvedPublishedCriticalMedia.projectGallery +
+      health.quality.unresolvedPublishedCriticalMedia.archivedReferencedByPublished
     : health.quality.unresolvedMediaReferences || 0;
 
   return {

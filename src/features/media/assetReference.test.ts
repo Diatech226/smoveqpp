@@ -40,4 +40,28 @@ describe('assetReference', () => {
     expect(resolved.src.startsWith('media:')).toBe(false);
     expect(resolved.isFallback).toBe(true);
   });
+
+  it('fails safely when a media reference points to an archived media asset', () => {
+    mediaRepository.replaceAll([
+      {
+        id: 'asset-archived',
+        name: 'archived.jpg',
+        type: 'image',
+        url: 'https://cdn.example.com/archived.jpg',
+        thumbnailUrl: 'https://cdn.example.com/archived.jpg',
+        size: 2048,
+        uploadedDate: new Date().toISOString(),
+        uploadedBy: 'cms',
+        alt: 'Archived alt',
+        caption: 'Archived caption',
+        tags: [],
+        archivedAt: '2026-03-24T10:00:00.000Z',
+      },
+    ]);
+
+    const resolved = resolveAssetReference('media:asset-archived', 'Fallback alt', 'fallback image');
+    expect(resolved.src).toBe('fallback image');
+    expect(resolved.isFallback).toBe(true);
+    expect(resolved.mediaState).toBe('archived');
+  });
 });

@@ -43,6 +43,28 @@ describe('mediaPreview', () => {
     expect(preview.statusLabel).toBe('Non résolu');
   });
 
+  it('marks archived media references explicitly in CMS previews', () => {
+    mediaRepository.save({
+      id: 'asset-archived',
+      type: 'image',
+      url: 'https://cdn.example.com/archived.jpg',
+      thumbnailUrl: 'https://cdn.example.com/archived-thumb.jpg',
+      name: 'archived.jpg',
+      size: 1300,
+      uploadedDate: '2026-03-23T10:00:00.000Z',
+      uploadedBy: 'editor',
+      alt: 'Archived image',
+      caption: 'Archived',
+      tags: ['legacy'],
+      archivedAt: '2026-03-24T08:00:00.000Z',
+    });
+
+    const preview = resolveCmsPreviewReference(toMediaReferenceValue('asset-archived'), 'Fallback alt', 'blog article image');
+    expect(preview.source).toBe('media-reference');
+    expect(preview.state).toBe('unresolved');
+    expect(preview.statusLabel).toBe('Archivé');
+  });
+
   it('supports direct URL previews and labels their source explicitly', () => {
     const preview = resolveCmsPreviewReference('https://images.example.com/social.jpg', 'Fallback alt', 'blog article image');
 
