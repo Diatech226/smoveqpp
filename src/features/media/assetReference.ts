@@ -61,6 +61,15 @@ export const resolveAssetReference = (
         isFallback: false,
       };
     }
+
+    return {
+      reference: normalizedReference,
+      src: fallbackQuery,
+      alt: fallbackAlt,
+      caption: fallbackAlt,
+      isMediaAsset: true,
+      isFallback: true,
+    };
   }
 
   if (normalizedReference) {

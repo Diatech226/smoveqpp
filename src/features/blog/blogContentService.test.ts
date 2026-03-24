@@ -26,9 +26,24 @@ class MemoryStorage {
 
 const localStorage = new MemoryStorage();
 
+const toPublicMediaResponse = (mediaFiles: unknown[] = []) => ({
+  ok: true,
+  status: 200,
+  json: async () => ({ success: true, data: { mediaFiles } }),
+}) as Response;
+
+const withPublicMediaBootstrap = (resolver: (url: string) => Response) =>
+  vi.fn(async (input: RequestInfo | URL) => {
+    const url = `${input}`;
+    if (url.includes('/content/public/media')) {
+      return toPublicMediaResponse();
+    }
+    return resolver(url);
+  });
+
 beforeEach(() => {
   localStorage.clear();
-  mediaRepository.clear();
+  mediaRepository.replaceAll([]);
   vi.restoreAllMocks();
   (globalThis as unknown as { window: Window }).window = {
     localStorage,
@@ -68,11 +83,11 @@ describe('blogContentService', () => {
 
   it('resolves a published post by canonical slug', async () => {
     const published = blogRepository.getPublished()[0];
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = withPublicMediaBootstrap(() => ({
       ok: true,
       status: 200,
       json: async () => ({ success: true, data: { post: published } }),
-    } as Response);
+    } as Response));
     vi.stubGlobal('fetch', fetchMock);
     const result = await getBlogPostBySlugContract(published.slug);
 
@@ -138,7 +153,7 @@ describe('blogContentService', () => {
     const published = blogRepository.getPublished()[0];
     blogRepository.delete(published.id);
 
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = withPublicMediaBootstrap(() => ({
       ok: true,
       status: 200,
       json: async () => ({
@@ -154,7 +169,7 @@ describe('blogContentService', () => {
           },
         },
       }),
-    } as Response);
+    } as Response));
     vi.stubGlobal('fetch', fetchMock);
 
     const detail = await getBlogPostBySlugContract('remote-detail-canonical');
@@ -186,7 +201,7 @@ describe('blogContentService', () => {
 
   it('prefers backend public blog source when available', async () => {
     const published = blogRepository.getPublished()[0];
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = withPublicMediaBootstrap(() => ({
       ok: true,
       status: 200,
       json: async () => ({
@@ -195,7 +210,7 @@ describe('blogContentService', () => {
           posts: [{ ...published, id: 'remote-1', slug: 'remote-1', title: 'Remote post', status: 'published' }],
         },
       }),
-    } as Response);
+    } as Response));
     vi.stubGlobal('fetch', fetchMock);
 
     const contract = await getBlogContentContractFromSource();
@@ -274,4 +289,103 @@ describe('blogContentService', () => {
     const detail = await getBlogPostBySlugContract('media-detail-post');
     expect(detail?.featuredImage).toBe('data:image/png;base64,blogdetail123');
   });
+
+  it('hydrates public media before mapping remote blog list entries in cold sessions', async () => {
+    const published = blogRepository.getPublished()[0];
+    mediaRepository.replaceAll([]);
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = `${input}`;
+      if (url.includes('/content/public/media')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            success: true,
+            data: {
+              mediaFiles: [{
+                id: 'remote-blog-asset',
+                name: 'remote-blog.jpg',
+                type: 'image',
+                url: 'https://cdn.example.com/remote-blog.jpg',
+                thumbnailUrl: 'https://cdn.example.com/remote-blog.jpg',
+                size: 120,
+                uploadedDate: new Date().toISOString(),
+                uploadedBy: 'api',
+                alt: 'Remote blog image',
+                caption: 'Remote blog image',
+                tags: [],
+              }],
+            },
+          }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: {
+            posts: [{ ...published, id: 'remote-list-post', slug: 'remote-list-post', featuredImage: toMediaReference('remote-blog-asset') }],
+          },
+        }),
+      } as Response;
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const contract = await getBlogContentContractFromSource();
+    expect(contract.posts[0]?.image).toBe('https://cdn.example.com/remote-blog.jpg');
+  });
+
+  it('hydrates public media before mapping remote blog detail entries in cold sessions', async () => {
+    const published = blogRepository.getPublished()[0];
+    mediaRepository.replaceAll([]);
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = `${input}`;
+      if (url.includes('/content/public/media')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            success: true,
+            data: {
+              mediaFiles: [{
+                id: 'remote-blog-detail-asset',
+                name: 'remote-blog-detail.jpg',
+                type: 'image',
+                url: 'https://cdn.example.com/remote-blog-detail.jpg',
+                thumbnailUrl: 'https://cdn.example.com/remote-blog-detail.jpg',
+                size: 120,
+                uploadedDate: new Date().toISOString(),
+                uploadedBy: 'api',
+                alt: 'Remote detail image',
+                caption: 'Remote detail image',
+                tags: [],
+              }],
+            },
+          }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: {
+            post: { ...published, id: 'remote-detail-post', slug: 'remote-detail-post', featuredImage: toMediaReference('remote-blog-detail-asset') },
+          },
+        }),
+      } as Response;
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const detail = await getBlogPostBySlugContract('remote-detail-post');
+    expect(detail?.featuredImage).toBe('https://cdn.example.com/remote-blog-detail.jpg');
+  });
+
 });

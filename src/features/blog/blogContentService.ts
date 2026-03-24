@@ -2,6 +2,7 @@ import { blogRepository } from '../../repositories/blogRepository';
 import type { BlogPost } from '../../domain/contentSchemas';
 import { fetchPublicBlogPostBySlug, fetchPublicBlogPosts } from '../../utils/contentApi';
 import { evaluatePublishability, toCanonicalBlogEntry } from './blogEntryAdapter';
+import { hydratePublicMediaLibrary } from '../media/publicMediaLibrary';
 
 export interface BlogListItem {
   id: string;
@@ -157,6 +158,7 @@ export function getBlogContentContract(): BlogContentContract {
 
 export async function getBlogContentContractFromSource(): Promise<BlogContentContract> {
   try {
+    await hydratePublicMediaLibrary();
     const remotePosts = await fetchPublicBlogPosts();
     if (remotePosts.length > 0) {
       return toContractFromPosts(remotePosts);
@@ -174,6 +176,7 @@ export async function getBlogPostBySlugContract(slug: string): Promise<BlogDetai
   }
 
   try {
+    await hydratePublicMediaLibrary();
     const remotePost = await fetchPublicBlogPostBySlug(slug);
     if (remotePost) {
       const canonical = toCanonicalBlogEntry(remotePost);

@@ -6,6 +6,7 @@ import Footer from './Footer';
 import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { resolveProjectHeroMedia, resolveProjectGalleryMedia } from '../features/projects/projectMedia';
+import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -17,8 +18,8 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
   useEffect(() => {
     let active = true;
     import('../utils/publicContentApi').then(({ fetchPublicProjects }) => {
-      void fetchPublicProjects()
-        .then((remote) => {
+      void Promise.all([hydratePublicMediaLibrary(), fetchPublicProjects()])
+        .then(([, remote]) => {
           if (!active) return;
           projectRepository.replaceAll(remote);
           setProjectVersion((version) => version + 1);

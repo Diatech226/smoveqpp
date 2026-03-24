@@ -99,6 +99,8 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     sendSuccess(res, 200, { settings: contentService.getPublicSettings() }));
   router.get('/public/page-content', (_req, res) =>
     sendSuccess(res, 200, { pageContent: contentService.getPageContent() }));
+  router.get('/public/media', (_req, res) =>
+    sendSuccess(res, 200, { mediaFiles: contentService.listMediaFiles() }));
 
   router.use(requireAuthenticated);
 
