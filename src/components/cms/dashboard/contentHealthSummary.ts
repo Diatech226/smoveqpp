@@ -12,6 +12,12 @@ export interface DashboardReadinessSnapshot {
 export const deriveDashboardReadinessSnapshot = (health: ContentHealthSummary): DashboardReadinessSnapshot => {
   const summary = health.launchReadiness.summary;
   const fallbackBlockers = health.launchReadiness.blockers.length;
+  const unresolvedPublishedCriticalMedia = health.quality.unresolvedPublishedCriticalMedia
+    ? health.quality.unresolvedPublishedCriticalMedia.blogCard +
+      health.quality.unresolvedPublishedCriticalMedia.projectCard +
+      health.quality.unresolvedPublishedCriticalMedia.projectHero +
+      health.quality.unresolvedPublishedCriticalMedia.projectGallery
+    : health.quality.unresolvedMediaReferences || 0;
 
   return {
     blockerCount: summary?.blockerCount ?? fallbackBlockers,
@@ -22,7 +28,7 @@ export const deriveDashboardReadinessSnapshot = (health: ContentHealthSummary): 
       (health.publication.projects.published || 0) +
       (health.publication.services.published || 0),
     unresolvedRouteCount: (health.quality.invalidServiceRoutes || 0) + (health.quality.routeCollisions || 0),
-    unresolvedMediaCount: (health.quality.unresolvedMediaReferences || 0) +
+    unresolvedMediaCount: unresolvedPublishedCriticalMedia +
       health.quality.missingPublishedMedia.blog +
       health.quality.missingPublishedMedia.projects +
       health.quality.missingPublishedMedia.services,

@@ -1,5 +1,21 @@
 # Media Library Integration — Analysis & Implementation Plan
 
+## Iteration 4 update (2026-03-24)
+
+Iteration 4 is implemented with **contract governance and automated QA** centered on published renderability risk:
+
+- Added regression-focused media contract tests for Blog and Projects public render paths (direct URL + `media:asset-id` + deterministic unresolved fallback behavior).
+- Added project detail/media-role coverage for hero and gallery resolution (including ordered gallery resolution and unresolved safety guarantees).
+- Strengthened `contentService` health diagnostics to expose **published critical media risk** with explicit breakdown:
+  - unresolved published blog card media,
+  - unresolved published project card media,
+  - unresolved published project hero media,
+  - unresolved published project gallery media,
+  - archived assets still referenced by published content.
+- Hardened readiness rules to validate canonical render sources instead of relying on legacy-only fields (blog featured media + project card/hero canonical references).
+- Added a CI-friendly hook `npm run test:media-contract` that runs high-value media contract + health summary regression tests.
+- Added Iteration 4 implementation notes in `docs/iterations/MEDIA_ITERATION_04_CONTRACT_GOVERNANCE_AND_AUTOMATED_QA.md`.
+
 ## Iteration 3 update (2026-03-24)
 
 Iteration 3 is implemented with **CMS parity previews** focused on editor confidence:

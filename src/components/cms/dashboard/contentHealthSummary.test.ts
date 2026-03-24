@@ -14,6 +14,13 @@ const makeHealth = (overrides: Partial<ContentHealthSummary> = {}): ContentHealt
     invalidServiceRoutes: 1,
     routeCollisions: 1,
     unresolvedMediaReferences: 2,
+    unresolvedPublishedCriticalMedia: {
+      blogCard: 1,
+      projectCard: 1,
+      projectHero: 1,
+      projectGallery: 0,
+      archivedReferencedByPublished: 1,
+    },
     mediaMissingAlt: 0,
     missingBrandAssets: 0,
     legacyFieldUsage: { blog: 1, projects: 0, services: 1 },
@@ -41,7 +48,7 @@ describe('deriveDashboardReadinessSnapshot', () => {
       publishReadyCount: 2,
       publishedCount: 4,
       unresolvedRouteCount: 2,
-      unresolvedMediaCount: 4,
+      unresolvedMediaCount: 5,
     });
   });
 
