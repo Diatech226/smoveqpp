@@ -7,7 +7,7 @@ const asTrimmed = (value?: string): string => (typeof value === 'string' ? value
 
 export interface ResolvedProjectMedia {
   reference: string;
-  query: string;
+  src: string;
   alt: string;
 }
 
@@ -57,7 +57,7 @@ export function resolveProjectFeaturedImage(project: Pick<Project, 'featuredImag
 
   return {
     reference: resolved.reference,
-    query: resolved.src,
+    src: resolved.src,
     alt: resolved.alt,
   };
 }
@@ -68,7 +68,7 @@ export function resolveProjectHeroMedia(project: Pick<Project, 'featuredImage' |
 
   return {
     reference: resolved.reference,
-    query: resolved.src,
+    src: resolved.src,
     alt: resolved.alt,
   };
 }
@@ -80,7 +80,7 @@ export function resolveProjectGalleryMedia(project: Pick<Project, 'images' | 'ti
     const resolved = resolveAssetReference(reference, project.imageAlt || project.title || 'Projet SMOVE', PROJECT_MEDIA_FALLBACK_QUERY);
     return {
       reference: resolved.reference,
-      query: resolved.src,
+      src: resolved.src,
       alt: resolved.alt,
     };
   });

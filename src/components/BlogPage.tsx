@@ -151,9 +151,8 @@ export default function BlogPage() {
               <div className="order-1 lg:order-2">
                 <div className="aspect-video rounded-[16px] overflow-hidden shadow-xl">
                   <ImageWithFallback
-                    src=""
+                    src={blogPosts[0].image}
                     alt={blogPosts[0].title}
-                    query={blogPosts[0].image}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -178,9 +177,8 @@ export default function BlogPage() {
               <article key={post.id} className="bg-white rounded-[16px] overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 group">
                 <div className="aspect-video overflow-hidden">
                   <ImageWithFallback
-                    src=""
+                    src={post.image}
                     alt={post.title}
-                    query={post.image}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 </div>

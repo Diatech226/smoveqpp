@@ -45,7 +45,7 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
         <h1 className="mt-4 text-[44px] text-[#273a41]">{post.title}</h1>
         <p className="text-[#6f7f85] mt-2">{new Date(post.publishedDate).toLocaleDateString('fr-FR')} • {post.readTime} • {post.category || 'Non classé'}</p>
         <div className="mt-8 rounded-[16px] overflow-hidden">
-          <ImageWithFallback src="" alt={post.media.alt || post.title} query={post.featuredImage || 'blog article image'} className="w-full h-[360px] object-cover" />
+          <ImageWithFallback src={post.featuredImage} alt={post.media.alt || post.title} className="w-full h-[360px] object-cover" />
         </div>
         <p className="mt-8 text-[20px] text-[#38484e]">{post.excerpt}</p>
         <div className="mt-8 whitespace-pre-line text-[#273a41] leading-8">{post.content || 'Contenu indisponible.'}</div>

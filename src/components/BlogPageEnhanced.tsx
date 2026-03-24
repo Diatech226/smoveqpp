@@ -320,9 +320,8 @@ export default function BlogPageEnhanced() {
                       style={{ transformStyle: 'preserve-3d' }}
                     >
                       <ImageWithFallback
-                        src=""
+                        src={featuredPost?.image || ''}
                         alt={featuredPost?.media.alt || featuredPost?.title || ''}
-                        query={featuredPost?.image || ''}
                         className="w-full h-full object-cover"
                       />
                     </motion.div>
@@ -379,9 +378,8 @@ export default function BlogPageEnhanced() {
                     transition={{ duration: 0.6 }}
                   >
                     <ImageWithFallback
-                      src=""
+                      src={post.image}
                       alt={post.title}
-                      query={post.image}
                       className="w-full h-full object-cover"
                     />
                   </motion.div>

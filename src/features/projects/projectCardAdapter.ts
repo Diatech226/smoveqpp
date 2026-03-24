@@ -11,7 +11,7 @@ export interface ProjectCardContract {
   year: string;
   client: string;
   tags: string[];
-  mediaQuery: string;
+  mediaSrc: string;
   mediaAlt: string;
 }
 
@@ -28,7 +28,7 @@ export function toProjectCardContract(project: Project): ProjectCardContract {
     year: project.year.trim() || 'N/A',
     client: project.client.trim() || 'Client confidentiel',
     tags: project.tags.filter((tag) => tag.trim().length > 0),
-    mediaQuery: media.query,
+    mediaSrc: media.src,
     mediaAlt: media.alt,
   };
 }

@@ -219,9 +219,8 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 <ImageWithFallback
-                  src=""
+                  src={projectMedia?.src || ''}
                   alt={projectMedia?.alt || project.title}
-                  query={projectMedia?.query || 'project cover image'}
                   className="w-full h-full object-cover"
                 />
               </motion.div>
@@ -301,9 +300,8 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
                 whileHover={{ scale: 1.05, y: -10 }}
               >
                 <ImageWithFallback
-                  src=""
+                  src={image.src}
                   alt={image.alt || `${project.title} - Image ${index + 1}`}
-                  query={image.query}
                   className="w-full h-full object-cover"
                 />
               </motion.div>

@@ -1,5 +1,8 @@
 # Media Library (CMS only) — Analysis and professionalization plan
 
+> Note: Public-site render-contract hardening work is tracked separately in
+> `docs/iterations/MEDIA_ITERATION_01_RENDER_CONTRACT_HARDENING.md`.
+
 ## Iteration tracking
 
 ### ML-1 — Reference authority & governance baseline (implemented 2026-03-22)

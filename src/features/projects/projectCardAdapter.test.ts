@@ -30,7 +30,7 @@ describe('projectCardAdapter', () => {
 
     expect(card.id).toBe('project-1');
     expect(card.slug).toBe('projet-demo');
-    expect(card.mediaQuery).toBe('modern project cover');
+    expect(card.mediaSrc).toBe('modern project cover');
     expect(card.mediaAlt).toBe('Visuel projet');
     expect(card.summary).toBe('Résumé court');
   });
@@ -111,14 +111,14 @@ describe('projectCardAdapter', () => {
       mediaRoles: { cardImage: 'card-image', heroImage: 'hero-image', galleryImages: [] },
     });
 
-    expect(hero.query).toBe('hero-image');
+    expect(hero.src).toBe('hero-image');
   });
 
   it('uses description fallback when summary is missing for project cards', () => {
     const card = toProjectCardContract({ ...baseProject, summary: '', featuredImage: '' });
 
     expect(card.summary).toBe('Description longue');
-    expect(card.mediaQuery).toBe('legacy cover image');
+    expect(card.mediaSrc).toBe('legacy cover image');
   });
 
   it('uses safe fallback for legacy payloads missing explicit featured image', () => {
@@ -129,7 +129,7 @@ describe('projectCardAdapter', () => {
       imageAlt: '',
     });
 
-    expect(media.query).toBe(PROJECT_MEDIA_FALLBACK_QUERY);
+    expect(media.src).toBe(PROJECT_MEDIA_FALLBACK_QUERY);
     expect(media.alt).toBe('Projet SMOVE');
   });
 
@@ -153,7 +153,7 @@ describe('projectCardAdapter', () => {
       featuredImage: toProjectMediaReference('project-asset-1'),
     });
 
-    expect(card.mediaQuery).toBe('data:image/png;base64,project123');
+    expect(card.mediaSrc).toBe('data:image/png;base64,project123');
     expect(card.mediaAlt).toBe('Couverture projet');
   });
 
@@ -177,9 +177,9 @@ describe('projectCardAdapter', () => {
       images: [toProjectMediaReference('project-gallery-1'), 'manual fallback image'],
     });
 
-    expect(gallery[0].query).toBe('data:image/png;base64,gallery1');
+    expect(gallery[0].src).toBe('data:image/png;base64,gallery1');
     expect(gallery[0].alt).toBe('Galerie projet');
-    expect(gallery[1].query).toBe('manual fallback image');
+    expect(gallery[1].src).toBe('manual fallback image');
   });
 
 });

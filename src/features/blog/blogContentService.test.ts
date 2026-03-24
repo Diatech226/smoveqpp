@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { blogRepository } from '../../repositories/blogRepository';
+import { mediaRepository } from '../../repositories/mediaRepository';
+import { toMediaReference } from './mediaReference';
 import { getBlogContentContract, getBlogContentContractFromSource, getBlogPostBySlugContract } from './blogContentService';
 
 class MemoryStorage {
@@ -26,6 +28,7 @@ const localStorage = new MemoryStorage();
 
 beforeEach(() => {
   localStorage.clear();
+  mediaRepository.clear();
   vi.restoreAllMocks();
   (globalThis as unknown as { window: Window }).window = {
     localStorage,
@@ -199,5 +202,76 @@ describe('blogContentService', () => {
 
     expect(contract.posts.length).toBe(1);
     expect(contract.posts[0].slug).toBe('remote-1');
+  });
+
+  it('exposes a renderable card image src when featuredImage is a direct URL', () => {
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({
+      ...seed,
+      id: 'url-image-post',
+      slug: 'url-image-post',
+      featuredImage: 'https://cdn.example.com/blog/url-cover.jpg',
+      status: 'published',
+    });
+
+    const post = getBlogContentContract().posts.find((entry) => entry.slug === 'url-image-post');
+    expect(post?.image).toBe('https://cdn.example.com/blog/url-cover.jpg');
+  });
+
+  it('resolves media references to a renderable card image src in the blog list contract', () => {
+    mediaRepository.save({
+      id: 'blog-asset-1',
+      name: 'blog-hero.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,blogasset123',
+      thumbnailUrl: 'data:image/png;base64,blogasset123',
+      size: 128,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Blog image alt',
+      caption: 'Blog image caption',
+      tags: [],
+    });
+
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({
+      ...seed,
+      id: 'media-image-post',
+      slug: 'media-image-post',
+      featuredImage: toMediaReference('blog-asset-1'),
+      status: 'published',
+    });
+
+    const post = getBlogContentContract().posts.find((entry) => entry.slug === 'media-image-post');
+    expect(post?.image).toBe('data:image/png;base64,blogasset123');
+  });
+
+  it('resolves detail featuredImage to a renderable src when the blog entry uses a media reference', async () => {
+    mediaRepository.save({
+      id: 'blog-detail-asset-1',
+      name: 'blog-detail.jpg',
+      type: 'image',
+      url: 'data:image/png;base64,blogdetail123',
+      thumbnailUrl: 'data:image/png;base64,blogdetail123',
+      size: 128,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'editor',
+      alt: 'Detail image alt',
+      caption: 'Detail image caption',
+      tags: [],
+    });
+
+    const seed = blogRepository.getAll()[0];
+    blogRepository.save({
+      ...seed,
+      id: 'media-detail-post',
+      slug: 'media-detail-post',
+      featuredImage: toMediaReference('blog-detail-asset-1'),
+      status: 'published',
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    const detail = await getBlogPostBySlugContract('media-detail-post');
+    expect(detail?.featuredImage).toBe('data:image/png;base64,blogdetail123');
   });
 });

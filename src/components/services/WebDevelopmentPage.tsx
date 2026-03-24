@@ -407,9 +407,8 @@ export default function WebDevelopmentPage() {
                 >
                   <div className="aspect-video overflow-hidden relative">
                     <ImageWithFallback
-                      src=""
+                      src={project.image}
                       alt={project.title}
-                      query={project.image}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                   </div>

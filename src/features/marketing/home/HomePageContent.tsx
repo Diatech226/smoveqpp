@@ -204,9 +204,8 @@ function HomePageContent() {
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 <ImageWithFallback
-                  src={aboutMedia.isMediaAsset ? aboutMedia.src : ""}
+                  src={aboutMedia.src}
                   alt="SMOVE Team"
-                  query={aboutMedia.src}
                   className="w-full h-full object-cover"
                 />
               </motion.div>
@@ -388,9 +387,8 @@ function HomePageContent() {
                 <div className="aspect-video overflow-hidden">
                   <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.6 }}>
                     <ImageWithFallback
-                      src={media.isMediaAsset ? media.src : ''}
+                      src={media.src}
                       alt={post.title}
-                      query={media.src}
                       className="w-full h-full object-cover"
                     />
                   </motion.div>
