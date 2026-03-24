@@ -157,6 +157,19 @@ describe('projectCardAdapter', () => {
     expect(card.mediaAlt).toBe('Couverture projet');
   });
 
+
+  it('uses safe fallback when project media reference cannot be resolved on cold session', () => {
+    mediaRepository.replaceAll([]);
+
+    const card = toProjectCardContract({
+      ...baseProject,
+      featuredImage: toProjectMediaReference('missing-project-asset'),
+    });
+
+    expect(card.mediaSrc).toBe(PROJECT_MEDIA_FALLBACK_QUERY);
+    expect(card.mediaSrc.startsWith('media:')).toBe(false);
+  });
+
   it('resolves gallery media references into render-safe contracts', () => {
     mediaRepository.save({
       id: 'project-gallery-1',

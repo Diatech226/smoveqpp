@@ -8,9 +8,15 @@ import { toProjectCardContract } from '../features/projects/projectCardAdapter';
 import { selectHomepageProjects } from '../features/marketing/home/homePreview';
 import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepositorySync';
 import { selectPublishedProjects } from '../features/projects/projectSelectors';
+import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
 
 export default function ProjectsSection() {
   const [featuredProjects, setFeaturedProjects] = useState(() => selectHomepageProjects(projectRepository.getPublished()));
+
+  const fetchProjectsWithMedia = useCallback(async () => {
+    await hydratePublicMediaLibrary();
+    return fetchPublicProjects();
+  }, []);
 
   const applyRemoteProjects = useCallback((remote: Awaited<ReturnType<typeof fetchPublicProjects>>) => {
     return projectRepository.replaceAll(remote);
@@ -25,7 +31,7 @@ export default function ProjectsSection() {
   }, []);
 
   useRemoteRepositorySync({
-    fetchRemote: fetchPublicProjects,
+    fetchRemote: fetchProjectsWithMedia,
     applyRemote: applyRemoteProjects,
     onSynced: handleProjectsSynced,
     onError: handleProjectsSyncError,

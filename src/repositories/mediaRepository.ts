@@ -41,7 +41,9 @@ export interface MediaRepository {
   upload(data: MediaUploadInput): Promise<MediaFile>;
   getByType(type: MediaType): MediaFile[];
   search(query: string): MediaFile[];
+  replaceAll(files: MediaFile[]): MediaFile[];
 }
+
 
 class LocalMediaRepository implements MediaRepository {
   getAll(): MediaFile[] {
@@ -143,6 +145,12 @@ class LocalMediaRepository implements MediaRepository {
         file.alt?.toLowerCase().includes(normalizedQuery) ||
         file.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)),
     );
+  }
+
+  replaceAll(files: MediaFile[]): MediaFile[] {
+    const normalized = files.filter(isMediaFile).map(normalizeMedia);
+    writeToStorage(MEDIA_STORAGE_KEY, normalized);
+    return normalized;
   }
 }
 
