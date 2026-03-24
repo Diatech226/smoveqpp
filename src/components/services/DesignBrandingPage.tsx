@@ -146,9 +146,8 @@ export default function DesignBrandingPage() {
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 <ImageWithFallback
-                  src=""
+                  src="creative design workspace colorful"
                   alt="Design & Branding"
-                  query="creative design workspace colorful"
                   className="w-full h-full object-cover"
                 />
               </motion.div>
@@ -317,9 +316,8 @@ export default function DesignBrandingPage() {
                   whileHover={{ scale: 1.05 }}
                 >
                   <ImageWithFallback
-                    src=""
+                    src={item.image}
                     alt={item.title}
-                    query={item.image}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">

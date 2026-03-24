@@ -82,7 +82,6 @@ export default function ServiceDetailPage({ slug }: ServiceDetailPageProps) {
               <ImageWithFallback
                 src={detail.heroMedia.src}
                 alt={detail.heroMedia.alt}
-                query={detail.heroMedia.src}
                 className="w-full h-full object-cover"
               />
             ) : (
