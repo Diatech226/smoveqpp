@@ -68,6 +68,7 @@ import { BlogSection, MediaSection, PageContentSection, ProjectsSection, Service
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
 import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
+import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -1489,6 +1490,40 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
+  const previewToneClass = (tone: 'success' | 'warning' | 'neutral'): string => (
+    tone === 'success'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      : tone === 'warning'
+        ? 'border-amber-200 bg-amber-50 text-amber-700'
+        : 'border-slate-200 bg-slate-100 text-slate-600'
+  );
+
+  const renderCmsPreviewCard = (label: string, reference: string | undefined, fallbackAlt: string, fallbackQuery: string) => {
+    const preview = resolveCmsPreviewReference(reference, fallbackAlt, fallbackQuery);
+
+    return (
+      <div className="rounded-[10px] border border-[#e4edf1] bg-[#fcfeff] p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-[12px] font-semibold text-[#273a41]">{label}</p>
+          <div className="flex items-center gap-1.5">
+            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${previewToneClass(preview.statusTone)}`}>{preview.statusLabel}</span>
+            <span className="inline-flex items-center rounded-full border border-[#d9e5ea] bg-[#f4f8fa] px-2 py-0.5 text-[11px] text-[#5d6f76]">{preview.sourceLabel}</span>
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-[8px] border border-[#e4edf1] bg-[#f5f9fa]">
+          {preview.state === 'resolvable' ? (
+            <img src={preview.src} alt={preview.alt} className="h-[120px] w-full object-cover" loading="lazy" />
+          ) : (
+            <div className="flex h-[120px] items-center justify-center px-3 text-center text-[12px] text-[#6f7f85]">
+              Référence non résolue (média manquant/archivé ou URL invalide).
+            </div>
+          )}
+        </div>
+        <p className="mt-2 break-all text-[11px] text-[#6f7f85]">{preview.reference || 'Aucune source configurée.'}</p>
+      </div>
+    );
+  };
+
 
   const renderProjectForm = () => {
     const title = projectEditorMode === 'create' ? 'Créer un projet' : 'Modifier un projet';
@@ -1566,9 +1601,40 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 </div>
               </div>
             ) : null}
-            {(projectForm.cardImage || projectForm.heroImage || projectForm.socialImage) ? (
-              <div className="rounded-[10px] border border-[#eef3f5] px-3 py-2 text-[12px] text-[#6f7f85]">
-                Aperçu références — carte: {resolveProjectFeaturedImage({ title: projectForm.title || 'Projet', imageAlt: projectForm.imageAlt, featuredImage: projectForm.cardImage, mainImage: projectForm.heroImage, mediaRoles: { cardImage: projectForm.cardImage, heroImage: projectForm.heroImage } }).caption} · hero: {resolveProjectHeroMedia({ title: projectForm.title || 'Projet', imageAlt: projectForm.imageAlt, featuredImage: projectForm.cardImage, mainImage: projectForm.heroImage, mediaRoles: { cardImage: projectForm.cardImage, heroImage: projectForm.heroImage } }).caption}
+            <div className="grid gap-3 md:grid-cols-2">
+              {renderCmsPreviewCard(
+                'Carte projet',
+                projectForm.cardImage,
+                projectForm.imageAlt || projectForm.title || 'Projet',
+                'project cover image',
+              )}
+              {renderCmsPreviewCard(
+                'Hero détail projet',
+                projectForm.heroImage || projectForm.cardImage,
+                projectForm.imageAlt || projectForm.title || 'Projet',
+                'project cover image',
+              )}
+              {renderCmsPreviewCard(
+                'Social / partage',
+                projectForm.socialImage || projectForm.cardImage || projectForm.heroImage,
+                projectForm.imageAlt || projectForm.title || 'Projet',
+                'project cover image',
+              )}
+            </div>
+            {projectForm.galleryImages.trim() ? (
+              <div className="rounded-[10px] border border-[#e4edf1] bg-[#fcfeff] p-3">
+                <p className="mb-2 text-[12px] font-semibold text-[#273a41]">Galerie (ordre actuel)</p>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {projectForm.galleryImages
+                    .split('\n')
+                    .map((line) => line.trim())
+                    .filter(Boolean)
+                    .map((entry, index) => (
+                      <div key={`${entry}-${index}`} className="space-y-1">
+                        {renderCmsPreviewCard(`Galerie #${index + 1}`, entry, projectForm.imageAlt || projectForm.title || `Projet ${index + 1}`, 'project gallery image')}
+                      </div>
+                    ))}
+                </div>
               </div>
             ) : null}
             <label className="block">
@@ -1836,9 +1902,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             <p className="text-[12px] text-[#6f7f85] mt-1">Après upload, sélectionnez le média ci-dessus pour le lier à l’article.</p>
           </label>
 
-          {blogForm.featuredImage ? (
-            <div className="rounded-[10px] border border-[#eef3f5] px-3 py-2 text-[12px] text-[#6f7f85]">
-              Aperçu média: {resolveBlogMediaReference(blogForm.featuredImage, blogForm.title || 'Article').caption}
+          {(blogForm.featuredImage || blogForm.socialImage) ? (
+            <div className="rounded-[10px] border border-[#eef3f5] px-3 py-3 text-[12px] text-[#6f7f85] space-y-3">
+              <p className="text-[12px] text-[#5f7178]">
+                Aperçu contractuel blog: {resolveBlogMediaReference(blogForm.featuredImage, blogForm.title || 'Article').caption}
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {renderCmsPreviewCard('Image vedette (carte + hero)', blogForm.featuredImage, blogForm.title || 'Article', 'blog article image')}
+                {renderCmsPreviewCard('Image sociale (partage)', blogForm.socialImage || blogForm.featuredImage, blogForm.title || 'Article', 'blog article image')}
+              </div>
             </div>
           ) : null}
           </div>

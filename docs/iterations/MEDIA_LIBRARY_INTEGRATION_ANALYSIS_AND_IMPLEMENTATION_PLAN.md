@@ -1,5 +1,27 @@
 # Media Library Integration — Analysis & Implementation Plan
 
+## Iteration 3 update (2026-03-24)
+
+Iteration 3 is implemented with **CMS parity previews** focused on editor confidence:
+
+- Media Library cards now show real thumbnails for image assets (`thumbnailUrl` → `url` fallback) and a safe fallback tile for non-image/missing preview states.
+- Media detail panel now includes a first-class visual preview block driven by the same runtime resolver path (`resolveAssetReference`) used by public rendering.
+- Blog editor now renders explicit featured/social preview cards with resolver/source state labels (resolved vs non-résolu, media reference vs direct URL).
+- Project editor now renders explicit role previews (card, hero, social) plus ordered gallery previews using the current textarea order.
+- CMS preview state is surfaced consistently (`Résolu`, `Non résolu`, `Manquant`, `Référence média`, `URL directe`) so unresolved/archived-or-missing references are visible pre-publish.
+
+### Iteration 3 parity strategy
+
+To avoid CMS/public mismatch, preview computation now runs through a shared CMS preview utility that wraps `resolveAssetReference` rather than introducing an alternate resolver.
+
+This keeps parity with Iteration 2 public runtime behavior while adding editor-facing status semantics.
+
+### Deferred to Iteration 4
+
+- Full metadata editing workflows and richer DAM governance flows.
+- Archive/restore browser UX.
+- Cross-section preview parity for additional domains beyond media/blog/projects.
+
 ## Iteration 2 update (2026-03-24)
 
 Iteration 2 is implemented with an authoritative **public media hydration** strategy:
