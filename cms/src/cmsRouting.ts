@@ -1,6 +1,29 @@
 import { useEffect, useState } from 'react';
-import { resolveCmsSectionFromRoute } from '../../src/app-routing/guards';
-import { parseHashRoute } from '../../src/app-routing/routeResolver';
+
+const CMS_SECTIONS = new Set(['overview', 'projects', 'blog', 'media', 'content', 'users', 'settings']);
+
+function parseHashRoute(hash: string): string {
+  const rawRoute = (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';
+  return rawRoute.split('?')[0];
+}
+
+function resolveCmsSectionFromRoute(route: string): string {
+  if (route === 'cms' || route === 'cms-dashboard') {
+    return 'overview';
+  }
+
+  if (route.startsWith('cms/')) {
+    const [, rawSection] = route.split('/');
+    return CMS_SECTIONS.has(rawSection) ? rawSection : 'overview';
+  }
+
+  if (route.startsWith('cms-')) {
+    const section = route.slice('cms-'.length);
+    return CMS_SECTIONS.has(section) ? section : 'overview';
+  }
+
+  return 'overview';
+}
 
 export type CmsPage = 'auth-loading' | 'login' | 'register' | 'cms-dashboard' | 'cms-unavailable' | 'cms-forbidden';
 

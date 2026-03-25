@@ -37,16 +37,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '../src'),
+        '@': path.resolve(__dirname, './src'),
       },
     },
     server: {
       host: '127.0.0.1',
       port: cmsPort,
       strictPort: true,
-      fs: {
-        allow: ['..'],
-      },
       proxy: {
         '/api': {
           target: apiOrigin,
