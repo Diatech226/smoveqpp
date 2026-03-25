@@ -23,6 +23,7 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 ### CMS/admin workspace
 - CMS access is restricted to `admin` role only.
 - CMS now runs as a standalone root-level app in `/cms` with its own `package.json`, Vite entrypoint, and app shell.
+- CMS runtime is isolated in `cms/src` and does not import runtime modules from `src/` (public app internals).
 - Public site exposes an admin-only CMS entry action that opens the standalone CMS app.
 - Sections in dashboard: overview, projects, blog, media, page content, users, settings.
 - Role-aware editorial actions (e.g., publish restrictions for author role).

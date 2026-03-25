@@ -1,7 +1,7 @@
-import { AuthProvider, useAuth } from './srcBridge/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import CMSLoginPage from './CMSLoginPage';
 import CMSRegisterPage from './CMSRegisterPage';
-import { CMSDashboard } from './srcBridge/CMSDashboard';
+import CMSDashboard from './components/cms/CMSDashboard';
 import CMSAppShell from './components/cms/CMSAppShell';
 import SecurityStatePage from './shared/app-shell/SecurityStatePage';
 import { AppLoadingState } from './shared/app-shell/AppStatusState';
