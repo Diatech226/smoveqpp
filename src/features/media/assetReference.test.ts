@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveAssetReference } from './assetReference';
+import { resolveAssetReference, resolveRenderableMediaUrl } from './assetReference';
 import { mediaRepository } from '../../repositories/mediaRepository';
 
 describe('assetReference', () => {
@@ -30,6 +30,29 @@ describe('assetReference', () => {
     expect(resolved.src).toBe('https://cdn.example.com/hero.jpg');
     expect(resolved.alt).toBe('Hero alt');
     expect(resolved.isFallback).toBe(false);
+  });
+
+  it('rewrites root-relative media URLs to API origin when runtime base is absolute', () => {
+    mediaRepository.replaceAll([
+      {
+        id: 'asset-relative-url',
+        name: 'hero.jpg',
+        type: 'image',
+        url: '/uploads/2026/04/hero.jpg',
+        thumbnailUrl: '/uploads/2026/04/hero-thumb.jpg',
+        size: 1024,
+        uploadedDate: new Date().toISOString(),
+        uploadedBy: 'cms',
+        alt: 'Hero alt',
+        caption: 'Hero caption',
+        tags: [],
+      },
+    ]);
+
+    expect(resolveRenderableMediaUrl('/uploads/2026/04/hero.jpg', 'https://api.smove.example/api/v1')).toBe('https://api.smove.example/uploads/2026/04/hero.jpg');
+
+    const resolved = resolveAssetReference('media:asset-relative-url', 'Fallback alt', 'fallback image');
+    expect(resolved.src).toBe('/uploads/2026/04/hero.jpg');
   });
 
   it('never returns raw media references as img src when asset is missing', () => {

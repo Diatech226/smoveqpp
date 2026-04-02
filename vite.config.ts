@@ -179,6 +179,11 @@
           changeOrigin: true,
           secure: false,
         },
+        '/uploads': {
+          target: apiOrigin,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     preview: {

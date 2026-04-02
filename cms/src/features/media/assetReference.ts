@@ -1,5 +1,6 @@
 import type { MediaFile } from '../../domain/contentSchemas';
 import { mediaRepository } from '../../repositories/mediaRepository';
+import { RUNTIME_CONFIG } from '../../config/runtimeConfig';
 import {
   MEDIA_REFERENCE_PREFIX,
   isMediaReference,
@@ -10,6 +11,38 @@ import {
 } from '../../shared/contentContracts';
 
 export { MEDIA_REFERENCE_PREFIX };
+
+
+
+const HTTP_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+
+const toApiOrigin = (apiBaseUrl: string): string => {
+  if (!apiBaseUrl.startsWith('http://') && !apiBaseUrl.startsWith('https://')) {
+    return '';
+  }
+
+  try {
+    return new URL(apiBaseUrl).origin;
+  } catch {
+    return '';
+  }
+};
+
+export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = RUNTIME_CONFIG.apiBaseUrl): string => {
+  const normalizedUrl = url.trim();
+  if (!normalizedUrl) return normalizedUrl;
+
+  if (HTTP_SCHEME_PATTERN.test(normalizedUrl) || normalizedUrl.startsWith('//')) {
+    return normalizedUrl;
+  }
+
+  if (!normalizedUrl.startsWith('/')) {
+    return normalizedUrl;
+  }
+
+  const apiOrigin = toApiOrigin(apiBaseUrl);
+  return apiOrigin ? `${apiOrigin}${normalizedUrl}` : normalizedUrl;
+};
 
 export interface ResolvedAssetReference {
   reference: string;
@@ -67,7 +100,7 @@ export const resolveAssetReference = (
 
       return {
         reference: normalizedReference,
-        src: media.url,
+        src: resolveRenderableMediaUrl(media.url),
         alt: normalizeText(media.alt, fallbackAlt),
         caption: normalizeText(media.caption, media.title || media.name || fallbackAlt),
         isMediaAsset: true,
@@ -90,7 +123,7 @@ export const resolveAssetReference = (
   if (normalizedReference) {
     return {
       reference: normalizedReference,
-      src: normalizedReference,
+      src: resolveRenderableMediaUrl(normalizedReference),
       alt: fallbackAlt,
       caption: fallbackAlt,
       isMediaAsset: false,
