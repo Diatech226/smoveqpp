@@ -8,6 +8,7 @@ import { serviceRepository } from '../../repositories/serviceRepository';
 import { findPublishedServiceBySlug } from '../../features/marketing/serviceDetailContract';
 import { fetchPublicServices } from '../../utils/publicContentApi';
 import { useRemoteRepositorySync } from '../../features/content-sync/useRemoteRepositorySync';
+import { resolveServiceContactHref } from '../../features/marketing/navigationCta';
 
 const technologies = [
   { name: 'React', color: '#61DAFB' },
@@ -90,7 +91,7 @@ export default function WebDevelopmentPage() {
   const service = useMemo(() => findPublishedServiceBySlug(serviceRepository.getAll(), 'web-development'), [serviceVersion]);
   const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
   const process = (service?.processSteps && service.processSteps.length > 0 ? service.processSteps : defaultProcess).slice(0, 5);
-  const ctaPrimaryHref = service?.ctaPrimaryHref === '/contact' ? '#contact' : (service?.ctaPrimaryHref || '#contact');
+  const ctaPrimaryHref = resolveServiceContactHref(service?.ctaPrimaryHref);
 
   return (
     <div className="min-h-screen bg-white">

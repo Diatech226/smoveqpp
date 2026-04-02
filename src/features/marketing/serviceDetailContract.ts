@@ -2,7 +2,9 @@ import { resolveAssetReference } from '../media/assetReference';
 import type { Service } from '../../domain/contentSchemas';
 import { resolveServiceRouteSlug } from './serviceRouting';
 
-const FALLBACK_CTA_HREF = '#contact';
+import { CONTACT_CTA_HREF, resolveServiceContactHref } from './navigationCta';
+
+const FALLBACK_CTA_HREF = CONTACT_CTA_HREF;
 const FALLBACK_CTA_LABEL = 'Parler à un expert';
 
 export interface ServiceDetailContract {
@@ -45,14 +47,6 @@ const isSafeHref = (value: string | undefined): boolean => {
   }
 };
 
-const normalizeContactHref = (href: string): string => {
-  const normalized = normalizeText(href);
-  if (normalized === '/contact' || normalized === '#/contact') {
-    return FALLBACK_CTA_HREF;
-  }
-  return normalized;
-};
-
 export const findPublishedServiceBySlug = (services: Service[], slug: string): Service | undefined => {
   const normalizedSlug = normalizeText(slug).toLowerCase();
   return services.find((service) => {
@@ -75,7 +69,7 @@ export const buildServiceDetailContract = (service: Service): ServiceDetailContr
   const processTitle = normalizeText(service.processTitle) || 'Notre approche';
   const ctaPrimaryLabel = normalizeText(service.ctaPrimaryLabel) || FALLBACK_CTA_LABEL;
   const ctaPrimaryHref = isSafeHref(service.ctaPrimaryHref)
-    ? normalizeContactHref(service.ctaPrimaryHref || '')
+    ? resolveServiceContactHref(service.ctaPrimaryHref || '')
     : FALLBACK_CTA_HREF;
   const ctaTitle = normalizeText(service.ctaTitle) || `Lancer votre projet ${title}`;
   const ctaDescription = normalizeText(service.ctaDescription) || `${ctaPrimaryLabel} pour discuter de vos objectifs et du planning de mise en œuvre.`;
