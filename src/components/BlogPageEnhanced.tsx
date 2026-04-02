@@ -290,7 +290,7 @@ export default function BlogPageEnhanced() {
                       </div>
                     </div>
                     <motion.a
-                      href={`#blog/${featuredPost?.seo.canonicalSlug || featuredPost?.slug || ""}`}
+                      href={featuredPost?.slug ? `#blog/${featuredPost.seo.canonicalSlug || featuredPost.slug}` : '#blog'}
                       className="inline-flex items-center gap-2 bg-white text-[#00b3e8] px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
                       whileHover={{ scale: 1.05, x: 5 }}
                       whileTap={{ scale: 0.95 }}
@@ -372,7 +372,7 @@ export default function BlogPageEnhanced() {
                 }}
                 style={{ transformStyle: 'preserve-3d' }}
               >
-                <div className="aspect-video overflow-hidden relative">
+                <a href={`#blog/${post.seo.canonicalSlug || post.slug}`} className="block aspect-video overflow-hidden relative">
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.6 }}
@@ -394,7 +394,7 @@ export default function BlogPageEnhanced() {
                       {post.readTime}
                     </span>
                   </motion.div>
-                </div>
+                </a>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <motion.span 
@@ -416,13 +416,14 @@ export default function BlogPageEnhanced() {
                       <User size={16} />
                       <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px]">{post.author}</span>
                     </div>
-                    <motion.div
+                    <motion.a
+                      href={`#blog/${post.seo.canonicalSlug || post.slug}`}
                       className="inline-flex items-center gap-1 text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] text-[14px]"
                       whileHover={{ gap: 8 }}
                     >
                       Lire plus
                       <ArrowRight size={16} />
-                    </motion.div>
+                    </motion.a>
                   </div>
                 </div>
               </motion.article>

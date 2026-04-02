@@ -384,7 +384,7 @@ function HomePageContent() {
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.1)',
                 }}
               >
-                <div className="aspect-video overflow-hidden">
+                <a href={`#blog/${post.slug}`} className="block aspect-video overflow-hidden">
                   <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.6 }}>
                     <ImageWithFallback
                       src={media.src}
@@ -392,16 +392,18 @@ function HomePageContent() {
                       className="w-full h-full object-cover"
                     />
                   </motion.div>
-                </div>
+                </a>
 
                 <div className="p-6">
                   <span className="inline-block bg-[#00b3e8]/10 text-[#00b3e8] px-3 py-1 rounded-full font-['Abhaya_Libre:Bold',sans-serif] text-[12px] mb-4">
                     {post.category}
                   </span>
 
-                  <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-3 line-clamp-2 group-hover:text-[#00b3e8] transition-colors">
-                    {post.title}
-                  </h3>
+                  <a href={`#blog/${post.slug}`} className="block">
+                    <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-3 line-clamp-2 group-hover:text-[#00b3e8] transition-colors">
+                      {post.title}
+                    </h3>
+                  </a>
 
                   <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#38484e] mb-4 line-clamp-2">
                     {post.excerpt}
