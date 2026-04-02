@@ -38,3 +38,9 @@ Eliminate cold-session and hard-refresh fragility for public `media:asset-id` re
 - Blog public cold-session tests for list + detail remote media hydration behavior.
 - Project card fallback test for missing media reference.
 - Public content API test for new public media endpoint contract.
+
+
+## Follow-up hardening (April 2026)
+
+- Added API-origin-aware upload URL normalization in the shared media resolver so root-relative stored media URLs (for example `/uploads/...`) remain renderable when the public site and API are served from different origins.
+- Added dev proxy parity for `/uploads` on the public Vite app to mirror CMS behavior and avoid false negatives during local validation.

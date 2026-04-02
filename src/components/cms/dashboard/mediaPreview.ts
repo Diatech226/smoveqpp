@@ -1,5 +1,5 @@
 import type { MediaFile } from '../../../domain/contentSchemas';
-import { isMediaReferenceValue, mediaIdFromReference, resolveAssetReference } from '../../../features/media/assetReference';
+import { isMediaReferenceValue, mediaIdFromReference, resolveAssetReference, resolveRenderableMediaUrl } from '../../../features/media/assetReference';
 
 export type CmsPreviewState = 'resolvable' | 'unresolved' | 'missing';
 export type CmsPreviewSource = 'media-reference' | 'direct-url' | 'empty';
@@ -75,7 +75,7 @@ export function resolveMediaLibraryThumbnail(file: MediaFile): { src: string | n
     return { src: null, kind: 'non-image' };
   }
 
-  const src = file.thumbnailUrl?.trim() || file.url?.trim() || '';
+  const src = resolveRenderableMediaUrl(file.thumbnailUrl?.trim() || file.url?.trim() || '');
   if (!src) {
     return { src: null, kind: 'missing' };
   }
