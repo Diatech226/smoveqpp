@@ -41,18 +41,18 @@ export default function Footer() {
               Agence de communication digitale spécialisée dans la création de contenu, le développement web et la stratégie digitale.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="hover:text-[#00b3e8] transition-colors">
+              <span className="text-white/70">
                 <Facebook size={20} />
-              </a>
-              <a href="#" className="hover:text-[#4aa0eb] transition-colors">
+              </span>
+              <span className="text-white/70">
                 <Twitter size={20} />
-              </a>
-              <a href="#" className="hover:text-[#1a8bd8] transition-colors">
+              </span>
+              <span className="text-white/70">
                 <Instagram size={20} />
-              </a>
-              <a href="#" className="hover:text-[#5869ea] transition-colors">
+              </span>
+              <span className="text-white/70">
                 <Linkedin size={20} />
-              </a>
+              </span>
             </div>
           </div>
 
@@ -77,7 +77,7 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3 font-['Abhaya_Libre:Regular',sans-serif] text-[14px]">
               <li><a href="#home" className="hover:text-[#00b3e8] transition-colors">Accueil</a></li>
-              <li><a href="#apropos" className="hover:text-[#00b3e8] transition-colors">À Propos</a></li>
+              <li><a href="#about" className="hover:text-[#00b3e8] transition-colors">À Propos</a></li>
               <li><a href="#portfolio" className="hover:text-[#00b3e8] transition-colors">Portfolio</a></li>
               <li><a href="#blog" className="hover:text-[#00b3e8] transition-colors">Blog</a></li>
               <li><a href="#contact" className="hover:text-[#00b3e8] transition-colors">Contact</a></li>
@@ -134,12 +134,8 @@ export default function Footer() {
             © {currentYear} {siteTitle} Communication. Tous droits réservés.
           </p>
           <div className="flex gap-6 font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-white/65">
-            <a href="/privacy" className="hover:text-white underline transition-colors">
-              Politique de Confidentialité
-            </a>
-            <a href="/terms" className="hover:text-white underline transition-colors">
-              Conditions d'Utilisation
-            </a>
+            <span>Politique de Confidentialité</span>
+            <span>Conditions d'Utilisation</span>
           </div>
         </div>
       </div>

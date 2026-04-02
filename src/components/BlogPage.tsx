@@ -141,7 +141,7 @@ export default function BlogPage() {
                   </div>
                 </div>
                 <a
-                  href="#"
+                  href="#blog"
                   className="inline-flex items-center gap-2 bg-white text-[#00b3e8] px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px] hover:bg-[#f5f9fa] transition-colors"
                 >
                   Lire l'article
@@ -203,7 +203,7 @@ export default function BlogPage() {
                       <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px]">{post.author}</span>
                     </div>
                     <a
-                      href="#"
+                      href="#blog"
                       className="inline-flex items-center gap-1 text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] text-[14px] hover:gap-2 transition-all"
                     >
                       Lire plus

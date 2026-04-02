@@ -90,6 +90,7 @@ export default function WebDevelopmentPage() {
   const service = useMemo(() => findPublishedServiceBySlug(serviceRepository.getAll(), 'web-development'), [serviceVersion]);
   const features = (service?.features && service.features.length > 0 ? service.features : defaultFeatures.map((item) => item.title)).slice(0, 4);
   const process = (service?.processSteps && service.processSteps.length > 0 ? service.processSteps : defaultProcess).slice(0, 5);
+  const ctaPrimaryHref = service?.ctaPrimaryHref === '/contact' ? '#contact' : (service?.ctaPrimaryHref || '#contact');
 
   return (
     <div className="min-h-screen bg-white">
@@ -195,7 +196,7 @@ export default function WebDevelopmentPage() {
 
               <div className="flex flex-wrap gap-4">
                 <motion.a
-                  href={service?.ctaPrimaryHref || '#contact'}
+                  href={ctaPrimaryHref}
                   className="bg-[#34c759] text-white px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px] inline-flex items-center gap-2"
                   whileHover={{ scale: 1.05, x: 5 }}
                   whileTap={{ scale: 0.95 }}

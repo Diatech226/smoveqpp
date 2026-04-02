@@ -45,6 +45,14 @@ const isSafeHref = (value: string | undefined): boolean => {
   }
 };
 
+const normalizeContactHref = (href: string): string => {
+  const normalized = normalizeText(href);
+  if (normalized === '/contact' || normalized === '#/contact') {
+    return FALLBACK_CTA_HREF;
+  }
+  return normalized;
+};
+
 export const findPublishedServiceBySlug = (services: Service[], slug: string): Service | undefined => {
   const normalizedSlug = normalizeText(slug).toLowerCase();
   return services.find((service) => {
@@ -66,7 +74,9 @@ export const buildServiceDetailContract = (service: Service): ServiceDetailContr
     : ['Cadrage', 'Production', 'Livraison'];
   const processTitle = normalizeText(service.processTitle) || 'Notre approche';
   const ctaPrimaryLabel = normalizeText(service.ctaPrimaryLabel) || FALLBACK_CTA_LABEL;
-  const ctaPrimaryHref = isSafeHref(service.ctaPrimaryHref) ? normalizeText(service.ctaPrimaryHref) : FALLBACK_CTA_HREF;
+  const ctaPrimaryHref = isSafeHref(service.ctaPrimaryHref)
+    ? normalizeContactHref(service.ctaPrimaryHref || '')
+    : FALLBACK_CTA_HREF;
   const ctaTitle = normalizeText(service.ctaTitle) || `Lancer votre projet ${title}`;
   const ctaDescription = normalizeText(service.ctaDescription) || `${ctaPrimaryLabel} pour discuter de vos objectifs et du planning de mise en œuvre.`;
   const heroMedia = resolveAssetReference(service.iconLikeAsset, title, `${title.toLowerCase()} service`);
