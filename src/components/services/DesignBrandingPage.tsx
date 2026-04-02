@@ -8,6 +8,7 @@ import { serviceRepository } from '../../repositories/serviceRepository';
 import { findPublishedServiceBySlug } from '../../features/marketing/serviceDetailContract';
 import { fetchPublicServices } from '../../utils/publicContentApi';
 import { useRemoteRepositorySync } from '../../features/content-sync/useRemoteRepositorySync';
+import { resolveServiceContactHref } from '../../features/marketing/navigationCta';
 
 const defaultFeatures = [
   {
@@ -69,7 +70,7 @@ export default function DesignBrandingPage() {
   const process = (service?.processSteps && service.processSteps.length > 0 ? service.processSteps : defaultProcess.map((item) => item.title)).slice(0, 5);
   const ctaPrimaryLabel = service?.ctaPrimaryLabel || 'Contactez-nous';
   const ctaDescription = service?.ctaDescription || `${ctaPrimaryLabel} dès aujourd'hui pour discuter de votre projet et obtenir un devis personnalisé.`;
-  const ctaPrimaryHref = service?.ctaPrimaryHref === '/contact' ? '#contact' : (service?.ctaPrimaryHref || '#contact');
+  const ctaPrimaryHref = resolveServiceContactHref(service?.ctaPrimaryHref);
 
   return (
     <div className="min-h-screen bg-white">

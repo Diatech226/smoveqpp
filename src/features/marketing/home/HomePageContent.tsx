@@ -12,6 +12,7 @@ import { selectRenderablePublicServices } from '../serviceCatalog';
 import { fetchPublicPageContent, fetchPublicServices } from '../../../utils/publicContentApi';
 import { getBlogContentContractFromSource, type BlogListItem } from '../../blog/blogContentService';
 import { selectHomepageBlogPosts, selectHomepageServices } from './homePreview';
+import { resolveAboutTeamHref } from '../navigationCta';
 
 function HomePageContent() {
   const [homeContent, setHomeContent] = useState(() => pageContentRepository.getHomePageContent());
@@ -275,7 +276,7 @@ function HomePageContent() {
               </div>
 
               <motion.a
-                href={homeContent.aboutCtaHref}
+                href={resolveAboutTeamHref(homeContent.aboutCtaHref)}
                 className="inline-flex items-center gap-2 bg-[#34c759] text-white px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
                 whileHover={{ scale: 1.05, x: 5 }}
                 whileTap={{ scale: 0.95 }}
