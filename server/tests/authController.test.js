@@ -109,3 +109,20 @@ describe('auth controller session and logout', () => {
     expect(res.body.data.user).toBeNull();
   });
 });
+
+
+describe('oauth controller flow', () => {
+  it('oauth start redirects to provider auth url', async () => {
+    const authController = buildAuthController({
+      authService: {
+        buildOAuthAuthorizationUrl: () => ({ ok: true, url: 'https://accounts.example/auth' }),
+      },
+    });
+    const req = { params: { provider: 'google' }, query: { redirectTo: 'http://127.0.0.1:5174/#login' }, session: {}, method: 'GET', originalUrl: '/oauth/google/start' };
+    const res = { redirectUrl: null, redirect(url) { this.redirectUrl = url; } };
+
+    await authController.startOAuth(req, res);
+    expect(res.redirectUrl).toBe('https://accounts.example/auth');
+    expect(typeof req.session.oauth.state).toBe('string');
+  });
+});

@@ -4,6 +4,7 @@ import {
   fetchAuthAuditEvents,
   fetchOAuthProviders,
   fetchServerSession,
+  buildOAuthStartUrl,
   loginWithApi,
   logoutWithApi,
   oauthLoginWithApi,
@@ -58,6 +59,7 @@ interface AuthContextType {
   authNotice: string | null;
   login: (email: string, password: string) => Promise<AuthActionResult>;
   loginWithOAuth: (provider: 'google' | 'facebook', payload: { email: string; name: string; providerId: string }) => Promise<AuthActionResult>;
+  beginOAuthLogin: (provider: 'google' | 'facebook') => void;
   register: (email: string, password: string, name: string) => Promise<AuthActionResult>;
   verifyEmail: (token: string) => Promise<AuthActionResult>;
   resendVerification: () => Promise<AuthActionResult>;
@@ -82,6 +84,7 @@ const SAFE_FALLBACK_CONTEXT: AuthContextType = {
   authNotice: null,
   login: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
   loginWithOAuth: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
+  beginOAuthLogin: () => undefined,
   register: async () => ({ success: false, error: 'Authentification indisponible. Réessayez.', destination: null }),
   verifyEmail: async () => ({ success: false, error: 'Vérification indisponible. Réessayez.', destination: null }),
   resendVerification: async () => ({ success: false, error: 'Vérification indisponible. Réessayez.', destination: null }),
@@ -279,6 +282,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
+
+  const beginOAuthLogin = (provider: 'google' | 'facebook') => {
+    const redirectTo = window.location.href;
+    window.location.assign(buildOAuthStartUrl(provider, redirectTo));
+  };
+
   const loginWithOAuth = async (
     provider: 'google' | 'facebook',
     payload: { email: string; name: string; providerId: string },
@@ -433,6 +442,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authNotice,
       login,
       loginWithOAuth,
+      beginOAuthLogin,
       register,
       verifyEmail,
       resendVerification,

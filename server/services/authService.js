@@ -1,6 +1,17 @@
 const crypto = require('crypto');
 const { normalizeEmail } = require('../models/User');
-const { PASSWORD_HASH_ROUNDS, OAUTH_DEFAULT_ROLE, PUBLIC_REGISTRATION_ENABLED, isProduction } = require('../config/env');
+const {
+  PASSWORD_HASH_ROUNDS,
+  OAUTH_DEFAULT_ROLE,
+  PUBLIC_REGISTRATION_ENABLED,
+  isProduction,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_CALLBACK_URL,
+  FACEBOOK_APP_ID,
+  FACEBOOK_APP_SECRET,
+  FACEBOOK_CALLBACK_URL,
+} = require('../config/env');
 
 const EMAIL_VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24;
 const PASSWORD_RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
@@ -84,7 +95,9 @@ function sanitizeUser(user) {
     status: user.status,
     accountStatus: user.accountStatus ?? 'active',
     authProvider: user.authProvider ?? 'local',
+    providers: user.providers ?? [user.authProvider ?? 'local'],
     providerId: user.providerId ?? null,
+    avatarUrl: user.avatarUrl ?? null,
     ...buildVerificationMeta(user),
     lastLoginAt: user.lastLoginAt ?? null,
     createdAt: user.createdAt,
@@ -99,6 +112,219 @@ class AuthService {
     this.publicRegistrationEnabled = Boolean(publicRegistrationEnabled);
     this.emailService = emailService;
     this.auditLogger = auditLogger;
+  }
+
+  buildOAuthAuthorizationUrl({ provider, state }) {
+    if (!['google', 'facebook'].includes(provider)) {
+      return { ok: false, status: 400, code: 'OAUTH_PROVIDER_UNSUPPORTED', message: 'Unsupported OAuth provider' };
+    }
+
+    const providerConfig = this.oauthProviders?.[provider] ?? {};
+    if (!providerConfig.enabled) {
+      return { ok: false, status: 503, code: 'OAUTH_PROVIDER_DISABLED', message: `${provider} OAuth is not configured` };
+    }
+
+    if (provider === 'google') {
+      const params = new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID,
+        redirect_uri: GOOGLE_CALLBACK_URL,
+        response_type: 'code',
+        scope: 'openid email profile',
+        state,
+        access_type: 'online',
+        include_granted_scopes: 'true',
+        prompt: 'select_account',
+      });
+      return { ok: true, url: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` };
+    }
+
+    const params = new URLSearchParams({
+      client_id: FACEBOOK_APP_ID,
+      redirect_uri: FACEBOOK_CALLBACK_URL,
+      response_type: 'code',
+      scope: 'email,public_profile',
+      state,
+    });
+    return { ok: true, url: `https://www.facebook.com/v20.0/dialog/oauth?${params.toString()}` };
+  }
+
+  async exchangeGoogleCodeForProfile(code) {
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: GOOGLE_CALLBACK_URL,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      return { ok: false, status: 502, code: 'OAUTH_TOKEN_EXCHANGE_FAILED', message: 'Failed to exchange Google authorization code' };
+    }
+
+    const tokenPayload = await tokenResponse.json();
+    if (!tokenPayload.access_token) {
+      return { ok: false, status: 502, code: 'OAUTH_TOKEN_EXCHANGE_FAILED', message: 'Google access token missing' };
+    }
+
+    const profileResponse = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+      headers: { Authorization: `Bearer ${tokenPayload.access_token}` },
+    });
+
+    if (!profileResponse.ok) {
+      return { ok: false, status: 502, code: 'OAUTH_PROFILE_FETCH_FAILED', message: 'Failed to fetch Google profile' };
+    }
+
+    const profile = await profileResponse.json();
+    return {
+      ok: true,
+      profile: {
+        authProvider: 'google',
+        providerId: String(profile.sub ?? ''),
+        email: profile.email ? String(profile.email) : null,
+        name: String(profile.name ?? profile.given_name ?? 'Google User').trim(),
+        emailVerified: Boolean(profile.email_verified),
+        avatarUrl: profile.picture ? String(profile.picture) : null,
+      },
+    };
+  }
+
+  async exchangeFacebookCodeForProfile(code) {
+    const tokenParams = new URLSearchParams({
+      client_id: FACEBOOK_APP_ID,
+      client_secret: FACEBOOK_APP_SECRET,
+      redirect_uri: FACEBOOK_CALLBACK_URL,
+      code,
+    });
+
+    const tokenResponse = await fetch(`https://graph.facebook.com/v20.0/oauth/access_token?${tokenParams.toString()}`);
+    if (!tokenResponse.ok) {
+      return { ok: false, status: 502, code: 'OAUTH_TOKEN_EXCHANGE_FAILED', message: 'Failed to exchange Facebook authorization code' };
+    }
+
+    const tokenPayload = await tokenResponse.json();
+    if (!tokenPayload.access_token) {
+      return { ok: false, status: 502, code: 'OAUTH_TOKEN_EXCHANGE_FAILED', message: 'Facebook access token missing' };
+    }
+
+    const profileParams = new URLSearchParams({
+      fields: 'id,name,email,picture.type(large)',
+      access_token: tokenPayload.access_token,
+    });
+
+    const profileResponse = await fetch(`https://graph.facebook.com/me?${profileParams.toString()}`);
+    if (!profileResponse.ok) {
+      return { ok: false, status: 502, code: 'OAUTH_PROFILE_FETCH_FAILED', message: 'Failed to fetch Facebook profile' };
+    }
+
+    const profile = await profileResponse.json();
+    return {
+      ok: true,
+      profile: {
+        authProvider: 'facebook',
+        providerId: String(profile.id ?? ''),
+        email: profile.email ? String(profile.email) : null,
+        name: String(profile.name ?? 'Facebook User').trim(),
+        emailVerified: Boolean(profile.email),
+        avatarUrl: profile.picture?.data?.url ? String(profile.picture.data.url) : null,
+      },
+    };
+  }
+
+  async loginWithOAuthCode({ provider, code }) {
+    if (!code || typeof code !== 'string') {
+      return { ok: false, status: 400, code: 'OAUTH_CODE_MISSING', message: 'Missing OAuth authorization code' };
+    }
+
+    const exchanged = provider === 'google'
+      ? await this.exchangeGoogleCodeForProfile(code)
+      : await this.exchangeFacebookCodeForProfile(code);
+
+    if (!exchanged.ok) {
+      return exchanged;
+    }
+
+    return this.loginWithOAuthProfile(exchanged.profile);
+  }
+
+  async loginWithOAuthProfile({ email, name, authProvider, providerId, emailVerified = true, avatarUrl = null }) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!providerId || !['google', 'facebook'].includes(authProvider)) {
+      return { ok: false, status: 400, code: 'OAUTH_PROFILE_INVALID', message: 'Invalid OAuth profile' };
+    }
+
+    const existingByProvider = await this.userRepository.findByProvider(authProvider, providerId);
+    if (existingByProvider) {
+      if (existingByProvider.accountStatus === 'suspended') {
+        return { ok: false, status: 403, code: 'ACCOUNT_SUSPENDED', message: 'Account suspended' };
+      }
+      const linked = await this.userRepository.linkOAuthProvider(existingByProvider.id, {
+        authProvider,
+        providerId,
+        name: String(name ?? existingByProvider.name).trim(),
+        emailVerified,
+        avatarUrl,
+      });
+      const updatedUser = await this.userRepository.updateLastLoginAt(existingByProvider.id, new Date());
+      return { ok: true, user: sanitizeUser(updatedUser ?? linked ?? existingByProvider) };
+    }
+
+    if (!normalizedEmail) {
+      return { ok: false, status: 409, code: 'OAUTH_EMAIL_REQUIRED', message: 'Unable to sign in: provider did not return an email address' };
+    }
+
+    const existingByEmail = await this.userRepository.findByEmail(normalizedEmail);
+    if (existingByEmail) {
+      if (existingByEmail.accountStatus === 'suspended') {
+        return { ok: false, status: 403, code: 'ACCOUNT_SUSPENDED', message: 'Account suspended' };
+      }
+
+      const hasProviderLinked = authProvider === 'google' ? Boolean(existingByEmail.googleId) : Boolean(existingByEmail.facebookId);
+      if (hasProviderLinked) {
+        return { ok: false, status: 409, code: 'OAUTH_ACCOUNT_CONFLICT', message: 'OAuth provider is already linked to another account' };
+      }
+
+      const linked = await this.userRepository.linkOAuthProvider(existingByEmail.id, {
+        authProvider,
+        providerId,
+        name: String(name ?? existingByEmail.name).trim(),
+        emailVerified,
+        avatarUrl,
+      });
+      const updatedUser = await this.userRepository.updateLastLoginAt(existingByEmail.id, new Date());
+      return { ok: true, user: sanitizeUser(updatedUser ?? linked ?? existingByEmail) };
+    }
+
+    let user;
+    try {
+      user = await this.userRepository.create({
+        email: normalizedEmail,
+        name: String(name ?? normalizedEmail.split('@')[0]).trim(),
+        authProvider,
+        providerId: String(providerId),
+        providers: [authProvider],
+        googleId: authProvider === 'google' ? String(providerId) : null,
+        facebookId: authProvider === 'facebook' ? String(providerId) : null,
+        avatarUrl,
+        role: OAUTH_DEFAULT_ROLE,
+        status: 'client',
+        accountStatus: 'active',
+        emailVerified,
+        emailVerificationTokenHash: null,
+        emailVerificationTokenExpiresAt: null,
+      });
+    } catch (error) {
+      if (error?.code === 11000) {
+        return { ok: false, status: 409, code: 'OAUTH_ACCOUNT_CONFLICT', message: 'OAuth account conflict detected' };
+      }
+      throw error;
+    }
+
+    const updatedUser = await this.userRepository.updateLastLoginAt(user.id, new Date());
+    return { ok: true, user: sanitizeUser(updatedUser ?? user) };
   }
 
   async seedAdminFromEnv({ email, password, name }) {
@@ -121,6 +347,7 @@ class AuthService {
       status: 'staff',
       accountStatus: 'active',
       authProvider: 'local',
+      providers: ['local'],
       providerId: null,
       emailVerified: true,
       emailVerificationTokenHash: null,
@@ -165,6 +392,7 @@ class AuthService {
         status: 'client',
         accountStatus: 'active',
         authProvider: 'local',
+        providers: ['local'],
         providerId: null,
         emailVerified: false,
         emailVerificationTokenHash: verification.tokenHash,
@@ -208,7 +436,7 @@ class AuthService {
       return { ok: false, status: 401, code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', reason: 'email_not_found' };
     }
 
-    if (user.authProvider !== 'local' || !user.passwordHash) {
+    if (!user.providers?.includes('local') || !user.passwordHash) {
       return { ok: false, status: 401, code: 'INVALID_CREDENTIALS', message: 'Invalid credentials', reason: 'local_password_missing' };
     }
 
@@ -225,31 +453,8 @@ class AuthService {
     return { ok: true, user: sanitizeUser(updatedUser ?? user) };
   }
 
-  async loginWithOAuth({ email, name, authProvider, providerId }) {
-    const normalizedEmail = normalizeEmail(email);
-    if (!normalizedEmail || !providerId || !['google', 'facebook'].includes(authProvider)) {
-      return { ok: false, status: 400, code: 'OAUTH_PROFILE_INVALID', message: 'Invalid OAuth profile' };
-    }
-
-    const user = await this.userRepository.upsertOAuthUser({
-      email: normalizedEmail,
-      name: String(name ?? normalizedEmail.split('@')[0]).trim(),
-      authProvider,
-      providerId,
-      role: OAUTH_DEFAULT_ROLE,
-      status: 'client',
-      accountStatus: 'active',
-      emailVerified: true,
-      emailVerificationTokenHash: null,
-      emailVerificationTokenExpiresAt: null,
-    });
-
-    if (user.accountStatus === 'suspended') {
-      return { ok: false, status: 403, code: 'ACCOUNT_SUSPENDED', message: 'Account suspended' };
-    }
-
-    const updatedUser = await this.userRepository.updateLastLoginAt(user.id, new Date());
-    return { ok: true, user: sanitizeUser(updatedUser ?? user) };
+  async loginWithOAuth(params) {
+    return this.loginWithOAuthProfile(params);
   }
 
   async resendVerification({ userId }) {
@@ -367,7 +572,7 @@ class AuthService {
     }
 
     const user = await this.userRepository.findByEmailWithPassword(normalizedEmail);
-    if (!user || user.authProvider !== 'local') {
+    if (!user || !user.providers?.includes('local')) {
       return { ok: true, emailDeliveryReady: Boolean(this.emailService?.isDeliveryReady?.()) };
     }
 

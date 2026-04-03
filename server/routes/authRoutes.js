@@ -15,6 +15,8 @@ function createAuthRoutes({ authController }) {
 
   router.get('/session', authController.getSession);
   router.get('/oauth/providers', authController.getOAuthProviders);
+  router.get('/oauth/:provider/start', limiter, authController.startOAuth);
+  router.get('/oauth/:provider/callback', limiter, authController.handleOAuthCallback);
   router.post('/register', limiter, requireCsrf, authController.register);
   router.post('/login', limiter, requireCsrf, authController.login);
   router.post('/oauth/:provider', limiter, requireCsrf, authController.oauthLogin);

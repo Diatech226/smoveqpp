@@ -7,7 +7,30 @@ function normalizeEmail(email) {
   return String(email ?? '').trim().toLowerCase();
 }
 
+function normalizeProviders(inputProviders, fallbackProvider) {
+  const providers = Array.isArray(inputProviders) ? inputProviders : [];
+  const normalized = new Set(
+    providers
+      .map((provider) => String(provider ?? '').trim().toLowerCase())
+      .filter((provider) => AUTH_PROVIDERS.includes(provider)),
+  );
+
+  if (AUTH_PROVIDERS.includes(fallbackProvider)) {
+    normalized.add(fallbackProvider);
+  }
+
+  if (normalized.size === 0) {
+    normalized.add('local');
+  }
+
+  return Array.from(normalized);
+}
+
 function normalizeUserInput(input) {
+  const authProvider = AUTH_PROVIDERS.includes(input.authProvider) ? input.authProvider : 'local';
+  const googleId = input.googleId ? String(input.googleId) : null;
+  const facebookId = input.facebookId ? String(input.facebookId) : null;
+
   return {
     id: String(input.id),
     email: normalizeEmail(input.email),
@@ -18,8 +41,12 @@ function normalizeUserInput(input) {
     accountStatus: ACCOUNT_STATUSES.includes(input.accountStatus)
       ? input.accountStatus
       : (ACCOUNT_STATUSES.includes(input.status) ? input.status : 'active'),
-    authProvider: AUTH_PROVIDERS.includes(input.authProvider) ? input.authProvider : 'local',
-    providerId: input.providerId ? String(input.providerId) : null,
+    authProvider,
+    providerId: input.providerId ? String(input.providerId) : (googleId ?? facebookId ?? null),
+    providers: normalizeProviders(input.providers, authProvider),
+    googleId,
+    facebookId,
+    avatarUrl: input.avatarUrl ? String(input.avatarUrl) : null,
     emailVerified: Boolean(input.emailVerified),
     emailVerificationTokenHash: input.emailVerificationTokenHash ? String(input.emailVerificationTokenHash) : null,
     emailVerificationTokenExpiresAt: input.emailVerificationTokenExpiresAt ?? null,
@@ -87,6 +114,27 @@ function createUserModel(mongoose) {
         type: String,
         default: null,
       },
+      providers: {
+        type: [String],
+        enum: AUTH_PROVIDERS,
+        default: ['local'],
+      },
+      googleId: {
+        type: String,
+        default: null,
+        sparse: true,
+        index: true,
+      },
+      facebookId: {
+        type: String,
+        default: null,
+        sparse: true,
+        index: true,
+      },
+      avatarUrl: {
+        type: String,
+        default: null,
+      },
       emailVerified: {
         type: Boolean,
         default: false,
@@ -121,6 +169,8 @@ function createUserModel(mongoose) {
 
   schema.index({ email: 1 }, { unique: true });
   schema.index({ authProvider: 1, providerId: 1 }, { unique: true, sparse: true });
+  schema.index({ googleId: 1 }, { unique: true, sparse: true });
+  schema.index({ facebookId: 1 }, { unique: true, sparse: true });
 
   schema.pre('validate', function normalizeBeforeValidate(next) {
     if (this.email) {
@@ -128,6 +178,12 @@ function createUserModel(mongoose) {
     }
     if (this.name) {
       this.name = String(this.name).trim();
+    }
+    this.providers = normalizeProviders(this.providers, this.authProvider);
+    if (this.googleId) this.googleId = String(this.googleId);
+    if (this.facebookId) this.facebookId = String(this.facebookId);
+    if (!this.providerId) {
+      this.providerId = this.googleId ?? this.facebookId ?? null;
     }
     next();
   });

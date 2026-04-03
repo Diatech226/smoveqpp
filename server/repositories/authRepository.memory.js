@@ -18,9 +18,16 @@ class MemoryAuthRepository {
     return null;
   }
 
+  async findByEmail(email) {
+    return this.findByEmailWithPassword(email);
+  }
+
   async findByProvider(authProvider, providerId) {
+    const providerIdText = String(providerId);
     for (const user of users.values()) {
-      if (user.authProvider === authProvider && user.providerId === String(providerId)) return { ...user };
+      if (authProvider === 'google' && user.googleId === providerIdText) return { ...user };
+      if (authProvider === 'facebook' && user.facebookId === providerIdText) return { ...user };
+      if (user.authProvider === authProvider && user.providerId === providerIdText) return { ...user };
     }
     return null;
   }
@@ -39,22 +46,27 @@ class MemoryAuthRepository {
     return null;
   }
 
-  async upsertOAuthUser(input) {
-    const existingByProvider = await this.findByProvider(input.authProvider, input.providerId);
-    if (existingByProvider) {
-      const updated = normalizeUserInput({ ...existingByProvider, ...input, id: existingByProvider.id });
-      users.set(updated.id, updated);
-      return { ...updated };
-    }
+  async linkOAuthProvider(id, { authProvider, providerId, name, emailVerified = true, avatarUrl = null }) {
+    const user = users.get(String(id));
+    if (!user) return null;
+    const next = {
+      ...user,
+      providerId: String(providerId),
+      name: name || user.name,
+      avatarUrl: avatarUrl || user.avatarUrl || null,
+      emailVerified,
+      emailVerificationTokenHash: null,
+      emailVerificationTokenExpiresAt: null,
+      providers: Array.from(new Set([...(user.providers ?? [user.authProvider ?? 'local']), authProvider])),
+      updatedAt: new Date(),
+    };
 
-    const existingByEmail = await this.findByEmailWithPassword(input.email);
-    if (existingByEmail) {
-      const updated = normalizeUserInput({ ...existingByEmail, ...input, id: existingByEmail.id });
-      users.set(updated.id, updated);
-      return { ...updated };
-    }
+    if (authProvider === 'google') next.googleId = String(providerId);
+    if (authProvider === 'facebook') next.facebookId = String(providerId);
 
-    return this.create(input);
+    const normalized = normalizeUserInput({ ...next, id: user.id });
+    users.set(user.id, normalized);
+    return { ...normalized };
   }
 
   async findById(id) {
