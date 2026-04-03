@@ -118,6 +118,9 @@ function buildFrontendOrigins() {
     configuredPrimary,
     process.env.CMS_ORIGIN,
     process.env.CMS_FRONTEND_ORIGIN,
+    process.env.VITE_CMS_APP_URL,
+    process.env.VITE_PUBLIC_SITE_URL,
+    process.env.VITE_PUBLIC_APP_URL,
     ...(process.env.FRONTEND_ORIGINS ?? '').split(',').map((entry) => entry.trim()),
   ];
 
