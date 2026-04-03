@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const { FRONTEND_ORIGIN, FRONTEND_ORIGINS } = require('../config/env');
 const { getOrCreateCsrfToken } = require('../middleware/csrf');
 const { sendSuccess, sendError } = require('../utils/apiResponse');
 const { logAuthEvent, listAuthAuditEvents } = require('../utils/authLogger');
@@ -33,6 +35,34 @@ function startSession(req, res, user, eventName, statusCode = 200, extras = {}) 
   });
 }
 
+function finishOAuthSession(req, res, user, eventName, redirectTo) {
+  req.session.regenerate((regenerateError) => {
+    if (regenerateError) {
+      logAuthEvent(req, eventName, 'failure', { code: 'SESSION_ERROR' });
+      return res.redirect(`${FRONTEND_ORIGIN}/#login?oauthError=SESSION_ERROR`);
+    }
+
+    req.session.userId = user.id;
+    req.session.role = user.role;
+    req.session.authenticatedAt = new Date().toISOString();
+    logAuthEvent(req, eventName, 'success', { userId: user.id, email: user.email });
+    return res.redirect(redirectTo);
+  });
+}
+
+function parseSafeRedirect(redirectTo, fallback = `${FRONTEND_ORIGIN}/#login`) {
+  if (!redirectTo || typeof redirectTo !== 'string') return fallback;
+  try {
+    const parsed = new URL(redirectTo);
+    if (!FRONTEND_ORIGINS.includes(parsed.origin)) {
+      return fallback;
+    }
+    return parsed.toString();
+  } catch {
+    return fallback;
+  }
+}
+
 function buildAuthController({ authService }) {
   return {
     getSession: async (req, res) => {
@@ -50,6 +80,55 @@ function buildAuthController({ authService }) {
         csrfToken: getOrCreateCsrfToken(req),
         session: buildSessionMeta(req, user),
       });
+    },
+
+    startOAuth: async (req, res) => {
+      const { provider } = req.params;
+      const redirectTo = parseSafeRedirect(req.query?.redirectTo, `${FRONTEND_ORIGIN}/#login`);
+      const state = crypto.randomBytes(24).toString('hex');
+
+      req.session.oauth = {
+        provider,
+        state,
+        redirectTo,
+        createdAt: Date.now(),
+      };
+
+      const result = authService.buildOAuthAuthorizationUrl({ provider, state });
+      if (!result.ok) {
+        logAuthEvent(req, `oauth_start_${provider}`, 'failure', { code: result.code });
+        return res.redirect(`${redirectTo}?oauthError=${encodeURIComponent(result.code)}`);
+      }
+
+      logAuthEvent(req, `oauth_start_${provider}`, 'success');
+      return res.redirect(result.url);
+    },
+
+    handleOAuthCallback: async (req, res) => {
+      const { provider } = req.params;
+      const storedOAuth = req.session?.oauth ?? null;
+      const fallbackRedirect = parseSafeRedirect(storedOAuth?.redirectTo, `${FRONTEND_ORIGIN}/#login`);
+
+      if (req.query?.error) {
+        const code = String(req.query.error);
+        logAuthEvent(req, `oauth_${provider}`, 'failure', { code });
+        return res.redirect(`${fallbackRedirect}?oauthError=${encodeURIComponent(code)}`);
+      }
+
+      if (!storedOAuth || storedOAuth.provider !== provider || storedOAuth.state !== req.query?.state) {
+        logAuthEvent(req, `oauth_${provider}`, 'failure', { code: 'OAUTH_STATE_INVALID' });
+        return res.redirect(`${fallbackRedirect}?oauthError=OAUTH_STATE_INVALID`);
+      }
+
+      req.session.oauth = null;
+
+      const result = await authService.loginWithOAuthCode({ provider, code: req.query?.code });
+      if (!result.ok) {
+        logAuthEvent(req, `oauth_${provider}`, 'failure', { code: result.code });
+        return res.redirect(`${fallbackRedirect}?oauthError=${encodeURIComponent(result.code)}`);
+      }
+
+      return finishOAuthSession(req, res, result.user, `oauth_${provider}`, fallbackRedirect);
     },
 
     register: async (req, res) => {

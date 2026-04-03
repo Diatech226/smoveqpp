@@ -157,6 +157,13 @@ npm run dev:all
 - `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_CALLBACK_URL`
 - `OAUTH_DEFAULT_ROLE`
 
+### OAuth redirect/callback setup
+- Backend start routes: `/api/v1/auth/oauth/google/start` and `/api/v1/auth/oauth/facebook/start`.
+- Callback routes must exactly match provider config: `GOOGLE_CALLBACK_URL` and `FACEBOOK_CALLBACK_URL` (defaults in `.env.example`).
+- Allowed frontend origins for post-login redirects are controlled by `FRONTEND_ORIGIN` + `FRONTEND_ORIGINS`.
+- Google scopes: `openid email profile`; Facebook scopes: `email,public_profile`.
+- Facebook can omit email; when no email is returned and account is not already linked, login is rejected with a safe error to prevent duplicates.
+
 ### Email
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`
 - `EMAIL_FROM`

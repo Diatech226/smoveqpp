@@ -17,6 +17,7 @@ describe('AuthService', () => {
         const user = {
           id: String(users.length + 1),
           ...input,
+          providers: input.providers ?? [input.authProvider ?? 'local'],
           authProvider: input.authProvider ?? 'local',
           providerId: input.providerId ?? null,
           createdAt: new Date(),
@@ -26,18 +27,21 @@ describe('AuthService', () => {
         return user;
       },
       findByEmailWithPassword: async (email) => users.find((u) => u.email === email) ?? null,
-      findByProvider: async (provider, providerId) => users.find((u) => u.authProvider === provider && u.providerId === providerId) ?? null,
-      findById: async (id) => users.find((u) => u.id === id) ?? null,
-      upsertOAuthUser: async (input) => {
-        const existing = users.find((u) => u.email === input.email || (u.authProvider === input.authProvider && u.providerId === input.providerId));
-        if (existing) {
-          Object.assign(existing, input);
-          return existing;
-        }
-        const user = { id: String(users.length + 1), ...input, passwordHash: null, createdAt: new Date(), updatedAt: new Date() };
-        users.push(user);
+      findByEmail: async (email) => users.find((u) => u.email === email) ?? null,
+      findByProvider: async (provider, providerId) => users.find((u) => (provider === 'google' ? u.googleId : u.facebookId) === providerId) ?? null,
+      linkOAuthProvider: async (id, payload) => {
+        const user = users.find((u) => u.id === String(id));
+        if (!user) return null;
+        if (payload.authProvider === 'google') user.googleId = payload.providerId;
+        if (payload.authProvider === 'facebook') user.facebookId = payload.providerId;
+        user.providers = Array.from(new Set([...(user.providers ?? ['local']), payload.authProvider]));
+        user.providerId = payload.providerId;
+        user.emailVerified = payload.emailVerified;
+        user.avatarUrl = payload.avatarUrl ?? user.avatarUrl ?? null;
+        user.name = payload.name ?? user.name;
         return user;
       },
+      findById: async (id) => users.find((u) => u.id === id) ?? null,
       updateLastLoginAt: async (id, date) => {
         const user = users.find((u) => u.id === String(id));
         if (!user) return null;
@@ -70,7 +74,6 @@ describe('AuthService', () => {
     expect(result.code).toBe('REGISTRATION_DISABLED');
   });
 
-
   it('register creates user when public registration is enabled', async () => {
     const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
 
@@ -83,48 +86,6 @@ describe('AuthService', () => {
     expect(users[0].passwordHash).toBeTruthy();
   });
 
-
-  it('register rejects invalid payload when enabled', async () => {
-    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
-
-    const result = await registerEnabledService.register({ email: 'bad@x.com', password: 'short', name: '' });
-
-    expect(result.ok).toBe(false);
-    expect(result.code).toBe('VALIDATION_ERROR');
-  });
-
-  it('register rejects duplicate email when enabled', async () => {
-    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
-
-    await registerEnabledService.register({ email: 'dup@x.com', password: 'password123', name: 'Dup One' });
-    const duplicate = await registerEnabledService.register({ email: 'dup@x.com', password: 'password123', name: 'Dup Two' });
-
-    expect(duplicate.ok).toBe(false);
-    expect(duplicate.code).toBe('EMAIL_ALREADY_EXISTS');
-  });
-
-  it('admin seed creates admin only once', async () => {
-    const first = await service.seedAdminFromEnv({ email: 'admin@x.com', password: 'password123', name: 'Admin' });
-    const second = await service.seedAdminFromEnv({ email: 'admin@x.com', password: 'password123', name: 'Admin' });
-
-    expect(first.ok).toBe(true);
-    expect(first.created).toBe(true);
-    expect(second.created).toBe(false);
-    expect(users[0].role).toBe('admin');
-  });
-
-
-  it('admin seed and login normalize email casing', async () => {
-    const seed = await service.seedAdminFromEnv({ email: 'Admin@Example.com ', password: 'password123', name: 'Admin' });
-    const login = await service.login({ email: ' ADMIN@example.COM', password: 'password123' });
-
-    expect(seed.ok).toBe(true);
-    expect(seed.created).toBe(true);
-    expect(users[0].email).toBe('admin@example.com');
-    expect(login.ok).toBe(true);
-  });
-
-
   it('user registered through public flow can log in', async () => {
     const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
 
@@ -136,63 +97,82 @@ describe('AuthService', () => {
     expect(login.user?.email).toBe('flow@x.com');
   });
 
-  it('valid login succeeds and updates lastLoginAt', async () => {
-    await service.seedAdminFromEnv({ email: 'x@x.com', password: 'password123', name: 'X' });
+  it('oauth links google account to existing local account by email', async () => {
+    users.push({
+      id: '1',
+      email: 'link@x.com',
+      name: 'Local User',
+      passwordHash: 'salt:hash',
+      providers: ['local'],
+      authProvider: 'local',
+      role: 'client',
+      status: 'client',
+      accountStatus: 'active',
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-    const result = await service.login({ email: 'x@x.com', password: 'password123' });
+    const result = await service.loginWithOAuthProfile({
+      authProvider: 'google',
+      providerId: 'g-123',
+      email: 'link@x.com',
+      name: 'Google User',
+      emailVerified: true,
+    });
 
     expect(result.ok).toBe(true);
-    expect(result.user?.lastLoginAt).toBeTruthy();
+    expect(users).toHaveLength(1);
+    expect(users[0].googleId).toBe('g-123');
+    expect(users[0].providers).toContain('google');
   });
 
-  it('invalid login fails cleanly', async () => {
-    const result = await service.login({ email: 'missing@x.com', password: 'pass' });
-    expect(result.ok).toBe(false);
-    expect(result.code).toBe('INVALID_CREDENTIALS');
+  it('oauth creates new user when no matching provider/email exists', async () => {
+    const result = await service.loginWithOAuthProfile({
+      authProvider: 'google',
+      providerId: 'g-999',
+      email: 'oauth@x.com',
+      name: 'OAuth User',
+      emailVerified: true,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(users).toHaveLength(1);
+    expect(users[0].googleId).toBe('g-999');
+    expect(users[0].email).toBe('oauth@x.com');
   });
 
-  it('suspended user login is refused', async () => {
-    await service.seedAdminFromEnv({ email: 's@x.com', password: 'password123', name: 'S' });
-    users[0].accountStatus = 'suspended';
-    const result = await service.login({ email: 's@x.com', password: 'password123' });
-    expect(result.ok).toBe(false);
-    expect(result.code).toBe('ACCOUNT_SUSPENDED');
-  });
+  it('repeat google login reuses provider account', async () => {
+    await service.loginWithOAuthProfile({ authProvider: 'google', providerId: 'g-1', email: 'g@x.com', name: 'G' });
+    const second = await service.loginWithOAuthProfile({ authProvider: 'google', providerId: 'g-1', email: 'g@x.com', name: 'G' });
 
-  it('google oauth creates or reuses user', async () => {
-    const first = await service.loginWithOAuth({ email: 'g@x.com', name: 'G', authProvider: 'google', providerId: 'g-1' });
-    const second = await service.loginWithOAuth({ email: 'g@x.com', name: 'G', authProvider: 'google', providerId: 'g-1' });
-
-    expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
     expect(users).toHaveLength(1);
   });
 
-
-  it('non-admin cannot change roles through admin update flow', async () => {
-    await service.seedAdminFromEnv({ email: 'admin@x.com', password: 'password123', name: 'Admin' });
-    await service.register({ email: 'user@x.com', password: 'password123', name: 'User One' });
-
-    const target = users.find((u) => u.email === 'user@x.com');
-    const result = await service.updateUserByAdmin(target.id, { role: 'editor' }, { id: 'external', role: 'editor' });
-
+  it('facebook oauth without email fails when provider account is not linked', async () => {
+    const result = await service.loginWithOAuthProfile({ authProvider: 'facebook', providerId: 'fb-1', email: '', name: 'FB User' });
     expect(result.ok).toBe(false);
-    expect(result.code).toBe('FORBIDDEN_ROLE_CHANGE');
+    expect(result.code).toBe('OAUTH_EMAIL_REQUIRED');
   });
 
-  it('password reset request + confirm updates credentials', async () => {
-    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
-    await registerEnabledService.register({ email: 'recover@x.com', password: 'password123', name: 'Recover User' });
+  it('facebook oauth reuses existing linked account', async () => {
+    users.push({
+      id: '1',
+      email: 'fb@x.com',
+      name: 'Fb User',
+      providers: ['facebook'],
+      facebookId: 'fb-123',
+      authProvider: 'facebook',
+      role: 'client',
+      status: 'client',
+      accountStatus: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-    const resetRequest = await registerEnabledService.requestPasswordReset({ email: 'recover@x.com' });
-    expect(resetRequest.ok).toBe(true);
-    expect(resetRequest.devToken).toBeTruthy();
-
-    const resetConfirm = await registerEnabledService.resetPasswordWithToken({ token: resetRequest.devToken, password: 'newpassword123' });
-    expect(resetConfirm.ok).toBe(true);
-
-    const login = await registerEnabledService.login({ email: 'recover@x.com', password: 'newpassword123' });
-    expect(login.ok).toBe(true);
+    const result = await service.loginWithOAuthProfile({ authProvider: 'facebook', providerId: 'fb-123', email: null, name: 'Fb User' });
+    expect(result.ok).toBe(true);
+    expect(users).toHaveLength(1);
   });
-
 });

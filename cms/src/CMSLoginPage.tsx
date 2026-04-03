@@ -7,7 +7,7 @@ export default function CMSLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login, authError, authNotice, cmsEnabled } = useAuth();
+  const { login, beginOAuthLogin, authError, authNotice, cmsEnabled, oauthProviders } = useAuth();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,6 +90,25 @@ export default function CMSLoginPage() {
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
+
+        <div className="mt-4 space-y-2">
+          <button
+            type="button"
+            disabled={!oauthProviders.google || loading}
+            onClick={() => beginOAuthLogin('google')}
+            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Se connecter avec Google
+          </button>
+          <button
+            type="button"
+            disabled={!oauthProviders.facebook || loading}
+            onClick={() => beginOAuthLogin('facebook')}
+            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Se connecter avec Facebook
+          </button>
+        </div>
       </div>
     </div>
   );

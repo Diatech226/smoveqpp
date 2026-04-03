@@ -224,3 +224,12 @@ export function requestPasswordResetWithApi(email: string, csrfToken?: string | 
 export function confirmPasswordResetWithApi(token: string, password: string, csrfToken?: string | null): Promise<AuthResult> {
   return requestAuth('/password-reset/confirm', { method: 'POST', body: JSON.stringify({ token, password }) }, csrfToken);
 }
+
+
+export function buildOAuthStartUrl(provider: 'google' | 'facebook', redirectTo?: string): string {
+  const target = redirectTo ?? (typeof window !== 'undefined' ? window.location.href : undefined);
+  const query = new URLSearchParams();
+  if (target) query.set('redirectTo', target);
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return `${AUTH_BASE_URL}/oauth/${provider}/start${suffix}`;
+}

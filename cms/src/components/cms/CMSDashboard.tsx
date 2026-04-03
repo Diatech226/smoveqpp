@@ -2330,27 +2330,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               </select>
             </div>
           </AdminPanel>
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-2">
           <AdminPanel title="Comptes">
-            <div className="grid gap-3 md:grid-cols-4">
-              <div className="rounded-[12px] border border-[#e5edf0] bg-[#f8fbfc] p-3">
-                <p className="text-[12px] text-[#6f7f85]">Total</p>
-                <p className="font-semibold text-[#273a41]">{adminUsers.length}</p>
-              </div>
-              <div className="rounded-[12px] border border-emerald-100 bg-emerald-50 p-3">
-                <p className="text-[12px] text-emerald-700">Actifs</p>
-                <p className="font-semibold text-emerald-800">{adminUsers.filter((entry) => (entry.accountStatus ?? 'active') === 'active').length}</p>
-              </div>
-              <div className="rounded-[12px] border border-amber-100 bg-amber-50 p-3">
-                <p className="text-[12px] text-amber-700">Invités</p>
-                <p className="font-semibold text-amber-800">{adminUsers.filter((entry) => entry.accountStatus === 'invited').length}</p>
-              </div>
-              <div className="rounded-[12px] border border-red-100 bg-red-50 p-3">
-                <p className="text-[12px] text-red-700">Suspendus</p>
-                <p className="font-semibold text-red-800">{adminUsers.filter((entry) => entry.accountStatus === 'suspended').length}</p>
-              </div>
-            </div>
             {!adminUsersLoading && adminUsers.length === 0 ? (
               <AdminEmptyState label="Aucun utilisateur trouvé." />
             ) : null}
@@ -2400,9 +2380,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               null
             )}
           </AdminPanel>
-          </div>
           {selectedAdminUser ? (
-            <div className="xl:col-span-1">
             <AdminPanel title="Détail & gestion du compte">
               <div className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-2">
@@ -2458,9 +2436,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                 </div>
               </div>
             </AdminPanel>
-            </div>
           ) : null}
-          </div>
           {user?.role === 'admin' ? (
             <AdminPanel title="Journal d’audit (identité)">
               {auditLoading ? <AdminLoadingState label="Chargement du journal d’audit..." /> : null}

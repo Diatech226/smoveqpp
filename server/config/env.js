@@ -89,6 +89,14 @@ function validateCriticalEnv() {
   if (isProduction && SESSION_STORE_MODE !== 'mongo') {
     throw new Error('SESSION_STORE_MODE must be set to "mongo" in production.');
   }
+
+  if ((process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_SECRET) && !(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)) {
+    throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be set when enabling Google OAuth.');
+  }
+
+  if ((process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_APP_SECRET) && !(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET)) {
+    throw new Error('FACEBOOK_APP_ID and FACEBOOK_APP_SECRET must both be set when enabling Facebook OAuth.');
+  }
 }
 
 const GOOGLE_CALLBACK_PATH = process.env.GOOGLE_CALLBACK_PATH ?? '/api/v1/auth/oauth/google/callback';
