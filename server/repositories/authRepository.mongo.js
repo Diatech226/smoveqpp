@@ -3,6 +3,10 @@ const { createUserModel, normalizeEmail } = require('../models/User');
 function mapMongoUser(doc) {
   if (!doc) return null;
   const accountStatus = doc.accountStatus ?? (['active', 'invited', 'suspended'].includes(doc.status) ? doc.status : 'active');
+  const providers = Array.isArray(doc.providers) && doc.providers.length > 0
+    ? doc.providers
+    : [doc.authProvider ?? 'local'];
+
   return {
     id: String(doc._id),
     email: doc.email,
@@ -13,6 +17,10 @@ function mapMongoUser(doc) {
     accountStatus,
     authProvider: doc.authProvider,
     providerId: doc.providerId ?? null,
+    providers,
+    googleId: doc.googleId ?? null,
+    facebookId: doc.facebookId ?? null,
+    avatarUrl: doc.avatarUrl ?? null,
     emailVerified: Boolean(doc.emailVerified),
     emailVerificationTokenHash: doc.emailVerificationTokenHash ?? null,
     emailVerificationTokenExpiresAt: doc.emailVerificationTokenExpiresAt ?? null,
@@ -39,6 +47,10 @@ class MongoAuthRepository {
       accountStatus: input.accountStatus,
       authProvider: input.authProvider ?? 'local',
       providerId: input.providerId ?? null,
+      providers: input.providers,
+      googleId: input.googleId ?? null,
+      facebookId: input.facebookId ?? null,
+      avatarUrl: input.avatarUrl ?? null,
       emailVerified: Boolean(input.emailVerified),
       emailVerificationTokenHash: input.emailVerificationTokenHash ?? null,
       emailVerificationTokenExpiresAt: input.emailVerificationTokenExpiresAt ?? null,
@@ -52,8 +64,13 @@ class MongoAuthRepository {
     return mapMongoUser(user);
   }
 
+  async findByEmail(email) {
+    return this.findByEmailWithPassword(email);
+  }
+
   async findByProvider(authProvider, providerId) {
-    const user = await this.UserModel.findOne({ authProvider, providerId: String(providerId) }).exec();
+    const providerKey = authProvider === 'google' ? 'googleId' : authProvider === 'facebook' ? 'facebookId' : 'providerId';
+    const user = await this.UserModel.findOne({ [providerKey]: String(providerId) }).exec();
     return mapMongoUser(user);
   }
 
@@ -82,44 +99,25 @@ class MongoAuthRepository {
     return count > 0;
   }
 
-  async upsertOAuthUser({
-    email,
-    name,
-    authProvider,
-    providerId,
-    role = 'viewer',
-    status = 'client',
-    accountStatus = 'active',
-    emailVerified = true,
-    emailVerificationTokenHash = null,
-    emailVerificationTokenExpiresAt = null,
-  }) {
-    const user = await this.UserModel.findOneAndUpdate(
-      {
-        $or: [{ email: normalizeEmail(email) }, { authProvider, providerId: String(providerId) }],
-      },
+  async linkOAuthProvider(id, { authProvider, providerId, name, emailVerified = true, avatarUrl = null }) {
+    const providerField = authProvider === 'google' ? 'googleId' : 'facebookId';
+
+    const user = await this.UserModel.findByIdAndUpdate(
+      id,
       {
         $set: {
-          email: normalizeEmail(email),
-          name,
-          authProvider,
+          [providerField]: String(providerId),
           providerId: String(providerId),
-          status,
-          accountStatus,
+          ...(name ? { name } : {}),
+          ...(avatarUrl ? { avatarUrl } : {}),
           emailVerified,
-          emailVerificationTokenHash,
-          emailVerificationTokenExpiresAt,
+          emailVerificationTokenHash: null,
+          emailVerificationTokenExpiresAt: null,
           updatedAt: new Date(),
         },
-        $setOnInsert: {
-          role,
-          createdAt: new Date(),
-        },
+        $addToSet: { providers: authProvider },
       },
-      {
-        upsert: true,
-        new: true,
-      },
+      { new: true },
     ).exec();
 
     return mapMongoUser(user);
