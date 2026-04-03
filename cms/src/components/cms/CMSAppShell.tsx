@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { getPublicSiteUrl } from '../../utils/publicSiteUrl';
 
 interface CMSAppShellProps {
   children: ReactNode;
@@ -16,7 +17,9 @@ export default function CMSAppShell({ children }: CMSAppShellProps) {
             <p className="text-xs text-slate-500">Espace d'administration</p>
           </div>
           <a
-            href="#home"
+            href={getPublicSiteUrl()}
+            target="_blank"
+            rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-[10px] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50"
           >
             <ArrowLeft size={16} />

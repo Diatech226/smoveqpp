@@ -289,6 +289,7 @@ interface PageContentSectionProps {
   homeContentError: string;
   saveHomePageContent: () => void;
   homeContentSaving: boolean;
+  hasUnsavedChanges: boolean;
   canEditContent: boolean;
   resetHomePageContent: () => void;
   homeContentForm: HomePageContentSettings;
@@ -296,41 +297,89 @@ interface PageContentSectionProps {
   mediaFiles: MediaFile[];
 }
 
-export function PageContentSection({ homeContentError, saveHomePageContent, homeContentSaving, canEditContent, resetHomePageContent, homeContentForm, setHomeContentForm, mediaFiles }: PageContentSectionProps) {
+export function PageContentSection({ homeContentError, saveHomePageContent, homeContentSaving, hasUnsavedChanges, canEditContent, resetHomePageContent, homeContentForm, setHomeContentForm, mediaFiles }: PageContentSectionProps) {
+  const sections = [
+    { id: 'hero', title: 'Hero', description: 'Contenu de première impression visible au chargement.' },
+    { id: 'about', title: 'À propos & services', description: 'Storytelling, promesse et image de marque.' },
+    { id: 'highlights', title: 'Projets, blog, contact', description: 'Blocs de conversion et de navigation éditoriale.' },
+  ] as const;
+
   return (
     <div className="space-y-6">
-      <AdminPageHeader title="Contenus pages" subtitle="Sections éditables centralisées pour la page d’accueil." />
+      <AdminPageHeader title="Contenus pages" subtitle="Édition structurée de la homepage publique: section par section, avec sauvegarde fiable." />
       {homeContentError ? <AdminErrorState label={homeContentError} /> : null}
       <AdminStickyFormActions>
         <AdminActionCluster>
-          <AdminButton type="button" onClick={resetHomePageContent}>Recharger</AdminButton>
+          <AdminButton type="button" onClick={resetHomePageContent}>Annuler / Recharger</AdminButton>
         </AdminActionCluster>
         <AdminActionCluster>
+          {hasUnsavedChanges ? <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[12px] text-amber-800">Modifié • non sauvegardé</span> : <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[12px] text-emerald-800">Synchronisé</span>}
           <AdminButton type="button" onClick={saveHomePageContent} disabled={homeContentSaving || !canEditContent} intent="primary">{homeContentSaving ? 'Sauvegarde…' : 'Enregistrer'}</AdminButton>
         </AdminActionCluster>
       </AdminStickyFormActions>
-      <p className={ADMIN_HELPER_TEXT_CLASS}>Ces champs pilotent la homepage publique. Les liens CTA acceptent <code>#ancre</code>, <code>/route</code> ou <code>https://</code>.</p>
-      <AdminPanel title="Hero">
-        <p className={`mb-3 ${ADMIN_HELPER_TEXT_CLASS}`}>Contenu affiché au-dessus de la ligne de flottaison sur la page d’accueil.</p>
-        <div className="grid gap-3 md:grid-cols-2"><input value={homeContentForm.heroBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBadge: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Badge hero (ex: Studio digital)" /><input value={homeContentForm.heroTitleLine1} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroTitleLine1: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre ligne 1 (hero)" /><input value={homeContentForm.heroTitleLine2} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroTitleLine2: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre ligne 2 (hero)" /><input value={homeContentForm.heroPrimaryCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroPrimaryCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA principal (label)" /><input value={homeContentForm.heroPrimaryCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroPrimaryCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA principal (lien)" /><input value={homeContentForm.heroSecondaryCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroSecondaryCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA secondaire (label)" /><input value={homeContentForm.heroSecondaryCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroSecondaryCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA secondaire (lien)" /><textarea value={homeContentForm.heroDescription} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroDescription: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Description hero (paragraphe introductif)" /></div>
-      </AdminPanel>
-      <AdminPanel title="Services + À propos"><div className="grid gap-3 md:grid-cols-2"><input value={homeContentForm.servicesIntroTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, servicesIntroTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre section services" /><input value={homeContentForm.servicesIntroSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, servicesIntroSubtitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Sous-titre services" /><input value={homeContentForm.aboutBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutBadge: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Badge à propos" /><input value={homeContentForm.aboutTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre à propos" /><textarea value={homeContentForm.aboutParagraphOne} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphOne: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Paragraphe 1" /><textarea value={homeContentForm.aboutParagraphTwo} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphTwo: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Paragraphe 2" /><input value={homeContentForm.aboutCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA à propos (label)" /><input value={homeContentForm.aboutCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA à propos (lien)" /><select value={homeContentForm.aboutImage} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutImage: event.target.value }))} className={`${ADMIN_INPUT_CLASS} md:col-span-2`}><option value="">Image about par défaut</option>{mediaFiles.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}</select></div></AdminPanel>
-      <AdminPanel title="Sections Projets + Blog + Contact">
+      <p className={ADMIN_HELPER_TEXT_CLASS}>Les liens CTA acceptent <code>#ancre</code>, <code>/route</code> ou <code>https://</code>. Les changements sont envoyés vers l’API CMS au moment de l’enregistrement.</p>
+      <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+        <aside className="rounded-[14px] border border-[#e4edf1] bg-white p-3 space-y-2 h-fit sticky top-24">
+          {sections.map((section) => (
+            <a key={section.id} href={`#${section.id}`} className="block rounded-[10px] border border-[#e9f0f3] bg-[#fbfdfe] px-3 py-2 hover:border-[#cfe2ea]">
+              <p className="text-[13px] font-semibold text-[#273a41]">{section.title}</p>
+              <p className="text-[11px] text-[#6f7f85]">{section.description}</p>
+            </a>
+          ))}
+        </aside>
         <div className="space-y-4">
-          <div className={ADMIN_SECTION_SUBCARD}>
-            <p className="mb-2 text-[13px] font-semibold text-[#273a41]">Bloc Projets (portfolio)</p>
-            <div className="grid gap-3 md:grid-cols-2"><input value={homeContentForm.portfolioBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioBadge: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Badge portfolio (au-dessus du titre)" /><input value={homeContentForm.portfolioTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre portfolio" /><textarea value={homeContentForm.portfolioSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioSubtitle: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} min-h-[70px] md:col-span-2`} placeholder="Sous-titre portfolio" /><input value={homeContentForm.portfolioCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA projets (label)" /><input value={homeContentForm.portfolioCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA projets (lien)" /></div>
-          </div>
-          <div className={ADMIN_SECTION_SUBCARD}>
-            <p className="mb-2 text-[13px] font-semibold text-[#273a41]">Bloc Blog</p>
-            <div className="grid gap-3 md:grid-cols-2"><input value={homeContentForm.blogBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogBadge: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Badge blog" /><input value={homeContentForm.blogTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre blog" /><textarea value={homeContentForm.blogSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogSubtitle: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} min-h-[70px] md:col-span-2`} placeholder="Sous-titre blog" /><input value={homeContentForm.blogCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA blog (label)" /><input value={homeContentForm.blogCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA blog (lien)" /></div>
-          </div>
-          <div className={ADMIN_SECTION_SUBCARD}>
-            <p className="mb-2 text-[13px] font-semibold text-[#273a41]">Bloc Contact</p>
-            <div className="grid gap-3 md:grid-cols-2"><input value={homeContentForm.contactTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre contact" /><input value={homeContentForm.contactSubmitLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactSubmitLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Libellé bouton contact" /><textarea value={homeContentForm.contactSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactSubtitle: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Sous-titre contact" /></div>
-          </div>
+          <AdminPanel title="Hero">
+            <div id="hero" className="space-y-3">
+              <p className={ADMIN_HELPER_TEXT_CLASS}>Section d’accueil (titre principal, promesse, CTA).</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <input value={homeContentForm.heroBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBadge: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Badge hero (ex: Studio digital)" />
+                <input value={homeContentForm.heroTitleLine1} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroTitleLine1: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre ligne 1 (hero)" />
+                <input value={homeContentForm.heroTitleLine2} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroTitleLine2: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre ligne 2 (hero)" />
+                <input value={homeContentForm.heroPrimaryCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroPrimaryCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA principal (label)" />
+                <input value={homeContentForm.heroPrimaryCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroPrimaryCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA principal (lien)" />
+                <input value={homeContentForm.heroSecondaryCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroSecondaryCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA secondaire (label)" />
+                <input value={homeContentForm.heroSecondaryCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroSecondaryCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA secondaire (lien)" />
+                <textarea value={homeContentForm.heroDescription} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroDescription: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Description hero (paragraphe introductif)" />
+              </div>
+            </div>
+          </AdminPanel>
+          <AdminPanel title="À propos & services">
+            <div id="about" className="space-y-3">
+              <p className={ADMIN_HELPER_TEXT_CLASS}>Section storytelling + crédibilité de marque (texte et visuel).</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <input value={homeContentForm.servicesIntroTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, servicesIntroTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre section services" />
+                <input value={homeContentForm.servicesIntroSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, servicesIntroSubtitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Sous-titre services" />
+                <input value={homeContentForm.aboutBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutBadge: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Badge à propos" />
+                <input value={homeContentForm.aboutTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre à propos" />
+                <textarea value={homeContentForm.aboutParagraphOne} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphOne: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Paragraphe 1" />
+                <textarea value={homeContentForm.aboutParagraphTwo} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutParagraphTwo: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Paragraphe 2" />
+                <input value={homeContentForm.aboutCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA à propos (label)" />
+                <input value={homeContentForm.aboutCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA à propos (lien)" />
+                <select value={homeContentForm.aboutImage} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, aboutImage: event.target.value }))} className={`${ADMIN_INPUT_CLASS} md:col-span-2`}>
+                  <option value="">Image about par défaut</option>
+                  {mediaFiles.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                </select>
+              </div>
+            </div>
+          </AdminPanel>
+          <AdminPanel title="Projets, blog, contact">
+            <div id="highlights" className="space-y-4">
+              <div className={ADMIN_SECTION_SUBCARD}>
+                <p className="mb-2 text-[13px] font-semibold text-[#273a41]">Bloc Projets (portfolio)</p>
+                <div className="grid gap-3 md:grid-cols-2"><input value={homeContentForm.portfolioBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioBadge: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Badge portfolio (au-dessus du titre)" /><input value={homeContentForm.portfolioTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre portfolio" /><textarea value={homeContentForm.portfolioSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioSubtitle: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} min-h-[70px] md:col-span-2`} placeholder="Sous-titre portfolio" /><input value={homeContentForm.portfolioCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA projets (label)" /><input value={homeContentForm.portfolioCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, portfolioCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA projets (lien)" /></div>
+              </div>
+              <div className={ADMIN_SECTION_SUBCARD}>
+                <p className="mb-2 text-[13px] font-semibold text-[#273a41]">Bloc Blog</p>
+                <div className="grid gap-3 md:grid-cols-2"><input value={homeContentForm.blogBadge} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogBadge: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Badge blog" /><input value={homeContentForm.blogTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre blog" /><textarea value={homeContentForm.blogSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogSubtitle: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} min-h-[70px] md:col-span-2`} placeholder="Sous-titre blog" /><input value={homeContentForm.blogCtaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogCtaLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA blog (label)" /><input value={homeContentForm.blogCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, blogCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA blog (lien)" /></div>
+              </div>
+              <div className={ADMIN_SECTION_SUBCARD}>
+                <p className="mb-2 text-[13px] font-semibold text-[#273a41]">Bloc Contact</p>
+                <div className="grid gap-3 md:grid-cols-2"><input value={homeContentForm.contactTitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactTitle: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Titre contact" /><input value={homeContentForm.contactSubmitLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactSubmitLabel: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="Libellé bouton contact" /><textarea value={homeContentForm.contactSubtitle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, contactSubtitle: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Sous-titre contact" /></div>
+              </div>
+            </div>
+          </AdminPanel>
         </div>
-      </AdminPanel>
+      </div>
     </div>
   );
 }
