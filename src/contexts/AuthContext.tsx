@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   fetchAdminUsers,
   fetchAuthAuditEvents,
@@ -150,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [oauthProviders, setOauthProviders] = useState<OAuthProviderState>({ google: false, facebook: false });
   const [sessionState, setSessionState] = useState<AuthSessionState | null>(null);
+  const authMutationVersionRef = useRef(0);
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
   const registrationEnabled = SECURITY_FLAGS.registrationEnabled;
@@ -169,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearLegacyAuthArtifacts();
 
     const bootstrapAuth = async () => {
+      const bootstrapVersion = authMutationVersionRef.current;
       try {
         if (!cmsEnabled) {
           if (!isActive) return;
@@ -181,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const session = await fetchServerSession();
-        if (!isActive) return;
+        if (!isActive || bootstrapVersion !== authMutationVersionRef.current) return;
 
         setCsrfToken(session.csrfToken);
         setUser(resolveTrustedSessionUser(session.user));
@@ -189,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthError(resolveAuthActionError(session));
 
         const providers = await fetchOAuthProviders(session.csrfToken);
-        if (isActive && providers.providers) {
+        if (isActive && bootstrapVersion === authMutationVersionRef.current && providers.providers) {
           setOauthProviders({
             google: Boolean(providers.providers.google?.enabled),
             facebook: Boolean(providers.providers.facebook?.enabled),
@@ -238,10 +240,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Le CMS est désactivé.', destination: null };
     }
 
-    let resolvedCsrfToken = csrfToken;
+    authMutationVersionRef.current += 1;
+    const session = await refreshSession(csrfToken);
+    let resolvedCsrfToken = session.csrfToken;
     if (!resolvedCsrfToken) {
-      const session = await refreshSession();
-      resolvedCsrfToken = session.csrfToken;
+      resolvedCsrfToken = csrfToken;
     }
 
     let result = await loginWithApi(email, password, resolvedCsrfToken);
@@ -280,6 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     provider: 'google' | 'facebook',
     payload: { email: string; name: string; providerId: string },
   ): Promise<AuthActionResult> => {
+    authMutationVersionRef.current += 1;
     const result = await oauthLoginWithApi(provider, payload, csrfToken);
     setCsrfToken(result.csrfToken);
     setSessionState(resolveSessionState(result));
@@ -302,6 +306,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Le CMS est désactivé.', destination: null };
     }
 
+    authMutationVersionRef.current += 1;
     const result = await registerWithApi(email, password, name, csrfToken);
     setCsrfToken(result.csrfToken);
     setSessionState(resolveSessionState(result));
@@ -332,6 +337,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const verifyEmail = async (token: string): Promise<AuthActionResult> => {
+    authMutationVersionRef.current += 1;
     const result = await verifyEmailWithApi(token, csrfToken);
     setCsrfToken(result.csrfToken);
     setSessionState(resolveSessionState(result));
@@ -350,6 +356,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const resendVerification = async (): Promise<AuthActionResult> => {
+    authMutationVersionRef.current += 1;
     const result = await resendVerificationWithApi(csrfToken);
     setCsrfToken(result.csrfToken);
     setSessionState(resolveSessionState(result));
@@ -388,6 +395,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userId: string,
     patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>,
   ): Promise<AuthActionResult> => {
+    authMutationVersionRef.current += 1;
     const result = await updateAdminUserWithApi(userId, patch, csrfToken);
     setCsrfToken(result.csrfToken ?? csrfToken);
     if (result.user && user?.id === result.user.id) {
@@ -405,6 +413,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    authMutationVersionRef.current += 1;
     const result = await logoutWithApi(csrfToken);
     setUser(null);
     setCsrfToken(result.csrfToken);
