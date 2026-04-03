@@ -27,7 +27,7 @@ The codebase currently targets **pre-production maturity**: architecture and sec
 - Public site exposes an admin-only CMS entry action that opens the standalone CMS app.
 - Sections in dashboard: overview, projects, blog, media, page content, users, settings.
 - Role-aware editorial actions (e.g., publish restrictions for author role).
-- Admin user management and auth audit-event visibility.
+- Professional admin user management: searchable/filterable user list (name/email/role/status/verification/provider/timestamps), detail panel, safe role/status/verification updates with self-protection guardrails, and auth audit-event visibility.
 
 ### Blog/content path
 - Public blog page renders canonicalized **published** posts from the backend public content API (`/api/content/public/blog`) with local repository fallback only when backend is unavailable.

@@ -8,9 +8,13 @@ export interface AppUser {
   status?: 'client' | 'staff';
   accountStatus?: 'active' | 'invited' | 'suspended';
   authProvider?: 'local' | 'google' | 'facebook';
+  providerId?: string | null;
   emailVerified?: boolean;
   verificationPending?: boolean;
   verificationMethod?: 'email_token' | 'provider_trust';
+  lastLoginAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 const USER_ROLES: UserRole[] = ['admin', 'editor', 'author', 'viewer', 'client'];
@@ -81,6 +85,10 @@ export function resolveTrustedSessionUser(serverUser: AppUser | null, _clientSto
     emailVerified: Boolean(serverUser.emailVerified),
     verificationPending: Boolean(serverUser.verificationPending),
     verificationMethod: VERIFICATION_METHODS.includes(serverUser.verificationMethod ?? 'email_token') ? serverUser.verificationMethod : 'email_token',
+    providerId: typeof serverUser.providerId === 'string' ? serverUser.providerId : null,
+    lastLoginAt: serverUser.lastLoginAt ? String(serverUser.lastLoginAt) : null,
+    createdAt: serverUser.createdAt ? String(serverUser.createdAt) : null,
+    updatedAt: serverUser.updatedAt ? String(serverUser.updatedAt) : null,
   };
 }
 
