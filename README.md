@@ -124,7 +124,8 @@ npm run dev:all
 - `VITE_ENABLE_REGISTRATION`
 - `VITE_CMS_APP_URL` (public app admin button target)
 - `VITE_CMS_PORT` (CMS app dev server port)
-- `VITE_PUBLIC_APP_URL` (CMS “retour site” link)
+- `VITE_PUBLIC_SITE_URL` (canonical CMS “retour site” target)
+- `VITE_PUBLIC_APP_URL` (legacy fallback for CMS “retour site”)
 
 ### Backend core
 - `API_PORT`
@@ -160,7 +161,7 @@ npm run dev:all
 ### OAuth redirect/callback setup
 - Backend start routes: `/api/v1/auth/oauth/google/start` and `/api/v1/auth/oauth/facebook/start`.
 - Callback routes must exactly match provider config: `GOOGLE_CALLBACK_URL` and `FACEBOOK_CALLBACK_URL` (defaults in `.env.example`).
-- Allowed frontend origins for post-login redirects are controlled by `FRONTEND_ORIGIN` + `FRONTEND_ORIGINS`.
+- Allowed frontend origins for post-login redirects are controlled by `FRONTEND_ORIGIN` + `FRONTEND_ORIGINS` (plus `CMS_ORIGIN`, `CMS_FRONTEND_ORIGIN`, `VITE_CMS_APP_URL`, `VITE_PUBLIC_SITE_URL`, `VITE_PUBLIC_APP_URL` when present).
 - Google scopes: `openid email profile`; Facebook scopes: `email,public_profile`.
 - Facebook can omit email; when no email is returned and account is not already linked, login is rejected with a safe error to prevent duplicates.
 

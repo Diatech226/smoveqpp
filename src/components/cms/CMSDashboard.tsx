@@ -69,6 +69,7 @@ import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomy
 import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
+import { getPublicSiteUrl } from '../../utils/publicSiteUrl';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -2100,7 +2101,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             Seuls les comptes administrateurs, éditeurs ou auteurs peuvent accéder au CMS.
           </p>
           <a
-            href="#home"
+            href={getPublicSiteUrl()}
+            target="_blank"
+            rel="noreferrer"
             className="inline-flex items-center justify-center bg-[#00b3e8] text-white px-6 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif]"
           >
             Retour au site
@@ -2618,7 +2621,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4] mt-1">Bienvenue, {user?.name}</p>
             </div>
             <a
-              href="#home"
+              href={getPublicSiteUrl()}
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px] text-[#273a41] hover:bg-[#f5f9fa]"
             >
               <Eye size={15} /> Voir le site
