@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, LogIn, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,7 +8,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, loginWithOAuth, oauthProviders, cmsEnabled, registrationEnabled, authError, authNotice } = useAuth();
+  const [oauthLoadingProvider, setOauthLoadingProvider] = useState<'google' | 'facebook' | null>(null);
+  const { login, beginOAuthLogin, oauthProviders, cmsEnabled, registrationEnabled, authError, authNotice } = useAuth();
   const particles = useMemo(
     () =>
       Array.from({ length: 20 }, () => ({
@@ -20,22 +21,34 @@ export default function LoginPage() {
     [],
   );
 
-  const handleOAuth = async (provider: 'google' | 'facebook') => {
+  useEffect(() => {
+    const rawHash = window.location.hash ?? '';
+    const [, hashQuery = ''] = rawHash.split('?');
+    if (!hashQuery) return;
+
+    const params = new URLSearchParams(hashQuery);
+    const oauthErrorCode = params.get('oauthError');
+    if (!oauthErrorCode) return;
+
+    const knownErrors: Record<string, string> = {
+      OAUTH_PROVIDER_DISABLED: 'Connexion sociale indisponible: provider non configuré côté serveur.',
+      OAUTH_STATE_INVALID: 'Connexion sociale interrompue (état OAuth invalide). Merci de réessayer.',
+      OAUTH_CODE_MISSING: 'Connexion sociale interrompue: code OAuth manquant.',
+      OAUTH_EMAIL_REQUIRED: "Facebook ne nous a pas transmis d'email. Autorisez l'email ou utilisez un autre mode de connexion.",
+      OAUTH_ACCOUNT_CONFLICT: 'Un compte existe déjà avec cet email/provider. Contactez un administrateur si nécessaire.',
+      OAUTH_TOKEN_EXCHANGE_FAILED: "Le provider a refusé l'échange du code OAuth. Vérifiez la configuration callback/secret.",
+      OAUTH_PROFILE_FETCH_FAILED: 'Impossible de récupérer le profil social. Réessayez dans quelques instants.',
+      SESSION_ERROR: 'Session serveur indisponible. Merci de réessayer.',
+    };
+
+    setError(knownErrors[oauthErrorCode] ?? `Connexion sociale impossible (${oauthErrorCode}).`);
+    setOauthLoadingProvider(null);
+  }, []);
+
+  const handleOAuth = (provider: 'google' | 'facebook') => {
     setError('');
-    const mockEmail = window.prompt(`Email ${provider}`);
-    if (!mockEmail) return;
-
-    const result = await loginWithOAuth(provider, {
-      email: mockEmail,
-      name: mockEmail.split('@')[0],
-      providerId: `${provider}-${mockEmail}`
-    });
-
-    if (result.success) {
-      window.location.hash = result.destination ?? 'home';
-    } else {
-      setError(result.error ?? authError ?? `Connexion ${provider} impossible`);
-    }
+    setOauthLoadingProvider(provider);
+    beginOAuthLogin(provider);
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,22 +318,28 @@ export default function LoginPage() {
             </motion.div>
           </form>
 
+          {(!oauthProviders.google || !oauthProviders.facebook) && (
+            <p className="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-[10px] px-3 py-2">
+              Certains providers sociaux sont désactivés. Vérifiez la configuration OAuth (ID client, secret, URL de callback).
+            </p>
+          )}
+
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
-              disabled={!oauthProviders.google || loading}
+              disabled={!oauthProviders.google || loading || oauthLoadingProvider !== null}
               onClick={() => handleOAuth('google')}
               className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
             >
-              Continuer avec Google
+              {oauthLoadingProvider === 'google' ? 'Redirection vers Google...' : 'Continuer avec Google'}
             </button>
             <button
               type="button"
-              disabled={!oauthProviders.facebook || loading}
+              disabled={!oauthProviders.facebook || loading || oauthLoadingProvider !== null}
               onClick={() => handleOAuth('facebook')}
               className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
             >
-              Continuer avec Facebook
+              {oauthLoadingProvider === 'facebook' ? 'Redirection vers Facebook...' : 'Continuer avec Facebook'}
             </button>
           </div>
 

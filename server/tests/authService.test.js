@@ -8,12 +8,19 @@ describe('AuthService', () => {
   let users;
   let repository;
   let service;
+  let failNextCreateWithDuplicate = false;
 
   beforeEach(() => {
     users = [];
     repository = {
       existsByEmail: async (email) => users.some((u) => u.email === email),
       create: async (input) => {
+        if (failNextCreateWithDuplicate) {
+          failNextCreateWithDuplicate = false;
+          const error = new Error('duplicate key');
+          error.code = 11000;
+          throw error;
+        }
         const user = {
           id: String(users.length + 1),
           ...input,
@@ -148,6 +155,46 @@ describe('AuthService', () => {
 
     expect(second.ok).toBe(true);
     expect(users).toHaveLength(1);
+  });
+
+
+  it('recovers from duplicate key race during oauth create', async () => {
+    failNextCreateWithDuplicate = true;
+
+    const first = await service.loginWithOAuthProfile({
+      authProvider: 'google',
+      providerId: 'g-race',
+      email: 'race@x.com',
+      name: 'Race User',
+      emailVerified: true,
+    });
+
+    expect(first.ok).toBe(false);
+
+    users.push({
+      id: '2',
+      email: 'race@x.com',
+      name: 'Race User',
+      providers: ['local'],
+      authProvider: 'local',
+      role: 'client',
+      status: 'client',
+      accountStatus: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    failNextCreateWithDuplicate = true;
+    const recovered = await service.loginWithOAuthProfile({
+      authProvider: 'google',
+      providerId: 'g-race',
+      email: 'race@x.com',
+      name: 'Race User',
+      emailVerified: true,
+    });
+
+    expect(recovered.ok).toBe(true);
+    expect(users.find((u) => u.email === 'race@x.com')?.googleId).toBe('g-race');
   });
 
   it('facebook oauth without email fails when provider account is not linked', async () => {

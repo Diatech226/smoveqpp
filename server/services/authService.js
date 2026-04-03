@@ -318,7 +318,33 @@ class AuthService {
       });
     } catch (error) {
       if (error?.code === 11000) {
-        return { ok: false, status: 409, code: 'OAUTH_ACCOUNT_CONFLICT', message: 'OAuth account conflict detected' };
+        const recoveredByProvider = await this.userRepository.findByProvider(authProvider, providerId);
+        if (recoveredByProvider) {
+          const updatedUser = await this.userRepository.updateLastLoginAt(recoveredByProvider.id, new Date());
+          return { ok: true, user: sanitizeUser(updatedUser ?? recoveredByProvider) };
+        }
+
+        if (normalizedEmail) {
+          const recoveredByEmail = await this.userRepository.findByEmail(normalizedEmail);
+          if (recoveredByEmail) {
+            const linked = await this.userRepository.linkOAuthProvider(recoveredByEmail.id, {
+              authProvider,
+              providerId,
+              name: String(name ?? recoveredByEmail.name).trim(),
+              emailVerified,
+              avatarUrl,
+            });
+            const updatedUser = await this.userRepository.updateLastLoginAt(recoveredByEmail.id, new Date());
+            return { ok: true, user: sanitizeUser(updatedUser ?? linked ?? recoveredByEmail) };
+          }
+        }
+
+        return {
+          ok: false,
+          status: 409,
+          code: 'OAUTH_ACCOUNT_CONFLICT',
+          message: 'OAuth account conflict detected',
+        };
       }
       throw error;
     }
