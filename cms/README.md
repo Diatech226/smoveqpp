@@ -32,20 +32,13 @@ Variables principales:
 - `VITE_PUBLIC_SITE_URL`: URL canonique du site public utilisée par **“Retour au site public”**.
 - `VITE_PUBLIC_APP_URL`: fallback legacy (conservé pour compatibilité).
 
-Formats supportés pour ces variables:
-- URL absolue (`https://site.com/#home`)
-- hash local (`#home`)
-- chemin absolu (`/`)
-- domaine sans protocole (`www.site.com` ou `site.com`)
-
 ### Règle du lien “Retour au site public”
 
 Le CMS résout l’URL de retour dans cet ordre:
 
 1. `VITE_PUBLIC_SITE_URL` (prioritaire)
 2. `VITE_PUBLIC_APP_URL` (compatibilité)
-3. fallback même origine courante (`{origin}{pathname}#home`)
-4. fallback dev final: `http://127.0.0.1:5173/#home`
+3. fallback dev: `http://127.0.0.1:5173/#home`
 
 Les liens d’accès au site public (header CMS, page compte, page accès refusé) ouvrent le site dans un nouvel onglet.
 
@@ -109,3 +102,4 @@ La section “Contenus pages” est structurée pour la homepage:
 4. **Itération 4**: historique/versioning des contenus de page.
 5. **Itération 5**: SEO avancé par page (métas, OG, canonical, quality gates).
 6. **Itération 6**: rôles & permissions éditoriales fines (workflow approbation).
+
