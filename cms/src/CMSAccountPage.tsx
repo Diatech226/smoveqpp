@@ -1,9 +1,6 @@
 import { ShieldCheck, UserCircle2 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
-
-function getPublicAppUrl() {
-  return import.meta.env.VITE_PUBLIC_APP_URL?.trim() || 'http://localhost:5173/#home';
-}
+import { getPublicSiteUrl } from './utils/publicSiteUrl';
 
 export default function CMSAccountPage() {
   const { user } = useAuth();
@@ -20,7 +17,7 @@ export default function CMSAccountPage() {
         <a href="#cms" className="inline-flex items-center gap-2 bg-[#9333ea] text-white px-5 py-3 rounded-[12px] mr-3">
           <ShieldCheck size={16} /> Ouvrir le dashboard
         </a>
-        <a href={getPublicAppUrl()} className="inline-flex items-center gap-2 border border-[#d7e1e5] px-5 py-3 rounded-[12px]">
+        <a href={getPublicSiteUrl()} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[#d7e1e5] px-5 py-3 rounded-[12px]">
           Retour au site public
         </a>
       </div>
