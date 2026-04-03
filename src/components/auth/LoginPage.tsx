@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, LogIn, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,7 +9,16 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, loginWithOAuth, oauthProviders, cmsEnabled, registrationEnabled, authError, authNotice } = useAuth();
-
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 20 }, () => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        duration: 3 + Math.random() * 2,
+        delay: Math.random() * 2,
+      })),
+    [],
+  );
 
   const handleOAuth = async (provider: 'google' | 'facebook') => {
     setError('');
@@ -48,11 +57,15 @@ export default function LoginPage() {
     const result = await login(email, password);
 
     if (result.success) {
-      window.location.hash = result.destination ?? 'home';
+      const destination = result.destination ?? 'home';
+      if (window.location.hash !== `#${destination}`) {
+        window.location.hash = destination;
+      }
+      return;
     } else {
       setError(result.error ?? authError ?? 'Email ou mot de passe incorrect');
     }
-    
+
     setLoading(false);
   };
 
@@ -108,13 +121,13 @@ export default function LoginPage() {
         />
 
         {/* Particles */}
-        {[...Array(20)].map((_, i) => (
+        {particles.map((particle, i) => (
           <motion.div
             key={`particle-${i}`}
             className="absolute w-1 h-1 bg-[#00b3e8] rounded-full"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: particle.left,
+              top: particle.top,
             }}
             animate={{
               y: [0, -100, 0],
@@ -122,9 +135,9 @@ export default function LoginPage() {
               scale: [0, 1, 0],
             }}
             transition={{
-              duration: 3 + Math.random() * 2,
+              duration: particle.duration,
               repeat: Infinity,
-              delay: Math.random() * 2,
+              delay: particle.delay,
             }}
           />
         ))}
@@ -266,29 +279,30 @@ export default function LoginPage() {
             </motion.div>
 
             {/* Submit Button */}
-            <motion.button
-              type="submit"
-              className="w-full bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] text-white px-8 py-4 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px] flex items-center justify-center gap-2 relative overflow-hidden"
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              disabled={loading || !cmsEnabled}
             >
-              {loading ? (
-                <motion.div
-                  className="w-6 h-6 border-3 border-white border-t-transparent rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                />
-              ) : (
-                <>
-                  <LogIn size={20} />
-                  Se connecter
-                </>
-              )}
-            </motion.button>
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] text-white px-8 py-4 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px] flex items-center justify-center gap-2 relative overflow-hidden"
+                disabled={loading || !cmsEnabled}
+                translate="no"
+              >
+                {loading && (
+                  <motion.span
+                    className="w-6 h-6 border-3 border-white border-t-transparent rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                )}
+                <LogIn size={20} className={loading ? 'opacity-70' : ''} />
+                <span>{loading ? 'Connexion...' : 'Se connecter'}</span>
+              </button>
+            </motion.div>
           </form>
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">

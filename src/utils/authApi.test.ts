@@ -73,6 +73,43 @@ describe('normalizeAuthPayload', () => {
     expect(result.errorMessage).toBe('Vérifiez les champs saisis.');
   });
 
+  it('maps csrf failures to a session retry message', () => {
+    const result = normalizeAuthPayload(
+      {
+        success: false,
+        error: {
+          code: 'INVALID_CSRF',
+        },
+      },
+      403,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('INVALID_CSRF');
+    expect(result.errorMessage).toBe('Session expirée, merci de réessayer.');
+  });
+
+  it('treats non-2xx responses as failures even when payload.success is true', () => {
+    const result = normalizeAuthPayload(
+      {
+        success: true,
+        data: {
+          user: {
+            id: '1',
+            email: 'admin@company.test',
+            name: 'Admin',
+            role: 'admin',
+          },
+          csrfToken: 'token-1',
+        },
+      },
+      403,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe('Erreur d’authentification.');
+  });
+
   it('provides fallback message when payload is malformed', () => {
     const result = normalizeAuthPayload(null, 500);
 
