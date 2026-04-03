@@ -66,6 +66,7 @@ import { isProjectMediaReference, resolveProjectFeaturedImage, resolveProjectHer
 import { toMediaReferenceValue } from '../../features/media/assetReference';
 import { resolveServiceRouteSlug } from '../../features/marketing/serviceRouting';
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
+import { canMutateSensitiveUserFields, filterAdminUsers } from './users/adminUsersViewModel';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
 import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
@@ -82,6 +83,7 @@ import {
   AdminPanel,
   AdminStickyFormActions,
   AdminSuccessFeedback,
+  AdminWarningState,
 } from './adminPrimitives';
 
 interface CMSDashboardProps {
@@ -165,6 +167,9 @@ const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const SERVICE_COLOR_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
 const BLOG_MANAGED_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
 const BLOG_MANAGED_TAGS = ['React', 'Web Design', 'Performance', 'Innovation', 'Vidéo', 'Branding', 'Corporate', 'BTP', 'Logo Design', 'Identité Visuelle', 'Food', 'SEO', 'Social Media', 'CMS'];
+const USER_ROLE_OPTIONS: AppUser['role'][] = ['admin', 'editor', 'author', 'viewer', 'client'];
+const USER_ACCOUNT_STATUS_OPTIONS: NonNullable<AppUser['accountStatus']>[] = ['active', 'invited', 'suspended'];
+const USER_PROVIDER_OPTIONS: NonNullable<AppUser['authProvider']>[] = ['local', 'google', 'facebook'];
 
 const EMPTY_BLOG_FORM: BlogFormState = {
   title: '',
@@ -230,6 +235,25 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   testimonialAuthor: '',
   testimonialPosition: '',
 };
+
+function formatUserDate(value?: string | null): string {
+  if (!value) return 'n/a';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'n/a';
+  return date.toLocaleString('fr-FR');
+}
+
+function getUserStatusTone(status?: AppUser['accountStatus']): string {
+  if (status === 'suspended') return 'bg-red-50 text-red-700 border-red-200';
+  if (status === 'invited') return 'bg-amber-50 text-amber-700 border-amber-200';
+  return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+}
+
+function getUserRoleTone(role: AppUser['role']): string {
+  if (role === 'admin') return 'bg-[#ecf8ff] text-[#036ea0] border-[#bbe8ff]';
+  if (role === 'editor' || role === 'author') return 'bg-[#f4f7ff] text-[#3f5dac] border-[#d6e1ff]';
+  return 'bg-[#f4f7f9] text-[#4e5d63] border-[#d9e1e5]';
+}
 
 const isValidIsoDate = (value: string): boolean => !Number.isNaN(Date.parse(value));
 
@@ -442,6 +466,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [adminUsersLoading, setAdminUsersLoading] = useState(false);
   const [adminUsersError, setAdminUsersError] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [adminUsersNotice, setAdminUsersNotice] = useState('');
+  const [userSearch, setUserSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | AppUser['role']>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | NonNullable<AppUser['accountStatus']>>('all');
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all');
+  const [providerFilter, setProviderFilter] = useState<'all' | NonNullable<AppUser['authProvider']>>('all');
   const [auditEvents, setAuditEvents] = useState<AuthAuditEvent[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
@@ -452,6 +483,19 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const managedBlogCategories = settingsValues.taxonomySettings.blog.managedCategories;
   const managedBlogTags = settingsValues.taxonomySettings.blog.managedTags;
   const enforceManagedTags = settingsValues.taxonomySettings.blog.enforceManagedTags;
+  const selectedAdminUser = useMemo(
+    () => adminUsers.find((entry) => entry.id === selectedUserId) ?? null,
+    [adminUsers, selectedUserId],
+  );
+  const filteredAdminUsers = useMemo(() => {
+    return filterAdminUsers(adminUsers, {
+      query: userSearch,
+      role: roleFilter,
+      status: statusFilter,
+      verification: verificationFilter,
+      provider: providerFilter,
+    });
+  }, [adminUsers, providerFilter, roleFilter, statusFilter, userSearch, verificationFilter]);
 
   useEffect(() => {
     let active = true;
@@ -2044,6 +2088,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     try {
       const users = await fetchAdminUsers();
       setAdminUsers(users);
+      setSelectedUserId((current) => (current && users.some((entry) => entry.id === current) ? current : users[0]?.id ?? null));
     } catch (error) {
       setAdminUsersError(error instanceof Error ? error.message : 'Impossible de charger les utilisateurs.');
     } finally {
@@ -2064,13 +2109,27 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const patchAdminUser = async (targetUserId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>) => {
+    if (user?.role !== 'admin') {
+      setAdminUsersError('Action réservée aux administrateurs.');
+      return;
+    }
+    if (!canMutateSensitiveUserFields(user, targetUserId, patch)) {
+      setAdminUsersError('Sécurité active: impossible de rétrograder ou suspendre votre propre compte.');
+      return;
+    }
+    if (patch.accountStatus === 'suspended' && !window.confirm('Confirmer la suspension de ce compte ?')) {
+      return;
+    }
     setUpdatingUserId(targetUserId);
+    setAdminUsersError('');
+    setAdminUsersNotice('');
     try {
       const result = await updateAdminUser(targetUserId, patch);
       if (!result.success) {
         setAdminUsersError(result.error ?? 'Mise à jour impossible.');
         return;
       }
+      setAdminUsersNotice('Profil utilisateur mis à jour.');
       await loadAdminUsers();
       if (user?.role === 'admin') {
         await loadAuditEvents();
@@ -2212,12 +2271,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
 
     if (currentSection === 'users') {
-
       return (
         <div className="space-y-6">
           <AdminPageHeader
             title="Utilisateurs"
-            subtitle="Gestion des comptes (rôle, statut, fournisseur, vérification) avec traçabilité d’audit."
+            subtitle="Module d’administration des identités: recherche, filtres, détails, rôle/statut/vérification et contexte d’audit."
             actions={
               <AdminButton
                 type="button"
@@ -2233,62 +2291,176 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               </AdminButton>
             }
           />
+          {adminUsersNotice ? <AdminSuccessFeedback label={adminUsersNotice} /> : null}
           {adminUsersError ? <AdminErrorState label={adminUsersError} /> : null}
           {adminUsersLoading ? <AdminLoadingState label="Chargement des utilisateurs..." /> : null}
           {user?.role !== 'admin' ? (
-            <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-4 text-amber-800 text-[14px]">
-              Les modifications de rôle et suspension sont réservées aux administrateurs.
-            </div>
+            <AdminWarningState label="Les modifications de rôle, de statut et de vérification sont réservées aux administrateurs." />
           ) : null}
-          <AdminPanel title="Comptes">
-            {adminUsers.length === 0 ? (
-              <AdminEmptyState label="Aucun utilisateur trouvé." />
-            ) : (
-              <div className="space-y-3">
-                {adminUsers.map((entry) => (
-                  <div key={entry.id} className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{entry.name}</p>
-                        <p className="text-[13px] text-[#6f7f85]">{entry.email}</p>
-                      </div>
-                      <div className="text-[12px] text-[#7b868c]">{entry.authProvider ?? 'local'} • {entry.emailVerified ? 'vérifié' : 'non vérifié'}</div>
-                    </div>
-                    <div className="grid sm:grid-cols-3 gap-2">
-                      <select
-                        value={entry.role}
-                        disabled={updatingUserId === entry.id || user?.role !== 'admin' || user?.id === entry.id}
-                        onChange={(event) => void patchAdminUser(entry.id, { role: event.target.value as AppUser['role'] })}
-                        className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
-                      >
-                        {['admin', 'editor', 'author', 'viewer', 'client'].map((role) => (
-                          <option key={role} value={role}>{role}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={entry.accountStatus ?? 'active'}
-                        disabled={updatingUserId === entry.id || user?.role !== 'admin' || user?.id === entry.id}
-                        onChange={(event) => void patchAdminUser(entry.id, { accountStatus: event.target.value as AppUser['accountStatus'] })}
-                        className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
-                      >
-                        {['active', 'invited', 'suspended'].map((status) => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        disabled={updatingUserId === entry.id || user?.role !== 'admin'}
-                        onClick={() => void patchAdminUser(entry.id, { emailVerified: !entry.emailVerified })}
-                        className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
-                      >
-                        {entry.emailVerified ? 'Marquer non vérifié' : 'Marquer vérifié'}
-                      </button>
-                    </div>
-                  </div>
+          <AdminPanel title="Filtres & recherche">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <input
+                value={userSearch}
+                onChange={(event) => setUserSearch(event.target.value)}
+                placeholder="Rechercher par nom ou email"
+                className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]"
+              />
+              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]">
+                <option value="all">Tous les rôles</option>
+                {USER_ROLE_OPTIONS.map((role) => (
+                  <option key={role} value={role}>{role}</option>
                 ))}
+              </select>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]">
+                <option value="all">Tous les statuts</option>
+                {USER_ACCOUNT_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+              <select value={verificationFilter} onChange={(event) => setVerificationFilter(event.target.value as typeof verificationFilter)} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]">
+                <option value="all">Toutes vérifications</option>
+                <option value="verified">Email vérifié</option>
+                <option value="unverified">Email non vérifié</option>
+              </select>
+              <select value={providerFilter} onChange={(event) => setProviderFilter(event.target.value as typeof providerFilter)} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]">
+                <option value="all">Tous les fournisseurs</option>
+                {USER_PROVIDER_OPTIONS.map((provider) => (
+                  <option key={provider} value={provider}>{provider}</option>
+                ))}
+              </select>
+            </div>
+          </AdminPanel>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="xl:col-span-2">
+          <AdminPanel title="Comptes">
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="rounded-[12px] border border-[#e5edf0] bg-[#f8fbfc] p-3">
+                <p className="text-[12px] text-[#6f7f85]">Total</p>
+                <p className="font-semibold text-[#273a41]">{adminUsers.length}</p>
               </div>
+              <div className="rounded-[12px] border border-emerald-100 bg-emerald-50 p-3">
+                <p className="text-[12px] text-emerald-700">Actifs</p>
+                <p className="font-semibold text-emerald-800">{adminUsers.filter((entry) => (entry.accountStatus ?? 'active') === 'active').length}</p>
+              </div>
+              <div className="rounded-[12px] border border-amber-100 bg-amber-50 p-3">
+                <p className="text-[12px] text-amber-700">Invités</p>
+                <p className="font-semibold text-amber-800">{adminUsers.filter((entry) => entry.accountStatus === 'invited').length}</p>
+              </div>
+              <div className="rounded-[12px] border border-red-100 bg-red-50 p-3">
+                <p className="text-[12px] text-red-700">Suspendus</p>
+                <p className="font-semibold text-red-800">{adminUsers.filter((entry) => entry.accountStatus === 'suspended').length}</p>
+              </div>
+            </div>
+            {!adminUsersLoading && adminUsers.length === 0 ? (
+              <AdminEmptyState label="Aucun utilisateur trouvé." />
+            ) : null}
+            {!adminUsersLoading && adminUsers.length > 0 && filteredAdminUsers.length === 0 ? (
+              <AdminEmptyState label="Aucun compte ne correspond aux filtres actifs." />
+            ) : null}
+            {filteredAdminUsers.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-[#e4edf1] text-left text-[14px]">
+                  <thead>
+                    <tr className="text-[#5f727a]">
+                      <th className="px-3 py-2 font-semibold">Utilisateur</th>
+                      <th className="px-3 py-2 font-semibold">Rôle</th>
+                      <th className="px-3 py-2 font-semibold">Statut</th>
+                      <th className="px-3 py-2 font-semibold">Vérification</th>
+                      <th className="px-3 py-2 font-semibold">Provider</th>
+                      <th className="px-3 py-2 font-semibold">Dernière activité</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#eef3f5]">
+                    {filteredAdminUsers.map((entry) => (
+                      <tr key={entry.id} className={`cursor-pointer hover:bg-[#f8fbfc] ${entry.id === selectedUserId ? 'bg-[#f3f9fd]' : ''}`} onClick={() => setSelectedUserId(entry.id)}>
+                        <td className="px-3 py-3">
+                          <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{entry.name || 'Utilisateur sans nom'}</p>
+                          <p className="text-[13px] text-[#6f7f85]">{entry.email || 'Email manquant'}</p>
+                          <p className="text-[12px] text-[#8a9ba2]">Créé: {formatUserDate(entry.createdAt)} · MAJ: {formatUserDate(entry.updatedAt)}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className={`inline-flex rounded-full border px-2 py-1 text-[12px] font-medium capitalize ${getUserRoleTone(entry.role)}`}>{entry.role}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className={`inline-flex rounded-full border px-2 py-1 text-[12px] font-medium capitalize ${getUserStatusTone(entry.accountStatus)}`}>{entry.accountStatus ?? 'active'}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className={`inline-flex rounded-full border px-2 py-1 text-[12px] font-medium ${entry.emailVerified ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                            {entry.emailVerified ? 'Vérifié' : 'Non vérifié'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-[13px] text-[#4b5a60]">{entry.authProvider ?? 'local'}</td>
+                        <td className="px-3 py-3 text-[13px] text-[#4b5a60]">{formatUserDate(entry.lastLoginAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              null
             )}
           </AdminPanel>
+          </div>
+          {selectedAdminUser ? (
+            <div className="xl:col-span-1">
+            <AdminPanel title="Détail & gestion du compte">
+              <div className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                    <p className="text-[12px] text-[#7b868c]">Nom complet</p>
+                    <p className="text-[14px] text-[#273a41] font-medium">{selectedAdminUser.name || 'n/a'}</p>
+                  </div>
+                  <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                    <p className="text-[12px] text-[#7b868c]">Email</p>
+                    <p className="text-[14px] text-[#273a41] font-medium">{selectedAdminUser.email || 'n/a'}</p>
+                  </div>
+                  <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                    <p className="text-[12px] text-[#7b868c]">Fournisseur</p>
+                    <p className="text-[14px] text-[#273a41] font-medium">{selectedAdminUser.authProvider ?? 'local'} {selectedAdminUser.providerId ? `(${selectedAdminUser.providerId})` : ''}</p>
+                  </div>
+                  <div className="rounded-[12px] border border-[#eef3f5] p-3">
+                    <p className="text-[12px] text-[#7b868c]">Dernière activité</p>
+                    <p className="text-[14px] text-[#273a41] font-medium">{formatUserDate(selectedAdminUser.lastLoginAt)}</p>
+                  </div>
+                </div>
+                {user?.id === selectedAdminUser.id ? (
+                  <AdminWarningState label="Vous consultez votre propre compte. Les opérations sensibles (rétrogradation / suspension) sont bloquées." />
+                ) : null}
+                <div className="grid gap-3 md:grid-cols-3">
+                  <select
+                    value={selectedAdminUser.role}
+                    disabled={updatingUserId === selectedAdminUser.id || user?.role !== 'admin' || user?.id === selectedAdminUser.id}
+                    onChange={(event) => void patchAdminUser(selectedAdminUser.id, { role: event.target.value as AppUser['role'] })}
+                    className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
+                  >
+                    {USER_ROLE_OPTIONS.map((role) => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedAdminUser.accountStatus ?? 'active'}
+                    disabled={updatingUserId === selectedAdminUser.id || user?.role !== 'admin' || user?.id === selectedAdminUser.id}
+                    onChange={(event) => void patchAdminUser(selectedAdminUser.id, { accountStatus: event.target.value as AppUser['accountStatus'] })}
+                    className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
+                  >
+                    {USER_ACCOUNT_STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={updatingUserId === selectedAdminUser.id || user?.role !== 'admin'}
+                    onClick={() => void patchAdminUser(selectedAdminUser.id, { emailVerified: !selectedAdminUser.emailVerified })}
+                    className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
+                  >
+                    {selectedAdminUser.emailVerified ? 'Marquer non vérifié' : 'Marquer vérifié'}
+                  </button>
+                </div>
+              </div>
+            </AdminPanel>
+            </div>
+          ) : null}
+          </div>
           {user?.role === 'admin' ? (
             <AdminPanel title="Journal d’audit (identité)">
               {auditLoading ? <AdminLoadingState label="Chargement du journal d’audit..." /> : null}
@@ -2550,7 +2722,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   return (
     <div className="min-h-screen bg-[#f5f9fa] flex">
       <aside
-        className={`fixed left-0 top-0 h-full bg-white shadow-xl z-50 ${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300`}
+        className={`fixed left-0 top-0 h-full bg-white shadow-xl z-50 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300`}
       >
         <div className="p-6 border-b border-[#eef3f5] flex items-center justify-between">
           {sidebarOpen && (
@@ -2583,7 +2755,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           </div>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -2598,7 +2770,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#eef3f5]">
+        <div className="p-4 border-t border-[#eef3f5] bg-white">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] text-red-500 hover:bg-red-50 transition-colors"
