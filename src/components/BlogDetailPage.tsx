@@ -41,12 +41,6 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
     });
   }, [post?.publishedDate]);
 
-  const heroMediaSrc = (post?.featuredImage || '').trim();
-  const heroMediaIsVideo = useMemo(
-    () => /\.(mp4|webm|ogg)(\?.*)?$/i.test(heroMediaSrc),
-    [heroMediaSrc],
-  );
-
   if (!post) {
     return (
       <div className="min-h-screen bg-white">
@@ -71,39 +65,7 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <section className="pt-28 sm:pt-32 pb-10 sm:pb-14 relative overflow-hidden isolate">
-          {heroMediaSrc ? (
-            <motion.div
-              className="absolute inset-0 pointer-events-none"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.32 }}
-              transition={{ duration: 1 }}
-            >
-              {heroMediaIsVideo ? (
-                <video
-                  className="h-full w-full object-cover"
-                  src={heroMediaSrc}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                />
-              ) : (
-                <motion.div
-                  className="h-full w-full"
-                  animate={{ scale: [1, 1.04, 1] }}
-                  transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  <ImageWithFallback
-                    src={heroMediaSrc}
-                    alt={post.media.alt || post.title}
-                    className="h-full w-full object-cover"
-                  />
-                </motion.div>
-              )}
-            </motion.div>
-          ) : null}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-[#f5f9fa]/80 to-white pointer-events-none" />
+        <section className="pt-28 sm:pt-32 pb-10 sm:pb-14 relative overflow-hidden">
           <motion.div
             className="absolute top-0 right-0 w-[420px] h-[420px] sm:w-[560px] sm:h-[560px] bg-[#00b3e8]/10 rounded-full blur-3xl pointer-events-none"
             animate={{ y: [0, 30, 0], scale: [1, 1.08, 1] }}
