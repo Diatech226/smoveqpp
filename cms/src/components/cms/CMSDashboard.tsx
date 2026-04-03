@@ -2698,7 +2698,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   return (
     <div className="min-h-screen bg-[#f5f9fa] flex">
       <aside
-        className={`fixed left-0 top-0 h-full bg-white shadow-xl z-50 ${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300`}
+        className={`fixed left-0 top-0 h-full bg-white shadow-xl z-50 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300`}
       >
         <div className="p-6 border-b border-[#eef3f5] flex items-center justify-between">
           {sidebarOpen && (
@@ -2731,7 +2731,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           </div>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -2746,7 +2746,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#eef3f5]">
+        <div className="p-4 border-t border-[#eef3f5] bg-white">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-[12px] text-red-500 hover:bg-red-50 transition-colors"
