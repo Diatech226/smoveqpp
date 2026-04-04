@@ -24,16 +24,13 @@ function loadEnvFile(filePath) {
   }
 }
 
-// Per-app env loading is authoritative for API deployment units.
-// Optional workspace fallback can be enabled for legacy local setups.
+// Single-app deployment model: root env is the source of truth.
+loadEnvFile(path.resolve(REPO_ROOT, '.env'));
+loadEnvFile(path.resolve(REPO_ROOT, '.env.local'));
+
+// Backward-compatible fallback: app-local env can still override locally.
 loadEnvFile(path.resolve(API_APP_ROOT, '.env'));
 loadEnvFile(path.resolve(API_APP_ROOT, '.env.local'));
-
-const USE_WORKSPACE_ENV_FALLBACK = process.env.USE_WORKSPACE_ENV_FALLBACK === 'true';
-if (USE_WORKSPACE_ENV_FALLBACK) {
-  loadEnvFile(path.resolve(REPO_ROOT, '.env'));
-  loadEnvFile(path.resolve(REPO_ROOT, '.env.local'));
-}
 
 const isProduction = process.env.NODE_ENV === 'production';
 

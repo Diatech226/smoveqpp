@@ -34,11 +34,16 @@ export default defineConfig(({ mode }) => {
   const apiOrigin = normalizeApiOrigin(env.VITE_API_ORIGIN ?? env.API_ORIGIN, apiPort);
 
   return {
+    base: '/cms/',
     plugins: [react()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
+    },
+    build: {
+      outDir: '../../build/cms',
+      emptyOutDir: false,
     },
     server: {
       host: '127.0.0.1',

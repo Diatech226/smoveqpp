@@ -154,6 +154,7 @@ function createApp(deps = {}) {
     fs.mkdirSync(MEDIA_UPLOAD_DIR, { recursive: true });
   }
   app.use(MEDIA_PUBLIC_BASE_PATH, express.static(path.resolve(MEDIA_UPLOAD_DIR)));
+  app.use(`/api${MEDIA_PUBLIC_BASE_PATH}`, express.static(path.resolve(MEDIA_UPLOAD_DIR)));
   app.use(exposeCsrfToken);
 
   app.get('/api/v1/health', (_req, res) => {

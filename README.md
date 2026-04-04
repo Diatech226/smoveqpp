@@ -1,87 +1,73 @@
-# SMOVE Monorepo
+# SMOVE Single-App Deployment
 
-This repository is now organized as a **Vercel-ready monorepo** with isolated deployable apps:
+This repository is now consolidated as **one deployable application** for Vercel:
 
-- `apps/site` → public website (includes blog)
-- `apps/cms` → standalone CMS/admin frontend
-- `apps/api` → Express API/server
+- public site (including blog)
+- CMS/admin frontend
+- API/server (Express, deployed as Vercel Function)
 
-## Workspace structure
+## Runtime layout
 
 ```text
 apps/
-  site/   # public app (Vite + React)
-  cms/    # CMS app (Vite + React)
-  api/    # Express server + Vercel function adapter
-scripts/  # repo-level ops/dev scripts
-docs/     # architecture and deployment docs
+  site/     # Public SPA build output at / and hash routes
+  cms/      # CMS SPA build output at /cms
+  api/      # Express server logic used by /api function
+api/
+  index.js  # Vercel function entrypoint (single deployment)
+build/
+  index.html
+  assets/*
+  cms/index.html
+  cms/assets/*
 ```
 
-## Local development
-
-1. Install dependencies for all workspaces:
+## Commands (single root package)
 
 ```bash
 npm install
+npm run dev        # site + cms + api together
+npm run build      # builds site + cms for one output directory
+npm run test
 ```
 
-2. Configure env files:
-
-```bash
-cp .env.example .env.local
-cp apps/site/.env.example apps/site/.env.local
-cp apps/cms/.env.example apps/cms/.env.local
-cp apps/api/.env.example apps/api/.env.local
-```
-
-3. Run all apps together:
-
-```bash
-npm run dev
-```
-
-App URLs (local):
-- Site: `http://127.0.0.1:5173`
-- CMS: `http://127.0.0.1:5174/#cms`
-- API: `http://127.0.0.1:3001`
-
-## Per-app commands
+Useful targeted commands:
 
 ```bash
 npm run dev:site
 npm run dev:cms
 npm run dev:api
-
 npm run build:site
 npm run build:cms
-npm run build:api
+npm run start:api
 ```
 
-## Vercel multi-project mapping
+## Local URLs
 
-- Vercel Project 1 (public): Root Directory = `apps/site`
-- Vercel Project 2 (cms): Root Directory = `apps/cms`
-- Vercel Project 3 (api): Root Directory = `apps/api`
+- Public site: `http://127.0.0.1:5173`
+- CMS: `http://127.0.0.1:5174/#cms` (served at `/cms` in production)
+- API: `http://127.0.0.1:3001`
 
-Detailed setup guides: `docs/deployment/VERCEL_APP_SPLIT_PLAN.md`, `docs/deployment/VERCEL_MONOREPO_DEPLOYMENT_PLAN.md`, and `docs/deployment/VERCEL_DEPLOYMENT.md`.
+## Environment setup
 
-## Notes
+Use only the root env template:
 
-- Site and CMS are now structurally isolated and independently deployable.
-- Each app now owns its own `.env` scope (`apps/site`, `apps/cms`, `apps/api`) for clean Vercel project separation.
-- API persistence paths are anchored under `apps/api/server/data`.
-- CMS “Back to site” links use configurable `VITE_PUBLIC_SITE_URL` (with `VITE_PUBLIC_APP_URL` legacy fallback, then runtime inference).
+```bash
+cp .env.example .env.local
+```
 
+The root `.env.local` is now the primary source for site, CMS, and API runtime values.
 
-## Contact email delivery (production)
+## Single-project Vercel deployment
 
-Contact form submissions are delivered by the API (`/api/v1/contact`) using:
+- Root Directory: repository root
+- Install Command: `npm install`
+- Build Command: `npm run build`
+- Output Directory: `build`
 
-- **Resend** when `RESEND_API_KEY` is configured (preferred for Vercel), or
-- SMTP when `SMTP_*` credentials are configured.
+Vercel serves:
+- site SPA from `/index.html`
+- CMS SPA from `/cms/index.html`
+- API from `/api/index.js`
 
-Required API env:
-- `CONTACT_TO_EMAIL`
-- `EMAIL_FROM`
-- `RESEND_API_KEY` **or** `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS`
-
+See: `docs/deployment/VERCEL_SINGLE_APP_DEPLOYMENT.md`.

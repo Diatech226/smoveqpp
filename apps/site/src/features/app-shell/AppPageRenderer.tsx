@@ -76,8 +76,8 @@ export default function AppPageRenderer({
   if (currentPage === 'cms-dashboard') {
     return (
       <SecurityStatePage
-        title="CMS séparé"
-        description="Le CMS est désormais disponible dans une application dédiée."
+        title="CMS"
+        description="Le CMS est disponible dans la section admin de cette même application."
         actionHref={getCmsAppUrl()}
         actionLabel="Ouvrir le CMS"
       />
