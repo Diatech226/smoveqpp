@@ -69,4 +69,4 @@ Detailed setup guide: `docs/deployment/VERCEL_MONOREPO_DEPLOYMENT_PLAN.md`.
 
 - Site and CMS are now structurally isolated and independently deployable.
 - API persistence paths are anchored under `apps/api/server/data`.
-- CMS “Back to site” link uses configurable `VITE_PUBLIC_SITE_URL`.
+- CMS “Back to site” links use configurable `VITE_PUBLIC_SITE_URL` (with `VITE_PUBLIC_APP_URL` legacy fallback, then runtime inference).
