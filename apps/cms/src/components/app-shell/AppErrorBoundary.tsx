@@ -32,8 +32,7 @@ export default class AppErrorBoundary extends Component<AppErrorBoundaryProps, A
         <AppErrorState
           title="Erreur d'initialisation"
           description="Le runtime applicatif a rencontré une erreur. Rechargez la page."
-          actionHref="#home"
-          actionLabel="Retour à l'accueil"
+          actionLabel="Retour au site public"
         />
       );
     }

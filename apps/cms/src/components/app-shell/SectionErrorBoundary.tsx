@@ -36,8 +36,7 @@ export default class SectionErrorBoundary extends Component<SectionErrorBoundary
         <AppErrorState
           title="Contenu indisponible"
           description="Cette section a rencontré une erreur. Revenez à l’accueil."
-          actionHref="#home"
-          actionLabel="Retour à l'accueil"
+          actionLabel="Retour au site public"
         />
       );
     }

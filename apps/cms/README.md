@@ -38,9 +38,10 @@ Le CMS résout l’URL de retour dans cet ordre:
 
 1. `VITE_PUBLIC_SITE_URL` (prioritaire)
 2. `VITE_PUBLIC_APP_URL` (compatibilité)
-3. fallback dev: `http://127.0.0.1:5173/#home`
+3. URL inférée depuis l’URL CMS courante (ex: `cms.example.com` → `example.com/#home`)
+4. fallback dev: `http://127.0.0.1:5173/#home`
 
-Les liens d’accès au site public (header CMS, page compte, page accès refusé) ouvrent le site dans un nouvel onglet.
+Les liens d’accès au site public (header CMS, page compte, page accès refusé, vues d’erreur) utilisent cette même résolution.
 
 ### Test manuel — bug “Retour au site public”
 
@@ -102,4 +103,3 @@ La section “Contenus pages” est structurée pour la homepage:
 4. **Itération 4**: historique/versioning des contenus de page.
 5. **Itération 5**: SEO avancé par page (métas, OG, canonical, quality gates).
 6. **Itération 6**: rôles & permissions éditoriales fines (workflow approbation).
-
