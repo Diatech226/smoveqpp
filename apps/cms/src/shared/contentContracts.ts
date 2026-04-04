@@ -1,1 +1,1 @@
-export * from '../../../../packages/shared/src/contentContracts';
+export * from '@smove/shared/content-contracts';
