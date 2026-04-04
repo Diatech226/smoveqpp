@@ -96,6 +96,14 @@ function validateCriticalEnv() {
     throw new Error('SESSION_STORE_MODE must be set to "mongo" in production.');
   }
 
+  if (process.env.RESEND_API_KEY && !process.env.EMAIL_FROM) {
+    throw new Error('EMAIL_FROM must be set when RESEND_API_KEY is configured.');
+  }
+
+  if (isProduction && !process.env.CONTACT_TO_EMAIL) {
+    throw new Error('CONTACT_TO_EMAIL must be set in production for contact form delivery.');
+  }
+
   if ((process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_SECRET) && !(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)) {
     throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be set when enabling Google OAuth.');
   }
@@ -176,7 +184,9 @@ module.exports = {
   SMTP_SECURE: parseBoolean(process.env.SMTP_SECURE, false),
   SMTP_USER: process.env.SMTP_USER ?? '',
   SMTP_PASS: process.env.SMTP_PASS ?? '',
+  RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
   EMAIL_FROM: process.env.EMAIL_FROM ?? 'noreply@localhost',
+  CONTACT_TO_EMAIL: process.env.CONTACT_TO_EMAIL ?? '',
   APP_BASE_URL: process.env.APP_BASE_URL ?? process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
   CONTENT_SCHEMA_VERSION,
   MEDIA_UPLOAD_DIR,

@@ -3,6 +3,7 @@ import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
 import { fetchPublicSettings } from '../utils/contentApi';
+import { submitContactForm } from '../utils/contactApi';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ export default function ContactPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitFeedback, setSubmitFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
 
   useEffect(() => {
@@ -30,13 +32,14 @@ export default function ContactPage() {
     };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate form submission
-    setTimeout(() => {
-      alert('Message envoyé avec succès! Nous vous répondrons dans les plus brefs délais.');
+    setSubmitFeedback(null);
+
+    const result = await submitContactForm(formData);
+    if (result.success) {
+      setSubmitFeedback({ type: 'success', message: result.message });
       setFormData({
         name: '',
         email: '',
@@ -44,8 +47,11 @@ export default function ContactPage() {
         subject: '',
         message: '',
       });
-      setIsSubmitting(false);
-    }, 1500);
+    } else {
+      setSubmitFeedback({ type: 'error', message: result.message });
+    }
+
+    setIsSubmitting(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -170,6 +176,13 @@ export default function ContactPage() {
                     placeholder="Décrivez votre projet..."
                   />
                 </div>
+
+
+                {submitFeedback ? (
+                  <p className={`text-[14px] ${submitFeedback.type === 'success' ? 'text-green-700' : 'text-red-600'}`}>
+                    {submitFeedback.message}
+                  </p>
+                ) : null}
 
                 <button
                   type="submit"

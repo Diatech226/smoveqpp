@@ -1,0 +1,95 @@
+import { describe, expect, it } from 'vitest';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { createContactRoutes, validateContactPayload } = require('../routes/contactRoutes');
+
+function createRes() {
+  return {
+    statusCode: 200,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    },
+  };
+}
+
+describe('contact route payload validation', () => {
+  it('rejects invalid email payload', () => {
+    const result = validateContactPayload({
+      name: 'John Doe',
+      email: 'invalid-email',
+      subject: 'Project',
+      message: 'Hello this is a message',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('CONTACT_INVALID_EMAIL');
+  });
+
+  it('accepts valid payload', () => {
+    const result = validateContactPayload({
+      name: 'John Doe',
+      email: 'john@example.com',
+      subject: 'Need a quote',
+      message: 'Hello, I need support for a new campaign.',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.data.email).toBe('john@example.com');
+  });
+});
+
+describe('contact route delivery responses', () => {
+  it('returns success when email provider sends', async () => {
+    const router = createContactRoutes({
+      emailService: { sendContactEmail: async () => ({ delivered: true, mode: 'resend' }) },
+    });
+
+    const handler = router.stack[0].route.stack[0].handle;
+    const req = {
+      body: {
+        name: 'John Doe',
+        email: 'john@example.com',
+        subject: 'Need a quote',
+        message: 'Hello, I need support for a new campaign.',
+      },
+      get: () => 'https://www.example.com',
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('returns provider failure when sender throws', async () => {
+    const router = createContactRoutes({
+      emailService: { sendContactEmail: async () => { throw new Error('provider down'); } },
+    });
+
+    const handler = router.stack[0].route.stack[0].handle;
+    const req = {
+      body: {
+        name: 'John Doe',
+        email: 'john@example.com',
+        subject: 'Need a quote',
+        message: 'Hello, I need support for a new campaign.',
+      },
+      get: () => 'https://www.example.com',
+      requestId: 'req-1',
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(502);
+    expect(res.body.error.code).toBe('CONTACT_EMAIL_FAILED');
+  });
+});
