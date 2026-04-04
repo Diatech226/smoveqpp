@@ -169,7 +169,8 @@
     },
     build: {
       target: 'esnext',
-      outDir: 'build',
+      outDir: '../../build',
+      emptyOutDir: true,
     },
     server: {
       port: clientPort,

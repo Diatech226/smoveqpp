@@ -2,9 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm install",
-  "buildCommand": "npm run build:site",
-  "outputDirectory": "apps/site/build",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "rewrites": [
+    { "source": "/uploads/(.*)", "destination": "/api/uploads/$1" },
+    { "source": "/cms", "destination": "/cms/index.html" },
+    { "source": "/cms/(.*)", "destination": "/cms/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
