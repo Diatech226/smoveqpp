@@ -5,8 +5,7 @@
   "workspaces": [
     "apps/site",
     "apps/cms",
-    "apps/api",
-    "packages/shared"
+    "apps/api"
   ],
   "scripts": {
     "dev": "node scripts/dev.js",
