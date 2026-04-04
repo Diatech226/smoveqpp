@@ -1,1 +1,1 @@
-export * from '../../../../packages/shared/src/contentSchemas';
+export * from '@smove/shared/content-schemas';

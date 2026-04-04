@@ -63,11 +63,12 @@ npm run build:api
 - Vercel Project 2 (cms): Root Directory = `apps/cms`
 - Vercel Project 3 (api): Root Directory = `apps/api`
 
-Detailed setup guides: `docs/deployment/VERCEL_MONOREPO_DEPLOYMENT_PLAN.md` and `docs/deployment/VERCEL_DEPLOYMENT.md`.
+Detailed setup guides: `docs/deployment/VERCEL_APP_SPLIT_PLAN.md`, `docs/deployment/VERCEL_MONOREPO_DEPLOYMENT_PLAN.md`, and `docs/deployment/VERCEL_DEPLOYMENT.md`.
 
 ## Notes
 
 - Site and CMS are now structurally isolated and independently deployable.
+- Each app now owns its own `.env` scope (`apps/site`, `apps/cms`, `apps/api`) for clean Vercel project separation.
 - API persistence paths are anchored under `apps/api/server/data`.
 - CMS “Back to site” links use configurable `VITE_PUBLIC_SITE_URL` (with `VITE_PUBLIC_APP_URL` legacy fallback, then runtime inference).
 
