@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.resolve(process.cwd(), 'server/data');
+const DATA_DIR = path.resolve(__dirname, '../data');
 const AUDIT_PATH = path.join(DATA_DIR, 'audit-log.json');
 const AUDIT_SCHEMA_VERSION = 1;
 

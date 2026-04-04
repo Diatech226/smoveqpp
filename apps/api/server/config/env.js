@@ -1,6 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
+const REPO_ROOT = path.resolve(__dirname, '../../../..');
+const API_APP_ROOT = path.resolve(__dirname, '../..');
+const API_SERVER_ROOT = path.resolve(__dirname, '..');
+
 function loadEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return;
 
@@ -20,8 +24,10 @@ function loadEnvFile(filePath) {
   }
 }
 
-loadEnvFile(path.resolve(process.cwd(), '.env'));
-loadEnvFile(path.resolve(process.cwd(), '.env.local'));
+loadEnvFile(path.resolve(REPO_ROOT, '.env'));
+loadEnvFile(path.resolve(REPO_ROOT, '.env.local'));
+loadEnvFile(path.resolve(API_APP_ROOT, '.env'));
+loadEnvFile(path.resolve(API_APP_ROOT, '.env.local'));
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -54,7 +60,7 @@ const PUBLIC_REGISTRATION_ENABLED = parseBoolean(
 );
 
 const CONTENT_SCHEMA_VERSION = parseIntOrDefault(process.env.CONTENT_SCHEMA_VERSION, 3);
-const MEDIA_UPLOAD_DIR = process.env.MEDIA_UPLOAD_DIR ?? path.resolve(process.cwd(), 'server/data/uploads');
+const MEDIA_UPLOAD_DIR = process.env.MEDIA_UPLOAD_DIR ?? path.resolve(API_SERVER_ROOT, 'data/uploads');
 const MEDIA_PUBLIC_BASE_PATH = process.env.MEDIA_PUBLIC_BASE_PATH ?? '/uploads';
 const MEDIA_MAX_UPLOAD_BYTES = parseIntOrDefault(process.env.MEDIA_MAX_UPLOAD_BYTES, 5 * 1024 * 1024);
 const MEDIA_ALLOWED_MIME_TYPES = (process.env.MEDIA_ALLOWED_MIME_TYPES ?? 'image/jpeg,image/png,image/webp,image/gif,video/mp4,application/pdf')

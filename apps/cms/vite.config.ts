@@ -24,7 +24,7 @@ function normalizeApiOrigin(rawValue: string | undefined, fallbackPort: number):
 }
 
 export default defineConfig(({ mode }) => {
-  const workspaceRoot = path.resolve(__dirname, '..');
+  const workspaceRoot = path.resolve(__dirname, '../..');
   const workspaceEnv = loadEnv(mode, workspaceRoot, '');
   const cmsEnv = loadEnv(mode, __dirname, '');
   const env = { ...workspaceEnv, ...cmsEnv };

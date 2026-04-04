@@ -45,7 +45,10 @@
   }
 
   export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, process.cwd(), '');
+    const workspaceRoot = path.resolve(__dirname, '../..');
+    const workspaceEnv = loadEnv(mode, workspaceRoot, '');
+    const siteEnv = loadEnv(mode, __dirname, '');
+    const env = { ...workspaceEnv, ...siteEnv };
     const clientPort = parsePort(env.VITE_PORT ?? env.CLIENT_PORT, 5173);
     const apiOrigin = env.VITE_API_ORIGIN ?? env.API_ORIGIN ?? 'http://localhost:3001';
     const clientHost = `http://localhost:${clientPort}`;

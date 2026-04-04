@@ -14,8 +14,8 @@ function run(name, color, command, args) {
 }
 
 const processes = [
-  run('public', '36', 'npm', ['run', 'dev:client']),
-  run('server', '35', 'npm', ['run', 'dev:server']),
+  run('site', '36', 'npm', ['run', 'dev:site']),
+  run('api', '35', 'npm', ['run', 'dev:api']),
   run('cms', '33', 'npm', ['run', 'dev:cms']),
 ];
 

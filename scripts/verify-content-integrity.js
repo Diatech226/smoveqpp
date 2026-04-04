@@ -3,17 +3,17 @@ const fs = require('fs');
 const path = require('path');
 
 const root = process.cwd();
-const contentPath = path.join(root, 'server/data/content.json');
-const auditPath = path.join(root, 'server/data/audit-log.json');
-const uploadsRoot = path.join(root, 'server/data/uploads');
+const contentPath = path.join(root, 'apps/api/server/data/content.json');
+const auditPath = path.join(root, 'apps/api/server/data/audit-log.json');
+const uploadsRoot = path.join(root, 'apps/api/server/data/uploads');
 
 function fail(message) {
   console.error(message);
   process.exit(1);
 }
 
-if (!fs.existsSync(contentPath)) fail('Missing server/data/content.json');
-if (!fs.existsSync(auditPath)) fail('Missing server/data/audit-log.json');
+if (!fs.existsSync(contentPath)) fail('Missing apps/api/server/data/content.json');
+if (!fs.existsSync(auditPath)) fail('Missing apps/api/server/data/audit-log.json');
 
 const content = JSON.parse(fs.readFileSync(contentPath, 'utf8'));
 const audit = JSON.parse(fs.readFileSync(auditPath, 'utf8'));
