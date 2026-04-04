@@ -1,6 +1,6 @@
 const assert = require('assert');
-const { createAuthRateLimiter } = require('../server/middleware/authRateLimit');
-const { AuthService } = require('../server/services/authService');
+const { createAuthRateLimiter } = require('../apps/api/server/middleware/authRateLimit');
+const { AuthService } = require('../apps/api/server/services/authService');
 
 async function run() {
   const limiter = createAuthRateLimiter({ windowMs: 1000, max: 1 });

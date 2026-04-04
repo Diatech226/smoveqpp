@@ -3,7 +3,7 @@ const path = require('path');
 const { CONTENT_SCHEMA_VERSION } = require('../config/env');
 const { logWarn } = require('../utils/logger');
 
-const DATA_DIR = path.resolve(process.cwd(), 'server/data');
+const DATA_DIR = path.resolve(__dirname, '../data');
 const DATA_PATH = path.join(DATA_DIR, 'content.json');
 
 const defaultState = {

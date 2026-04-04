@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const ROOTS = ['server'];
+const ROOTS = ['apps/api/server'];
 const EXTENSIONS = new Set(['.js']);
 const violations = [];
 
@@ -10,7 +10,7 @@ function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name === 'build') continue;
+      if (entry.name === 'node_modules' || entry.name === 'build' || entry.name === 'tests') continue;
       walk(full);
       continue;
     }

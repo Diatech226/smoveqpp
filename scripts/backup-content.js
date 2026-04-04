@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const root = process.cwd();
-const sourceDir = path.join(root, 'server/data');
-const backupRoot = path.join(root, 'server/backups');
+const sourceDir = path.join(root, 'apps/api/server/data');
+const backupRoot = path.join(root, 'apps/api/server/backups');
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const targetDir = path.join(backupRoot, `backup-${timestamp}`);
 
@@ -23,10 +23,10 @@ function copyRecursive(src, dest) {
 }
 
 if (!fs.existsSync(sourceDir)) {
-  console.error('No server/data directory found; nothing to backup.');
+  console.error('No apps/api/server/data directory found; nothing to backup.');
   process.exit(1);
 }
 
 copyRecursive(sourceDir, targetDir);
 console.log(`Backup completed: ${targetDir}`);
-console.log('Mongo backup (run separately): mongodump --uri "$MONGO_URI" --out server/backups/mongo-' + timestamp);
+console.log('Mongo backup (run separately): mongodump --uri "$MONGO_URI" --out apps/api/server/backups/mongo-' + timestamp);

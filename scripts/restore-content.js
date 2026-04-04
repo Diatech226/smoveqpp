@@ -10,7 +10,7 @@ if (!backupDir) {
 
 const root = process.cwd();
 const sourceDir = path.resolve(root, backupDir);
-const targetDir = path.join(root, 'server/data');
+const targetDir = path.join(root, 'apps/api/server/data');
 
 function copyRecursive(src, dest) {
   const stat = fs.statSync(src);

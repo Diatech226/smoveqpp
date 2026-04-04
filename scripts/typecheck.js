@@ -1,10 +1,10 @@
 const fs = require('fs');
 
 const targets = [
-  'src/utils/authApi.ts',
-  'src/contexts/AuthContext.tsx',
-  'src/config/runtimeConfig.ts',
-  'src/utils/observability.ts',
+  'apps/site/src/utils/authApi.ts',
+  'apps/site/src/contexts/AuthContext.tsx',
+  'apps/site/src/config/runtimeConfig.ts',
+  'apps/site/src/utils/observability.ts',
 ];
 const violations = [];
 
