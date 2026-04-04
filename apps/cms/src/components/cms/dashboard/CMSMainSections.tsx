@@ -92,7 +92,7 @@ export function ProjectsSection(props: ProjectsSectionProps) {
       {projectsError ? <AdminErrorState label={projectsError} /> : null}
       {projectEditorMode !== 'list' ? renderProjectForm() : null}
 
-      <AdminPanel title="Projets récents">
+      <AdminPanel title={`Projets (${projects.length})`}>
         {projectsLoading ? <AdminLoadingState label="Chargement des projets..." /> : null}
         {!projectsLoading ? (
           <div className="mb-2 flex justify-end">
