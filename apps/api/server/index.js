@@ -17,6 +17,8 @@ const {
   SMTP_PASS,
   EMAIL_FROM,
   APP_BASE_URL,
+  RESEND_API_KEY,
+  CONTACT_TO_EMAIL,
   isProduction,
 } = require('./config/env');
 const { MongoAuthRepository } = require('./repositories/authRepository.mongo');
@@ -48,6 +50,8 @@ async function bootstrap() {
     smtpPass: SMTP_PASS,
     from: EMAIL_FROM,
     appBaseUrl: APP_BASE_URL,
+    resendApiKey: RESEND_API_KEY,
+    contactTo: CONTACT_TO_EMAIL,
   });
   const authService = new AuthService({
     userRepository,
@@ -64,7 +68,7 @@ async function bootstrap() {
     configuredSessionStoreMode: SESSION_STORE_MODE,
     mongoState: mongoState.reason,
     publicRegistrationEnabled: PUBLIC_REGISTRATION_ENABLED,
-    emailDeliveryMode: emailService.isDeliveryReady() ? 'smtp' : 'dev-fallback',
+    emailDeliveryMode: emailService.getDeliveryMode(),
   });
 
   if (SEED_ADMIN_ON_START) {
@@ -85,7 +89,7 @@ async function bootstrap() {
     logInfo('bootstrap_admin_seed_disabled');
   }
 
-  const app = createApp({ authService });
+  const app = createApp({ authService, emailService });
   app.listen(API_PORT, () => {
     logInfo('bootstrap_server_started', { port: API_PORT });
   });

@@ -63,10 +63,24 @@ npm run build:api
 - Vercel Project 2 (cms): Root Directory = `apps/cms`
 - Vercel Project 3 (api): Root Directory = `apps/api`
 
-Detailed setup guide: `docs/deployment/VERCEL_MONOREPO_DEPLOYMENT_PLAN.md`.
+Detailed setup guides: `docs/deployment/VERCEL_MONOREPO_DEPLOYMENT_PLAN.md` and `docs/deployment/VERCEL_DEPLOYMENT.md`.
 
 ## Notes
 
 - Site and CMS are now structurally isolated and independently deployable.
 - API persistence paths are anchored under `apps/api/server/data`.
 - CMS “Back to site” links use configurable `VITE_PUBLIC_SITE_URL` (with `VITE_PUBLIC_APP_URL` legacy fallback, then runtime inference).
+
+
+## Contact email delivery (production)
+
+Contact form submissions are delivered by the API (`/api/v1/contact`) using:
+
+- **Resend** when `RESEND_API_KEY` is configured (preferred for Vercel), or
+- SMTP when `SMTP_*` credentials are configured.
+
+Required API env:
+- `CONTACT_TO_EMAIL`
+- `EMAIL_FROM`
+- `RESEND_API_KEY` **or** `SMTP_HOST` + `SMTP_USER` + `SMTP_PASS`
+

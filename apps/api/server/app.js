@@ -24,6 +24,7 @@ const { AuthService } = require('./services/authService');
 const { buildAuthController } = require('./controllers/authController');
 const { createAuthRoutes } = require('./routes/authRoutes');
 const { createContentRoutes } = require('./routes/contentRoutes');
+const { createContactRoutes } = require('./routes/contactRoutes');
 const { sendError } = require('./utils/apiResponse');
 const { FileContentRepository } = require('./repositories/contentRepository.file');
 const { ContentService } = require('./services/contentService');
@@ -32,6 +33,7 @@ const { FileAuditRepository } = require('./repositories/auditRepository.file');
 const { AuditService } = require('./services/auditService');
 const { setAuthAuditService } = require('./utils/authLogger');
 const { LocalDiskMediaStorage } = require('./services/mediaStorageService');
+const { EmailService } = require('./services/emailService');
 const { logInfo, logError } = require('./utils/logger');
 
 const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
@@ -102,6 +104,20 @@ function createApp(deps = {}) {
 
   const sessionInit = deps.sessionInit ?? createSessionMiddleware();
 
+  const emailService =
+    deps.emailService ??
+    new EmailService({
+      smtpHost: process.env.SMTP_HOST ?? '',
+      smtpPort: Number(process.env.SMTP_PORT ?? 587),
+      smtpSecure: process.env.SMTP_SECURE === 'true',
+      smtpUser: process.env.SMTP_USER ?? '',
+      smtpPass: process.env.SMTP_PASS ?? '',
+      resendApiKey: process.env.RESEND_API_KEY ?? '',
+      from: process.env.EMAIL_FROM ?? 'noreply@localhost',
+      appBaseUrl: process.env.APP_BASE_URL ?? FRONTEND_ORIGIN,
+      contactTo: process.env.CONTACT_TO_EMAIL ?? '',
+    });
+
   app.use((req, res, next) => {
     const requestId = req.headers['x-request-id'] || createRequestId();
     req.requestId = String(requestId);
@@ -164,8 +180,10 @@ function createApp(deps = {}) {
 
   app.use('/api/v1/auth', createAuthRoutes({ authController }));
   app.use('/api/v1/content', createContentRoutes({ contentService, auditService, mediaStorage }));
+  app.use('/api/v1/contact', createContactRoutes({ emailService }));
   app.use('/api/auth', createAuthRoutes({ authController }));
   app.use('/api/content', createContentRoutes({ contentService, auditService, mediaStorage }));
+  app.use('/api/contact', createContactRoutes({ emailService }));
 
   app.use((err, req, res, _next) => {
     logError('api_unhandled_error', {

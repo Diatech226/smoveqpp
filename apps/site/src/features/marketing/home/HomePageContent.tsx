@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Calendar, User } from 'lucide-react';
 import Hero3DEnhanced from '../../../components/Hero3DEnhanced';
 import Footer from '../../../components/Footer';
@@ -13,12 +13,15 @@ import { fetchPublicPageContent, fetchPublicServices } from '../../../utils/publ
 import { getBlogContentContractFromSource, type BlogListItem } from '../../blog/blogContentService';
 import { selectHomepageBlogPosts, selectHomepageServices } from './homePreview';
 import { resolveAboutTeamHref } from '../navigationCta';
+import { submitContactForm } from '../../../utils/contactApi';
 
 function HomePageContent() {
   const [homeContent, setHomeContent] = useState(() => pageContentRepository.getHomePageContent());
   const aboutMedia = resolveBlogMediaReference(homeContent.aboutImage, 'SMOVE Team');
   const [servicesData, setServicesData] = useState(() => selectHomepageServices(serviceRepository.getAll()));
   const [blogPosts, setBlogPosts] = useState<BlogListItem[]>([]);
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+  const [contactFeedback, setContactFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -57,6 +60,32 @@ function HomePageContent() {
   }, []);
 
   const renderableServices = useMemo(() => selectRenderablePublicServices(servicesData), [servicesData]);
+
+
+  const handleContactSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmittingContact(true);
+    setContactFeedback(null);
+
+    const formData = new FormData(event.currentTarget);
+    const payload = {
+      name: `${formData.get('name') || ''}`,
+      email: `${formData.get('email') || ''}`,
+      phone: '',
+      subject: `${formData.get('subject') || ''}`,
+      message: `${formData.get('message') || ''}`,
+    };
+
+    const result = await submitContactForm(payload);
+    if (result.success) {
+      setContactFeedback({ type: 'success', message: result.message });
+      event.currentTarget.reset();
+    } else {
+      setContactFeedback({ type: 'error', message: result.message });
+    }
+
+    setIsSubmittingContact(false);
+  };
 
   return (
     <div className="relative" style={{ position: 'relative' }}>
@@ -500,7 +529,7 @@ function HomePageContent() {
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
           >
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleContactSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
@@ -508,6 +537,8 @@ function HomePageContent() {
                   </label>
                   <input
                     type="text"
+                    name="name"
+                    required
                     className="w-full px-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px]"
                     placeholder="Votre nom"
                   />
@@ -518,6 +549,8 @@ function HomePageContent() {
                   </label>
                   <input
                     type="email"
+                    name="email"
+                    required
                     className="w-full px-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px]"
                     placeholder="votre@email.com"
                   />
@@ -530,6 +563,8 @@ function HomePageContent() {
                 </label>
                 <input
                   type="text"
+                  name="subject"
+                  required
                   className="w-full px-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px]"
                   placeholder="Comment pouvons-nous vous aider ?"
                 />
@@ -541,18 +576,25 @@ function HomePageContent() {
                 </label>
                 <textarea
                   rows={6}
+                  name="message"
+                  required
                   className="w-full px-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px] resize-none"
                   placeholder="Décrivez votre projet..."
                 />
               </div>
 
+              {contactFeedback ? (
+                <p className={`text-[14px] ${contactFeedback.type === 'success' ? 'text-green-700' : 'text-red-600'}`}>{contactFeedback.message}</p>
+              ) : null}
+
               <motion.button
                 type="submit"
+                disabled={isSubmittingContact}
                 className="w-full bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] text-white px-8 py-5 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px]"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {homeContent.contactSubmitLabel}
+                {isSubmittingContact ? 'Envoi en cours...' : homeContent.contactSubmitLabel}
               </motion.button>
             </form>
           </motion.div>
