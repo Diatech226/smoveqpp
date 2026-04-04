@@ -1,6 +1,6 @@
 # 🚀 SMOVE Communication - Site Web Complet
 
-> Agence de Communication Digitale Premium - Site web masterisé avec animations 3D, CMS intégré et architecture production-ready
+> Agence de Communication Digitale Premium - Site web masterisé avec animations 3D et architecture production-ready
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![React](https://img.shields.io/badge/React-18.x-61DAFB)
@@ -15,7 +15,7 @@
 SMOVE Communication est un site web complet d'agence digitale avec :
 
 ✅ **Hero 3D Masterisé** - Animations 3D avancées avec particules, orbs, rings
-✅ **CMS Intégré** - Gestion complète du contenu (Projets, Blog, Média)
+✅ **CMS séparé** - Administration du contenu dans `apps/cms`
 ✅ **Authentification** - Login/Register avec sessions persistantes
 ✅ **8 Pages Complètes** - Homepage, Services, Portfolio, Blog, etc.
 ✅ **Performance Optimisée** - Adaptive performance, lazy loading, cache
@@ -45,14 +45,6 @@ SMOVE Communication est un site web complet d'agence digitale avec :
 - Protected routes
 - User profile dans navigation
 
-### 📊 **CMS Dashboard**
-- Vue d'ensemble avec stats
-- Sidebar collapsible
-- Quick actions
-- Activity feed
-- User management
-- Sections : Projects, Blog, Media, Settings
-
 ### 📁 **Data Management**
 - **Projects** : 8 projets avec CRUD complet
 - **Blog** : 3 articles avec CRUD + statuts
@@ -77,7 +69,6 @@ smove-communication/
 │
 ├── components/                 # Composants React
 │   ├── auth/                  # Login, Register
-│   ├── cms/                   # CMS Dashboard
 │   ├── services/              # Pages services
 │   ├── ui/                    # Composants UI réutilisables
 │   ├── Hero3DEnhanced.tsx     # Hero 3D masterisé ⭐
@@ -109,7 +100,6 @@ smove-communication/
 │
 ├── App.tsx                    # Point d'entrée principal
 ├── DEVELOPMENT_GUIDE.md       # Guide développement complet 📖
-├── CMS_COMPLETE.md            # Documentation CMS
 └── README.md                  # Ce fichier
 ```
 
@@ -136,7 +126,7 @@ npm run dev
 ```
 Homepage : http://localhost:5173/#home
 Login    : http://localhost:5173/#login
-CMS      : http://localhost:5173/#cms-dashboard
+CMS      : http://localhost:5174/#cms
 ```
 
 ### Accès CMS sécurisé
@@ -160,9 +150,6 @@ VITE_DEV_ADMIN_NAME=Dev Admin
 
 - **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** 
   Guide complet de développement (Architecture, Performance, Best Practices)
-
-- **[CMS_COMPLETE.md](./CMS_COMPLETE.md)** 
-  Documentation du système CMS (Utilisation, API, Features)
 
 - **[HOMEPAGE_COMPLETE.md](./HOMEPAGE_COMPLETE.md)** 
   Documentation de la homepage
@@ -213,7 +200,6 @@ VITE_DEV_ADMIN_NAME=Dev Admin
 | About | `#apropos` | À propos |
 | Login | `#login` | Connexion |
 | Register | `#register` | Inscription |
-| CMS Dashboard | `#cms-dashboard` | Dashboard CMS (Protected) |
 
 ---
 
@@ -583,7 +569,7 @@ Pour toute question :
 **Le site SMOVE Communication est maintenant complet et production-ready!**
 
 ✅ Hero 3D masterisé avec animations avancées
-✅ CMS intégré pour gérer tout le contenu
+✅ CMS séparé dans une application dédiée (`apps/cms`)
 ✅ Authentification complète
 ✅ Performance optimisée
 ✅ Architecture évolutive

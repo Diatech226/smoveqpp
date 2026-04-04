@@ -21,7 +21,6 @@
 /
 ├── components/          # Composants React
 │   ├── auth/           # Authentification
-│   ├── cms/            # CMS Dashboard
 │   ├── services/       # Pages services
 │   ├── ui/             # Composants UI réutilisables
 │   └── figma/          # Composants Figma importés
