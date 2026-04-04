@@ -22,7 +22,6 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useAuth, type AuthAuditEvent } from '../../contexts/AuthContext';
 import type { AppUser } from '../../utils/securityPolicy';
 import { blogRepository, BlogRepositoryError } from '../../repositories/blogRepository';
-import { cmsRepository } from '../../repositories/cmsRepository';
 import { mediaRepository } from '../../repositories/mediaRepository';
 import { projectRepository } from '../../repositories/projectRepository';
 import { serviceRepository } from '../../repositories/serviceRepository';
@@ -66,6 +65,7 @@ import { isProjectMediaReference, resolveProjectFeaturedImage, resolveProjectHer
 import { toMediaReferenceValue } from '../../features/media/assetReference';
 import { resolveServiceRouteSlug } from '../../features/marketing/serviceRouting';
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
+import { deriveDashboardCmsStats } from './dashboard/cmsStats';
 import { canMutateSensitiveUserFields, filterAdminUsers } from './users/adminUsersViewModel';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
 import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
@@ -388,7 +388,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [savedHomeContentSnapshot, setSavedHomeContentSnapshot] = useState<HomePageContentSettings | null>(null);
   const [mediaVersion, setMediaVersion] = useState(0);
   const mediaFiles = useMemo(() => mediaRepository.getAll(), [mediaVersion]);
-  const cmsStats = useMemo(() => cmsRepository.getStats(), [posts, mediaFiles.length, projects.length]);
+  const cmsStats = useMemo(
+    () => deriveDashboardCmsStats({ projects, posts, mediaCount: mediaFiles.length }),
+    [mediaFiles.length, posts, projects],
+  );
   const canDeleteContent = user?.role === 'admin';
   const filteredMediaFiles = useMemo(() => {
     if (!mediaQuery.trim()) return mediaFiles;
@@ -567,8 +570,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       try {
         const backendMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
-        backendMedia.forEach((file) => mediaRepository.save(file));
-        setMediaVersion((version) => version + 1);
+        syncMediaFromBackend(backendMedia);
       } catch {
         markDegradedMode('Médiathèque: backend indisponible, cache local affiché.');
       }
@@ -1188,6 +1190,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setProjects(normalized);
   };
 
+  const syncMediaFromBackend = (backendMedia: Awaited<ReturnType<typeof fetchBackendMediaFiles>>) => {
+    const normalized = mediaRepository.replaceAll(backendMedia);
+    setMediaVersion((version) => version + 1);
+    setSelectedMediaId((previousId) => (previousId && !normalized.some((file) => file.id === previousId) ? '' : previousId));
+  };
+
   const resetProjectEditor = () => {
     setProjectEditorMode('list');
     setProjectForm(EMPTY_PROJECT_FORM);
@@ -1516,9 +1524,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         { retries: 1, retryDelayMs: 250 },
       );
 
-      mediaRepository.save(uploaded);
+      const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+      syncMediaFromBackend(refreshedMedia);
       setSelectedMediaId(uploaded.id);
-      setMediaVersion((version) => version + 1);
       showSuccess('Média uploadé et persisté sur le serveur.');
     } catch (error) {
       setMediaUploadError('Upload média impossible (format/taille ou backend indisponible).');
@@ -1561,9 +1569,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     try {
       await requestWithRetry(() => deleteBackendMediaFile(selectedMedia.id), { retries: 1, retryDelayMs: 250 });
       const refreshed = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
-      refreshed.forEach((file) => mediaRepository.save(file));
+      syncMediaFromBackend(refreshed);
       setSelectedMediaId('');
-      setMediaVersion((version) => version + 1);
       showSuccess('Média archivé avec protections de référence actives.');
     } catch (error) {
       if (error instanceof ContentApiError && error.code === 'MEDIA_IN_USE') {

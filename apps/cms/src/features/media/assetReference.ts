@@ -37,6 +37,14 @@ export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = RUNTIME_CONF
   }
 
   if (!normalizedUrl.startsWith('/')) {
+    const apiOrigin = toApiOrigin(apiBaseUrl);
+    const looksLikeRelativeAssetPath =
+      !normalizedUrl.includes(' ') &&
+      /^[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(normalizedUrl) &&
+      (normalizedUrl.includes('/') || normalizedUrl.startsWith('uploads') || normalizedUrl.startsWith('media'));
+    if (looksLikeRelativeAssetPath && apiOrigin) {
+      return `${apiOrigin}/${normalizedUrl.replace(/^\.?\//, '')}`;
+    }
     return normalizedUrl;
   }
 
