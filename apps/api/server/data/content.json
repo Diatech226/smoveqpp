@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 3,
+  "blogPosts": [
+    {
+      "id": "1",
+      "title": "Création de site web pour SMOVE",
+      "slug": "creation-site-web-smove",
+      "excerpt": "SMOVE propose une vision moderne du web africain, tournée vers l'innovation et l'excellence digitale.",
+      "content": "## Introduction\n\nSMOVE Communication révolutionne le paysage digital africain avec sa nouvelle plateforme web. Ce projet ambitieux combine design moderne, performance technique et expérience utilisateur exceptionnelle.",
+      "author": "Spencer Tarring",
+      "authorRole": "Lead Developer",
+      "category": "Développement Web",
+      "tags": [
+        "React",
+        "Web Design",
+        "Performance",
+        "Innovation"
+      ],
+      "publishedDate": "2024-02-01T00:00:00.000Z",
+      "readTime": "5 min",
+      "featuredImage": "modern website design smove platform",
+      "images": [
+        "web development coding modern"
+      ],
+      "status": "published",
+      "seo": {
+        "title": "Création de site web pour SMOVE",
+        "description": "SMOVE propose une vision moderne du web africain, tournée vers l'innovation et l'excellence digitale.",
+        "canonicalSlug": "creation-site-web-smove",
+        "socialImage": "modern website design smove platform",
+        "noIndex": false,
+        "canonicalUrl": ""
+      },
+      "mediaRoles": {
+        "featuredImage": "modern website design smove platform",
+        "coverImage": "modern website design smove platform",
+        "cardImage": "modern website design smove platform",
+        "socialImage": "modern website design smove platform"
+      }
+    },
+    {
+      "id": "2",
+      "title": "Communication d'entreprise pour ECLA BTP",
+      "slug": "communication-entreprise-ecla-btp",
+      "excerpt": "Création de vidéo et affiche publicitaire pour se démarquer dans le secteur du BTP.",
+      "content": "## Le Projet\n\nECLA BTP souhaitait moderniser sa communication pour mieux refléter son positionnement premium dans le secteur de la construction.",
+      "author": "James Rodd",
+      "authorRole": "Creative Director",
+      "category": "Communication",
+      "tags": [
+        "Vidéo",
+        "Branding",
+        "Corporate",
+        "BTP"
+      ],
+      "publishedDate": "2024-01-28T00:00:00.000Z",
+      "readTime": "4 min",
+      "featuredImage": "corporate video production professional",
+      "images": [
+        "video production studio"
+      ],
+      "status": "published",
+      "seo": {
+        "title": "Communication d'entreprise pour ECLA BTP",
+        "description": "Création de vidéo et affiche publicitaire pour se démarquer dans le secteur du BTP.",
+        "canonicalSlug": "communication-entreprise-ecla-btp",
+        "socialImage": "corporate video production professional",
+        "noIndex": false,
+        "canonicalUrl": ""
+      },
+      "mediaRoles": {
+        "featuredImage": "corporate video production professional",
+        "coverImage": "corporate video production professional",
+        "cardImage": "corporate video production professional",
+        "socialImage": "corporate video production professional"
+      }
+    },
+    {
+      "id": "3",
+      "title": "Création de logo et visuels pour Gobon Sarl",
+      "slug": "logo-visuels-gobon-sarl",
+      "excerpt": "Logo et visuels pour une identité commerciale remarquée dans le secteur alimentaire.",
+      "content": "## Contexte\n\nGobon Sarl, entreprise de distribution alimentaire, avait besoin d'une identité visuelle forte pour se démarquer sur un marché concurrentiel.",
+      "author": "David Silvester",
+      "authorRole": "Brand Designer",
+      "category": "Branding",
+      "tags": [
+        "Logo Design",
+        "Identité Visuelle",
+        "Branding",
+        "Food"
+      ],
+      "publishedDate": "2024-01-25T00:00:00.000Z",
+      "readTime": "6 min",
+      "featuredImage": "logo design creative professional",
+      "images": [
+        "brand identity design mockup"
+      ],
+      "status": "published",
+      "seo": {
+        "title": "Création de logo et visuels pour Gobon Sarl",
+        "description": "Logo et visuels pour une identité commerciale remarquée dans le secteur alimentaire.",
+        "canonicalSlug": "logo-visuels-gobon-sarl",
+        "socialImage": "logo design creative professional",
+        "noIndex": false,
+        "canonicalUrl": ""
+      },
+      "mediaRoles": {
+        "featuredImage": "logo design creative professional",
+        "coverImage": "logo design creative professional",
+        "cardImage": "logo design creative professional",
+        "socialImage": "logo design creative professional"
+      }
+    }
+  ],
+  "projects": [],
+  "mediaFiles": [
+    {
+      "id": "media_1775322547408_17d52cc6",
+      "name": "IMG-20240701-WA0019-1.jpg",
+      "title": "IMG-20240701-WA0019-1.jpg",
+      "label": "IMG-20240701-WA0019-1.jpg",
+      "type": "image",
+      "url": "/uploads/2026/04/img-20240701-wa0019-1-media_1775322547408_17d52cc6.jpg",
+      "thumbnailUrl": "/uploads/2026/04/img-20240701-wa0019-1-media_1775322547408_17d52cc6.jpg",
+      "size": 54185,
+      "uploadedDate": "2026-04-04T17:09:07.409Z",
+      "uploadedBy": "201ec4d3-3823-4bb2-8ae5-04643af65fea",
+      "alt": "IMG-20240701-WA0019-1.jpg",
+      "caption": "IMG-20240701-WA0019-1.jpg",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/jpeg",
+        "checksumSha256": "e97bf4742cf9985f5cada2e3c200bbd8794a764301e8a6e5d84a2c23fc8ae53a",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-04-04T17:09:07.409Z",
+      "updatedAt": "2026-04-04T17:09:28.526Z"
+    },
+    {
+      "id": "media_1775322568524_8732ab72",
+      "name": "ChatGPT Image 16 déc. 2025, 10_35_21.png",
+      "title": "ChatGPT Image 16 déc. 2025, 10_35_21.png",
+      "label": "ChatGPT Image 16 déc. 2025, 10_35_21.png",
+      "type": "image",
+      "url": "/uploads/2026/04/chatgpt-image-16-d-c.-2025-10_35_21-media_1775322568524_8732ab72.png",
+      "thumbnailUrl": "/uploads/2026/04/chatgpt-image-16-d-c.-2025-10_35_21-media_1775322568524_8732ab72.png",
+      "size": 518469,
+      "uploadedDate": "2026-04-04T17:09:28.525Z",
+      "uploadedBy": "201ec4d3-3823-4bb2-8ae5-04643af65fea",
+      "alt": "ChatGPT Image 16 déc. 2025, 10_35_21.png",
+      "caption": "ChatGPT Image 16 déc. 2025, 10_35_21.png",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/png",
+        "checksumSha256": "5aa321997c78ac15bda4f7c19ac90e1c7a5fb096913dbb0a2c408b6465db7173",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-04-04T17:09:28.525Z",
+      "updatedAt": "2026-04-04T17:09:28.525Z"
+    }
+  ],
+  "services": [
+    {
+      "id": "design-branding",
+      "title": "Design & Branding",
+      "slug": "design-branding",
+      "description": "Création d'interfaces immersives, animations 3D et expériences interactives, de logo et d'identité visuels.",
+      "shortDescription": "Identité visuelle, branding et design d’expériences.",
+      "color": "from-[#00b3e8] to-[#00c0e8]",
+      "icon": "palette",
+      "features": [
+        "Logo & Identité",
+        "UI/UX Design",
+        "Charte Graphique",
+        "Motion Design"
+      ],
+      "status": "published",
+      "featured": true,
+      "routeSlug": "design-branding",
+      "processSteps": [],
+      "seo": {
+        "title": "Design & Branding",
+        "description": "Identité visuelle, branding et design d’expériences.",
+        "canonicalSlug": "design-branding"
+      },
+      "createdAt": "2026-04-04T10:35:00.014Z",
+      "updatedAt": "2026-04-04T10:35:00.014Z"
+    },
+    {
+      "id": "web-development",
+      "title": "Développement Web & Mobile",
+      "slug": "web-development",
+      "description": "Applications web modernes, rapides et sécurisées, adaptées à vos besoins métiers.",
+      "shortDescription": "Sites, apps et plateformes métiers.",
+      "color": "from-[#34c759] to-[#2da84a]",
+      "icon": "code",
+      "features": [
+        "Sites Web",
+        "Applications Mobile",
+        "E-commerce",
+        "Web Apps"
+      ],
+      "status": "published",
+      "featured": true,
+      "routeSlug": "web-development",
+      "processSteps": [],
+      "seo": {
+        "title": "Développement Web & Mobile",
+        "description": "Sites, apps et plateformes métiers.",
+        "canonicalSlug": "web-development"
+      },
+      "createdAt": "2026-04-04T10:35:00.015Z",
+      "updatedAt": "2026-04-04T10:35:00.015Z"
+    },
+    {
+      "id": "digital-communication",
+      "title": "Communication Digitale",
+      "slug": "digital-communication",
+      "description": "Stratégie de contenu, visibilité en ligne, branding et storytelling digital.",
+      "shortDescription": "Acquisition, contenu et notoriété digitale.",
+      "color": "from-[#ffc247] to-[#ff9f47]",
+      "icon": "megaphone",
+      "features": [
+        "Stratégie Social Media",
+        "Content Marketing",
+        "SEO/SEA",
+        "Email Marketing"
+      ],
+      "status": "published",
+      "featured": false,
+      "routeSlug": "digital-communication",
+      "processSteps": [],
+      "seo": {
+        "title": "Communication Digitale",
+        "description": "Acquisition, contenu et notoriété digitale.",
+        "canonicalSlug": "digital-communication"
+      },
+      "createdAt": "2026-04-04T10:35:00.015Z",
+      "updatedAt": "2026-04-04T10:35:00.015Z"
+    },
+    {
+      "id": "video-production",
+      "title": "Production Vidéo",
+      "slug": "video-production",
+      "description": "Création de vidéos professionnelles pour vos campagnes marketing et événements.",
+      "shortDescription": "Formats vidéo impactants et motion.",
+      "color": "from-[#ff6b6b] to-[#ee5a6f]",
+      "icon": "video",
+      "features": [
+        "Vidéos Publicitaires",
+        "Motion Graphics",
+        "Montage Vidéo",
+        "Live Streaming"
+      ],
+      "status": "published",
+      "featured": false,
+      "routeSlug": "video-production",
+      "processSteps": [],
+      "seo": {
+        "title": "Production Vidéo",
+        "description": "Formats vidéo impactants et motion.",
+        "canonicalSlug": "video-production"
+      },
+      "createdAt": "2026-04-04T10:35:00.015Z",
+      "updatedAt": "2026-04-04T10:35:00.015Z"
+    },
+    {
+      "id": "3d-creation",
+      "title": "Création 3D",
+      "slug": "3d-creation",
+      "description": "Modélisation 3D, animations et expériences immersives pour vos projets.",
+      "shortDescription": "3D, AR/VR et visualisation immersive.",
+      "color": "from-[#a855f7] to-[#9333ea]",
+      "icon": "box",
+      "features": [
+        "Modélisation 3D",
+        "Animation 3D",
+        "Rendering",
+        "VR/AR"
+      ],
+      "status": "published",
+      "featured": false,
+      "routeSlug": "3d-creation",
+      "processSteps": [],
+      "seo": {
+        "title": "Création 3D",
+        "description": "3D, AR/VR et visualisation immersive.",
+        "canonicalSlug": "3d-creation"
+      },
+      "createdAt": "2026-04-04T10:35:00.015Z",
+      "updatedAt": "2026-04-04T10:35:00.015Z"
+    }
+  ],
+  "pageContent": null,
+  "settings": null,
+  "settingsHistory": [],
+  "migrationHistory": [
+    {
+      "fromVersion": 2,
+      "toVersion": 3,
+      "migratedAt": "2026-04-04T10:49:59.732Z",
+      "note": "Initialized settings history baseline for auditability and rollback."
+    }
+  ]
+}

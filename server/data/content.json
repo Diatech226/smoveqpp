@@ -1,0 +1,720 @@
+{
+  "schemaVersion": 2,
+  "blogPosts": [
+    {
+      "id": "1",
+      "title": "Création de site web pour SMOVEssss",
+      "slug": "creation-site-web-smove",
+      "excerpt": "SMOVE propose une vision moderne du web africain, tournée vers l'innovation et l'excellence digitale.",
+      "content": "## Introduction\n\nSMOVE Communication révolutionne le paysage digital africain avec sa nouvelle plateforme web. Ce projet ambitieux combine design moderne, performance technique et expérience utilisateur exceptionnelle.",
+      "author": "Spencer Tarring",
+      "authorRole": "CMS Editor",
+      "category": "Développement Web",
+      "tags": [
+        "React",
+        "Web Design",
+        "Performance",
+        "Innovation"
+      ],
+      "publishedDate": "2024-02-01T00:00:00.000Z",
+      "readTime": "5 min",
+      "featuredImage": "media:media_1773656385615_e0a05757",
+      "images": [
+        "media:media_1773656385615_e0a05757",
+        "web development coding modern"
+      ],
+      "status": "published",
+      "seo": {
+        "title": "Création de site web pour SMOVE",
+        "description": "SMOVE propose une vision moderne du web africain, tournée vers l'innovation et l'excellence digitale.",
+        "canonicalSlug": "creation-site-web-smove",
+        "socialImage": "media:media_1773656385615_e0a05757",
+        "noIndex": false,
+        "canonicalUrl": ""
+      },
+      "mediaRoles": {
+        "featuredImage": "media:media_1773656385615_e0a05757",
+        "coverImage": "modern website design smove platform",
+        "cardImage": "modern website design smove platform",
+        "socialImage": "media:media_1773656385615_e0a05757"
+      }
+    },
+    {
+      "id": "2",
+      "title": "Communication d'entreprise pour ECLA BTP",
+      "slug": "communication-entreprise-ecla-btp",
+      "excerpt": "Création de vidéo et affiche publicitaire pour se démarquer dans le secteur du BTP.",
+      "content": "## Le Projet\n\nECLA BTP souhaitait moderniser sa communication pour mieux refléter son positionnement premium dans le secteur de la construction.",
+      "author": "James Rodd",
+      "authorRole": "CMS Editor",
+      "category": "Communication",
+      "tags": [
+        "Vidéo",
+        "Branding",
+        "Corporate",
+        "BTP"
+      ],
+      "publishedDate": "2024-01-28T00:00:00.000Z",
+      "readTime": "4 min",
+      "featuredImage": "media:media_1773656505014_ff8851e2",
+      "images": [
+        "media:media_1773656505014_ff8851e2"
+      ],
+      "status": "published",
+      "seo": {
+        "title": "Communication d'entreprise pour ECLA BTP",
+        "description": "Création de vidéo et affiche publicitaire pour se démarquer dans le secteur du BTP.",
+        "canonicalSlug": "communication-entreprise-ecla-btp",
+        "socialImage": "media:media_1773656505014_ff8851e2",
+        "noIndex": false,
+        "canonicalUrl": ""
+      },
+      "mediaRoles": {
+        "featuredImage": "media:media_1773656505014_ff8851e2",
+        "coverImage": "media:media_1773656505014_ff8851e2",
+        "cardImage": "media:media_1773656505014_ff8851e2",
+        "socialImage": "media:media_1773656505014_ff8851e2"
+      }
+    },
+    {
+      "id": "3",
+      "title": "Création de logo et visuels pour Gobon Sarlsss",
+      "slug": "logo-visuels-gobon-sarl",
+      "excerpt": "Logo et visuels pour une identité commerciale remarquée dans le secteur alimentaire.",
+      "content": "## Contexte\n\nGobon Sarl, entreprise de distribution alimentaire, avait besoin d'une identité visuelle forte pour se démarquer sur un marché concurrentiel.",
+      "author": "David Silvester",
+      "authorRole": "CMS Editor",
+      "category": "Branding",
+      "tags": [
+        "Logo Design",
+        "Identité Visuelle",
+        "Branding",
+        "Food"
+      ],
+      "publishedDate": "2024-01-25T00:00:00.000Z",
+      "readTime": "6 min",
+      "featuredImage": "logo design creative professional",
+      "images": [
+        "logo design creative professional"
+      ],
+      "status": "published",
+      "seo": {
+        "title": "Création de logo et visuels pour Gobon Sarl",
+        "description": "Logo et visuels pour une identité commerciale remarquée dans le secteur alimentaire.",
+        "canonicalSlug": "logo-visuels-gobon-sarl",
+        "socialImage": "logo design creative professional",
+        "noIndex": false,
+        "canonicalUrl": ""
+      },
+      "mediaRoles": {
+        "featuredImage": "logo design creative professional",
+        "coverImage": "logo design creative professional",
+        "cardImage": "logo design creative professional",
+        "socialImage": "logo design creative professional"
+      }
+    },
+    {
+      "id": "post-1773600374309",
+      "title": "CREATION LOGO",
+      "slug": "logo",
+      "excerpt": "KNBJK",
+      "content": "BJKBK",
+      "author": "BBBBB",
+      "authorRole": "CMS Editor",
+      "category": "BBBBBBJJJKKK",
+      "tags": [],
+      "publishedDate": "2026-03-15T18:46:14.309Z",
+      "readTime": "5 min",
+      "featuredImage": "blog article image",
+      "images": [],
+      "status": "published",
+      "seo": {
+        "title": "B     KKKK",
+        "description": "BJKKB",
+        "canonicalSlug": "logo",
+        "socialImage": "blog article image",
+        "noIndex": false,
+        "canonicalUrl": ""
+      },
+      "mediaRoles": {
+        "featuredImage": "blog article image",
+        "coverImage": "blog article image",
+        "cardImage": "blog article image",
+        "socialImage": "blog article image"
+      }
+    }
+  ],
+  "projects": [
+    {
+      "id": "project-1774211722807",
+      "title": "hgggg",
+      "slug": "klklhbh",
+      "client": "ygfff",
+      "category": "jjjjjjjjjj",
+      "year": "2026",
+      "status": "published",
+      "featured": false,
+      "description": "Description à compléter.",
+      "challenge": "Challenge à compléter.",
+      "solution": "Solution à compléter.",
+      "results": [],
+      "tags": [],
+      "mainImage": "media:media_1773656385615_e0a05757",
+      "featuredImage": "media:media_1773656385615_e0a05757",
+      "mediaRoles": {
+        "cardImage": "media:media_1773656385615_e0a05757",
+        "heroImage": "media:media_1773656385615_e0a05757",
+        "coverImage": "media:media_1773656385615_e0a05757",
+        "socialImage": "media:media_1773656385615_e0a05757",
+        "galleryImages": [
+          "media:media_1773656385615_e0a05757"
+        ]
+      },
+      "seo": {
+        "title": "hgggg",
+        "description": "Description à compléter.",
+        "canonicalSlug": "klklhbh",
+        "socialImage": "media:media_1773656385615_e0a05757"
+      },
+      "imageAlt": "logokara (1).png",
+      "images": [
+        "media:media_1773656385615_e0a05757"
+      ],
+      "createdAt": "2026-03-23T19:40:38.379Z",
+      "updatedAt": "2026-03-23T19:40:38.379Z"
+    },
+    {
+      "id": "ecla-btp-branding",
+      "title": "Identité Visuelle ECLA BTP burkina",
+      "slug": "identite-visuelle-ecla-btp",
+      "client": "ECLA BTP",
+      "category": "Branding",
+      "year": "2024",
+      "status": "published",
+      "featured": false,
+      "description": "Refonte complète de l'identité visuelle d'une entreprise de construction leader en Côte d'Ivoire.",
+      "challenge": "Moderniser l'image de marque tout en conservant la crédibilité et l'héritage de l'entreprise.",
+      "solution": "Nouveau logo symbolisant la solidité et l'innovation, charte graphique professionnelle, supports de communication print et digital.",
+      "results": [
+        "Augmentation de 80% de la reconnaissance de marque",
+        "Nouveau positionnement premium sur le marché",
+        "Cohérence visuelle sur tous les supports",
+        "Impact immédiat sur les réseaux sociaux"
+      ],
+      "tags": [
+        "Logo Design",
+        "Branding",
+        "Print",
+        "Digital",
+        "Charte Graphique"
+      ],
+      "mainImage": "construction company branding modern",
+      "featuredImage": "construction company branding modern",
+      "imageAlt": "Identité Visuelle ECLA BTP",
+      "images": [
+        "logo design construction professional",
+        "brand identity mockup business cards",
+        "corporate branding materials"
+      ],
+      "testimonial": {
+        "text": "Notre nouvelle identité visuelle nous a donné une image beaucoup plus moderne et professionnelle. Les retours sont excellents!",
+        "author": "Marie Koné",
+        "position": "Directrice Marketing, ECLA BTP"
+      },
+      "createdAt": "2026-03-16T12:23:15.326Z",
+      "updatedAt": "2026-03-23T19:40:38.387Z",
+      "mediaRoles": {
+        "cardImage": "construction company branding modern",
+        "heroImage": "construction company branding modern",
+        "coverImage": "construction company branding modern",
+        "socialImage": "construction company branding modern",
+        "galleryImages": [
+          "logo design construction professional",
+          "brand identity mockup business cards",
+          "corporate branding materials"
+        ]
+      },
+      "seo": {
+        "title": "Identité Visuelle ECLA BTP burkina",
+        "description": "Refonte complète de l'identité visuelle d'une entreprise de construction leader en Côte d'Ivoire.",
+        "canonicalSlug": "identite-visuelle-ecla-btp",
+        "socialImage": "construction company branding modern"
+      }
+    },
+    {
+      "id": "smove-platform",
+      "title": "Plateforme SMOVE Digital",
+      "client": "SMOVE Communication",
+      "category": "Développement Web",
+      "year": "2024",
+      "description": "Création d'une plateforme web moderne pour la gestion de projets digitaux et la communication client.",
+      "challenge": "Développer une solution complète permettant de gérer tous les aspects de la communication digitale en un seul endroit.",
+      "solution": "Architecture web progressive avec React, système de gestion de contenu intégré, dashboard analytique et interface client intuitive.",
+      "results": [
+        "Réduction de 60% du temps de gestion de projet",
+        "Augmentation de 45% de la satisfaction client",
+        "Interface utilisateur primée pour son design",
+        "100% responsive sur tous les appareils"
+      ],
+      "tags": [
+        "React",
+        "Node.js",
+        "MongoDB",
+        "UI/UX",
+        "Dashboard"
+      ],
+      "mainImage": "modern web platform dashboard interface",
+      "images": [
+        "web dashboard analytics colorful",
+        "project management interface modern",
+        "client portal design clean"
+      ],
+      "testimonial": {
+        "text": "SMOVE a transformé notre façon de travailler. La plateforme est intuitive, rapide et répond parfaitement à nos besoins.",
+        "author": "Jean-Marc Kouassi",
+        "position": "Directeur Général"
+      },
+      "slug": "plateforme-smove-digital",
+      "featured": false,
+      "status": "published",
+      "createdAt": "2026-03-15T18:37:02.626Z",
+      "updatedAt": "2026-03-23T19:40:38.387Z",
+      "featuredImage": "modern web platform dashboard interface",
+      "imageAlt": "Plateforme SMOVE Digital",
+      "mediaRoles": {
+        "cardImage": "modern web platform dashboard interface",
+        "heroImage": "modern web platform dashboard interface",
+        "coverImage": "modern web platform dashboard interface",
+        "socialImage": "modern web platform dashboard interface",
+        "galleryImages": [
+          "web dashboard analytics colorful",
+          "project management interface modern",
+          "client portal design clean"
+        ]
+      },
+      "seo": {
+        "title": "Plateforme SMOVE Digital",
+        "description": "Création d'une plateforme web moderne pour la gestion de projets digitaux et la communication client.",
+        "canonicalSlug": "plateforme-smove-digital",
+        "socialImage": "modern web platform dashboard interface"
+      }
+    },
+    {
+      "id": "ministry-campaign",
+      "title": "Campagne Digitale Ministère",
+      "slug": "campagne-digitale-ministere",
+      "client": "Ministère de la Jeunesse",
+      "category": "Communication Digitale",
+      "year": "2023",
+      "status": "published",
+      "featured": false,
+      "description": "Campagne de communication digitale pour promouvoir l'entrepreneuriat jeune en Côte d'Ivoire.",
+      "challenge": "Atteindre et engager les jeunes sur les réseaux sociaux avec un message impactant.",
+      "solution": "Stratégie de contenu multicanal, vidéos virales, motion design, community management et influenceurs.",
+      "results": [
+        "5 millions de vues sur les réseaux sociaux",
+        "200,000+ interactions (likes, partages, commentaires)",
+        "Augmentation de 300% des inscriptions au programme",
+        "Tendance #1 sur Twitter Côte d'Ivoire pendant 3 jours"
+      ],
+      "tags": [
+        "Social Media",
+        "Video",
+        "Motion Design",
+        "Strategy",
+        "Influencers"
+      ],
+      "mainImage": "social media campaign colorful youth",
+      "featuredImage": "social media campaign colorful youth",
+      "mediaRoles": {
+        "cardImage": "social media campaign colorful youth",
+        "heroImage": "social media campaign colorful youth",
+        "coverImage": "social media campaign colorful youth",
+        "socialImage": "social media campaign colorful youth",
+        "galleryImages": [
+          "social media graphics modern vibrant",
+          "video production studio creative trust media",
+          "digital campaign analytics dashboard"
+        ]
+      },
+      "imageAlt": "Campagne Digitale Ministère",
+      "images": [
+        "social media graphics modern vibrant",
+        "video production studio creative trust media",
+        "digital campaign analytics dashboard"
+      ],
+      "seo": {
+        "title": "Campagne Digitale Ministère",
+        "description": "Campagne de communication digitale pour promouvoir l'entrepreneuriat jeune en Côte d'Ivoire.",
+        "canonicalSlug": "campagne-digitale-ministere",
+        "socialImage": "social media campaign colorful youth"
+      },
+      "createdAt": "2026-03-21T19:22:28.359Z",
+      "updatedAt": "2026-03-23T19:40:38.387Z"
+    },
+    {
+      "id": "education-platform",
+      "title": "Plateforme E-Learning",
+      "client": "Université Virtuelle CI",
+      "category": "EdTech",
+      "year": "2023",
+      "description": "Plateforme complète d'apprentissage en ligne avec cours interactifs et certifications.",
+      "challenge": "Rendre l'éducation accessible et engageante pour des milliers d'étudiants à distance.",
+      "solution": "LMS complet avec vidéos HD, quizz interactifs, forums, suivi de progression, certifications automatiques.",
+      "results": [
+        "15,000+ étudiants inscrits",
+        "500+ cours disponibles",
+        "Taux de complétion de 78%",
+        "Certification reconnue par l'État"
+      ],
+      "tags": [
+        "EdTech",
+        "LMS",
+        "Video Streaming",
+        "Gamification",
+        "Certificates"
+      ],
+      "mainImage": "online learning platform modern",
+      "images": [
+        "elearning dashboard student interface",
+        "video course player interactive",
+        "certification system online education"
+      ],
+      "slug": "plateforme-e-learning",
+      "featured": false,
+      "status": "published",
+      "createdAt": "2026-03-15T18:37:02.626Z",
+      "updatedAt": "2026-03-23T19:40:38.387Z",
+      "featuredImage": "online learning platform modern",
+      "imageAlt": "Plateforme E-Learning",
+      "mediaRoles": {
+        "cardImage": "online learning platform modern",
+        "heroImage": "online learning platform modern",
+        "coverImage": "online learning platform modern",
+        "socialImage": "online learning platform modern",
+        "galleryImages": [
+          "elearning dashboard student interface",
+          "video course player interactive",
+          "certification system online education"
+        ]
+      },
+      "seo": {
+        "title": "Plateforme E-Learning",
+        "description": "Plateforme complète d'apprentissage en ligne avec cours interactifs et certifications.",
+        "canonicalSlug": "plateforme-e-learning",
+        "socialImage": "online learning platform modern"
+      }
+    }
+  ],
+  "mediaFiles": [
+    {
+      "id": "media_1773656385615_e0a05757",
+      "name": "logokara (1).png",
+      "title": "logokara (1).png",
+      "label": "logokara (1).png",
+      "type": "image",
+      "url": "/uploads/2026/03/logokara-1--media_1773656385615_e0a05757.png",
+      "thumbnailUrl": "/uploads/2026/03/logokara-1--media_1773656385615_e0a05757.png",
+      "size": 25292,
+      "uploadedDate": "2026-03-16T10:19:45.617Z",
+      "uploadedBy": "cbcdcaaa-1b76-4313-bfd5-3f05c47e6546",
+      "alt": "logokara (1).png",
+      "caption": "logokara (1).png",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/png",
+        "checksumSha256": "005ece6400ce6a2ea9b14906aabd9be1b27fe47096d6fdc5512f28a191273587",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-03-16T10:19:45.617Z",
+      "updatedAt": "2026-03-23T19:40:22.759Z"
+    },
+    {
+      "id": "media_1773656505014_ff8851e2",
+      "name": "stabilisateur-binatone-dvs-1000-va.jpg",
+      "title": "stabilisateur-binatone-dvs-1000-va.jpg",
+      "label": "stabilisateur-binatone-dvs-1000-va.jpg",
+      "type": "image",
+      "url": "/uploads/2026/03/stabilisateur-binatone-dvs-1000-va-media_1773656505014_ff8851e2.jpg",
+      "thumbnailUrl": "/uploads/2026/03/stabilisateur-binatone-dvs-1000-va-media_1773656505014_ff8851e2.jpg",
+      "size": 51298,
+      "uploadedDate": "2026-03-16T10:21:45.015Z",
+      "uploadedBy": "cbcdcaaa-1b76-4313-bfd5-3f05c47e6546",
+      "alt": "stabilisateur-binatone-dvs-1000-va.jpg",
+      "caption": "stabilisateur-binatone-dvs-1000-va.jpg",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/jpeg",
+        "checksumSha256": "0cc4242444ec273facb6d96f65e952e1b0c74f94db9e2df9f612ada12037547a",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-03-16T10:21:45.015Z",
+      "updatedAt": "2026-03-23T19:40:22.759Z"
+    },
+    {
+      "id": "media_1774217714064_4395e0db",
+      "name": "940px-Map-Africa-Regions_(fr).png",
+      "title": "940px-Map-Africa-Regions_(fr).png",
+      "label": "940px-Map-Africa-Regions_(fr).png",
+      "type": "image",
+      "url": "/uploads/2026/03/940px-map-africa-regions_-fr--media_1774217714064_4395e0db.png",
+      "thumbnailUrl": "/uploads/2026/03/940px-map-africa-regions_-fr--media_1774217714064_4395e0db.png",
+      "size": 510794,
+      "uploadedDate": "2026-03-22T22:15:14.069Z",
+      "uploadedBy": "a603e0d4-cef1-44dc-aea0-126e348839b2",
+      "alt": "940px-Map-Africa-Regions_(fr).png",
+      "caption": "940px-Map-Africa-Regions_(fr).png",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/png",
+        "checksumSha256": "45ff09f0fc2905cfd8b9111ddd6092a1b6a78beb30f3f8e9946ab26524937d0e",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-03-22T22:15:14.069Z",
+      "updatedAt": "2026-03-23T19:40:22.759Z"
+    },
+    {
+      "id": "media_1774218645751_94c9d523",
+      "name": "940px-Map-Africa-Regions_(fr).png",
+      "title": "940px-Map-Africa-Regions_(fr).png",
+      "label": "940px-Map-Africa-Regions_(fr).png",
+      "type": "image",
+      "url": "/uploads/2026/03/940px-map-africa-regions_-fr--media_1774218645751_94c9d523.png",
+      "thumbnailUrl": "/uploads/2026/03/940px-map-africa-regions_-fr--media_1774218645751_94c9d523.png",
+      "size": 510794,
+      "uploadedDate": "2026-03-22T22:30:45.753Z",
+      "uploadedBy": "a603e0d4-cef1-44dc-aea0-126e348839b2",
+      "alt": "940px-Map-Africa-Regions_(fr).png",
+      "caption": "940px-Map-Africa-Regions_(fr).png",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/png",
+        "checksumSha256": "45ff09f0fc2905cfd8b9111ddd6092a1b6a78beb30f3f8e9946ab26524937d0e",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-03-22T22:30:45.753Z",
+      "updatedAt": "2026-03-23T19:40:22.759Z"
+    },
+    {
+      "id": "media_1774294667569_568cccde",
+      "name": "Beelink-SER3-Mini-PC-AMD-Ryzen-7-16GB-RAM-512GB-475307-0.jpg",
+      "title": "Beelink-SER3-Mini-PC-AMD-Ryzen-7-16GB-RAM-512GB-475307-0.jpg",
+      "label": "Beelink-SER3-Mini-PC-AMD-Ryzen-7-16GB-RAM-512GB-475307-0.jpg",
+      "type": "image",
+      "url": "/uploads/2026/03/beelink-ser3-mini-pc-amd-ryzen-7-16gb-ram-512gb-475307-0-media_1774294667569_568cccde.jpg",
+      "thumbnailUrl": "/uploads/2026/03/beelink-ser3-mini-pc-amd-ryzen-7-16gb-ram-512gb-475307-0-media_1774294667569_568cccde.jpg",
+      "size": 278324,
+      "uploadedDate": "2026-03-23T19:37:47.571Z",
+      "uploadedBy": "165d86ac-2eb9-43c4-b515-a34228b4e45e",
+      "alt": "Beelink-SER3-Mini-PC-AMD-Ryzen-7-16GB-RAM-512GB-475307-0.jpg",
+      "caption": "Beelink-SER3-Mini-PC-AMD-Ryzen-7-16GB-RAM-512GB-475307-0.jpg",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/jpeg",
+        "checksumSha256": "b86378b7b23abc6ba944ad7f273d813315de49295c07d9c3f21a10a801e772d3",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-03-23T19:37:47.571Z",
+      "updatedAt": "2026-03-23T19:40:22.759Z"
+    },
+    {
+      "id": "media_1774294689615_60c7a8fd",
+      "name": "WhatsApp Image 2025-02-23 at 21.49.22.jpeg",
+      "title": "WhatsApp Image 2025-02-23 at 21.49.22.jpeg",
+      "label": "WhatsApp Image 2025-02-23 at 21.49.22.jpeg",
+      "type": "image",
+      "url": "/uploads/2026/03/whatsapp-image-2025-02-23-at-21.49.22-media_1774294689615_60c7a8fd.jpeg",
+      "thumbnailUrl": "/uploads/2026/03/whatsapp-image-2025-02-23-at-21.49.22-media_1774294689615_60c7a8fd.jpeg",
+      "size": 45157,
+      "uploadedDate": "2026-03-23T19:38:09.617Z",
+      "uploadedBy": "165d86ac-2eb9-43c4-b515-a34228b4e45e",
+      "alt": "WhatsApp Image 2025-02-23 at 21.49.22.jpeg",
+      "caption": "WhatsApp Image 2025-02-23 at 21.49.22.jpeg",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/jpeg",
+        "checksumSha256": "11ba41cbd6f677891d57acac9058303c4d00bd345d7b7b479deb921307d8736a",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-03-23T19:38:09.617Z",
+      "updatedAt": "2026-03-23T19:40:22.759Z"
+    },
+    {
+      "id": "media_1774294822756_21fa8d29",
+      "name": "WhatsApp Image 2025-02-24 at 13.01.14 (1).jpeg",
+      "title": "WhatsApp Image 2025-02-24 at 13.01.14 (1).jpeg",
+      "label": "WhatsApp Image 2025-02-24 at 13.01.14 (1).jpeg",
+      "type": "image",
+      "url": "/uploads/2026/03/whatsapp-image-2025-02-24-at-13.01.14-1--media_1774294822756_21fa8d29.jpeg",
+      "thumbnailUrl": "/uploads/2026/03/whatsapp-image-2025-02-24-at-13.01.14-1--media_1774294822756_21fa8d29.jpeg",
+      "size": 76322,
+      "uploadedDate": "2026-03-23T19:40:22.757Z",
+      "uploadedBy": "165d86ac-2eb9-43c4-b515-a34228b4e45e",
+      "alt": "WhatsApp Image 2025-02-24 at 13.01.14 (1).jpeg",
+      "caption": "WhatsApp Image 2025-02-24 at 13.01.14 (1).jpeg",
+      "tags": [],
+      "source": "local-disk",
+      "metadata": {
+        "mimeType": "image/jpeg",
+        "checksumSha256": "0301116f02d80bc4ced4a6812ef128eabb9c19b585eb2d271b5fc1e37d6bcf03",
+        "license": "",
+        "focalPoint": ""
+      },
+      "createdAt": "2026-03-23T19:40:22.757Z",
+      "updatedAt": "2026-03-23T19:40:22.757Z"
+    }
+  ],
+  "services": [
+    {
+      "id": "design-branding",
+      "title": "Design & Branding",
+      "slug": "design-branding",
+      "description": "Création d'interfaces immersives, animations 3D et expériences interactives, de logo et d'identité visuels.",
+      "shortDescription": "Identité visuelle, branding et design d’expériences.",
+      "color": "from-[#00b3e8] to-[#00c0e8]",
+      "icon": "palette",
+      "features": [
+        "Logo & Identité",
+        "UI/UX Design",
+        "Charte Graphique",
+        "Motion Design"
+      ],
+      "status": "published",
+      "featured": true,
+      "createdAt": "2026-03-15T18:27:43.256Z",
+      "updatedAt": "2026-03-15T18:35:41.397Z"
+    },
+    {
+      "id": "web-development",
+      "title": "Développement Web & Mobile",
+      "slug": "web-development",
+      "description": "Applications web modernes, rapides et sécurisées, adaptées à vos besoins métiers.",
+      "shortDescription": "Sites, apps et plateformes métiers.",
+      "color": "from-[#34c759] to-[#2da84a]",
+      "icon": "code",
+      "features": [
+        "Sites Web",
+        "Applications Mobile",
+        "E-commerce",
+        "Web Apps"
+      ],
+      "status": "published",
+      "featured": true,
+      "createdAt": "2026-03-15T18:27:43.256Z",
+      "updatedAt": "2026-03-15T18:35:41.397Z"
+    },
+    {
+      "id": "digital-communication",
+      "title": "Communication Digitale",
+      "slug": "digital-communication",
+      "description": "Stratégie de contenu, visibilité en ligne, branding et storytelling digital.",
+      "shortDescription": "Acquisition, contenu et notoriété digitale.",
+      "color": "from-[#ffc247] to-[#ff9f47]",
+      "icon": "megaphone",
+      "features": [
+        "Stratégie Social Media",
+        "Content Marketing",
+        "SEO/SEA",
+        "Email Marketing"
+      ],
+      "status": "published",
+      "featured": false,
+      "createdAt": "2026-03-15T18:27:43.256Z",
+      "updatedAt": "2026-03-15T18:35:41.397Z"
+    },
+    {
+      "id": "3d-creation",
+      "title": "Création 3D",
+      "slug": "3d-creation",
+      "description": "Modélisation 3D, animations et expériences immersives pour vos projets.",
+      "shortDescription": "3D, AR/VR et visualisation immersive.",
+      "color": "from-[#a855f7] to-[#9333ea]",
+      "icon": "box",
+      "features": [
+        "Modélisation 3D",
+        "Animation 3D",
+        "Rendering",
+        "VR/AR"
+      ],
+      "status": "published",
+      "featured": false,
+      "createdAt": "2026-03-15T18:27:43.256Z",
+      "updatedAt": "2026-03-15T18:35:41.397Z"
+    },
+    {
+      "id": "video-production",
+      "title": "Production Vidéo",
+      "slug": "video-production",
+      "description": "Création de vidéos professionnelles pour vos campagnes marketing et événements.",
+      "shortDescription": "Formats vidéo impactants et motion.",
+      "color": "from-[#ff6b6b] to-[#ee5a6f]",
+      "icon": "video",
+      "features": [
+        "Vidéos Publicitaires",
+        "Motion Graphics",
+        "Montage Vidéo",
+        "Live Streaming"
+      ],
+      "status": "published",
+      "featured": false,
+      "createdAt": "2026-03-15T18:27:43.256Z",
+      "updatedAt": "2026-03-15T18:35:41.397Z"
+    }
+  ],
+  "pageContent": {
+    "home": {
+      "heroBadge": "Agence de communications",
+      "heroTitleLine1": "Donnez du reliefs",
+      "heroTitleLine2": "à votre communication",
+      "heroDescription": "Un hero premium avec animation 3D légère, pour valoriser votre image de marque et présenter vos services avec impact.",
+      "heroPrimaryCtaLabel": "Découvrir nos services",
+      "heroPrimaryCtaHref": "#services",
+      "heroSecondaryCtaLabel": "Lancer un projet",
+      "heroSecondaryCtaHref": "#contact",
+      "aboutBadge": "À PROPOS DE NOUS",
+      "aboutTitle": "Innovation & Excellence Digitale",
+      "aboutParagraphOne": "SMOVE Communication est une agence digitale basée en Côte d'Ivoire, spécialisée dans la création de solutions digitales innovantes. Nous accompagnons les entreprises dans leur transformation digitale avec passion et expertise.",
+      "aboutParagraphTwo": "Notre équipe de professionnels talentueux combine créativité, technologie et stratégie pour créer des expériences digitales qui marquent les esprits et génèrent des résultats mesurables.",
+      "aboutCtaLabel": "Découvrir notre équipe",
+      "aboutCtaHref": "#portfolio",
+      "aboutImage": "",
+      "servicesIntroTitle": "Ce que nous faisons",
+      "servicesIntroSubtitle": "Des solutions digitales complètes pour propulser votre entreprise vers le succès",
+      "portfolioBadge": "PORTFOLIO",
+      "portfolioTitle": "Nos derniers projets",
+      "portfolioSubtitle": "Découvrez comment nous avons aidé nos clients à atteindre leurs objectifs",
+      "portfolioCtaLabel": "Voir tous nos projets",
+      "portfolioCtaHref": "#projects",
+      "blogBadge": "BLOG",
+      "blogTitle": "Derniers articles",
+      "blogSubtitle": "Actualités, conseils et insights sur le digital",
+      "blogCtaLabel": "Voir tous les articles",
+      "blogCtaHref": "#blog",
+      "contactTitle": "Travaillons ensemble",
+      "contactSubtitle": "Vous avez un projet en tête ? Contactez-nous et discutons de la manière dont nous pouvons vous aider à le réaliser.",
+      "contactSubmitLabel": "Envoyer le message"
+    }
+  },
+  "settings": null,
+  "settingsHistory": [],
+  "migrationHistory": [
+    {
+      "fromVersion": 1,
+      "toVersion": 2,
+      "migratedAt": "2026-03-15T16:56:00.809Z",
+      "note": "Backfilled blog status and media metadata defaults."
+    }
+  ]
+}
