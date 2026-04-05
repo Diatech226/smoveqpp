@@ -1443,6 +1443,223 @@
         "requestId": "30bdc0e7-f708-4a5f-b5cf-1bb5071f3840",
         "authenticated": true
       }
+    },
+    {
+      "id": "audit_1775336218047_3437dd5b683e5",
+      "timestamp": "2026-04-04T20:56:58.047Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "4f6021e4-62ec-4973-af4d-88c48976b00f",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-04T20:56:58.047Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "4f6021e4-62ec-4973-af4d-88c48976b00f",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1775336218097_b290e8be70b0f",
+      "timestamp": "2026-04-04T20:56:58.097Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "a6864f78-0d78-48e0-8de7-a06b2c47dd14",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-04T20:56:58.097Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "a6864f78-0d78-48e0-8de7-a06b2c47dd14",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1775336231283_aa3b4a5938798",
+      "timestamp": "2026-04-04T20:57:11.283Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "8eb3421e-f0f9-48d8-8936-212508ba7caf",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-04T20:57:11.283Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "8eb3421e-f0f9-48d8-8936-212508ba7caf",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1775336231668_aff9c56ea4d7e",
+      "timestamp": "2026-04-04T20:57:11.668Z",
+      "eventType": "login",
+      "outcome": "success",
+      "actor": {
+        "userId": "7cb4b5c8-70e7-4913-9b5c-f5252f61563e",
+        "role": "admin",
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "ed63019b-c961-440d-8908-23798ae7dd27",
+        "method": "POST",
+        "path": "/api/v1/auth/login"
+      },
+      "metadata": {
+        "at": "2026-04-04T20:57:11.668Z",
+        "event": "login",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "userId": "7cb4b5c8-70e7-4913-9b5c-f5252f61563e",
+        "requestId": "ed63019b-c961-440d-8908-23798ae7dd27",
+        "email": "[redacted-email]"
+      }
+    },
+    {
+      "id": "audit_1775336234342_93fbdd2c72a1a",
+      "timestamp": "2026-04-04T20:57:14.342Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "af687778-2ee3-4f06-822d-810a351c8e6b",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-04T20:57:14.342Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "af687778-2ee3-4f06-822d-810a351c8e6b",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1775336234362_abd71f2faa329",
+      "timestamp": "2026-04-04T20:57:14.362Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "7e13adde-390f-4979-b885-a65522a3526b",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-04T20:57:14.362Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "7e13adde-390f-4979-b885-a65522a3526b",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1775336237606_f1d5bb93f2cb5",
+      "timestamp": "2026-04-04T20:57:17.606Z",
+      "eventType": "login",
+      "outcome": "success",
+      "actor": {
+        "userId": "7cb4b5c8-70e7-4913-9b5c-f5252f61563e",
+        "role": "admin",
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "2374c008-4b72-480e-adc6-b7c4144888ea",
+        "method": "POST",
+        "path": "/api/v1/auth/login"
+      },
+      "metadata": {
+        "at": "2026-04-04T20:57:17.606Z",
+        "event": "login",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "userId": "7cb4b5c8-70e7-4913-9b5c-f5252f61563e",
+        "requestId": "2374c008-4b72-480e-adc6-b7c4144888ea",
+        "email": "[redacted-email]"
+      }
     }
   ]
 }
