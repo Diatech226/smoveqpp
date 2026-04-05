@@ -22,6 +22,15 @@ class MemoryAuthRepository {
     return this.findByEmailWithPassword(email);
   }
 
+
+  async findByClerkId(clerkId) {
+    const lookup = String(clerkId);
+    for (const user of users.values()) {
+      if (user.clerkId === lookup) return { ...user };
+    }
+    return null;
+  }
+
   async findByProvider(authProvider, providerId) {
     const providerIdText = String(providerId);
     for (const user of users.values()) {
@@ -136,6 +145,41 @@ class MemoryAuthRepository {
     user.updatedAt = new Date();
     users.set(user.id, user);
     return { ...user };
+  }
+
+
+  async upsertByClerkId(clerkId, patch) {
+    const existing = await this.findByClerkId(clerkId);
+    if (existing) {
+      const updated = normalizeUserInput({
+        ...existing,
+        ...patch,
+        id: existing.id,
+        clerkId: String(clerkId),
+        providerId: String(clerkId),
+        authProvider: 'clerk',
+        providers: Array.from(new Set([...(existing.providers ?? []), 'clerk'])),
+      });
+      users.set(updated.id, updated);
+      return { ...updated };
+    }
+
+    const created = await this.create({
+      email: patch.email,
+      name: patch.name ?? 'User',
+      passwordHash: null,
+      role: patch.role ?? 'client',
+      status: patch.status ?? 'client',
+      accountStatus: patch.accountStatus ?? 'active',
+      authProvider: 'clerk',
+      providerId: String(clerkId),
+      clerkId: String(clerkId),
+      providers: ['clerk'],
+      emailVerified: Boolean(patch.emailVerified),
+      avatarUrl: patch.avatarUrl ?? null,
+    });
+
+    return created;
   }
 
   async updateUser(id, patch) {

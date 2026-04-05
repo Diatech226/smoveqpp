@@ -71,3 +71,27 @@ Vercel serves:
 - API from `/api/index.js`
 
 See: `docs/deployment/VERCEL_SINGLE_APP_DEPLOYMENT.md`.
+
+
+## Authentication (Clerk-first)
+
+Authentication is now Clerk-driven for both the public site and CMS:
+
+- email/password sign-up and sign-in through Clerk
+- Google OAuth (and additional social providers via Clerk strategies)
+- backend API trusts Clerk JWT bearer tokens and syncs users into MongoDB using `clerkId`
+- role/account-status authorization remains in the local `users` collection
+
+### Required environment variables
+
+Set Clerk keys in `.env.local`:
+
+- `VITE_CLERK_PUBLISHABLE_KEY`
+- `CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `CLERK_ISSUER_URL` (for JWT issuer validation)
+- optional: `CLERK_AUDIENCE`, `CLERK_WEBHOOK_SECRET`
+
+### Local user sync model
+
+The API syncs Clerk identities idempotently on authenticated requests (and optional webhook calls), using `clerkId` as canonical external identity. Existing role/status/admin fields are preserved in local DB and used for CMS access checks.

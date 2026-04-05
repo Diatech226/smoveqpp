@@ -5,7 +5,7 @@ const { AUTH_RATE_LIMIT_MAX, AUTH_RATE_LIMIT_WINDOW_MS } = require('../config/en
 const { requireAuthenticated, requirePermission } = require('../middleware/authz');
 const { Permissions } = require('../security/rbac');
 
-function createAuthRoutes({ authController }) {
+function createAuthRoutes({ authController, requireClerkAuth }) {
   const router = express.Router();
 
   const limiter = createAuthRateLimiter({
@@ -14,6 +14,8 @@ function createAuthRoutes({ authController }) {
   });
 
   router.get('/session', authController.getSession);
+  router.get('/me', requireClerkAuth, authController.getClerkSession);
+  router.post('/webhooks/clerk', authController.handleClerkWebhook);
   router.get('/oauth/providers', authController.getOAuthProviders);
   router.get('/oauth/:provider/start', limiter, authController.startOAuth);
   router.get('/oauth/:provider/callback', limiter, authController.handleOAuthCallback);
@@ -24,9 +26,9 @@ function createAuthRoutes({ authController }) {
   router.post('/verify-email/resend', requireAuthenticated, requireCsrf, authController.resendVerification);
   router.post('/password-reset/request', limiter, requireCsrf, authController.requestPasswordReset);
   router.post('/password-reset/confirm', limiter, requireCsrf, authController.confirmPasswordReset);
-  router.get('/admin/users', requireAuthenticated, requirePermission(Permissions.CMS_ACCESS), authController.listUsers);
-  router.patch('/admin/users/:userId', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), requireCsrf, authController.updateUserByAdmin);
-  router.get('/admin/audit-events', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), authController.listAuditEvents);
+  router.get('/admin/users', requireClerkAuth, requirePermission(Permissions.CMS_ACCESS), authController.listUsers);
+  router.patch('/admin/users/:userId', requireClerkAuth, requirePermission(Permissions.USER_MANAGE), authController.updateUserByAdmin);
+  router.get('/admin/audit-events', requireClerkAuth, requirePermission(Permissions.USER_MANAGE), authController.listAuditEvents);
   router.post('/logout', requireCsrf, authController.logout);
 
   return router;
