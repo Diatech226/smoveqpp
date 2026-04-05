@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
   const apiOrigin = normalizeApiOrigin(env.VITE_API_ORIGIN ?? env.API_ORIGIN, apiPort);
 
   return {
+    root: __dirname,
     base: '/cms/',
     plugins: [react()],
     resolve: {
