@@ -5,13 +5,24 @@ const {
   FACEBOOK_APP_ID,
   FACEBOOK_APP_SECRET,
   FACEBOOK_CALLBACK_URL,
+  CLERK_PUBLISHABLE_KEY,
+  CLERK_SECRET_KEY,
 } = require('./env');
 
+function envFlagEnabled(value) {
+  return String(value ?? '').trim().toLowerCase() === 'true';
+}
+
 function createOAuthConfig() {
-  const googleEnabled = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
-  const facebookEnabled = Boolean(FACEBOOK_APP_ID && FACEBOOK_APP_SECRET);
+  const clerkConfigured = Boolean(CLERK_PUBLISHABLE_KEY && CLERK_SECRET_KEY);
+  const legacyOAuthEnabled = envFlagEnabled(process.env.AUTH_ENABLE_LEGACY_OAUTH);
+  const allowLegacyOAuth = legacyOAuthEnabled || !clerkConfigured;
+
+  const googleEnabled = allowLegacyOAuth && Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+  const facebookEnabled = allowLegacyOAuth && Boolean(FACEBOOK_APP_ID && FACEBOOK_APP_SECRET);
 
   return {
+    providerMode: allowLegacyOAuth ? 'legacy_oauth' : 'clerk',
     googleEnabled,
     facebookEnabled,
     google: {
