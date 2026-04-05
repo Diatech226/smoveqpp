@@ -99,6 +99,7 @@ export default defineConfig(({ mode }) => {
   });
 
   return {
+    root: __dirname,
     plugins: [react()],
     resolve: {
       extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
@@ -469,7 +470,7 @@ export default defineConfig(({ mode }) => {
       host: "localhost",
       port: clientPort,
       strictPort: true,
-      open: true,
+      open: false,
       headers: SECURITY_HEADERS,
       proxy: {
         "/api": {
