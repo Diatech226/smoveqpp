@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 45_000,
   retries: 1,
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://localhost:5173',
     headless: true,
   },
   webServer: {

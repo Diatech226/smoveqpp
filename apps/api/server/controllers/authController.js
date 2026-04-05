@@ -112,8 +112,8 @@ function buildAuthController({ authService }) {
           role: user.role,
         },
         providers: {
-          google: { enabled: true },
-          facebook: { enabled: false },
+          ...(authService.getOAuthProviders?.() ?? {}),
+          clerk: { enabled: true },
         },
       });
     },

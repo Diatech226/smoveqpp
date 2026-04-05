@@ -6,6 +6,8 @@ declare global {
 
 let loadPromise: Promise<any> | null = null;
 
+const CALLBACK_PATH = '/sso-callback';
+
 function canonicalizeLocalUrl(rawUrl: string): string {
   try {
     const parsed = new URL(rawUrl);
@@ -16,6 +18,14 @@ function canonicalizeLocalUrl(rawUrl: string): string {
   } catch {
     return rawUrl;
   }
+}
+
+function ensureCanonicalLocalOrigin(): boolean {
+  if (window.location.hostname !== '127.0.0.1') return true;
+
+  const canonicalUrl = canonicalizeLocalUrl(window.location.href);
+  window.location.replace(canonicalUrl);
+  return false;
 }
 
 export async function loadClerk(publishableKey: string): Promise<any> {
@@ -77,12 +87,16 @@ export async function signUpWithPassword(publishableKey: string, email: string, 
 }
 
 export async function oauthRedirect(publishableKey: string, provider: 'google' | 'facebook'): Promise<void> {
+  if (!ensureCanonicalLocalOrigin()) return;
+
   const clerk = await loadClerk(publishableKey);
-  const redirectUrl = canonicalizeLocalUrl(window.location.href);
+  const callbackUrl = canonicalizeLocalUrl(`${window.location.origin}${CALLBACK_PATH}`);
+  const redirectUrlComplete = canonicalizeLocalUrl(window.location.href);
+
   await clerk.client.signIn.authenticateWithRedirect({
     strategy: `oauth_${provider}`,
-    redirectUrl,
-    redirectUrlComplete: redirectUrl,
+    redirectUrl: callbackUrl,
+    redirectUrlComplete,
   });
 }
 
