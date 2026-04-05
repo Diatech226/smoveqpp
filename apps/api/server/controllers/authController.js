@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { FRONTEND_ORIGIN, FRONTEND_ORIGINS } = require('../config/env');
+const { FRONTEND_ORIGIN, FRONTEND_ORIGINS, CLERK_WEBHOOK_SECRET } = require('../config/env');
 const { getOrCreateCsrfToken } = require('../middleware/csrf');
 const { sendSuccess, sendError } = require('../utils/apiResponse');
 const { logAuthEvent, listAuthAuditEvents } = require('../utils/authLogger');
@@ -80,6 +80,56 @@ function buildAuthController({ authService }) {
         csrfToken: getOrCreateCsrfToken(req),
         session: buildSessionMeta(req, user),
       });
+    },
+
+
+    getClerkSession: async (req, res) => {
+      const user = req.appUser ?? null;
+      if (!user) {
+        return sendError(res, 401, 'UNAUTHENTICATED', 'Authentication required');
+      }
+
+      return sendSuccess(res, 200, {
+        user,
+        session: {
+          sessionId: req.clerkAuth?.sid ?? null,
+          authenticatedAt: req.clerkAuth?.iat ? new Date(Number(req.clerkAuth.iat) * 1000).toISOString() : null,
+          lastActivityAt: new Date().toISOString(),
+          authProvider: 'clerk',
+          role: user.role,
+        },
+        providers: {
+          google: { enabled: true },
+          facebook: { enabled: false },
+        },
+      });
+    },
+
+    handleClerkWebhook: async (req, res) => {
+      // Lightweight webhook handler: expects trusted reverse-proxy verification upstream.
+      // Kept idempotent by clerk_id upserts in authService.
+      if (!CLERK_WEBHOOK_SECRET || req.headers['x-clerk-webhook-secret'] !== CLERK_WEBHOOK_SECRET) {
+        return sendError(res, 401, 'WEBHOOK_UNAUTHORIZED', 'Invalid Clerk webhook signature');
+      }
+
+      const event = req.body ?? {};
+      const type = String(event.type ?? '');
+      const data = event.data ?? {};
+
+      if (type.startsWith('user.') && data.id) {
+        await authService.syncClerkUserFromClaims({
+          sub: String(data.id),
+          email: data.email_addresses?.[0]?.email_address,
+          email_addresses: data.email_addresses,
+          given_name: data.first_name,
+          family_name: data.last_name,
+          name: [data.first_name, data.last_name].filter(Boolean).join(' ').trim(),
+          picture: data.image_url,
+          email_verified: Boolean(data.email_addresses?.some?.((entry) => entry.verification?.status === 'verified')),
+        });
+      }
+
+      return sendSuccess(res, 200, { received: true });
     },
 
     startOAuth: async (req, res) => {

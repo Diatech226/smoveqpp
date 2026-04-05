@@ -114,7 +114,12 @@ function validateCriticalEnv() {
   if ((process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_APP_SECRET) && !(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET)) {
     throw new Error('FACEBOOK_APP_ID and FACEBOOK_APP_SECRET must both be set when enabling Facebook OAuth.');
   }
+
+  if (process.env.CLERK_SECRET_KEY && !process.env.CLERK_PUBLISHABLE_KEY) {
+    throw new Error('CLERK_PUBLISHABLE_KEY must be set when CLERK_SECRET_KEY is configured.');
+  }
 }
+
 
 const GOOGLE_CALLBACK_PATH = process.env.GOOGLE_CALLBACK_PATH ?? '/api/v1/auth/oauth/google/callback';
 const FACEBOOK_CALLBACK_PATH = process.env.FACEBOOK_CALLBACK_PATH ?? '/api/v1/auth/oauth/facebook/callback';
@@ -190,6 +195,17 @@ module.exports = {
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
   EMAIL_FROM: process.env.EMAIL_FROM ?? 'noreply@localhost',
   CONTACT_TO_EMAIL: process.env.CONTACT_TO_EMAIL ?? '',
+
+  CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY ?? '',
+  CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY ?? '',
+  CLERK_SIGN_IN_URL: process.env.CLERK_SIGN_IN_URL ?? '/sign-in',
+  CLERK_SIGN_UP_URL: process.env.CLERK_SIGN_UP_URL ?? '/sign-up',
+  CLERK_AFTER_SIGN_IN_URL: process.env.CLERK_AFTER_SIGN_IN_URL ?? '/',
+  CLERK_AFTER_SIGN_UP_URL: process.env.CLERK_AFTER_SIGN_UP_URL ?? '/',
+  CLERK_JWKS_URL: process.env.CLERK_JWKS_URL ?? 'https://api.clerk.com/v1/jwks',
+  CLERK_ISSUER_URL: process.env.CLERK_ISSUER_URL ?? '',
+  CLERK_AUDIENCE: process.env.CLERK_AUDIENCE ?? '',
+  CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET ?? '',
   APP_BASE_URL: process.env.APP_BASE_URL ?? process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
   CONTENT_SCHEMA_VERSION,
   MEDIA_UPLOAD_DIR,
