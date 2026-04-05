@@ -9,17 +9,17 @@ function parsePort(rawValue: string | undefined, fallback: number): number {
 
 function normalizeApiOrigin(rawValue: string | undefined, fallbackPort: number): string {
   const trimmed = rawValue?.trim();
-  const candidate = trimmed && trimmed.length > 0 ? trimmed : `http://127.0.0.1:${fallbackPort}`;
+  const candidate = trimmed && trimmed.length > 0 ? trimmed : `http://localhost:${fallbackPort}`;
 
   try {
     const parsed = new URL(candidate);
-    if (parsed.hostname === 'localhost') {
-      parsed.hostname = '127.0.0.1';
+    if (parsed.hostname === '127.0.0.1') {
+      parsed.hostname = 'localhost';
     }
 
     return parsed.toString().replace(/\/$/, '');
   } catch {
-    return `http://127.0.0.1:${fallbackPort}`;
+    return `http://localhost:${fallbackPort}`;
   }
 }
 
@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: false,
     },
     server: {
-      host: '127.0.0.1',
+      host: 'localhost',
       port: cmsPort,
       strictPort: true,
       proxy: {
@@ -63,7 +63,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     preview: {
-      host: '127.0.0.1',
+      host: 'localhost',
       port: cmsPort,
       strictPort: true,
     },

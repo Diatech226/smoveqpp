@@ -6,6 +6,18 @@ declare global {
 
 let loadPromise: Promise<any> | null = null;
 
+function canonicalizeLocalUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.hostname === '127.0.0.1') {
+      parsed.hostname = 'localhost';
+    }
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 export async function loadClerk(publishableKey: string): Promise<any> {
   if (!publishableKey) {
     throw new Error('Missing Clerk publishable key');
@@ -66,7 +78,7 @@ export async function signUpWithPassword(publishableKey: string, email: string, 
 
 export async function oauthRedirect(publishableKey: string, provider: 'google' | 'facebook'): Promise<void> {
   const clerk = await loadClerk(publishableKey);
-  const redirectUrl = window.location.href;
+  const redirectUrl = canonicalizeLocalUrl(window.location.href);
   await clerk.client.signIn.authenticateWithRedirect({
     strategy: `oauth_${provider}`,
     redirectUrl,
