@@ -128,6 +128,9 @@ function normalizeOrigin(origin) {
   if (!origin || typeof origin !== 'string') return null;
   try {
     const parsed = new URL(origin.trim());
+    if (parsed.hostname === '127.0.0.1') {
+      parsed.hostname = 'localhost';
+    }
     return parsed.origin;
   } catch {
     return null;
@@ -149,9 +152,7 @@ function buildFrontendOrigins() {
   if (!isProduction) {
     configuredList.push(
       `http://localhost:${FRONTEND_PORT}`,
-      `http://127.0.0.1:${FRONTEND_PORT}`,
       `http://localhost:${CMS_PORT}`,
-      `http://127.0.0.1:${CMS_PORT}`,
     );
   }
 
@@ -159,6 +160,7 @@ function buildFrontendOrigins() {
 }
 
 const FRONTEND_ORIGINS = buildFrontendOrigins();
+const DEFAULT_API_ORIGIN = normalizeOrigin(process.env.API_ORIGIN) ?? `http://localhost:${API_PORT}`;
 
 module.exports = {
   isProduction,
@@ -167,7 +169,7 @@ module.exports = {
   SESSION_STORE_MODE,
   FRONTEND_ORIGIN: FRONTEND_ORIGINS[0] ?? `http://localhost:${FRONTEND_PORT}`,
   FRONTEND_ORIGINS,
-  API_ORIGIN: process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`,
+  API_ORIGIN: DEFAULT_API_ORIGIN,
   SESSION_SECRET,
   MONGO_URI: process.env.MONGO_URI ?? '',
   MONGO_DB_NAME: process.env.MONGO_DB_NAME ?? undefined,
@@ -183,10 +185,10 @@ module.exports = {
   PUBLIC_REGISTRATION_ENABLED,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
-  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? `${process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`}${GOOGLE_CALLBACK_PATH}`,
+  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? `${DEFAULT_API_ORIGIN}${GOOGLE_CALLBACK_PATH}`,
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID ?? '',
   FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET ?? '',
-  FACEBOOK_CALLBACK_URL: process.env.FACEBOOK_CALLBACK_URL ?? `${process.env.API_ORIGIN ?? `http://localhost:${API_PORT}`}${FACEBOOK_CALLBACK_PATH}`,
+  FACEBOOK_CALLBACK_URL: process.env.FACEBOOK_CALLBACK_URL ?? `${DEFAULT_API_ORIGIN}${FACEBOOK_CALLBACK_PATH}`,
   SMTP_HOST: process.env.SMTP_HOST ?? '',
   SMTP_PORT: parseIntOrDefault(process.env.SMTP_PORT, 587),
   SMTP_SECURE: parseBoolean(process.env.SMTP_SECURE, false),

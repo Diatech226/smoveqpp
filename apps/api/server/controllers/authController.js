@@ -50,10 +50,23 @@ function finishOAuthSession(req, res, user, eventName, redirectTo) {
   });
 }
 
+function canonicalizeLoopbackUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.hostname === '127.0.0.1') {
+      parsed.hostname = 'localhost';
+    }
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 function parseSafeRedirect(redirectTo, fallback = `${FRONTEND_ORIGIN}/#login`) {
   if (!redirectTo || typeof redirectTo !== 'string') return fallback;
   try {
-    const parsed = new URL(redirectTo);
+    const parsed = new URL(canonicalizeLoopbackUrl(redirectTo));
     if (!FRONTEND_ORIGINS.includes(parsed.origin)) {
       return fallback;
     }

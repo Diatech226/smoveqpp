@@ -1,4 +1,4 @@
-const DEFAULT_PUBLIC_SITE_URL = 'http://127.0.0.1:5173/#home';
+const DEFAULT_PUBLIC_SITE_URL = 'http://localhost:5173/#home';
 
 function normalizeAbsoluteUrl(rawValue: string | undefined): string | null {
   const candidate = rawValue?.trim();
