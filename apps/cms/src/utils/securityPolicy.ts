@@ -28,7 +28,7 @@ export type CmsAccessDecision = 'allow' | 'disabled' | 'unauthenticated' | 'forb
 export interface CmsAccessInput {
   cmsEnabled: boolean;
   isAuthenticated: boolean;
-  user: Pick<AppUser, 'role'> | null;
+  user: Pick<AppUser, 'role' | 'accountStatus'> | null;
 }
 
 function parseBooleanFlag(value: string | undefined, defaultValue: boolean): boolean {
@@ -60,6 +60,9 @@ export function evaluateCmsAccess(input: CmsAccessInput): CmsAccessDecision {
   }
   if (!input.isAuthenticated || !input.user) {
     return 'unauthenticated';
+  }
+  if (input.user.accountStatus === 'suspended') {
+    return 'forbidden';
   }
   if (!cmsRoles.has(input.user.role)) {
     return 'forbidden';

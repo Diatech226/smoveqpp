@@ -98,6 +98,23 @@ describe('auth controller session and logout', () => {
     expect(req.session.userId).toBe('u2');
   });
 
+  it('clerk session endpoint starts cookie-backed session', async () => {
+    const authController = buildAuthController({ authService: {} });
+    const req = {
+      session: createSession(),
+      appUser: { id: 'admin-1', email: 'admin@test.com', role: 'admin', accountStatus: 'active' },
+      method: 'POST',
+      originalUrl: '/session/clerk',
+    };
+    const res = createRes();
+
+    await authController.startClerkSession(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(req.session.userId).toBe('admin-1');
+    expect(req.session.role).toBe('admin');
+  });
+
   it('logout destroys session cleanly', async () => {
     const authController = buildAuthController({ authService: {} });
     const req = { session: createSession(), method: 'POST', originalUrl: '/logout' };

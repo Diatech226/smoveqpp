@@ -14,6 +14,7 @@ function createAuthRoutes({ authController, requireClerkAuth }) {
   });
 
   router.get('/session', authController.getSession);
+  router.post('/session/clerk', requireClerkAuth, authController.startClerkSession);
   router.get('/me', requireClerkAuth, authController.getClerkSession);
   router.post('/webhooks/clerk', authController.handleClerkWebhook);
   router.get('/oauth/providers', authController.getOAuthProviders);
