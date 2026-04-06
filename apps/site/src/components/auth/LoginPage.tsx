@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, LogIn, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { resolveOAuthFailureMessage } from './loginPageState';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -45,10 +46,14 @@ export default function LoginPage() {
     setOauthLoadingProvider(null);
   }, []);
 
-  const handleOAuth = (provider: 'google' | 'facebook') => {
+  const handleOAuth = async (provider: 'google' | 'facebook') => {
     setError('');
     setOauthLoadingProvider(provider);
-    beginOAuthLogin(provider);
+    const result = await beginOAuthLogin(provider);
+    if (!result.success) {
+      setError(resolveOAuthFailureMessage(result.error, authError));
+      setOauthLoadingProvider(null);
+    }
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,7 +337,7 @@ export default function LoginPage() {
             <button
               type="button"
               disabled={!oauthProviders.google || loading || oauthLoadingProvider !== null}
-              onClick={() => handleOAuth('google')}
+              onClick={() => void handleOAuth('google')}
               className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
             >
               {oauthLoadingProvider === 'google' ? 'Redirection vers Google...' : 'Continuer avec Google'}
@@ -340,7 +345,7 @@ export default function LoginPage() {
             <button
               type="button"
               disabled={!oauthProviders.facebook || loading || oauthLoadingProvider !== null}
-              onClick={() => handleOAuth('facebook')}
+              onClick={() => void handleOAuth('facebook')}
               className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
             >
               {oauthLoadingProvider === 'facebook' ? 'Redirection vers Facebook...' : 'Continuer avec Facebook'}
