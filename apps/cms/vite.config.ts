@@ -35,12 +35,17 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: __dirname,
+    cacheDir: path.resolve(workspaceRoot, 'node_modules/.vite-cms'),
     base: '/cms/',
     plugins: [react()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
+      dedupe: ['react', 'react-dom'],
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom'],
     },
     build: {
       outDir: '../../build/cms',
