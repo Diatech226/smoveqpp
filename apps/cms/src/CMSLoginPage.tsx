@@ -24,15 +24,21 @@ export default function CMSLoginPage() {
     }
 
     setLoading(true);
-    const result = await login(email.trim(), password);
-    setLoading(false);
 
-    if (result.success) {
-      window.location.hash = result.destination ?? 'cms';
-      return;
+    try {
+      const result = await login(email.trim(), password);
+
+      if (result.success) {
+        window.location.hash = result.destination ?? 'cms';
+        return;
+      }
+
+      setError(result.error ?? authError ?? 'Connexion impossible.');
+    } catch (_error) {
+      setError(authError ?? 'Connexion impossible. Réessayez.');
+    } finally {
+      setLoading(false);
     }
-
-    setError(result.error ?? authError ?? 'Connexion impossible.');
   };
 
   return (
