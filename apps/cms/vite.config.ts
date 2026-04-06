@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: __dirname,
+    envDir: workspaceRoot,
     cacheDir: path.resolve(workspaceRoot, 'node_modules/.vite-cms'),
     base: '/cms/',
     plugins: [react()],

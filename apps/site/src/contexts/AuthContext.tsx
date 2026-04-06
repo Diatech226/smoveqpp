@@ -35,7 +35,8 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
+const RAW_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
+const PUBLISHABLE_KEY = RAW_PUBLISHABLE_KEY?.trim() || undefined;
 const FACEBOOK_ENABLED = import.meta.env.VITE_CLERK_ENABLE_FACEBOOK === 'true';
 
 function mapSession(raw: Record<string, unknown> | null | undefined): AuthSessionState | null {
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = async (): Promise<AppUser | null> => {
     if (!PUBLISHABLE_KEY) {
-      setAuthError('Configuration Clerk manquante (VITE_CLERK_PUBLISHABLE_KEY).');
+      setAuthError('Configuration Clerk manquante (VITE_CLERK_PUBLISHABLE_KEY). Redémarrez le serveur Vite après mise à jour du .env.');
       setUser(null);
       setSessionState(null);
       return null;
