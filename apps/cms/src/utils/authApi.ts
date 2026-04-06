@@ -14,6 +14,7 @@ interface AuthApiPayload {
   users?: AppUser[];
   events?: Array<Record<string, unknown>>;
   session?: SessionMeta | null;
+  csrfToken?: string | null;
   providers?: Record<string, { enabled: boolean }>;
 }
 
@@ -28,6 +29,7 @@ export interface AuthResult {
   users?: AppUser[];
   events?: Array<Record<string, unknown>>;
   session?: SessionMeta | null;
+  csrfToken?: string | null;
   providers?: Record<string, { enabled: boolean }>;
   success: boolean;
   errorCode: string | null;
@@ -40,6 +42,9 @@ const AUTH_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/auth`;
 function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'UNAUTHENTICATED') return 'Session invalide. Merci de vous reconnecter.';
   if (code === 'FORBIDDEN') return 'Accès refusé.';
+  if (code === 'INVALID_CREDENTIALS') return 'Email ou mot de passe invalide.';
+  if (code === 'ACCOUNT_SUSPENDED') return 'Ce compte est suspendu. Contactez un administrateur.';
+  if (code === 'INVALID_CSRF') return 'Session expirée. Rechargez la page puis réessayez.';
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
   return 'Erreur d’authentification.';
 }
@@ -60,6 +65,7 @@ function normalize(body: AuthApiResponse | null, status: number): AuthResult {
     users: body?.data?.users,
     events: body?.data?.events,
     session: body?.data?.session,
+    csrfToken: body?.data?.csrfToken ?? null,
     providers: body?.data?.providers,
     success,
     errorCode: body?.error?.code ?? null,
@@ -91,6 +97,32 @@ export function fetchClerkSession(token: string): Promise<AuthResult> {
   return request('/me', { method: 'GET' }, token);
 }
 
+export function startClerkBackendSession(token: string): Promise<AuthResult> {
+  return request('/session/clerk', { method: 'POST' }, token);
+}
+
+export function fetchSession(): Promise<AuthResult> {
+  return request('/session', { method: 'GET' });
+}
+
+export async function loginWithPassword(email: string, password: string): Promise<AuthResult> {
+  const csrfSource = await fetchSession();
+  const headers = new Headers();
+  if (csrfSource.csrfToken) {
+    headers.set('X-CSRF-Token', csrfSource.csrfToken);
+  }
+  return request('/login', { method: 'POST', headers, body: JSON.stringify({ email, password }) });
+}
+
+export async function logoutWithSession(): Promise<AuthResult> {
+  const csrfSource = await fetchSession();
+  const headers = new Headers();
+  if (csrfSource.csrfToken) {
+    headers.set('X-CSRF-Token', csrfSource.csrfToken);
+  }
+  return request('/logout', { method: 'POST', headers });
+}
+
 export function fetchAdminUsers(token: string): Promise<AuthResult> {
   return request('/admin/users', { method: 'GET' }, token);
 }
@@ -102,4 +134,3 @@ export function updateAdminUserWithApi(userId: string, patch: Partial<Pick<AppUs
 export function fetchAuthAuditEvents(token: string): Promise<AuthResult> {
   return request('/admin/audit-events', { method: 'GET' }, token);
 }
-

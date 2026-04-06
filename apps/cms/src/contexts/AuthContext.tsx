@@ -1,5 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { fetchAdminUsers as fetchAdminUsersApi, fetchAuthAuditEvents, fetchClerkSession, updateAdminUserWithApi } from '../utils/authApi';
+import {
+  fetchAdminUsers as fetchAdminUsersApi,
+  fetchAuthAuditEvents,
+  fetchClerkSession,
+  fetchSession,
+  loginWithPassword as loginWithPasswordApi,
+  logoutWithSession,
+  startClerkBackendSession,
+  updateAdminUserWithApi,
+} from '../utils/authApi';
 import { evaluateCmsAccess, resolvePostLoginRoute, resolveTrustedSessionUser, SECURITY_FLAGS, type AppUser, type PostLoginRoute } from '../utils/securityPolicy';
 import { getClerkSessionToken, oauthRedirect, signInWithPassword, signOutClerk, signUpWithPassword } from '../utils/clerkClient';
 
@@ -64,33 +73,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const postLoginRoute = resolvePostLoginRoute(cmsEnabled, user);
 
   const refresh = async (): Promise<AppUser | null> => {
-    if (!PUBLISHABLE_KEY) {
-      setAuthError('Configuration Clerk manquante (VITE_CLERK_PUBLISHABLE_KEY).');
-      setUser(null);
-      setSessionState(null);
-      return null;
+    if (PUBLISHABLE_KEY) {
+      const clerkToken = await getClerkSessionToken(PUBLISHABLE_KEY);
+      setToken(clerkToken);
+
+      if (clerkToken) {
+        const result = await fetchClerkSession(clerkToken);
+        if (!result.success) {
+          setAuthError(result.errorMessage ?? 'Session Clerk indisponible.');
+          setUser(null);
+          setSessionState(null);
+          return null;
+        }
+
+        const trusted = resolveTrustedSessionUser(result.user);
+        if (trusted) {
+          await startClerkBackendSession(clerkToken);
+        }
+        setUser(trusted);
+        setSessionState(mapSession(result.session));
+        setAuthError(null);
+        return trusted;
+      }
     }
 
-    const clerkToken = await getClerkSessionToken(PUBLISHABLE_KEY);
-    setToken(clerkToken);
-    if (!clerkToken) {
-      setUser(null);
-      setSessionState(null);
-      return null;
-    }
-
-    const result = await fetchClerkSession(clerkToken);
-    if (!result.success) {
-      setAuthError(result.errorMessage ?? 'Session Clerk indisponible.');
-      setUser(null);
-      return null;
-    }
-
-    const trusted = resolveTrustedSessionUser(result.user);
+    const fallbackSession = await fetchSession();
+    const trusted = resolveTrustedSessionUser(fallbackSession.user);
     setUser(trusted);
-    setSessionState(mapSession(result.session));
-    setAuthError(null);
+    setSessionState(mapSession(fallbackSession.session));
+    setAuthError(fallbackSession.success ? null : fallbackSession.errorMessage);
     return trusted;
+  };
+
+  const finalizeLogin = (nextUser: AppUser | null): AuthActionResult => {
+    if (!nextUser) {
+      return { success: false, error: 'Session utilisateur introuvable après connexion.', destination: null };
+    }
+    if (nextUser.accountStatus === 'suspended') {
+      return { success: false, error: 'Compte suspendu. Contactez un administrateur.', destination: null };
+    }
+
+    const destination = resolvePostLoginRoute(cmsEnabled, nextUser);
+    if (destination === 'cms-forbidden') {
+      return {
+        success: false,
+        error: 'Connexion réussie, mais ce compte ne possède pas les droits administrateur CMS.',
+        destination,
+      };
+    }
+
+    return { success: true, error: null, destination };
   };
 
   useEffect(() => {
@@ -102,17 +134,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<AuthActionResult> => {
+    setAuthError(null);
     try {
-      if (!PUBLISHABLE_KEY) throw new Error('Missing Clerk publishable key');
-      await signInWithPassword(PUBLISHABLE_KEY, email, password);
-      const refreshedUser = await refresh();
-      return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, refreshedUser) };
+      if (PUBLISHABLE_KEY) {
+        await signInWithPassword(PUBLISHABLE_KEY, email, password);
+        const refreshedUser = await refresh();
+        return finalizeLogin(refreshedUser);
+      }
     } catch (error: unknown) {
       const errorRecord = error as { errors?: Array<{ longMessage?: string }>; message?: string } | null;
-      const message = errorRecord?.errors?.[0]?.longMessage || errorRecord?.message || 'Connexion Clerk impossible';
+      const message = errorRecord?.errors?.[0]?.longMessage || errorRecord?.message || null;
+      if (message) {
+        setAuthError(message);
+      }
+    }
+
+    const localResult = await loginWithPasswordApi(email, password);
+    if (!localResult.success) {
+      const message = localResult.errorMessage ?? authError ?? 'Connexion impossible.';
       setAuthError(message);
       return { success: false, error: message, destination: null };
     }
+
+    const trusted = resolveTrustedSessionUser(localResult.user);
+    setUser(trusted);
+    setSessionState(mapSession(localResult.session));
+    return finalizeLogin(trusted);
   };
 
   const register = async (email: string, password: string, name: string): Promise<AuthActionResult> => {
@@ -138,8 +185,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    if (!PUBLISHABLE_KEY) return;
-    await signOutClerk(PUBLISHABLE_KEY);
+    if (PUBLISHABLE_KEY) {
+      await signOutClerk(PUBLISHABLE_KEY);
+    }
+    await logoutWithSession();
     setUser(null);
     setToken(null);
     setSessionState(null);

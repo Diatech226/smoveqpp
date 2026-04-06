@@ -101,6 +101,9 @@ function buildAuthController({ authService }) {
       if (!user) {
         return sendError(res, 401, 'UNAUTHENTICATED', 'Authentication required');
       }
+      if (user.accountStatus === 'suspended') {
+        return sendError(res, 403, 'ACCOUNT_SUSPENDED', 'Account suspended');
+      }
 
       return sendSuccess(res, 200, {
         user,
@@ -116,6 +119,17 @@ function buildAuthController({ authService }) {
           clerk: { enabled: true },
         },
       });
+    },
+
+    startClerkSession: async (req, res) => {
+      const user = req.appUser ?? null;
+      if (!user) {
+        return sendError(res, 401, 'UNAUTHENTICATED', 'Authentication required');
+      }
+      if (user.accountStatus === 'suspended') {
+        return sendError(res, 403, 'ACCOUNT_SUSPENDED', 'Account suspended');
+      }
+      return startSession(req, res, user, 'clerk_session_start', 200);
     },
 
     handleClerkWebhook: async (req, res) => {
