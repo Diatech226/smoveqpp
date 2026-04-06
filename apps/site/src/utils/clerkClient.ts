@@ -1,15 +1,12 @@
-declare global {
-  interface Window {
-    Clerk?: any;
-  }
-}
+import { Clerk } from '@clerk/clerk-js';
 
 type OAuthProvider = 'google' | 'facebook';
 
-let loadPromise: Promise<any> | null = null;
+let clerkInstance: Clerk | null = null;
+let clerkPublishableKey: string | null = null;
+let loadPromise: Promise<Clerk> | null = null;
 
 const CALLBACK_PATH = '/sso-callback';
-const CLERK_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
 const CLERK_LOAD_TIMEOUT_MS = 12000;
 
 function canonicalizeLocalUrl(rawUrl: string): string {
@@ -55,75 +52,36 @@ function normalizeClerkError(error: unknown, fallbackMessage: string): Error {
   return new Error(fallbackMessage);
 }
 
-function resolveClerkGlobalOrThrow(): any {
-  if (!window.Clerk) {
-    throw new Error('Clerk script loaded but window.Clerk is unavailable');
+function getOrCreateClerkInstance(publishableKey: string): Clerk {
+  if (!clerkInstance || clerkPublishableKey !== publishableKey) {
+    clerkInstance = new Clerk(publishableKey);
+    clerkPublishableKey = publishableKey;
   }
-  return window.Clerk;
+
+  return clerkInstance;
 }
 
-function injectClerkScript(): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[data-clerk-loader="true"]') as HTMLScriptElement | null;
-
-    const handleResolve = () => {
-      try {
-        resolve(resolveClerkGlobalOrThrow());
-      } catch (error: unknown) {
-        reject(error);
-      }
-    };
-
-    const handleReject = () => {
-      reject(new Error('Failed to load Clerk script (blocked by Content Security Policy or network error).'));
-    };
-
-    if (existing) {
-      if (window.Clerk) {
-        handleResolve();
-        return;
-      }
-
-      existing.addEventListener('load', handleResolve, { once: true });
-      existing.addEventListener('error', handleReject, { once: true });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.async = true;
-    script.dataset.clerkLoader = 'true';
-    script.src = CLERK_SCRIPT_URL;
-    script.onload = handleResolve;
-    script.onerror = handleReject;
-    document.head.appendChild(script);
-  });
-}
-
-export async function loadClerk(publishableKey: string): Promise<any> {
+export async function loadClerk(publishableKey: string): Promise<Clerk> {
   if (!publishableKey) {
     throw new Error('Missing Clerk publishable key');
   }
 
-  if (window.Clerk?.loaded) {
-    return window.Clerk;
+  const clerk = getOrCreateClerkInstance(publishableKey);
+
+  if (clerk.loaded) {
+    return clerk;
   }
 
   if (!loadPromise) {
     loadPromise = withTimeout(
-      injectClerkScript().then(async (clerk) => {
-        await withTimeout(
-          clerk.load({ publishableKey }),
-          CLERK_LOAD_TIMEOUT_MS,
-          'Clerk initialization timed out. Please retry.',
-        );
-        return clerk;
-      }),
+      clerk.load(),
       CLERK_LOAD_TIMEOUT_MS,
-      'Clerk script failed to load in time. Please retry.',
-    ).catch((error: unknown) => {
-      loadPromise = null;
-      throw normalizeClerkError(error, 'Unable to initialize Clerk.');
-    });
+      'Clerk initialization timed out. Please retry.',
+    ).then(() => clerk)
+      .catch((error: unknown) => {
+        loadPromise = null;
+        throw normalizeClerkError(error, 'Unable to initialize Clerk.');
+      });
   }
 
   return loadPromise;
