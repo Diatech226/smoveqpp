@@ -67,19 +67,23 @@ export default function LoginPage() {
       return;
     }
 
-    const result = await login(email, password);
+    try {
+      const result = await login(email, password);
 
-    if (result.success) {
-      const destination = result.destination ?? 'home';
-      if (window.location.hash !== `#${destination}`) {
-        window.location.hash = destination;
+      if (result.success) {
+        const destination = result.destination ?? 'home';
+        if (window.location.hash !== `#${destination}`) {
+          window.location.hash = destination;
+        }
+        return;
       }
-      return;
-    } else {
-      setError(result.error ?? authError ?? 'Email ou mot de passe incorrect');
-    }
 
-    setLoading(false);
+      setError(result.error ?? authError ?? 'Email ou mot de passe incorrect');
+    } catch (_error) {
+      setError(authError ?? 'Connexion impossible. Réessayez.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

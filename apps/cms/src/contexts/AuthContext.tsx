@@ -59,6 +59,11 @@ function mapSession(raw: Record<string, unknown> | null | undefined): AuthSessio
   };
 }
 
+function resolveErrorMessage(error: unknown, fallbackMessage: string): string {
+  const errorRecord = error as { errors?: Array<{ longMessage?: string }>; message?: string } | null;
+  return errorRecord?.errors?.[0]?.longMessage || errorRecord?.message || fallbackMessage;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [sessionState, setSessionState] = useState<AuthSessionState | null>(null);
@@ -75,26 +80,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = async (): Promise<AppUser | null> => {
     if (PUBLISHABLE_KEY) {
-      const clerkToken = await getClerkSessionToken(PUBLISHABLE_KEY);
-      setToken(clerkToken);
+      try {
+        const clerkToken = await getClerkSessionToken(PUBLISHABLE_KEY);
+        setToken(clerkToken);
 
-      if (clerkToken) {
-        const result = await fetchClerkSession(clerkToken);
-        if (!result.success) {
-          setAuthError(result.errorMessage ?? 'Session Clerk indisponible.');
-          setUser(null);
-          setSessionState(null);
-          return null;
-        }
+        if (clerkToken) {
+          const result = await fetchClerkSession(clerkToken);
+          if (!result.success) {
+            setAuthError(result.errorMessage ?? 'Session Clerk indisponible.');
+            setUser(null);
+            setSessionState(null);
+            return null;
+          }
 
-        const trusted = resolveTrustedSessionUser(result.user);
-        if (trusted) {
-          await startClerkBackendSession(clerkToken);
+          const trusted = resolveTrustedSessionUser(result.user);
+          if (trusted) {
+            await startClerkBackendSession(clerkToken);
+          }
+          setUser(trusted);
+          setSessionState(mapSession(result.session));
+          setAuthError(null);
+          setAuthNotice(null);
+          return trusted;
         }
-        setUser(trusted);
-        setSessionState(mapSession(result.session));
-        setAuthError(null);
-        return trusted;
+      } catch (error: unknown) {
+        const message = resolveErrorMessage(error, 'Initialisation Clerk impossible.');
+        setAuthError(message);
+        setAuthNotice('Connexion Clerk indisponible pour le moment. Utilisez le mode email/mot de passe local ou réessayez.');
+        setToken(null);
       }
     }
 
@@ -143,8 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return finalizeLogin(refreshedUser);
       }
     } catch (error: unknown) {
-      const errorRecord = error as { errors?: Array<{ longMessage?: string }>; message?: string } | null;
-      const message = errorRecord?.errors?.[0]?.longMessage || errorRecord?.message || null;
+      const message = resolveErrorMessage(error, 'Connexion Clerk impossible.');
       if (message) {
         setAuthError(message);
       }
@@ -170,8 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshedUser = await refresh();
       return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, refreshedUser) };
     } catch (error: unknown) {
-      const errorRecord = error as { errors?: Array<{ longMessage?: string }>; message?: string } | null;
-      const message = errorRecord?.errors?.[0]?.longMessage || errorRecord?.message || 'Inscription Clerk impossible';
+      const message = resolveErrorMessage(error, 'Inscription Clerk impossible');
       setAuthError(message);
       return { success: false, error: message, destination: null };
     }
@@ -182,7 +193,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthError('Configuration Clerk manquante.');
       return null;
     }
-    void oauthRedirect(PUBLISHABLE_KEY, provider);
+
+    void oauthRedirect(PUBLISHABLE_KEY, provider).catch((error: unknown) => {
+      const message = resolveErrorMessage(error, 'Connexion OAuth Clerk impossible.');
+      setAuthError(message);
+      setAuthNotice('La connexion OAuth est temporairement indisponible. Réessayez dans quelques instants.');
+    });
   };
 
   const logout = async () => {

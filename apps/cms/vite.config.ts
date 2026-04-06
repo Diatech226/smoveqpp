@@ -7,6 +7,32 @@ function parsePort(rawValue: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+
+const BASE_SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+};
+
+function createCsp(hosts: { cmsHost: string; cmsWsHost: string; apiOrigin: string; apiWsOrigin: string }) {
+  const clerkScriptOrigin = 'https://cdn.jsdelivr.net';
+  const clerkConnectOrigins = 'https://api.clerk.com https://*.clerk.accounts.dev https://*.clerk.com';
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${hosts.cmsHost} ${clerkScriptOrigin}`,
+    "worker-src 'self' blob:",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src 'self' ${hosts.cmsHost} ${hosts.cmsWsHost} ${hosts.apiOrigin} ${hosts.apiWsOrigin} ${clerkConnectOrigins}`,
+  ].join('; ');
+}
+
 function normalizeApiOrigin(rawValue: string | undefined, fallbackPort: number): string {
   const trimmed = rawValue?.trim();
   const candidate = trimmed && trimmed.length > 0 ? trimmed : `http://localhost:${fallbackPort}`;
@@ -32,6 +58,14 @@ export default defineConfig(({ mode }) => {
   const cmsPort = parsePort(env.VITE_CMS_PORT, 5174);
   const apiPort = parsePort(env.API_PORT, 3001);
   const apiOrigin = normalizeApiOrigin(env.VITE_API_ORIGIN ?? env.API_ORIGIN, apiPort);
+  const cmsHost = `http://localhost:${cmsPort}`;
+  const cmsWsHost = `ws://localhost:${cmsPort}`;
+  const apiWsOrigin = apiOrigin.replace(/^http/, 'ws');
+
+  const SECURITY_HEADERS = {
+    ...BASE_SECURITY_HEADERS,
+    'Content-Security-Policy': createCsp({ cmsHost, cmsWsHost, apiOrigin, apiWsOrigin }),
+  };
 
   return {
     root: __dirname,
@@ -56,6 +90,7 @@ export default defineConfig(({ mode }) => {
       host: 'localhost',
       port: cmsPort,
       strictPort: true,
+      headers: SECURITY_HEADERS,
       proxy: {
         '/api': {
           target: apiOrigin,
@@ -73,6 +108,7 @@ export default defineConfig(({ mode }) => {
       host: 'localhost',
       port: cmsPort,
       strictPort: true,
+      headers: SECURITY_HEADERS,
     },
   };
 });
