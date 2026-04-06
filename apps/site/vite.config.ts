@@ -100,6 +100,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: __dirname,
+    envDir: workspaceRoot,
     cacheDir: path.resolve(workspaceRoot, "node_modules/.vite-site"),
     plugins: [react()],
     resolve: {
