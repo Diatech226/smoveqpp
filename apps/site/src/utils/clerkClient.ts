@@ -7,6 +7,7 @@ declare global {
 let loadPromise: Promise<any> | null = null;
 
 const CALLBACK_PATH = '/sso-callback';
+const CLERK_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
 
 function canonicalizeLocalUrl(rawUrl: string): string {
   try {
@@ -28,6 +29,37 @@ function ensureCanonicalLocalOrigin(): boolean {
   return false;
 }
 
+function injectClerkScript(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-clerk-loader="true"]') as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener('load', () => {
+        if (!window.Clerk) {
+          reject(new Error('Clerk script loaded but window.Clerk is unavailable'));
+          return;
+        }
+        resolve(window.Clerk);
+      });
+      existing.addEventListener('error', () => reject(new Error('Failed to load Clerk script')));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.async = true;
+    script.dataset.clerkLoader = 'true';
+    script.src = CLERK_SCRIPT_URL;
+    script.onload = () => {
+      if (!window.Clerk) {
+        reject(new Error('Clerk script loaded but window.Clerk is unavailable'));
+        return;
+      }
+      resolve(window.Clerk);
+    };
+    script.onerror = () => reject(new Error('Failed to load Clerk script'));
+    document.head.appendChild(script);
+  });
+}
+
 export async function loadClerk(publishableKey: string): Promise<any> {
   if (!publishableKey) {
     throw new Error('Missing Clerk publishable key');
@@ -38,25 +70,15 @@ export async function loadClerk(publishableKey: string): Promise<any> {
   }
 
   if (!loadPromise) {
-    loadPromise = new Promise((resolve, reject) => {
-      const existing = document.querySelector('script[data-clerk-loader="true"]') as HTMLScriptElement | null;
-      if (existing) {
-        existing.addEventListener('load', () => resolve(window.Clerk));
-        existing.addEventListener('error', () => reject(new Error('Failed to load Clerk script')));
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.async = true;
-      script.dataset.clerkLoader = 'true';
-      script.src = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js';
-      script.onload = () => resolve(window.Clerk);
-      script.onerror = () => reject(new Error('Failed to load Clerk script'));
-      document.head.appendChild(script);
-    }).then(async (clerk) => {
-      await clerk.load({ publishableKey });
-      return clerk;
-    });
+    loadPromise = injectClerkScript()
+      .then(async (clerk) => {
+        await clerk.load({ publishableKey });
+        return clerk;
+      })
+      .catch((error) => {
+        loadPromise = null;
+        throw error;
+      });
   }
 
   return loadPromise;

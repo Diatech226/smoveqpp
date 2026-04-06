@@ -44,12 +44,12 @@ const DEV_CSP = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${FRONTEND_ORIGIN}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${FRONTEND_ORIGIN} https://cdn.jsdelivr.net`,
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${FRONTEND_ORIGIN} ${FRONTEND_ORIGIN.replace('http', 'ws')} ${API_ORIGIN} ${API_WS_ORIGIN}`,
+  `connect-src 'self' ${FRONTEND_ORIGIN} ${FRONTEND_ORIGIN.replace('http', 'ws')} ${API_ORIGIN} ${API_WS_ORIGIN} https://api.clerk.com https://*.clerk.accounts.dev https://*.clerk.com`,
 ].join('; ');
 
 const PROD_CSP = [
@@ -57,7 +57,7 @@ const PROD_CSP = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self'",
+  "script-src 'self' https://cdn.jsdelivr.net",
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
