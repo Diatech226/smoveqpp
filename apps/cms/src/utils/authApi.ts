@@ -114,6 +114,15 @@ export async function loginWithPassword(email: string, password: string): Promis
   return request('/login', { method: 'POST', headers, body: JSON.stringify({ email, password }) });
 }
 
+export async function registerWithPassword(email: string, password: string, name: string): Promise<AuthResult> {
+  const csrfSource = await fetchSession();
+  const headers = new Headers();
+  if (csrfSource.csrfToken) {
+    headers.set('X-CSRF-Token', csrfSource.csrfToken);
+  }
+  return request('/register', { method: 'POST', headers, body: JSON.stringify({ email, password, name }) });
+}
+
 export async function logoutWithSession(): Promise<AuthResult> {
   const csrfSource = await fetchSession();
   const headers = new Headers();
