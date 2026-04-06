@@ -4,35 +4,31 @@ const clerkLoadMock = vi.fn();
 const clerkConstructorMock = vi.fn();
 const getTokenMock = vi.fn();
 
-vi.mock('@clerk/clerk-js', () => {
-  class ClerkMock {
-    loaded = false;
-    session: { getToken: () => Promise<string | null> } | null = null;
-    client = {
-      signIn: {
-        create: vi.fn(),
-        authenticateWithRedirect: vi.fn(),
-      },
-      signUp: {
-        create: vi.fn(),
-      },
-    };
-    setActive = vi.fn();
-    signOut = vi.fn();
+class ClerkMock {
+  loaded = false;
+  session: { getToken: () => Promise<string | null> } | null = null;
+  client = {
+    signIn: {
+      create: vi.fn(),
+      authenticateWithRedirect: vi.fn(),
+    },
+    signUp: {
+      create: vi.fn(),
+    },
+  };
+  setActive = vi.fn();
+  signOut = vi.fn();
 
-    constructor(publishableKey: string) {
-      clerkConstructorMock(publishableKey);
-      this.session = { getToken: getTokenMock };
-    }
-
-    async load() {
-      await clerkLoadMock();
-      this.loaded = true;
-    }
+  constructor(publishableKey: string) {
+    clerkConstructorMock(publishableKey);
+    this.session = { getToken: getTokenMock };
   }
 
-  return { Clerk: ClerkMock };
-}, { virtual: true });
+  async load() {
+    await clerkLoadMock();
+    this.loaded = true;
+  }
+}
 
 describe('site clerkClient', () => {
   const originalWindow = globalThis.window;
@@ -45,6 +41,7 @@ describe('site clerkClient', () => {
     (globalThis as { window: Window }).window = {
       setTimeout,
       clearTimeout,
+      Clerk: ClerkMock,
       location: {
         hostname: 'localhost',
         href: 'http://localhost:5173/#login',
@@ -53,10 +50,25 @@ describe('site clerkClient', () => {
       } as unknown as Location,
     } as Window;
 
+    const appendChild = vi.fn((element: Element) => {
+      const script = element as HTMLScriptElement;
+      script.dispatchEvent(new Event('load'));
+      return element;
+    });
+
     (globalThis as { document: Document }).document = {
       head: {
-        appendChild: vi.fn(),
+        appendChild,
       },
+      createElement: vi.fn((tagName: string) => {
+        const element = {
+          tagName,
+          dataset: {},
+          addEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        } as unknown as HTMLScriptElement;
+        return element;
+      }),
       querySelector: vi.fn(() => null),
     } as unknown as Document;
   });
@@ -77,7 +89,7 @@ describe('site clerkClient', () => {
     vi.useRealTimers();
   });
 
-  it('loads Clerk through the package runtime and not via script injection', async () => {
+  it('loads Clerk runtime and returns session token', async () => {
     clerkLoadMock.mockResolvedValue(undefined);
     getTokenMock.mockResolvedValue('session-token');
 
@@ -85,7 +97,6 @@ describe('site clerkClient', () => {
     await expect(getClerkSessionToken('pk_test_123')).resolves.toBe('session-token');
 
     expect(clerkConstructorMock).toHaveBeenCalledWith('pk_test_123');
-    expect(document.head.appendChild).not.toHaveBeenCalled();
   });
 
   it('resets initialization state after a failed load so retry can succeed', async () => {

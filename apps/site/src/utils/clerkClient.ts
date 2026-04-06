@@ -1,13 +1,59 @@
-import { Clerk } from '@clerk/clerk-js';
-
 type OAuthProvider = 'google' | 'facebook';
 
-let clerkInstance: Clerk | null = null;
+interface ClerkSession {
+  getToken: () => Promise<string | null>;
+}
+
+interface ClerkSignInAttempt {
+  status: string;
+  createdSessionId?: string;
+}
+
+interface ClerkSignUpAttempt {
+  status: string;
+  createdSessionId?: string;
+}
+
+interface ClerkClient {
+  signIn: {
+    create: (params: { identifier: string; password: string }) => Promise<ClerkSignInAttempt>;
+    authenticateWithRedirect: (params: {
+      strategy: string;
+      redirectUrl: string;
+      redirectUrlComplete: string;
+    }) => Promise<void>;
+  };
+  signUp: {
+    create: (params: { emailAddress: string; password: string; firstName: string }) => Promise<ClerkSignUpAttempt>;
+  };
+}
+
+interface ClerkInstance {
+  loaded: boolean;
+  session: ClerkSession | null;
+  client: ClerkClient;
+  load: () => Promise<void>;
+  setActive: (params: { session?: string }) => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+type ClerkConstructor = new (publishableKey: string) => ClerkInstance;
+
+declare global {
+  interface Window {
+    Clerk?: ClerkConstructor;
+  }
+}
+
+let clerkInstance: ClerkInstance | null = null;
 let clerkPublishableKey: string | null = null;
-let loadPromise: Promise<Clerk> | null = null;
+let loadPromise: Promise<ClerkInstance> | null = null;
+let scriptLoadPromise: Promise<void> | null = null;
 
 const CALLBACK_PATH = '/sso-callback';
 const CLERK_LOAD_TIMEOUT_MS = 12000;
+const CLERK_JS_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
+const CLERK_SCRIPT_SELECTOR = 'script[data-clerk-js-runtime="true"]';
 
 function canonicalizeLocalUrl(rawUrl: string): string {
   try {
@@ -52,19 +98,63 @@ function normalizeClerkError(error: unknown, fallbackMessage: string): Error {
   return new Error(fallbackMessage);
 }
 
-function getOrCreateClerkInstance(publishableKey: string): Clerk {
+function resolveClerkConstructor(): ClerkConstructor {
+  const ctor = window.Clerk;
+  if (!ctor) {
+    throw new Error('Clerk runtime unavailable. Verify that Clerk JS loaded correctly.');
+  }
+  return ctor;
+}
+
+function loadClerkScript(): Promise<void> {
+  if (window.Clerk) {
+    return Promise.resolve();
+  }
+
+  if (scriptLoadPromise) {
+    return scriptLoadPromise;
+  }
+
+  scriptLoadPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(CLERK_SCRIPT_SELECTOR);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Failed to load Clerk runtime script.')), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = CLERK_JS_SCRIPT_URL;
+    script.async = true;
+    script.defer = true;
+    script.dataset.clerkJsRuntime = 'true';
+    script.addEventListener('load', () => resolve(), { once: true });
+    script.addEventListener('error', () => reject(new Error('Failed to load Clerk runtime script.')), { once: true });
+    document.head.appendChild(script);
+  }).catch((error: unknown) => {
+    scriptLoadPromise = null;
+    throw normalizeClerkError(error, 'Unable to load Clerk runtime.');
+  });
+
+  return scriptLoadPromise;
+}
+
+function getOrCreateClerkInstance(publishableKey: string): ClerkInstance {
   if (!clerkInstance || clerkPublishableKey !== publishableKey) {
-    clerkInstance = new Clerk(publishableKey);
+    const ClerkRuntime = resolveClerkConstructor();
+    clerkInstance = new ClerkRuntime(publishableKey);
     clerkPublishableKey = publishableKey;
   }
 
   return clerkInstance;
 }
 
-export async function loadClerk(publishableKey: string): Promise<Clerk> {
+export async function loadClerk(publishableKey: string): Promise<ClerkInstance> {
   if (!publishableKey) {
     throw new Error('Missing Clerk publishable key');
   }
+
+  await withTimeout(loadClerkScript(), CLERK_LOAD_TIMEOUT_MS, 'Clerk initialization timed out. Please retry.');
 
   const clerk = getOrCreateClerkInstance(publishableKey);
 
@@ -77,7 +167,8 @@ export async function loadClerk(publishableKey: string): Promise<Clerk> {
       clerk.load(),
       CLERK_LOAD_TIMEOUT_MS,
       'Clerk initialization timed out. Please retry.',
-    ).then(() => clerk)
+    )
+      .then(() => clerk)
       .catch((error: unknown) => {
         loadPromise = null;
         throw normalizeClerkError(error, 'Unable to initialize Clerk.');
