@@ -100,6 +100,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: __dirname,
+    cacheDir: path.resolve(workspaceRoot, "node_modules/.vite-site"),
     plugins: [react()],
     resolve: {
       extensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
@@ -460,6 +461,16 @@ export default defineConfig(({ mode }) => {
         "@radix-ui/react-accordion@1.2.3": "@radix-ui/react-accordion",
         "@": path.resolve(__dirname, "./src"),
       },
+      dedupe: ["react", "react-dom"],
+    },
+    optimizeDeps: {
+      include: [
+        "react",
+        "react-dom",
+        "lucide-react",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-slot",
+      ],
     },
     build: {
       target: "esnext",
