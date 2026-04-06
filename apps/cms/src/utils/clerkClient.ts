@@ -9,8 +9,12 @@ type OAuthProvider = 'google' | 'facebook';
 let loadPromise: Promise<any> | null = null;
 
 const CALLBACK_PATH = '/sso-callback';
-const CLERK_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
-const CLERK_LOAD_TIMEOUT_MS = 12000;
+const CLERK_SCRIPT_URLS = [
+  'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js',
+  'https://unpkg.com/@clerk/clerk-js@5/dist/clerk.browser.js',
+];
+const CLERK_SCRIPT_LOAD_TIMEOUT_MS = 12000;
+const CLERK_INIT_TIMEOUT_MS = 20000;
 
 function canonicalizeLocalUrl(rawUrl: string): string {
   try {
@@ -62,7 +66,7 @@ function resolveClerkGlobalOrThrow(): any {
   return window.Clerk;
 }
 
-function injectClerkScript(): Promise<any> {
+function injectClerkScriptWithUrl(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const existing = document.querySelector('script[data-clerk-loader="true"]') as HTMLScriptElement | null;
 
@@ -92,11 +96,27 @@ function injectClerkScript(): Promise<any> {
     const script = document.createElement('script');
     script.async = true;
     script.dataset.clerkLoader = 'true';
-    script.src = CLERK_SCRIPT_URL;
+    script.src = url;
     script.onload = handleResolve;
     script.onerror = handleReject;
     document.head.appendChild(script);
   });
+}
+
+async function injectClerkScript(): Promise<any> {
+  let lastError: unknown = null;
+  for (const url of CLERK_SCRIPT_URLS) {
+    try {
+      return await withTimeout(
+        injectClerkScriptWithUrl(url),
+        CLERK_SCRIPT_LOAD_TIMEOUT_MS,
+        'Clerk script failed to load in time. Please retry.',
+      );
+    } catch (error: unknown) {
+      lastError = error;
+    }
+  }
+  throw normalizeClerkError(lastError, 'Failed to load Clerk script (blocked by Content Security Policy or network error).');
 }
 
 export async function loadClerk(publishableKey: string): Promise<any> {
@@ -113,13 +133,13 @@ export async function loadClerk(publishableKey: string): Promise<any> {
       injectClerkScript().then(async (clerk) => {
         await withTimeout(
           clerk.load({ publishableKey }),
-          CLERK_LOAD_TIMEOUT_MS,
+          CLERK_INIT_TIMEOUT_MS,
           'Clerk initialization timed out. Please retry.',
         );
         return clerk;
       }),
-      CLERK_LOAD_TIMEOUT_MS,
-      'Clerk script failed to load in time. Please retry.',
+      CLERK_INIT_TIMEOUT_MS + 2000,
+      'Clerk initialization timed out. Please retry.',
     ).catch((error: unknown) => {
       loadPromise = null;
       throw normalizeClerkError(error, 'Unable to initialize Clerk.');
