@@ -132,14 +132,18 @@ export async function logoutWithSession(): Promise<AuthResult> {
   return request('/logout', { method: 'POST', headers });
 }
 
-export function fetchAdminUsers(token: string): Promise<AuthResult> {
+export function fetchAdminUsers(token?: string | null): Promise<AuthResult> {
   return request('/admin/users', { method: 'GET' }, token);
 }
 
-export function updateAdminUserWithApi(userId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>, token: string): Promise<AuthResult> {
+export function updateAdminUserWithApi(
+  userId: string,
+  patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>,
+  token?: string | null,
+): Promise<AuthResult> {
   return request(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify(patch) }, token);
 }
 
-export function fetchAuthAuditEvents(token: string): Promise<AuthResult> {
+export function fetchAuthAuditEvents(token?: string | null): Promise<AuthResult> {
   return request('/admin/audit-events', { method: 'GET' }, token);
 }

@@ -372,9 +372,23 @@ class AuthService {
       return { ok: false, reason: 'missing_config' };
     }
 
-    const exists = await this.userRepository.existsByEmail(normalizedEmail);
-    if (exists) {
-      return { ok: true, created: false };
+    const existing = await this.userRepository.findByEmailWithPassword(normalizedEmail);
+    if (existing) {
+      const patch = {
+        role: 'admin',
+        status: 'staff',
+        accountStatus: 'active',
+        emailVerified: true,
+        authProvider: existing.authProvider === 'clerk' ? existing.authProvider : 'local',
+        providers: Array.from(new Set([...(existing.providers ?? [existing.authProvider ?? 'local']), 'local'])),
+      };
+
+      if (!existing.passwordHash) {
+        patch.passwordHash = await hashPassword(String(password));
+      }
+
+      const updated = await this.userRepository.updateUser(existing.id, patch);
+      return { ok: true, created: false, repaired: true, user: sanitizeUser(updated ?? existing) };
     }
 
     const passwordHash = await hashPassword(String(password));

@@ -321,8 +321,8 @@ function buildAuthController({ authService }) {
 
     updateUserByAdmin: async (req, res) => {
       const result = await authService.updateUserByAdmin(req.params.userId, req.body ?? {}, {
-        id: req.session?.userId,
-        role: req.session?.role,
+        id: req.session?.userId ?? req.appUser?.id,
+        role: req.session?.role ?? req.appUser?.role,
       });
       if (!result.ok) {
         logAuthEvent(req, 'admin_user_update', 'failure', { code: result.code, targetUserId: req.params.userId });

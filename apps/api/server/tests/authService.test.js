@@ -257,6 +257,37 @@ describe('AuthService', () => {
     expect(users[0].providers).toContain('clerk');
   });
 
+  it('seedAdminFromEnv repairs existing seeded admin role/status and local provider', async () => {
+    users.push({
+      id: 'existing-admin',
+      email: 'admin@smove.test',
+      name: 'Wrong Role',
+      passwordHash: null,
+      providers: ['google'],
+      authProvider: 'google',
+      role: 'client',
+      status: 'client',
+      accountStatus: 'invited',
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const result = await service.seedAdminFromEnv({
+      email: 'admin@smove.test',
+      password: 'password123',
+      name: 'Administrator',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.created).toBe(false);
+    expect(result.repaired).toBe(true);
+    expect(result.user?.role).toBe('admin');
+    expect(result.user?.status).toBe('staff');
+    expect(result.user?.accountStatus).toBe('active');
+    expect(result.user?.providers).toContain('local');
+  });
+
   it('facebook oauth reuses existing linked account', async () => {
     users.push({
       id: '1',
