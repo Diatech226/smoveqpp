@@ -14,6 +14,7 @@ interface AuthApiPayload {
   users?: AppUser[];
   events?: Array<Record<string, unknown>>;
   session?: SessionMeta | null;
+  csrfToken?: string | null;
   providers?: Record<string, { enabled: boolean }>;
 }
 
@@ -28,6 +29,7 @@ export interface AuthResult {
   users?: AppUser[];
   events?: Array<Record<string, unknown>>;
   session?: SessionMeta | null;
+  csrfToken?: string | null;
   providers?: Record<string, { enabled: boolean }>;
   success: boolean;
   errorCode: string | null;
@@ -37,22 +39,6 @@ export interface AuthResult {
 
 const AUTH_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/auth`;
 
-function fallbackErrorMessage(code: string | null, status: number): string {
-  if (code === 'UNAUTHENTICATED') return 'Session invalide. Merci de vous reconnecter.';
-  if (code === 'FORBIDDEN') return 'Accès refusé.';
-  if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
-  return 'Erreur d’authentification.';
-}
-
-export function normalizeAuthPayload(payload: AuthApiResponse | null, status: number): AuthResult {
-  const result = normalize(payload, status);
-  if (!result.success && !result.errorMessage) {
-    return { ...result, errorMessage: fallbackErrorMessage(result.errorCode, status) };
-  }
-  return result;
-}
-
-
 function normalize(body: AuthApiResponse | null, status: number): AuthResult {
   const success = status < 400 && body?.success === true;
   return {
@@ -60,6 +46,7 @@ function normalize(body: AuthApiResponse | null, status: number): AuthResult {
     users: body?.data?.users,
     events: body?.data?.events,
     session: body?.data?.session,
+    csrfToken: body?.data?.csrfToken ?? null,
     providers: body?.data?.providers,
     success,
     errorCode: body?.error?.code ?? null,
@@ -68,14 +55,9 @@ function normalize(body: AuthApiResponse | null, status: number): AuthResult {
   };
 }
 
-async function request(path: string, init: RequestInit = {}, clerkToken?: string | null): Promise<AuthResult> {
+async function request(path: string, init: RequestInit = {}): Promise<AuthResult> {
   const headers = new Headers(init.headers);
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-  if (clerkToken) {
-    headers.set('Authorization', `Bearer ${clerkToken}`);
-  }
+  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
 
   const response = await fetch(`${AUTH_BASE_URL}${path}`, {
     ...init,
@@ -84,22 +66,33 @@ async function request(path: string, init: RequestInit = {}, clerkToken?: string
   });
 
   const json = (await response.json().catch(() => null)) as AuthApiResponse | null;
-  return normalizeAuthPayload(json, response.status);
+  return normalize(json, response.status);
 }
 
-export function fetchClerkSession(token: string): Promise<AuthResult> {
-  return request('/me', { method: 'GET' }, token);
+export function fetchSession(): Promise<AuthResult> {
+  return request('/session', { method: 'GET' });
 }
 
-export function fetchAdminUsers(token: string): Promise<AuthResult> {
-  return request('/admin/users', { method: 'GET' }, token);
+export async function loginWithPassword(email: string, password: string): Promise<AuthResult> {
+  const csrf = await fetchSession();
+  if (!csrf.success) return csrf;
+  return request('/login', { method: 'POST', headers: { 'X-CSRF-Token': csrf.csrfToken ?? '' }, body: JSON.stringify({ email, password }) });
 }
 
-export function updateAdminUserWithApi(userId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>, token: string): Promise<AuthResult> {
-  return request(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify(patch) }, token);
+export async function registerWithPassword(email: string, password: string, name: string): Promise<AuthResult> {
+  const csrf = await fetchSession();
+  if (!csrf.success) return csrf;
+  return request('/register', { method: 'POST', headers: { 'X-CSRF-Token': csrf.csrfToken ?? '' }, body: JSON.stringify({ email, password, name }) });
 }
 
-export function fetchAuthAuditEvents(token: string): Promise<AuthResult> {
-  return request('/admin/audit-events', { method: 'GET' }, token);
+export async function logoutWithSession(): Promise<AuthResult> {
+  const csrf = await fetchSession();
+  if (!csrf.success) return csrf;
+  return request('/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrf.csrfToken ?? '' } });
 }
 
+export function fetchAdminUsers(): Promise<AuthResult> { return request('/admin/users', { method: 'GET' }); }
+export function fetchAuthAuditEvents(): Promise<AuthResult> { return request('/admin/audit-events', { method: 'GET' }); }
+export function updateAdminUserWithApi(userId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>): Promise<AuthResult> {
+  return request(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+}

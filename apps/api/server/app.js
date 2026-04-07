@@ -26,7 +26,6 @@ const { createAuthRoutes } = require('./routes/authRoutes');
 const { createContentRoutes } = require('./routes/contentRoutes');
 const { createContactRoutes } = require('./routes/contactRoutes');
 const { sendError } = require('./utils/apiResponse');
-const { createClerkAuthMiddleware, requireClerkAuth } = require('./middleware/clerkAuth');
 const { FileContentRepository } = require('./repositories/contentRepository.file');
 const { ContentService } = require('./services/contentService');
 const { createOAuthConfig } = require('./config/passport');
@@ -49,7 +48,7 @@ const DEV_CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${FRONTEND_ORIGIN} ${FRONTEND_ORIGIN.replace('http', 'ws')} ${API_ORIGIN} ${API_WS_ORIGIN} https://api.clerk.com https://*.clerk.accounts.dev https://*.clerk.com`,
+  `connect-src 'self' ${FRONTEND_ORIGIN} ${FRONTEND_ORIGIN.replace('http', 'ws')} ${API_ORIGIN} ${API_WS_ORIGIN} https://accounts.google.com https://oauth2.googleapis.com`,
 ].join('; ');
 
 const PROD_CSP = [
@@ -86,7 +85,6 @@ function createApp(deps = {}) {
     },
   });
   const authController = deps.authController ?? buildAuthController({ authService });
-  const clerkAuthMiddleware = createClerkAuthMiddleware({ authService });
 
   const contentRepository = deps.contentRepository ?? new FileContentRepository();
   const contentService = deps.contentService ?? new ContentService({ contentRepository });
@@ -151,7 +149,6 @@ function createApp(deps = {}) {
   app.use(cookieParser());
   app.use(express.json({ limit: '10mb' }));
   app.use(sessionInit.middleware);
-  app.use(clerkAuthMiddleware);
 
   if (!fs.existsSync(MEDIA_UPLOAD_DIR)) {
     fs.mkdirSync(MEDIA_UPLOAD_DIR, { recursive: true });
@@ -182,10 +179,10 @@ function createApp(deps = {}) {
     return res.status(200).json(payload);
   });
 
-  app.use('/api/v1/auth', createAuthRoutes({ authController, requireClerkAuth }));
+  app.use('/api/v1/auth', createAuthRoutes({ authController }));
   app.use('/api/v1/content', createContentRoutes({ contentService, auditService, mediaStorage }));
   app.use('/api/v1/contact', createContactRoutes({ emailService }));
-  app.use('/api/auth', createAuthRoutes({ authController, requireClerkAuth }));
+  app.use('/api/auth', createAuthRoutes({ authController }));
   app.use('/api/content', createContentRoutes({ contentService, auditService, mediaStorage }));
   app.use('/api/contact', createContactRoutes({ emailService }));
 

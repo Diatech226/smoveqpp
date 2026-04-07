@@ -8,7 +8,6 @@ import {
   updateAdminUserWithApi,
 } from '../utils/authApi';
 import { evaluateCmsAccess, resolvePostLoginRoute, resolveTrustedSessionUser, SECURITY_FLAGS, type AppUser, type PostLoginRoute } from '../utils/securityPolicy';
-import { oauthRedirect, signOutClerk } from '../utils/clerkClient';
 import { initializeCmsAuth, type AuthSessionState } from './authInitialization';
 
 interface OAuthProviderState { google: boolean; facebook: boolean }
@@ -42,9 +41,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-const RAW_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
-const PUBLISHABLE_KEY = RAW_PUBLISHABLE_KEY?.trim() || undefined;
-const FACEBOOK_ENABLED = import.meta.env.VITE_CLERK_ENABLE_FACEBOOK === 'true';
 
 function resolveErrorMessage(error: unknown, fallbackMessage: string): string {
   const errorRecord = error as { errors?: Array<{ longMessage?: string }>; message?: string } | null;
@@ -146,22 +142,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const beginOAuthLogin = (provider: 'google' | 'facebook') => {
-    if (!PUBLISHABLE_KEY) {
-      setAuthError('Configuration Clerk manquante.');
-      return null;
-    }
-
-    void oauthRedirect(PUBLISHABLE_KEY, provider).catch((error: unknown) => {
-      const message = resolveErrorMessage(error, 'Connexion OAuth Clerk impossible.');
-      setAuthError(message);
-      setAuthNotice('La connexion OAuth est temporairement indisponible. Réessayez dans quelques instants.');
-    });
+    window.location.href = `/api/v1/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(window.location.href)}`;
   };
 
   const logout = async () => {
-    if (PUBLISHABLE_KEY) {
-      await signOutClerk(PUBLISHABLE_KEY).catch(() => undefined);
-    }
     await logoutWithSession();
     setUser(null);
     setSessionState(null);
@@ -179,8 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     beginOAuthLogin,
     register,
-    verifyEmail: async () => ({ success: true, error: null, destination: 'account', infoMessage: 'Vérification gérée par Clerk.' }),
-    resendVerification: async () => ({ success: true, error: null, destination: 'account', infoMessage: 'Vérification gérée par Clerk.' }),
+    verifyEmail: async () => ({ success: false, error: 'Use backend email token endpoint.', destination: null }),
+    resendVerification: async () => ({ success: false, error: 'Use backend resend verification endpoint.', destination: null }),
     fetchAdminUsers: async () => {
       const result = await fetchAdminUsersApi();
       return result.users ?? [];
@@ -200,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     cmsEnabled,
     registrationEnabled,
     canAccessCMS,
-    oauthProviders: { google: true, facebook: FACEBOOK_ENABLED },
+    oauthProviders: { google: true, facebook: true },
     postLoginRoute,
     sessionState,
   }), [authError, authNotice, canAccessCMS, cmsEnabled, isAuthReady, isAuthenticated, postLoginRoute, registrationEnabled, sessionState, user]);

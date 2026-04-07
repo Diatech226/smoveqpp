@@ -81,13 +81,10 @@ function timeoutResult(status = 408): AuthResult {
   );
 }
 
-async function request(path: string, init: RequestInit = {}, clerkToken?: string | null, timeoutMs = RUNTIME_CONFIG.requestTimeoutMs): Promise<AuthResult> {
+async function request(path: string, init: RequestInit = {}, timeoutMs = RUNTIME_CONFIG.requestTimeoutMs): Promise<AuthResult> {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
-  }
-  if (clerkToken) {
-    headers.set('Authorization', `Bearer ${clerkToken}`);
   }
 
   const controller = new AbortController();
@@ -111,14 +108,6 @@ async function request(path: string, init: RequestInit = {}, clerkToken?: string
   } finally {
     globalThis.clearTimeout(timeoutId);
   }
-}
-
-export function fetchClerkSession(token: string): Promise<AuthResult> {
-  return request('/me', { method: 'GET' }, token);
-}
-
-export function startClerkBackendSession(token: string): Promise<AuthResult> {
-  return request('/session/clerk', { method: 'POST' }, token);
 }
 
 export function fetchSession(options?: { timeoutMs?: number }): Promise<AuthResult> {
@@ -164,18 +153,17 @@ export async function logoutWithSession(): Promise<AuthResult> {
   return request('/logout', { method: 'POST', headers });
 }
 
-export function fetchAdminUsers(token?: string | null): Promise<AuthResult> {
-  return request('/admin/users', { method: 'GET' }, token);
+export function fetchAdminUsers(): Promise<AuthResult> {
+  return request('/admin/users', { method: 'GET' });
 }
 
 export function updateAdminUserWithApi(
   userId: string,
   patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>,
-  token?: string | null,
-): Promise<AuthResult> {
-  return request(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify(patch) }, token);
+  ): Promise<AuthResult> {
+  return request(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify(patch) });
 }
 
-export function fetchAuthAuditEvents(token?: string | null): Promise<AuthResult> {
-  return request('/admin/audit-events', { method: 'GET' }, token);
+export function fetchAuthAuditEvents(): Promise<AuthResult> {
+  return request('/admin/audit-events', { method: 'GET' });
 }

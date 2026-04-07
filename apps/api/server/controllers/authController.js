@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { FRONTEND_ORIGIN, FRONTEND_ORIGINS, CLERK_WEBHOOK_SECRET } = require('../config/env');
+const { FRONTEND_ORIGIN, FRONTEND_ORIGINS } = require('../config/env');
 const { getOrCreateCsrfToken } = require('../middleware/csrf');
 const { sendSuccess, sendError } = require('../utils/apiResponse');
 const { logAuthEvent, listAuthAuditEvents } = require('../utils/authLogger');
@@ -95,70 +95,6 @@ function buildAuthController({ authService }) {
       });
     },
 
-
-    getClerkSession: async (req, res) => {
-      const user = req.appUser ?? null;
-      if (!user) {
-        return sendError(res, 401, 'UNAUTHENTICATED', 'Authentication required');
-      }
-      if (user.accountStatus === 'suspended') {
-        return sendError(res, 403, 'ACCOUNT_SUSPENDED', 'Account suspended');
-      }
-
-      return sendSuccess(res, 200, {
-        user,
-        session: {
-          sessionId: req.clerkAuth?.sid ?? null,
-          authenticatedAt: req.clerkAuth?.iat ? new Date(Number(req.clerkAuth.iat) * 1000).toISOString() : null,
-          lastActivityAt: new Date().toISOString(),
-          authProvider: 'clerk',
-          role: user.role,
-        },
-        providers: {
-          ...(authService.getOAuthProviders?.() ?? {}),
-          clerk: { enabled: true },
-        },
-      });
-    },
-
-    startClerkSession: async (req, res) => {
-      const user = req.appUser ?? null;
-      if (!user) {
-        return sendError(res, 401, 'UNAUTHENTICATED', 'Authentication required');
-      }
-      if (user.accountStatus === 'suspended') {
-        return sendError(res, 403, 'ACCOUNT_SUSPENDED', 'Account suspended');
-      }
-      return startSession(req, res, user, 'clerk_session_start', 200);
-    },
-
-    handleClerkWebhook: async (req, res) => {
-      // Lightweight webhook handler: expects trusted reverse-proxy verification upstream.
-      // Kept idempotent by clerk_id upserts in authService.
-      if (!CLERK_WEBHOOK_SECRET || req.headers['x-clerk-webhook-secret'] !== CLERK_WEBHOOK_SECRET) {
-        return sendError(res, 401, 'WEBHOOK_UNAUTHORIZED', 'Invalid Clerk webhook signature');
-      }
-
-      const event = req.body ?? {};
-      const type = String(event.type ?? '');
-      const data = event.data ?? {};
-
-      if (type.startsWith('user.') && data.id) {
-        await authService.syncClerkUserFromClaims({
-          sub: String(data.id),
-          email: data.email_addresses?.[0]?.email_address,
-          email_addresses: data.email_addresses,
-          given_name: data.first_name,
-          family_name: data.last_name,
-          name: [data.first_name, data.last_name].filter(Boolean).join(' ').trim(),
-          picture: data.image_url,
-          email_verified: Boolean(data.email_addresses?.some?.((entry) => entry.verification?.status === 'verified')),
-        });
-      }
-
-      return sendSuccess(res, 200, { received: true });
-    },
-
     startOAuth: async (req, res) => {
       const { provider } = req.params;
       const redirectTo = parseSafeRedirect(req.query?.redirectTo, `${FRONTEND_ORIGIN}/#login`);
@@ -228,23 +164,6 @@ function buildAuthController({ authService }) {
       }
 
       return startSession(req, res, result.user, 'login', 200);
-    },
-
-    oauthLogin: async (req, res) => {
-      const { provider } = req.params;
-      const result = await authService.loginWithOAuth({
-        email: req.body?.email,
-        name: req.body?.name,
-        providerId: req.body?.providerId,
-        authProvider: provider,
-      });
-
-      if (!result.ok) {
-        logAuthEvent(req, `oauth_${provider}`, 'failure', { code: result.code });
-        return sendError(res, result.status, result.code, result.message);
-      }
-
-      return startSession(req, res, result.user, `oauth_${provider}`, 200);
     },
 
     resendVerification: async (req, res) => {
@@ -321,8 +240,8 @@ function buildAuthController({ authService }) {
 
     updateUserByAdmin: async (req, res) => {
       const result = await authService.updateUserByAdmin(req.params.userId, req.body ?? {}, {
-        id: req.session?.userId ?? req.appUser?.id,
-        role: req.session?.role ?? req.appUser?.role,
+        id: req.session?.userId,
+        role: req.session?.role,
       });
       if (!result.ok) {
         logAuthEvent(req, 'admin_user_update', 'failure', { code: result.code, targetUserId: req.params.userId });

@@ -7,7 +7,7 @@ export interface AppUser {
   role: UserRole;
   status?: 'client' | 'staff';
   accountStatus?: 'active' | 'invited' | 'suspended';
-  authProvider?: 'local' | 'google' | 'facebook' | 'clerk';
+  authProvider?: 'local' | 'google' | 'facebook';
   emailVerified?: boolean;
   verificationPending?: boolean;
   verificationMethod?: 'email_token' | 'provider_trust';
@@ -16,7 +16,7 @@ export interface AppUser {
 const USER_ROLES: UserRole[] = ['admin', 'editor', 'author', 'viewer', 'client'];
 const USER_STATUSES: NonNullable<AppUser['status']>[] = ['client', 'staff'];
 const ACCOUNT_STATUSES: NonNullable<AppUser['accountStatus']>[] = ['active', 'invited', 'suspended'];
-const AUTH_PROVIDERS: NonNullable<AppUser['authProvider']>[] = ['local', 'google', 'facebook', 'clerk'];
+const AUTH_PROVIDERS: NonNullable<AppUser['authProvider']>[] = ['local', 'google', 'facebook'];
 const VERIFICATION_METHODS: NonNullable<AppUser['verificationMethod']>[] = ['email_token', 'provider_trust'];
 
 export type CmsAccessDecision = 'allow' | 'disabled' | 'unauthenticated' | 'forbidden';

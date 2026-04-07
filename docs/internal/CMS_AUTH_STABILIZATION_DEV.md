@@ -11,11 +11,11 @@ Date: 2026-04-07
   - `POST /api/v1/auth/logout`
 - CMS role/access gating is based on the backend session-resolved user (`role`, `accountStatus`).
 
-## Clerk isolation changes
+## Legacy provider isolation changes
 
-- Clerk is no longer the first source of truth for CMS auth state.
-- Missing Clerk tokens or Clerk bootstrap issues must not block local CMS admin login.
-- Clerk can still be used in non-CMS-critical paths, but CMS access decisions must resolve from backend session state.
+- Legacy provider is no longer the first source of truth for CMS auth state.
+- Missing Legacy provider tokens or Legacy provider bootstrap issues must not block local CMS admin login.
+- Legacy provider can still be used in non-CMS-critical paths, but CMS access decisions must resolve from backend session state.
 
 ## Backend authorization changes for CMS admin flows
 
@@ -35,5 +35,5 @@ Date: 2026-04-07
 
 ## Follow-up (not part of this stabilization)
 
-- Unify long-term auth architecture so Clerk and local session identity are not dual-source.
+- Unify long-term auth architecture so Legacy provider and local session identity are not dual-source.
 - Remove remaining duplicate auth surfaces once production migration plan is approved.
