@@ -1,17 +1,34 @@
-const DEFAULT_CMS_APP_URL = '/cms/#cms';
+const LOCAL_CMS_ORIGIN = 'http://localhost:5174';
+const DEFAULT_LOCAL_CMS_APP_URL = `${LOCAL_CMS_ORIGIN}/#cms`;
+const DEFAULT_PRODUCTION_CMS_APP_URL = '/cms/#cms';
+
+function normalizeLoopbackHost(url: URL): URL {
+  if (url.hostname === '127.0.0.1') {
+    url.hostname = 'localhost';
+  }
+  return url;
+}
+
+function isLocalRuntime(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}
 
 function normalizeRelativeOrAbsoluteUrl(rawValue: string | undefined): string {
   const candidate = rawValue?.trim();
-  if (!candidate) return DEFAULT_CMS_APP_URL;
+  if (!candidate) {
+    return isLocalRuntime() ? DEFAULT_LOCAL_CMS_APP_URL : DEFAULT_PRODUCTION_CMS_APP_URL;
+  }
 
   if (candidate.startsWith('/')) {
     return candidate;
   }
 
   try {
-    return new URL(candidate).toString();
+    const normalized = normalizeLoopbackHost(new URL(candidate));
+    return normalized.toString();
   } catch {
-    return DEFAULT_CMS_APP_URL;
+    return isLocalRuntime() ? DEFAULT_LOCAL_CMS_APP_URL : DEFAULT_PRODUCTION_CMS_APP_URL;
   }
 }
 
