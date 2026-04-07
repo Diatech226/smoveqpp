@@ -106,8 +106,36 @@ describe('clerkClient', () => {
     await assertion;
   });
 
+  it('falls back to secondary Clerk CDN when primary fails', async () => {
+    let appendCount = 0;
+    const clerk = {
+      loaded: false,
+      load: vi.fn(async () => {
+        clerk.loaded = true;
+      }),
+      session: null,
+    };
+
+    const documentMock = setDom((script) => {
+      appendCount += 1;
+      if (appendCount === 1) {
+        setTimeout(() => script.onerror?.(), 0);
+        return;
+      }
+      (window as Window & { Clerk?: any }).Clerk = clerk;
+      setTimeout(() => script.onload?.(), 0);
+    });
+
+    const { loadClerk } = await import('./clerkClient');
+    const assertion = expect(loadClerk('pk_test_123')).resolves.toBe(clerk);
+    await vi.runAllTimersAsync();
+    await assertion;
+
+    expect(documentMock.head.appendChild).toHaveBeenCalledTimes(2);
+  });
+
   it('resets loading state after timeout so a retry can succeed', async () => {
-    let firstAttempt = true;
+    let appendCount = 0;
     const clerk = {
       loaded: false,
       load: vi.fn(async () => {
@@ -117,8 +145,8 @@ describe('clerkClient', () => {
     };
 
     setDom((script) => {
-      if (firstAttempt) {
-        firstAttempt = false;
+      appendCount += 1;
+      if (appendCount <= 2) {
         return;
       }
 
@@ -128,8 +156,8 @@ describe('clerkClient', () => {
 
     const { loadClerk } = await import('./clerkClient');
 
-    const firstAssertion = expect(loadClerk('pk_test_retry')).rejects.toThrow('Clerk script failed to load in time');
-    await vi.advanceTimersByTimeAsync(12050);
+    const firstAssertion = expect(loadClerk('pk_test_retry')).rejects.toThrow('Clerk initialization timed out');
+    await vi.advanceTimersByTimeAsync(24100);
     await firstAssertion;
 
     const secondAssertion = expect(loadClerk('pk_test_retry')).resolves.toBe(clerk);

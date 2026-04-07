@@ -5,6 +5,7 @@ import {
   fetchClerkSession,
   fetchSession,
   loginWithPassword as loginWithPasswordApi,
+  registerWithPassword as registerWithPasswordApi,
   logoutWithSession,
   startClerkBackendSession,
   updateAdminUserWithApi,
@@ -177,15 +178,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (email: string, password: string, name: string): Promise<AuthActionResult> => {
     try {
-      if (!PUBLISHABLE_KEY) throw new Error('Missing Clerk publishable key');
-      await signUpWithPassword(PUBLISHABLE_KEY, email, password, name);
-      const refreshedUser = await refresh();
-      return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, refreshedUser) };
+      if (PUBLISHABLE_KEY) {
+        await signUpWithPassword(PUBLISHABLE_KEY, email, password, name);
+        const refreshedUser = await refresh();
+        return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, refreshedUser) };
+      }
     } catch (error: unknown) {
       const message = resolveErrorMessage(error, 'Inscription Clerk impossible');
       setAuthError(message);
+      setAuthNotice('Inscription Clerk indisponible. Bascule vers l’inscription locale.');
+    }
+
+    const localResult = await registerWithPasswordApi(email, password, name);
+    if (!localResult.success) {
+      const message = localResult.errorMessage ?? authError ?? 'Inscription impossible.';
+      setAuthError(message);
       return { success: false, error: message, destination: null };
     }
+
+    const trusted = resolveTrustedSessionUser(localResult.user);
+    setUser(trusted);
+    setSessionState(mapSession(localResult.session));
+    setAuthError(null);
+    return finalizeLogin(trusted);
   };
 
   const beginOAuthLogin = (provider: 'google' | 'facebook') => {
