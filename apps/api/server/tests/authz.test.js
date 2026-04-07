@@ -52,4 +52,25 @@ describe('authz middleware', () => {
     expect(nextCalled).toBe(true);
     expect(res.statusCode).toBe(200);
   });
+
+  it('allows local session admin without clerk claims to pass CMS access checks', () => {
+    const req = {
+      appUser: null,
+      session: { userId: 'local-admin', role: 'admin' },
+    };
+    const res = createRes();
+    let nextCalled = false;
+
+    requireAuthenticated(req, res, () => {
+      nextCalled = true;
+    });
+    expect(nextCalled).toBe(true);
+
+    requirePermission('cms:access')(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(res.statusCode).toBe(200);
+  });
 });

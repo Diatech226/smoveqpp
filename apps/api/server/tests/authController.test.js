@@ -46,6 +46,32 @@ describe('auth controller session and logout', () => {
     expect(typeof res.body.data.csrfToken).toBe('string');
   });
 
+  it('session restores local admin user with role metadata', async () => {
+    const authController = buildAuthController({
+      authService: {
+        getSessionUser: async () => ({
+          id: 'admin-1',
+          email: 'admin@test.com',
+          name: 'Admin',
+          role: 'admin',
+          status: 'staff',
+          accountStatus: 'active',
+          authProvider: 'local',
+        }),
+      },
+    });
+    const req = { session: { userId: 'admin-1', role: 'admin', authenticatedAt: '2026-04-07T00:00:00.000Z' } };
+    const res = createRes();
+
+    await authController.getSession(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.user.role).toBe('admin');
+    expect(res.body.data.user.accountStatus).toBe('active');
+    expect(res.body.data.session.role).toBe('admin');
+    expect(res.body.data.session.authProvider).toBe('local');
+  });
+
   it('register endpoint starts session on success', async () => {
     const authController = buildAuthController({
       authService: {

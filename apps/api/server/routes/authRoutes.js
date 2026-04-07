@@ -27,9 +27,9 @@ function createAuthRoutes({ authController, requireClerkAuth }) {
   router.post('/verify-email/resend', requireAuthenticated, requireCsrf, authController.resendVerification);
   router.post('/password-reset/request', limiter, requireCsrf, authController.requestPasswordReset);
   router.post('/password-reset/confirm', limiter, requireCsrf, authController.confirmPasswordReset);
-  router.get('/admin/users', requireClerkAuth, requirePermission(Permissions.CMS_ACCESS), authController.listUsers);
-  router.patch('/admin/users/:userId', requireClerkAuth, requirePermission(Permissions.USER_MANAGE), authController.updateUserByAdmin);
-  router.get('/admin/audit-events', requireClerkAuth, requirePermission(Permissions.USER_MANAGE), authController.listAuditEvents);
+  router.get('/admin/users', requireAuthenticated, requirePermission(Permissions.CMS_ACCESS), authController.listUsers);
+  router.patch('/admin/users/:userId', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), authController.updateUserByAdmin);
+  router.get('/admin/audit-events', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), authController.listAuditEvents);
   router.post('/logout', requireCsrf, authController.logout);
 
   return router;

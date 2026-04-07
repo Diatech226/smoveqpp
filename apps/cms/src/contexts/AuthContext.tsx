@@ -11,7 +11,7 @@ import {
   updateAdminUserWithApi,
 } from '../utils/authApi';
 import { evaluateCmsAccess, resolvePostLoginRoute, resolveTrustedSessionUser, SECURITY_FLAGS, type AppUser, type PostLoginRoute } from '../utils/securityPolicy';
-import { getClerkSessionToken, oauthRedirect, signInWithPassword, signOutClerk, signUpWithPassword } from '../utils/clerkClient';
+import { getClerkSessionToken, oauthRedirect, signOutClerk } from '../utils/clerkClient';
 
 interface OAuthProviderState { google: boolean; facebook: boolean }
 interface AuthSessionState { sessionId: string | null; authenticatedAt: string | null; lastActivityAt: string | null; authProvider: string | null; role: string | null }
@@ -80,6 +80,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const postLoginRoute = resolvePostLoginRoute(cmsEnabled, user);
 
   const refresh = async (): Promise<AppUser | null> => {
+    const fallbackSession = await fetchSession();
+    const localTrusted = resolveTrustedSessionUser(fallbackSession.user);
+    setUser(localTrusted);
+    setSessionState(mapSession(fallbackSession.session));
+    setAuthError(fallbackSession.success ? null : fallbackSession.errorMessage);
+
+    if (localTrusted) {
+      setAuthNotice(null);
+      return localTrusted;
+    }
+
     if (PUBLISHABLE_KEY) {
       try {
         const clerkToken = await getClerkSessionToken(PUBLISHABLE_KEY);
@@ -88,36 +99,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (clerkToken) {
           const result = await fetchClerkSession(clerkToken);
           if (!result.success) {
-            setAuthError(result.errorMessage ?? 'Session Clerk indisponible.');
-            setUser(null);
-            setSessionState(null);
+            setAuthNotice('Session Clerk indisponible. Utilisation du mode session locale.');
             return null;
           }
 
           const trusted = resolveTrustedSessionUser(result.user);
           if (trusted) {
             await startClerkBackendSession(clerkToken);
+            const nextSession = await fetchSession();
+            const canonicalSessionUser = resolveTrustedSessionUser(nextSession.user);
+            setUser(canonicalSessionUser);
+            setSessionState(mapSession(nextSession.session));
+            setAuthError(nextSession.success ? null : nextSession.errorMessage);
+            return canonicalSessionUser;
           }
-          setUser(trusted);
-          setSessionState(mapSession(result.session));
-          setAuthError(null);
-          setAuthNotice(null);
-          return trusted;
         }
       } catch (error: unknown) {
-        const message = resolveErrorMessage(error, 'Initialisation Clerk impossible.');
-        setAuthError(message);
-        setAuthNotice('Connexion Clerk indisponible pour le moment. Utilisez le mode email/mot de passe local ou réessayez.');
+        const message = resolveErrorMessage(error, 'Initialisation Clerk impossible');
+        setAuthNotice(`${message}. Le CMS continue en mode session locale.`);
         setToken(null);
       }
     }
-
-    const fallbackSession = await fetchSession();
-    const trusted = resolveTrustedSessionUser(fallbackSession.user);
-    setUser(trusted);
-    setSessionState(mapSession(fallbackSession.session));
-    setAuthError(fallbackSession.success ? null : fallbackSession.errorMessage);
-    return trusted;
+    return null;
   };
 
   const finalizeLogin = (nextUser: AppUser | null): AuthActionResult => {
@@ -150,19 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<AuthActionResult> => {
     setAuthError(null);
-    try {
-      if (PUBLISHABLE_KEY) {
-        await signInWithPassword(PUBLISHABLE_KEY, email, password);
-        const refreshedUser = await refresh();
-        return finalizeLogin(refreshedUser);
-      }
-    } catch (error: unknown) {
-      const message = resolveErrorMessage(error, 'Connexion Clerk impossible.');
-      if (message) {
-        setAuthError(message);
-      }
-    }
-
     const localResult = await loginWithPasswordApi(email, password);
     if (!localResult.success) {
       const message = localResult.errorMessage ?? authError ?? 'Connexion impossible.';
@@ -177,18 +167,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, name: string): Promise<AuthActionResult> => {
-    try {
-      if (PUBLISHABLE_KEY) {
-        await signUpWithPassword(PUBLISHABLE_KEY, email, password, name);
-        const refreshedUser = await refresh();
-        return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, refreshedUser) };
-      }
-    } catch (error: unknown) {
-      const message = resolveErrorMessage(error, 'Inscription Clerk impossible');
-      setAuthError(message);
-      setAuthNotice('Inscription Clerk indisponible. Bascule vers l’inscription locale.');
-    }
-
     const localResult = await registerWithPasswordApi(email, password, name);
     if (!localResult.success) {
       const message = localResult.errorMessage ?? authError ?? 'Inscription impossible.';
@@ -240,17 +218,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     verifyEmail: async () => ({ success: true, error: null, destination: 'account', infoMessage: 'Vérification gérée par Clerk.' }),
     resendVerification: async () => ({ success: true, error: null, destination: 'account', infoMessage: 'Vérification gérée par Clerk.' }),
     fetchAdminUsers: async () => {
-      if (!token) return [];
       const result = await fetchAdminUsersApi(token);
       return result.users ?? [];
     },
     fetchAdminAuditEvents: async () => {
-      if (!token) return [];
       const result = await fetchAuthAuditEvents(token);
       return result.events ?? [];
     },
     updateAdminUser: async (userId, patch) => {
-      if (!token) return { success: false, error: 'Session expirée', destination: null };
       const result = await updateAdminUserWithApi(userId, patch, token);
       return { success: result.success, error: result.errorMessage, destination: null };
     },
