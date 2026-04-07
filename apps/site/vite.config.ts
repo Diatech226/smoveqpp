@@ -40,11 +40,13 @@ function createCsp(
     apiWsOrigin: string;
   },
 ) {
+  const clerkScriptOrigins = 'https://cdn.jsdelivr.net https://unpkg.com';
   const clerkConnectOrigins = 'https://api.clerk.com https://*.clerk.accounts.dev https://*.clerk.com';
+  const styleElemOrigins = 'https://www.gstatic.com';
 
   const scriptSrc = isDev
-    ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${hosts.clientHost}`
-    : `script-src 'self'`;
+    ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${hosts.clientHost} ${clerkScriptOrigins}`
+    : `script-src 'self' ${clerkScriptOrigins}`;
   const connectSrc = isDev
     ? `connect-src 'self' ${hosts.clientHost} ${hosts.clientWsHost} ${hosts.apiOrigin} ${hosts.apiWsOrigin} ${clerkConnectOrigins}`
     : "connect-src 'self' https:";
@@ -56,7 +58,7 @@ function createCsp(
     "object-src 'none'",
     scriptSrc,
     "worker-src 'self' blob:",
-    "style-src 'self' 'unsafe-inline'",
+    `style-src 'self' 'unsafe-inline' ${styleElemOrigins}`,
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     connectSrc,

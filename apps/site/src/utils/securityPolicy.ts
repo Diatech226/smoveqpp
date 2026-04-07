@@ -35,12 +35,12 @@ function parseBooleanFlag(value: string | undefined, defaultValue: boolean): boo
 }
 
 export const SECURITY_FLAGS = {
-  cmsEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_CMS, import.meta.env.DEV),
+  cmsEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_CMS, true),
   registrationEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_REGISTRATION, import.meta.env.DEV),
   devAdminFallbackEnabled: false,
 } as const;
 
-const cmsRoles = new Set<UserRole>(['admin']);
+const cmsRoles = new Set<UserRole>(['admin', 'editor', 'author']);
 
 function isCmsIntentRoute(route?: string | null): boolean {
   if (!route) {
