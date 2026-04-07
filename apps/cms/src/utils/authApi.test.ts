@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchAdminUsers } from './authApi';
+import { fetchAdminUsers, fetchSession, loginWithPassword } from './authApi';
 
 describe('cms authApi admin requests', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('uses local session cookies without requiring a clerk bearer token', async () => {
@@ -37,5 +38,31 @@ describe('cms authApi admin requests', () => {
     const headers = new Headers(init.headers);
 
     expect(headers.get('Authorization')).toBe('Bearer token-123');
+  });
+
+  it('returns a timeout error when session bootstrap hangs', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => undefined)));
+
+    const pending = fetchSession({ timeoutMs: 1000 });
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await expect(pending).resolves.toMatchObject({
+      success: false,
+      errorCode: 'REQUEST_TIMEOUT',
+      status: 408,
+    });
+  });
+
+  it('keeps login flow usable by returning csrf bootstrap failure directly', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      status: 408,
+      json: async () => ({ success: false, error: { code: 'REQUEST_TIMEOUT' } }),
+    })));
+
+    const result = await loginWithPassword('admin@test.com', 'password');
+
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('REQUEST_TIMEOUT');
   });
 });

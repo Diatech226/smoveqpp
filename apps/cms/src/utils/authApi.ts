@@ -45,6 +45,7 @@ function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'INVALID_CREDENTIALS') return 'Email ou mot de passe invalide.';
   if (code === 'ACCOUNT_SUSPENDED') return 'Ce compte est suspendu. Contactez un administrateur.';
   if (code === 'INVALID_CSRF') return 'Session expirée. Rechargez la page puis réessayez.';
+  if (code === 'REQUEST_TIMEOUT') return "L'initialisation du serveur a expiré. Veuillez réessayer.";
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
   return 'Erreur d’authentification.';
 }
@@ -56,7 +57,6 @@ export function normalizeAuthPayload(payload: AuthApiResponse | null, status: nu
   }
   return result;
 }
-
 
 function normalize(body: AuthApiResponse | null, status: number): AuthResult {
   const success = status < 400 && body?.success === true;
@@ -74,7 +74,14 @@ function normalize(body: AuthApiResponse | null, status: number): AuthResult {
   };
 }
 
-async function request(path: string, init: RequestInit = {}, clerkToken?: string | null): Promise<AuthResult> {
+function timeoutResult(status = 408): AuthResult {
+  return normalizeAuthPayload(
+    { success: false, error: { code: 'REQUEST_TIMEOUT' } },
+    status,
+  );
+}
+
+async function request(path: string, init: RequestInit = {}, clerkToken?: string | null, timeoutMs = RUNTIME_CONFIG.requestTimeoutMs): Promise<AuthResult> {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -83,14 +90,27 @@ async function request(path: string, init: RequestInit = {}, clerkToken?: string
     headers.set('Authorization', `Bearer ${clerkToken}`);
   }
 
-  const response = await fetch(`${AUTH_BASE_URL}${path}`, {
-    ...init,
-    headers,
-    credentials: 'include',
-  });
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
 
-  const json = (await response.json().catch(() => null)) as AuthApiResponse | null;
-  return normalizeAuthPayload(json, response.status);
+  try {
+    const response = await fetch(`${AUTH_BASE_URL}${path}`, {
+      ...init,
+      headers,
+      credentials: 'include',
+      signal: controller.signal,
+    });
+
+    const json = (await response.json().catch(() => null)) as AuthApiResponse | null;
+    return normalizeAuthPayload(json, response.status);
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return timeoutResult();
+    }
+    return normalizeAuthPayload({ success: false, error: { code: 'NETWORK_ERROR', message: 'Service d’authentification indisponible.' } }, 503);
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
 }
 
 export function fetchClerkSession(token: string): Promise<AuthResult> {
@@ -101,12 +121,16 @@ export function startClerkBackendSession(token: string): Promise<AuthResult> {
   return request('/session/clerk', { method: 'POST' }, token);
 }
 
-export function fetchSession(): Promise<AuthResult> {
-  return request('/session', { method: 'GET' });
+export function fetchSession(options?: { timeoutMs?: number }): Promise<AuthResult> {
+  return request('/session', { method: 'GET' }, undefined, options?.timeoutMs);
 }
 
 export async function loginWithPassword(email: string, password: string): Promise<AuthResult> {
   const csrfSource = await fetchSession();
+  if (!csrfSource.success) {
+    return csrfSource;
+  }
+
   const headers = new Headers();
   if (csrfSource.csrfToken) {
     headers.set('X-CSRF-Token', csrfSource.csrfToken);
@@ -116,6 +140,10 @@ export async function loginWithPassword(email: string, password: string): Promis
 
 export async function registerWithPassword(email: string, password: string, name: string): Promise<AuthResult> {
   const csrfSource = await fetchSession();
+  if (!csrfSource.success) {
+    return csrfSource;
+  }
+
   const headers = new Headers();
   if (csrfSource.csrfToken) {
     headers.set('X-CSRF-Token', csrfSource.csrfToken);
@@ -125,6 +153,10 @@ export async function registerWithPassword(email: string, password: string, name
 
 export async function logoutWithSession(): Promise<AuthResult> {
   const csrfSource = await fetchSession();
+  if (!csrfSource.success) {
+    return csrfSource;
+  }
+
   const headers = new Headers();
   if (csrfSource.csrfToken) {
     headers.set('X-CSRF-Token', csrfSource.csrfToken);

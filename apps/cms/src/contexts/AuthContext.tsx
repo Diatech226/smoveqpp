@@ -2,19 +2,16 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   fetchAdminUsers as fetchAdminUsersApi,
   fetchAuthAuditEvents,
-  fetchClerkSession,
-  fetchSession,
   loginWithPassword as loginWithPasswordApi,
   registerWithPassword as registerWithPasswordApi,
   logoutWithSession,
-  startClerkBackendSession,
   updateAdminUserWithApi,
 } from '../utils/authApi';
 import { evaluateCmsAccess, resolvePostLoginRoute, resolveTrustedSessionUser, SECURITY_FLAGS, type AppUser, type PostLoginRoute } from '../utils/securityPolicy';
-import { getClerkSessionToken, oauthRedirect, signOutClerk } from '../utils/clerkClient';
+import { oauthRedirect, signOutClerk } from '../utils/clerkClient';
+import { initializeCmsAuth, type AuthSessionState } from './authInitialization';
 
 interface OAuthProviderState { google: boolean; facebook: boolean }
-interface AuthSessionState { sessionId: string | null; authenticatedAt: string | null; lastActivityAt: string | null; authProvider: string | null; role: string | null }
 
 export interface AuthActionResult { success: boolean; error: string | null; destination: PostLoginRoute | null; infoMessage?: string | null }
 export interface AuthAuditEvent { [key: string]: unknown }
@@ -49,17 +46,6 @@ const RAW_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string
 const PUBLISHABLE_KEY = RAW_PUBLISHABLE_KEY?.trim() || undefined;
 const FACEBOOK_ENABLED = import.meta.env.VITE_CLERK_ENABLE_FACEBOOK === 'true';
 
-function mapSession(raw: Record<string, unknown> | null | undefined): AuthSessionState | null {
-  if (!raw) return null;
-  return {
-    sessionId: raw.sessionId ?? null,
-    authenticatedAt: raw.authenticatedAt ?? null,
-    lastActivityAt: raw.lastActivityAt ?? null,
-    authProvider: raw.authProvider ?? 'clerk',
-    role: raw.role ?? null,
-  };
-}
-
 function resolveErrorMessage(error: unknown, fallbackMessage: string): string {
   const errorRecord = error as { errors?: Array<{ longMessage?: string }>; message?: string } | null;
   return errorRecord?.errors?.[0]?.longMessage || errorRecord?.message || fallbackMessage;
@@ -70,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionState, setSessionState] = useState<AuthSessionState | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
@@ -80,47 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const postLoginRoute = resolvePostLoginRoute(cmsEnabled, user);
 
   const refresh = async (): Promise<AppUser | null> => {
-    const fallbackSession = await fetchSession();
-    const localTrusted = resolveTrustedSessionUser(fallbackSession.user);
-    setUser(localTrusted);
-    setSessionState(mapSession(fallbackSession.session));
-    setAuthError(fallbackSession.success ? null : fallbackSession.errorMessage);
-
-    if (localTrusted) {
-      setAuthNotice(null);
-      return localTrusted;
+    const initialized = await initializeCmsAuth({ timeoutMs: 5000 });
+    setUser(initialized.user);
+    setSessionState(initialized.sessionState);
+    setAuthError(initialized.authError);
+    if (initialized.authNotice) {
+      setAuthNotice(initialized.authNotice);
     }
-
-    if (PUBLISHABLE_KEY) {
-      try {
-        const clerkToken = await getClerkSessionToken(PUBLISHABLE_KEY);
-        setToken(clerkToken);
-
-        if (clerkToken) {
-          const result = await fetchClerkSession(clerkToken);
-          if (!result.success) {
-            setAuthNotice('Session Clerk indisponible. Utilisation du mode session locale.');
-            return null;
-          }
-
-          const trusted = resolveTrustedSessionUser(result.user);
-          if (trusted) {
-            await startClerkBackendSession(clerkToken);
-            const nextSession = await fetchSession();
-            const canonicalSessionUser = resolveTrustedSessionUser(nextSession.user);
-            setUser(canonicalSessionUser);
-            setSessionState(mapSession(nextSession.session));
-            setAuthError(nextSession.success ? null : nextSession.errorMessage);
-            return canonicalSessionUser;
-          }
-        }
-      } catch (error: unknown) {
-        const message = resolveErrorMessage(error, 'Initialisation Clerk impossible');
-        setAuthNotice(`${message}. Le CMS continue en mode session locale.`);
-        setToken(null);
-      }
-    }
-    return null;
+    return initialized.user;
   };
 
   const finalizeLogin = (nextUser: AppUser | null): AuthActionResult => {
@@ -162,7 +114,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const trusted = resolveTrustedSessionUser(localResult.user);
     setUser(trusted);
-    setSessionState(mapSession(localResult.session));
+    setSessionState(localResult.session ? {
+      sessionId: localResult.session.sessionId ?? null,
+      authenticatedAt: localResult.session.authenticatedAt ?? null,
+      lastActivityAt: localResult.session.lastActivityAt ?? null,
+      authProvider: localResult.session.authProvider ?? 'local',
+      role: localResult.session.role ?? null,
+    } : null);
     return finalizeLogin(trusted);
   };
 
@@ -176,7 +134,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const trusted = resolveTrustedSessionUser(localResult.user);
     setUser(trusted);
-    setSessionState(mapSession(localResult.session));
+    setSessionState(localResult.session ? {
+      sessionId: localResult.session.sessionId ?? null,
+      authenticatedAt: localResult.session.authenticatedAt ?? null,
+      lastActivityAt: localResult.session.lastActivityAt ?? null,
+      authProvider: localResult.session.authProvider ?? 'local',
+      role: localResult.session.role ?? null,
+    } : null);
     setAuthError(null);
     return finalizeLogin(trusted);
   };
@@ -196,12 +160,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     if (PUBLISHABLE_KEY) {
-      await signOutClerk(PUBLISHABLE_KEY);
+      await signOutClerk(PUBLISHABLE_KEY).catch(() => undefined);
     }
     await logoutWithSession();
     setUser(null);
-    setToken(null);
     setSessionState(null);
+    setAuthNotice(null);
   };
 
   const ctx = useMemo<AuthContextType>(() => ({
@@ -218,15 +182,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     verifyEmail: async () => ({ success: true, error: null, destination: 'account', infoMessage: 'Vérification gérée par Clerk.' }),
     resendVerification: async () => ({ success: true, error: null, destination: 'account', infoMessage: 'Vérification gérée par Clerk.' }),
     fetchAdminUsers: async () => {
-      const result = await fetchAdminUsersApi(token);
+      const result = await fetchAdminUsersApi();
       return result.users ?? [];
     },
     fetchAdminAuditEvents: async () => {
-      const result = await fetchAuthAuditEvents(token);
+      const result = await fetchAuthAuditEvents();
       return result.events ?? [];
     },
     updateAdminUser: async (userId, patch) => {
-      const result = await updateAdminUserWithApi(userId, patch, token);
+      const result = await updateAdminUserWithApi(userId, patch);
       return { success: result.success, error: result.errorMessage, destination: null };
     },
     clearAuthNotice: () => setAuthNotice(null),
@@ -239,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     oauthProviders: { google: true, facebook: FACEBOOK_ENABLED },
     postLoginRoute,
     sessionState,
-  }), [authError, authNotice, canAccessCMS, cmsEnabled, isAuthReady, isAuthenticated, postLoginRoute, registrationEnabled, sessionState, token, user]);
+  }), [authError, authNotice, canAccessCMS, cmsEnabled, isAuthReady, isAuthenticated, postLoginRoute, registrationEnabled, sessionState, user]);
 
   return <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>;
 }
