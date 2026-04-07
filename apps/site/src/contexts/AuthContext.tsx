@@ -1,7 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { fetchAdminUsers as fetchAdminUsersApi, fetchAuthAuditEvents, fetchClerkSession, updateAdminUserWithApi } from '../utils/authApi';
+import {
+  fetchAdminUsers as fetchAdminUsersApi,
+  fetchAuthAuditEvents,
+  fetchSession,
+  loginWithPassword,
+  logoutWithSession,
+  registerWithPassword,
+  updateAdminUserWithApi,
+} from '../utils/authApi';
 import { evaluateCmsAccess, resolvePostLoginRoute, resolveTrustedSessionUser, SECURITY_FLAGS, type AppUser, type PostLoginRoute } from '../utils/securityPolicy';
-import { getClerkSessionToken, oauthRedirect, signInWithPassword, signOutClerk, signUpWithPassword } from '../utils/clerkClient';
 
 interface OAuthProviderState { google: boolean; facebook: boolean }
 interface AuthSessionState { sessionId: string | null; authenticatedAt: string | null; lastActivityAt: string | null; authProvider: string | null; role: string | null }
@@ -35,24 +42,16 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-const RAW_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
-const PUBLISHABLE_KEY = RAW_PUBLISHABLE_KEY?.trim() || undefined;
-const FACEBOOK_ENABLED = import.meta.env.VITE_CLERK_ENABLE_FACEBOOK === 'true';
 
 function mapSession(raw: Record<string, unknown> | null | undefined): AuthSessionState | null {
   if (!raw) return null;
   return {
-    sessionId: raw.sessionId ?? null,
-    authenticatedAt: raw.authenticatedAt ?? null,
-    lastActivityAt: raw.lastActivityAt ?? null,
-    authProvider: raw.authProvider ?? 'clerk',
-    role: raw.role ?? null,
+    sessionId: raw.sessionId as string | null,
+    authenticatedAt: raw.authenticatedAt as string | null,
+    lastActivityAt: raw.lastActivityAt as string | null,
+    authProvider: (raw.authProvider as string | null) ?? 'local',
+    role: raw.role as string | null,
   };
-}
-
-function resolveErrorMessage(error: unknown, fallbackMessage: string): string {
-  const errorRecord = error as { errors?: Array<{ longMessage?: string }>; message?: string } | null;
-  return errorRecord?.errors?.[0]?.longMessage || errorRecord?.message || fallbackMessage;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -60,7 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionState, setSessionState] = useState<AuthSessionState | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
@@ -70,150 +68,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const postLoginRoute = resolvePostLoginRoute(cmsEnabled, user);
 
   const refresh = async (): Promise<AppUser | null> => {
-    if (!PUBLISHABLE_KEY) {
-      setAuthError('Configuration Clerk manquante (VITE_CLERK_PUBLISHABLE_KEY). Redémarrez le serveur Vite après mise à jour du .env.');
-      setUser(null);
-      setSessionState(null);
-      return null;
-    }
-
-    try {
-      const clerkToken = await getClerkSessionToken(PUBLISHABLE_KEY);
-      setToken(clerkToken);
-      if (!clerkToken) {
-        setUser(null);
-        setSessionState(null);
-        return null;
-      }
-
-      const result = await fetchClerkSession(clerkToken);
-      if (!result.success) {
-        setAuthError(result.errorMessage ?? 'Session Clerk indisponible.');
-        setUser(null);
-        return null;
-      }
-
-      const trusted = resolveTrustedSessionUser(result.user);
-      setUser(trusted);
-      setSessionState(mapSession(result.session));
-      setAuthError(null);
-      setAuthNotice(null);
-      return trusted;
-    } catch (error: unknown) {
-      const message = resolveErrorMessage(error, 'Initialisation Clerk impossible.');
-      setAuthError(message);
-      setAuthNotice('La connexion Clerk est temporairement indisponible. Réessayez ou utilisez un autre mode de connexion.');
-      setToken(null);
-      setUser(null);
-      setSessionState(null);
-      return null;
-    }
+    const result = await fetchSession();
+    const trusted = resolveTrustedSessionUser(result.user);
+    setUser(trusted);
+    setSessionState(mapSession((result.session as Record<string, unknown> | null | undefined) ?? null));
+    setAuthError(result.success ? null : result.errorMessage);
+    return trusted;
   };
 
-  useEffect(() => {
-    let mounted = true;
-    void refresh().finally(() => {
-      if (mounted) setIsAuthReady(true);
-    });
-    return () => { mounted = false; };
-  }, []);
+  useEffect(() => { void refresh().finally(() => setIsAuthReady(true)); }, []);
 
   const login = async (email: string, password: string): Promise<AuthActionResult> => {
-    try {
-      if (!PUBLISHABLE_KEY) throw new Error('Missing Clerk publishable key');
-      await signInWithPassword(PUBLISHABLE_KEY, email, password);
-      const refreshedUser = await refresh();
-      return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, refreshedUser) };
-    } catch (error: unknown) {
-      const message = resolveErrorMessage(error, 'Connexion Clerk impossible');
-      setAuthError(message);
-      return { success: false, error: message, destination: null };
-    }
+    const result = await loginWithPassword(email, password);
+    if (!result.success) return { success: false, error: result.errorMessage, destination: null };
+    const trusted = resolveTrustedSessionUser(result.user);
+    setUser(trusted);
+    setSessionState(mapSession((result.session as Record<string, unknown> | null | undefined) ?? null));
+    return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, trusted) };
   };
 
   const register = async (email: string, password: string, name: string): Promise<AuthActionResult> => {
-    try {
-      if (!PUBLISHABLE_KEY) throw new Error('Missing Clerk publishable key');
-      await signUpWithPassword(PUBLISHABLE_KEY, email, password, name);
-      const refreshedUser = await refresh();
-      return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, refreshedUser) };
-    } catch (error: unknown) {
-      const message = resolveErrorMessage(error, 'Inscription Clerk impossible');
-      setAuthError(message);
-      return { success: false, error: message, destination: null };
-    }
+    const result = await registerWithPassword(email, password, name);
+    if (!result.success) return { success: false, error: result.errorMessage, destination: null };
+    const trusted = resolveTrustedSessionUser(result.user);
+    setUser(trusted);
+    setSessionState(mapSession((result.session as Record<string, unknown> | null | undefined) ?? null));
+    return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, trusted) };
   };
 
   const beginOAuthLogin = async (provider: 'google' | 'facebook'): Promise<AuthActionResult> => {
-    if (!PUBLISHABLE_KEY) {
-      const message = 'Configuration Clerk manquante.';
-      setAuthError(message);
-      return { success: false, error: message, destination: null };
-    }
-
-    try {
-      await oauthRedirect(PUBLISHABLE_KEY, provider);
-      return { success: true, error: null, destination: null };
-    } catch (error: unknown) {
-      const message = resolveErrorMessage(error, 'Connexion OAuth Clerk impossible.');
-      setAuthError(message);
-      setAuthNotice('La connexion OAuth est temporairement indisponible. Réessayez dans quelques instants.');
-      return { success: false, error: message, destination: null };
-    }
+    window.location.href = `/api/v1/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(window.location.href)}`;
+    return { success: true, error: null, destination: null };
   };
 
-  const logout = async () => {
-    if (!PUBLISHABLE_KEY) return;
-    await signOutClerk(PUBLISHABLE_KEY);
-    setUser(null);
-    setToken(null);
-    setSessionState(null);
-  };
+  const logout = async () => { await logoutWithSession(); setUser(null); setSessionState(null); setAuthNotice(null); };
 
   const ctx = useMemo<AuthContextType>(() => ({
-    user,
-    authError,
-    authNotice,
-    login,
-    loginWithOAuth: beginOAuthLogin,
-    beginOAuthLogin,
-    register,
-    verifyEmail: async () => ({ success: true, error: null, destination: 'account', infoMessage: 'Vérification gérée par Clerk.' }),
-    resendVerification: async () => ({ success: true, error: null, destination: 'account', infoMessage: 'Vérification gérée par Clerk.' }),
-    fetchAdminUsers: async () => {
-      if (!token) return [];
-      const result = await fetchAdminUsersApi(token);
-      return result.users ?? [];
-    },
-    fetchAdminAuditEvents: async () => {
-      if (!token) return [];
-      const result = await fetchAuthAuditEvents(token);
-      return result.events ?? [];
-    },
+    user, authError, authNotice, login, loginWithOAuth: beginOAuthLogin, beginOAuthLogin, register,
+    verifyEmail: async () => ({ success: false, error: 'Use backend email token endpoint.', destination: null }),
+    resendVerification: async () => ({ success: false, error: 'Use backend resend verification endpoint.', destination: null }),
+    fetchAdminUsers: async () => (await fetchAdminUsersApi()).users ?? [],
+    fetchAdminAuditEvents: async () => (await fetchAuthAuditEvents()).events ?? [],
     updateAdminUser: async (userId, patch) => {
-      if (!token) return { success: false, error: 'Session expirée', destination: null };
-      const result = await updateAdminUserWithApi(userId, patch, token);
+      const result = await updateAdminUserWithApi(userId, patch);
       return { success: result.success, error: result.errorMessage, destination: null };
     },
-    clearAuthNotice: () => setAuthNotice(null),
-    logout,
-    isAuthenticated,
-    isAuthReady,
-    cmsEnabled,
-    registrationEnabled,
-    canAccessCMS,
-    oauthProviders: { google: true, facebook: FACEBOOK_ENABLED },
-    postLoginRoute,
-    sessionState,
-  }), [authError, authNotice, canAccessCMS, cmsEnabled, isAuthReady, isAuthenticated, postLoginRoute, registrationEnabled, sessionState, token, user]);
+    clearAuthNotice: () => setAuthNotice(null), logout, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled,
+    canAccessCMS, oauthProviders: { google: true, facebook: true }, postLoginRoute, sessionState,
+  }), [user, authError, authNotice, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS, postLoginRoute, sessionState]);
 
   return <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const value = useContext(AuthContext);
-  if (!value) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!value) throw new Error('useAuth must be used within AuthProvider');
   return value;
 }

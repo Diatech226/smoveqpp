@@ -86,17 +86,6 @@ function buildVerificationMeta(user) {
 }
 
 
-function resolvePrimaryEmailFromClerkClaims(claims) {
-  const direct = claims?.email || claims?.email_address;
-  if (direct) return normalizeEmail(String(direct));
-
-  const emails = Array.isArray(claims?.email_addresses) ? claims.email_addresses : [];
-  if (emails.length > 0 && emails[0]?.email_address) {
-    return normalizeEmail(String(emails[0].email_address));
-  }
-
-  return '';
-}
 
 function sanitizeUser(user) {
   if (!user) return null;
@@ -379,7 +368,7 @@ class AuthService {
         status: 'staff',
         accountStatus: 'active',
         emailVerified: true,
-        authProvider: existing.authProvider === 'clerk' ? existing.authProvider : 'local',
+        authProvider: existing.authProvider === 'google' || existing.authProvider === 'facebook' ? existing.authProvider : 'local',
         providers: Array.from(new Set([...(existing.providers ?? [existing.authProvider ?? 'local']), 'local'])),
       };
 
@@ -675,60 +664,6 @@ class AuthService {
 
   getOAuthProviders() {
     return this.oauthProviders;
-  }
-
-
-  async syncClerkUserFromClaims(claims) {
-    const clerkId = String(claims?.sub ?? '').trim();
-    if (!clerkId) return null;
-
-    const email = resolvePrimaryEmailFromClerkClaims(claims);
-    const name = String(
-      claims?.name
-      || [claims?.given_name, claims?.family_name].filter(Boolean).join(' ')
-      || claims?.username
-      || (email ? email.split('@')[0] : 'User'),
-    ).trim();
-
-    const emailVerified = Boolean(claims?.email_verified || claims?.verified_email_address);
-    const avatarUrl = claims?.picture ? String(claims.picture) : null;
-
-    let existing = await this.userRepository.findByClerkId?.(clerkId);
-    if (!existing && email) {
-      existing = await this.userRepository.findByEmail(email);
-    }
-
-    if (existing) {
-      const patched = await this.userRepository.updateUser(existing.id, {
-        clerkId,
-        providerId: clerkId,
-        authProvider: 'clerk',
-        providers: Array.from(new Set([...(existing.providers ?? [existing.authProvider ?? 'local']), 'clerk'])),
-        email: email || existing.email,
-        name: name || existing.name,
-        emailVerified: existing.emailVerified || emailVerified,
-        avatarUrl: avatarUrl || existing.avatarUrl || null,
-      });
-      await this.userRepository.updateLastLoginAt(existing.id, new Date());
-      return sanitizeUser(patched ?? existing);
-    }
-
-    const created = await this.userRepository.upsertByClerkId(clerkId, {
-      email: email || `${clerkId}@users.invalid`,
-      name,
-      emailVerified,
-      avatarUrl,
-      role: OAUTH_DEFAULT_ROLE,
-      status: 'client',
-      accountStatus: 'active',
-    });
-
-    await this.userRepository.updateLastLoginAt(created.id, new Date());
-    return sanitizeUser(created);
-  }
-
-  async getSessionUserFromClerkClaims(claims) {
-    return this.syncClerkUserFromClaims(claims);
   }
 
   async getSessionUser(sessionUserId) {

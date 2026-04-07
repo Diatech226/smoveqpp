@@ -73,25 +73,24 @@ Vercel serves:
 See: `docs/deployment/VERCEL_SINGLE_APP_DEPLOYMENT.md`.
 
 
-## Authentication (Clerk-first)
+## Authentication (MongoDB + backend session)
 
-Authentication is now Clerk-driven for both the public site and CMS:
+Authentication now uses one canonical backend model for both site and CMS:
 
-- email/password sign-up and sign-in through Clerk
-- Google OAuth (and additional social providers via Clerk strategies)
-- backend API trusts Clerk JWT bearer tokens and syncs users into MongoDB using `clerkId`
-- role/account-status authorization remains in the local `users` collection
+- MongoDB-backed users (Mongoose)
+- cookie-backed backend sessions (`express-session`)
+- local email/password register + login
+- backend OAuth for Google/Facebook linked into the same user record
 
-### Required environment variables
+OAuth login flow:
+1. Frontend redirects to `/api/v1/auth/oauth/:provider/start`.
+2. Backend exchanges provider code, verifies identity server-side, and links/creates user in MongoDB.
+3. Backend creates the same session cookie model used by local login.
 
-Set Clerk keys in `.env.local`:
+Set these env vars in `.env.local` for production-like local development:
 
-- `VITE_CLERK_PUBLISHABLE_KEY`
-- `CLERK_PUBLISHABLE_KEY`
-- `CLERK_SECRET_KEY`
-- `CLERK_ISSUER_URL` (for JWT issuer validation)
-- optional: `CLERK_AUDIENCE`, `CLERK_WEBHOOK_SECRET`
-
-### Local user sync model
-
-The API syncs Clerk identities idempotently on authenticated requests (and optional webhook calls), using `clerkId` as canonical external identity. Existing role/status/admin fields are preserved in local DB and used for CMS access checks.
+- `MONGO_URI`, `MONGO_DB_NAME`
+- `AUTH_STORAGE_MODE=mongo`, `SESSION_STORE_MODE=mongo`
+- `SESSION_SECRET`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
+- optional: Facebook OAuth vars if needed.

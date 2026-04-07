@@ -26,7 +26,6 @@
     "ops:verify-integrity": "node scripts/verify-content-integrity.js"
   },
   "dependencies": {
-    "@clerk/clerk-js": "^5.96.3",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -74,7 +73,11 @@
     "recharts": "^2.15.2",
     "sonner": "^2.0.3",
     "tailwind-merge": "*",
-    "vaul": "^1.1.2"
+    "vaul": "^1.1.2",
+    "mongoose": "^8.15.1",
+    "connect-mongo": "^5.1.0",
+    "google-auth-library": "^9.15.1",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

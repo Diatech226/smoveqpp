@@ -7,7 +7,7 @@ describe('cms authApi admin requests', () => {
     vi.useRealTimers();
   });
 
-  it('uses local session cookies without requiring a clerk bearer token', async () => {
+  it('uses session cookies without bearer tokens', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => ({
       status: 200,
       json: async () => ({ success: true, data: { users: [{ id: '1', email: 'admin@test.com', role: 'admin', name: 'Admin' }] } }),
@@ -23,21 +23,6 @@ describe('cms authApi admin requests', () => {
     expect(result.users?.[0]?.role).toBe('admin');
     expect(init.credentials).toBe('include');
     expect(headers.has('Authorization')).toBe(false);
-  });
-
-  it('still forwards clerk bearer token when explicitly provided', async () => {
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => ({
-      status: 200,
-      json: async () => ({ success: true, data: { users: [] } }),
-      requestInit: init,
-    }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await fetchAdminUsers('token-123');
-    const [, init] = fetchMock.mock.calls[0] as [RequestInfo | URL, RequestInit];
-    const headers = new Headers(init.headers);
-
-    expect(headers.get('Authorization')).toBe('Bearer token-123');
   });
 
   it('returns a timeout error when session bootstrap hangs', async () => {

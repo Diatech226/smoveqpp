@@ -36,27 +36,6 @@ describe('AuthService', () => {
       findByEmailWithPassword: async (email) => users.find((u) => u.email === email) ?? null,
       findByEmail: async (email) => users.find((u) => u.email === email) ?? null,
       findByProvider: async (provider, providerId) => users.find((u) => (provider === 'google' ? u.googleId : u.facebookId) === providerId) ?? null,
-
-      findByClerkId: async (clerkId) => users.find((u) => u.clerkId === String(clerkId)) ?? null,
-      upsertByClerkId: async (clerkId, patch) => {
-        const existing = users.find((u) => u.clerkId === String(clerkId));
-        if (existing) {
-          Object.assign(existing, patch, { clerkId: String(clerkId), authProvider: 'clerk', providerId: String(clerkId) });
-          return existing;
-        }
-        const created = {
-          id: String(users.length + 1),
-          ...patch,
-          clerkId: String(clerkId),
-          authProvider: 'clerk',
-          providerId: String(clerkId),
-          providers: ['clerk'],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        users.push(created);
-        return created;
-      },
       updateUser: async (id, patch) => {
         const user = users.find((u) => u.id === String(id));
         if (!user) return null;
@@ -230,32 +209,6 @@ describe('AuthService', () => {
     expect(result.code).toBe('OAUTH_EMAIL_REQUIRED');
   });
 
-
-  it('syncs clerk claims and links to existing email identity', async () => {
-    users.push({
-      id: '1',
-      email: 'clerk@x.com',
-      name: 'Legacy User',
-      providers: ['local'],
-      authProvider: 'local',
-      role: 'admin',
-      status: 'staff',
-      accountStatus: 'active',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const result = await service.syncClerkUserFromClaims({
-      sub: 'user_clerk_123',
-      email: 'clerk@x.com',
-      name: 'Clerk Identity',
-      email_verified: true,
-    });
-
-    expect(result?.id).toBe('1');
-    expect(users[0].clerkId).toBe('user_clerk_123');
-    expect(users[0].providers).toContain('clerk');
-  });
 
   it('seedAdminFromEnv repairs existing seeded admin role/status and local provider', async () => {
     users.push({

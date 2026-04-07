@@ -20,7 +20,6 @@ function mapMongoUser(doc) {
     providers,
     googleId: doc.googleId ?? null,
     facebookId: doc.facebookId ?? null,
-    clerkId: doc.clerkId ?? null,
     avatarUrl: doc.avatarUrl ?? null,
     emailVerified: Boolean(doc.emailVerified),
     emailVerificationTokenHash: doc.emailVerificationTokenHash ?? null,
@@ -51,7 +50,6 @@ class MongoAuthRepository {
       providers: input.providers,
       googleId: input.googleId ?? null,
       facebookId: input.facebookId ?? null,
-      clerkId: input.clerkId ?? null,
       avatarUrl: input.avatarUrl ?? null,
       emailVerified: Boolean(input.emailVerified),
       emailVerificationTokenHash: input.emailVerificationTokenHash ?? null,
@@ -68,12 +66,6 @@ class MongoAuthRepository {
 
   async findByEmail(email) {
     return this.findByEmailWithPassword(email);
-  }
-
-
-  async findByClerkId(clerkId) {
-    const user = await this.UserModel.findOne({ clerkId: String(clerkId) }).exec();
-    return mapMongoUser(user);
   }
 
   async findByProvider(authProvider, providerId) {
@@ -211,36 +203,6 @@ class MongoAuthRepository {
     ).exec();
 
     return mapMongoUser(user);
-  }
-
-
-  async upsertByClerkId(clerkId, patch) {
-    const doc = await this.UserModel.findOneAndUpdate(
-      { clerkId: String(clerkId) },
-      {
-        $setOnInsert: {
-          clerkId: String(clerkId),
-          authProvider: 'clerk',
-          providers: ['clerk'],
-          role: 'client',
-          status: 'client',
-          accountStatus: 'active',
-          emailVerified: false,
-          name: patch.name ?? 'User',
-          email: normalizeEmail(patch.email),
-        },
-        $set: {
-          ...patch,
-          providerId: String(clerkId),
-          authProvider: 'clerk',
-          updatedAt: new Date(),
-        },
-        $addToSet: { providers: 'clerk' },
-      },
-      { new: true, upsert: true },
-    ).exec();
-
-    return mapMongoUser(doc);
   }
 
   async updateUser(id, patch) {

@@ -5,7 +5,7 @@ const { AUTH_RATE_LIMIT_MAX, AUTH_RATE_LIMIT_WINDOW_MS } = require('../config/en
 const { requireAuthenticated, requirePermission } = require('../middleware/authz');
 const { Permissions } = require('../security/rbac');
 
-function createAuthRoutes({ authController, requireClerkAuth }) {
+function createAuthRoutes({ authController }) {
   const router = express.Router();
 
   const limiter = createAuthRateLimiter({
@@ -14,15 +14,11 @@ function createAuthRoutes({ authController, requireClerkAuth }) {
   });
 
   router.get('/session', authController.getSession);
-  router.post('/session/clerk', requireClerkAuth, authController.startClerkSession);
-  router.get('/me', requireClerkAuth, authController.getClerkSession);
-  router.post('/webhooks/clerk', authController.handleClerkWebhook);
   router.get('/oauth/providers', authController.getOAuthProviders);
   router.get('/oauth/:provider/start', limiter, authController.startOAuth);
   router.get('/oauth/:provider/callback', limiter, authController.handleOAuthCallback);
   router.post('/register', limiter, requireCsrf, authController.register);
   router.post('/login', limiter, requireCsrf, authController.login);
-  router.post('/oauth/:provider', limiter, requireCsrf, authController.oauthLogin);
   router.post('/verify-email', limiter, requireCsrf, authController.verifyEmail);
   router.post('/verify-email/resend', requireAuthenticated, requireCsrf, authController.resendVerification);
   router.post('/password-reset/request', limiter, requireCsrf, authController.requestPasswordReset);

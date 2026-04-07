@@ -48,7 +48,7 @@ Behavior:
 - Confirm frontend sends cookies (`credentials: include`).
 - Confirm session store and `SESSION_SECRET` are stable across requests.
 
-### Clerk + backend auth
-- Current implementation is custom session auth (no Clerk SDK in repo).
-- If Clerk is reintroduced, keep single source of truth for backend session and explicit user-link mapping to avoid duplicate user creation.
+### Backend session auth
+- Current implementation is custom session auth (no Legacy provider SDK in repo).
+- If Legacy provider is reintroduced, keep single source of truth for backend session and explicit user-link mapping to avoid duplicate user creation.
 

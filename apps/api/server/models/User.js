@@ -1,7 +1,7 @@
 const USER_ROLES = ['admin', 'editor', 'author', 'viewer', 'client'];
 const USER_STATUSES = ['client', 'staff'];
 const ACCOUNT_STATUSES = ['active', 'invited', 'suspended'];
-const AUTH_PROVIDERS = ['local', 'google', 'facebook', 'clerk'];
+const AUTH_PROVIDERS = ['local', 'google', 'facebook'];
 
 function normalizeEmail(email) {
   return String(email ?? '').trim().toLowerCase();
@@ -30,7 +30,6 @@ function normalizeUserInput(input) {
   const authProvider = AUTH_PROVIDERS.includes(input.authProvider) ? input.authProvider : 'local';
   const googleId = input.googleId ? String(input.googleId) : null;
   const facebookId = input.facebookId ? String(input.facebookId) : null;
-  const clerkId = input.clerkId ? String(input.clerkId) : null;
 
   return {
     id: String(input.id),
@@ -43,11 +42,10 @@ function normalizeUserInput(input) {
       ? input.accountStatus
       : (ACCOUNT_STATUSES.includes(input.status) ? input.status : 'active'),
     authProvider,
-    providerId: input.providerId ? String(input.providerId) : (clerkId ?? googleId ?? facebookId ?? null),
+    providerId: input.providerId ? String(input.providerId) : (googleId ?? facebookId ?? null),
     providers: normalizeProviders(input.providers, authProvider),
     googleId,
     facebookId,
-    clerkId,
     avatarUrl: input.avatarUrl ? String(input.avatarUrl) : null,
     emailVerified: Boolean(input.emailVerified),
     emailVerificationTokenHash: input.emailVerificationTokenHash ? String(input.emailVerificationTokenHash) : null,
@@ -134,12 +132,6 @@ function createUserModel(mongoose) {
         index: true,
       },
 
-      clerkId: {
-        type: String,
-        default: null,
-        sparse: true,
-        index: true,
-      },
       avatarUrl: {
         type: String,
         default: null,
@@ -180,7 +172,6 @@ function createUserModel(mongoose) {
   schema.index({ authProvider: 1, providerId: 1 }, { unique: true, sparse: true });
   schema.index({ googleId: 1 }, { unique: true, sparse: true });
   schema.index({ facebookId: 1 }, { unique: true, sparse: true });
-  schema.index({ clerkId: 1 }, { unique: true, sparse: true });
 
   schema.pre('validate', function normalizeBeforeValidate(next) {
     if (this.email) {
@@ -193,7 +184,7 @@ function createUserModel(mongoose) {
     if (this.googleId) this.googleId = String(this.googleId);
     if (this.facebookId) this.facebookId = String(this.facebookId);
     if (!this.providerId) {
-      this.providerId = this.clerkId ?? this.googleId ?? this.facebookId ?? null;
+      this.providerId = this.googleId ?? this.facebookId ?? null;
     }
     next();
   });

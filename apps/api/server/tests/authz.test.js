@@ -53,7 +53,7 @@ describe('authz middleware', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('allows local session admin without clerk claims to pass CMS access checks', () => {
+  it('allows local session admin without OAuth claims to pass CMS access checks', () => {
     const req = {
       appUser: null,
       session: { userId: 'local-admin', role: 'admin' },

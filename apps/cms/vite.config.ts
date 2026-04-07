@@ -16,20 +16,18 @@ const BASE_SECURITY_HEADERS = {
 };
 
 function createCsp(hosts: { cmsHost: string; cmsWsHost: string; apiOrigin: string; apiWsOrigin: string }) {
-  const clerkScriptOrigin = 'https://cdn.jsdelivr.net';
-  const clerkConnectOrigins = 'https://api.clerk.com https://*.clerk.accounts.dev https://*.clerk.com';
 
   return [
     "default-src 'self'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${hosts.cmsHost} ${clerkScriptOrigin}`,
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${hosts.cmsHost}`,
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${hosts.cmsHost} ${hosts.cmsWsHost} ${hosts.apiOrigin} ${hosts.apiWsOrigin} ${clerkConnectOrigins}`,
+    `connect-src 'self' ${hosts.cmsHost} ${hosts.cmsWsHost} ${hosts.apiOrigin} ${hosts.apiWsOrigin}`,
   ].join('; ');
 }
 
