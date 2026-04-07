@@ -43,6 +43,36 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+
+function normalizeLoopbackUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.hostname === '127.0.0.1') {
+      parsed.hostname = 'localhost';
+    }
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+function resolveSafeOAuthRedirectTo(): string {
+  if (typeof window === 'undefined') return '';
+
+  const candidate = normalizeLoopbackUrl(window.location.href);
+
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch {
+    // Ignore parse errors and fall through to a safe fallback.
+  }
+
+  return `${window.location.origin}/#login`;
+}
+
 function mapSession(raw: Record<string, unknown> | null | undefined): AuthSessionState | null {
   if (!raw) return null;
   return {
@@ -97,7 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const beginOAuthLogin = async (provider: 'google' | 'facebook'): Promise<AuthActionResult> => {
-    window.location.href = `/api/v1/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(window.location.href)}`;
+    const redirectTo = resolveSafeOAuthRedirectTo();
+    window.location.assign(`/api/v1/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(redirectTo)}`);
     return { success: true, error: null, destination: null };
   };
 
