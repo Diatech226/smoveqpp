@@ -164,10 +164,10 @@ export async function getBlogContentContractFromSource(): Promise<BlogContentCon
       return toContractFromPosts(remotePosts);
     }
   } catch (error) {
-    console.warn('[public-content] blog API unavailable, using local repository snapshot.', error);
+    console.warn('[public-content] blog API unavailable; returning empty contract to avoid stale local fallback.', error);
   }
 
-  return getBlogContentContract();
+  return { categories: ['Tous'], posts: [] };
 }
 
 export async function getBlogPostBySlugContract(slug: string): Promise<BlogDetailContract | undefined> {
@@ -183,9 +183,8 @@ export async function getBlogPostBySlugContract(slug: string): Promise<BlogDetai
       if (isRenderablePublishedEntry(canonical)) return toDetailContract(canonical);
     }
   } catch (error) {
-    console.warn('[public-content] blog detail API unavailable, using local repository snapshot.', error);
+    console.warn('[public-content] blog detail API unavailable; returning undefined to avoid stale local fallback.', error);
   }
 
-  const fallback = findBySlug(toRenderableCanonicalEntries(blogRepository.getAll()), slug);
-  return fallback ? toDetailContract(fallback) : undefined;
+  return undefined;
 }
