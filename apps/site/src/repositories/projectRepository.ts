@@ -1,5 +1,4 @@
 import { isProjectArray, type Project } from '../domain/contentSchemas';
-import { projects as staticProjects } from '../data/projects';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
 import { PROJECT_MEDIA_FALLBACK_QUERY } from '../features/projects/projectMedia';
 import { mediaRepository } from './mediaRepository';
@@ -128,7 +127,7 @@ export interface ProjectRepository {
 }
 
 class LocalProjectRepository implements ProjectRepository {
-  private readonly defaults = this.validateProjects(staticProjects);
+  private readonly defaults: Project[] = [];
 
   private validateProjects(input: unknown): Project[] {
     if (!isProjectArray(input)) {
@@ -142,7 +141,7 @@ class LocalProjectRepository implements ProjectRepository {
   }
 
   private read(): Project[] {
-    const projects = readFromStorage(PROJECT_STORAGE_KEY, isProjectArray, this.defaults, { persistFallback: true });
+    const projects = readFromStorage(PROJECT_STORAGE_KEY, isProjectArray, this.defaults);
     return projects.map((project) => normalizeProject(project)).sort(compareProjects);
   }
 

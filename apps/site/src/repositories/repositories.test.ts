@@ -224,8 +224,33 @@ describe('mediaRepository', () => {
 });
 
 describe('projectRepository and cmsRepository', () => {
+  const baselineProject: Project = {
+    id: 'baseline-project',
+    title: 'Projet baseline',
+    slug: 'projet-baseline',
+    summary: 'Résumé baseline assez descriptif pour les contraintes de publication.',
+    client: 'Client baseline',
+    category: 'Branding',
+    year: '2026',
+    description: 'Description baseline',
+    challenge: 'Challenge baseline',
+    solution: 'Solution baseline',
+    results: ['Résultat baseline'],
+    tags: ['baseline'],
+    mainImage: 'baseline-image',
+    featuredImage: 'baseline-image',
+    images: ['baseline-image'],
+    status: 'published',
+    featured: true,
+  };
+
+  const getSeedProject = (): Project => {
+    projectRepository.replaceAll([baselineProject]);
+    return projectRepository.getAll()[0];
+  };
+
   it('exposes validated project contracts', () => {
-    const first = projectRepository.getAll()[0];
+    const first = getSeedProject();
 
     expect(first.id).toBeTruthy();
     expect(projectRepository.getByCategory('Tous').length).toBe(projectRepository.getAll().length);
@@ -235,7 +260,7 @@ describe('projectRepository and cmsRepository', () => {
 
 
   it('saves a project when only title and featured image are meaningfully provided', () => {
-    const seed = projectRepository.getAll()[0];
+    const seed = getSeedProject();
 
     const saved = projectRepository.save({
       ...seed,
@@ -260,7 +285,7 @@ describe('projectRepository and cmsRepository', () => {
   });
 
   it('normalizes project slug and preserves created date on update', () => {
-    const seed = projectRepository.getAll()[0];
+    const seed = getSeedProject();
 
     const created = projectRepository.save({
       ...seed,
@@ -281,7 +306,7 @@ describe('projectRepository and cmsRepository', () => {
   });
 
   it('filters draft/in_review/archived projects from public listing helper', () => {
-    const seed = projectRepository.getAll()[0];
+    const seed = getSeedProject();
 
     projectRepository.save({ ...seed, id: 'project-draft-only', status: 'draft', slug: 'project-draft-only' });
     projectRepository.save({ ...seed, id: 'project-review-only', status: 'in_review', slug: 'project-review-only' });
@@ -350,7 +375,7 @@ describe('projectRepository and cmsRepository', () => {
 
 
   it('persists project gallery, testimonial, and case study links for public detail contracts', () => {
-    const seed = projectRepository.getAll()[0];
+    const seed = getSeedProject();
 
     projectRepository.save({
       ...seed,
@@ -378,7 +403,7 @@ describe('projectRepository and cmsRepository', () => {
   });
 
   it('normalizes legacy external/case-study link fields into canonical links', () => {
-    const seed = projectRepository.getAll()[0];
+    const seed = getSeedProject();
     const saved = projectRepository.save({
       ...seed,
       id: 'project-legacy-links',
@@ -398,7 +423,7 @@ describe('projectRepository and cmsRepository', () => {
   });
 
   it('prioritizes role-based gallery and hero media over legacy fields during project normalization', () => {
-    const seed = projectRepository.getAll()[0];
+    const seed = getSeedProject();
     const saved = projectRepository.save({
       ...seed,
       id: 'project-role-media-priority',
@@ -421,7 +446,7 @@ describe('projectRepository and cmsRepository', () => {
 
 
   it('rejects invalid project links and dangling gallery media references', () => {
-    const seed = projectRepository.getAll()[0];
+    const seed = getSeedProject();
 
     expect(() =>
       projectRepository.save({
@@ -447,7 +472,7 @@ describe('projectRepository and cmsRepository', () => {
   });
 
   it('supports CMS project save and delete workflows', () => {
-    const seed = projectRepository.getAll()[0];
+    const seed = getSeedProject();
 
     projectRepository.save({ ...seed, id: 'project-new', title: 'Projet CMS Ops' });
     expect(projectRepository.getById('project-new')?.title).toBe('Projet CMS Ops');

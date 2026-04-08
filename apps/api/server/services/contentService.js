@@ -180,6 +180,214 @@ const defaultServices = [
   },
 ];
 
+const defaultLegacyProjects = [
+  {
+    id: 'smove-platform',
+    title: 'Plateforme SMOVE Digital',
+    slug: 'plateforme-smove-digital',
+    client: 'SMOVE Communication',
+    category: 'Développement Web',
+    year: '2024',
+    summary: "Création d'une plateforme web moderne pour la gestion de projets digitaux et la communication client.",
+    description: "Création d'une plateforme web moderne pour la gestion de projets digitaux et la communication client.",
+    challenge: 'Développer une solution complète permettant de gérer tous les aspects de la communication digitale en un seul endroit.',
+    solution: 'Architecture web progressive avec React, système de gestion de contenu intégré, dashboard analytique et interface client intuitive.',
+    results: [
+      'Réduction de 60% du temps de gestion de projet',
+      'Augmentation de 45% de la satisfaction client',
+      'Interface utilisateur primée pour son design',
+      '100% responsive sur tous les appareils',
+    ],
+    tags: ['React', 'Node.js', 'MongoDB', 'UI/UX', 'Dashboard'],
+    featuredImage: 'modern web platform dashboard interface',
+    mainImage: 'modern web platform dashboard interface',
+    images: ['web dashboard analytics colorful', 'project management interface modern', 'client portal design clean'],
+    status: 'published',
+    featured: true,
+    testimonial: {
+      text: 'SMOVE a transformé notre façon de travailler. La plateforme est intuitive, rapide et répond parfaitement à nos besoins.',
+      author: 'Jean-Marc Kouassi',
+      position: 'Directeur Général',
+    },
+  },
+  {
+    id: 'ecla-btp-branding',
+    title: 'Identité Visuelle ECLA BTP',
+    slug: 'identite-visuelle-ecla-btp',
+    client: 'ECLA BTP',
+    category: 'Branding',
+    year: '2024',
+    summary: "Refonte complète de l'identité visuelle d'une entreprise de construction leader en Côte d'Ivoire.",
+    description: "Refonte complète de l'identité visuelle d'une entreprise de construction leader en Côte d'Ivoire.",
+    challenge: "Moderniser l'image de marque tout en conservant la crédibilité et l'héritage de l'entreprise.",
+    solution: 'Nouveau logo symbolisant la solidité et l’innovation, charte graphique professionnelle, supports de communication print et digital.',
+    results: [
+      'Augmentation de 80% de la reconnaissance de marque',
+      'Nouveau positionnement premium sur le marché',
+      'Cohérence visuelle sur tous les supports',
+      'Impact immédiat sur les réseaux sociaux',
+    ],
+    tags: ['Logo Design', 'Branding', 'Print', 'Digital', 'Charte Graphique'],
+    featuredImage: 'construction company branding modern',
+    mainImage: 'construction company branding modern',
+    images: ['logo design construction professional', 'brand identity mockup business cards', 'corporate branding materials'],
+    status: 'published',
+    testimonial: {
+      text: 'Notre nouvelle identité visuelle nous a donné une image beaucoup plus moderne et professionnelle. Les retours sont excellents!',
+      author: 'Marie Koné',
+      position: 'Directrice Marketing, ECLA BTP',
+    },
+  },
+  {
+    id: 'gobon-sarl-ecommerce',
+    title: 'Boutique en Ligne Gobon Sarl',
+    slug: 'boutique-en-ligne-gobon-sarl',
+    client: 'Gobon Sarl',
+    category: 'E-commerce',
+    year: '2023',
+    summary: 'Développement d’une boutique en ligne complète pour la vente de produits alimentaires avec système de livraison.',
+    description: 'Développement d’une boutique en ligne complète pour la vente de produits alimentaires avec système de livraison.',
+    challenge: 'Créer une expérience d’achat fluide adaptée au marché local avec paiement mobile intégré.',
+    solution: 'Plateforme e-commerce sur mesure avec paiement mobile money, gestion des stocks, tracking de livraison et interface administrateur.',
+    results: [
+      'Lancement réussi avec 1000+ commandes le premier mois',
+      'Taux de conversion de 3.8% (supérieur à la moyenne)',
+      'Intégration parfaite des paiements mobiles',
+      'Système de livraison optimisé pour Abidjan',
+    ],
+    tags: ['E-commerce', 'Next.js', 'Payment Integration', 'Mobile', 'Logistics'],
+    featuredImage: 'ecommerce website african products',
+    mainImage: 'ecommerce website african products',
+    images: ['online store modern clean design', 'shopping cart checkout process', 'mobile ecommerce app interface'],
+    status: 'published',
+    testimonial: {
+      text: 'Grâce à SMOVE, nous avons pu digitaliser notre commerce en un temps record. Les ventes en ligne dépassent nos attentes!',
+      author: 'Ibrahim Traoré',
+      position: 'PDG, Gobon Sarl',
+    },
+  },
+  {
+    id: 'restaurant-afrik-taste',
+    title: 'Application Mobile Afrik Taste',
+    slug: 'application-mobile-afrik-taste',
+    client: 'Afrik Taste Restaurant',
+    category: 'Application Mobile',
+    year: '2023',
+    summary: 'Application mobile de commande et livraison pour une chaîne de restaurants ivoiriens.',
+    description: 'Application mobile de commande et livraison pour une chaîne de restaurants ivoiriens.',
+    challenge: 'Offrir une expérience de commande simple et rapide avec suivi en temps réel de la livraison.',
+    solution: 'Application native iOS/Android avec menu interactif, personnalisation des plats, paiement intégré et suivi GPS de livraison.',
+    results: [
+      '50,000+ téléchargements en 3 mois',
+      'Note moyenne de 4.8/5 sur les stores',
+      'Augmentation de 120% des commandes',
+      'Fidélisation client améliorée de 65%',
+    ],
+    tags: ['React Native', 'Mobile App', 'GPS', 'Payment', 'Real-time'],
+    featuredImage: 'restaurant mobile app food delivery',
+    mainImage: 'restaurant mobile app food delivery',
+    images: ['food delivery app interface colorful', 'restaurant menu app design', 'order tracking map mobile'],
+    status: 'published',
+    testimonial: {
+      text: "L'application a révolutionné notre business. Nos clients adorent la simplicité et la rapidité du service.",
+      author: 'Fatou Diallo',
+      position: 'Directrice, Afrik Taste',
+    },
+  },
+  {
+    id: 'ministry-campaign',
+    title: 'Campagne Digitale Ministère',
+    slug: 'campagne-digitale-ministere',
+    client: 'Ministère de la Jeunesse',
+    category: 'Communication Digitale',
+    year: '2023',
+    summary: "Campagne de communication digitale pour promouvoir l'entrepreneuriat jeune en Côte d'Ivoire.",
+    description: "Campagne de communication digitale pour promouvoir l'entrepreneuriat jeune en Côte d'Ivoire.",
+    challenge: 'Atteindre et engager les jeunes sur les réseaux sociaux avec un message impactant.',
+    solution: 'Stratégie multicanal, vidéos virales, motion design, community management et influenceurs.',
+    results: [
+      '5 millions de vues sur les réseaux sociaux',
+      '200,000+ interactions (likes, partages, commentaires)',
+      'Augmentation de 300% des inscriptions au programme',
+      "Tendance #1 sur Twitter Côte d'Ivoire pendant 3 jours",
+    ],
+    tags: ['Social Media', 'Video', 'Motion Design', 'Strategy', 'Influencers'],
+    featuredImage: 'social media campaign colorful youth',
+    mainImage: 'social media campaign colorful youth',
+    images: ['social media graphics modern vibrant', 'video production studio creative', 'digital campaign analytics dashboard'],
+    status: 'published',
+  },
+  {
+    id: 'bank-mobile-app',
+    title: 'Application Bancaire Mobile',
+    slug: 'application-bancaire-mobile',
+    client: 'Banque Atlantique CI',
+    category: 'FinTech',
+    year: '2024',
+    summary: 'Application mobile bancaire nouvelle génération avec fonctionnalités avancées.',
+    description: 'Application mobile bancaire nouvelle génération avec fonctionnalités avancées.',
+    challenge: 'Créer une expérience bancaire mobile sécurisée, rapide et intuitive pour tous les âges.',
+    solution: 'Architecture sécurisée, biométrie, virements instantanés, gestion de budget AI, notifications intelligentes.',
+    results: [
+      '200,000+ utilisateurs actifs',
+      'Réduction de 70% des visites en agence',
+      'Transactions 5x plus rapides',
+      'Sécurité renforcée avec authentification biométrique',
+    ],
+    tags: ['FinTech', 'Mobile', 'Security', 'AI', 'Banking'],
+    featuredImage: 'mobile banking app modern secure',
+    mainImage: 'mobile banking app modern secure',
+    images: ['banking app interface clean professional', 'payment transfer mobile design', 'financial dashboard mobile analytics'],
+    status: 'published',
+  },
+  {
+    id: 'fashion-brand-3d',
+    title: 'Expérience 3D Marque de Mode',
+    slug: 'experience-3d-marque-de-mode',
+    client: 'Ivoire Fashion House',
+    category: 'Création 3D',
+    year: '2024',
+    summary: "Création d'une expérience 3D immersive pour le lancement d'une collection de mode.",
+    description: "Création d'une expérience 3D immersive pour le lancement d'une collection de mode.",
+    challenge: 'Se démarquer lors du lancement avec une expérience digitale innovante et mémorable.',
+    solution: 'Showroom virtuel 3D, essayage virtuel AR, vidéo 3D de défilé et configurateur de produits interactif.',
+    results: [
+      'Expérience partagée 100,000+ fois',
+      "Temps d'engagement moyen de 8 minutes",
+      'Conversion augmentée de 150%',
+      'Couverture médiatique nationale et internationale',
+    ],
+    tags: ['3D Modeling', 'AR', 'Virtual Showroom', 'Interactive', 'Fashion'],
+    featuredImage: '3d fashion virtual showroom',
+    mainImage: '3d fashion virtual showroom',
+    images: ['3d modeling fashion design', 'augmented reality clothing app', 'virtual reality shopping experience'],
+    status: 'published',
+  },
+  {
+    id: 'education-platform',
+    title: 'Plateforme E-Learning',
+    slug: 'plateforme-e-learning',
+    client: 'Université Virtuelle CI',
+    category: 'EdTech',
+    year: '2023',
+    summary: "Plateforme complète d'apprentissage en ligne avec cours interactifs et certifications.",
+    description: "Plateforme complète d'apprentissage en ligne avec cours interactifs et certifications.",
+    challenge: "Rendre l'éducation accessible et engageante pour des milliers d'étudiants à distance.",
+    solution: 'LMS complet avec vidéos HD, quizz interactifs, forums, suivi de progression et certifications automatiques.',
+    results: [
+      '15,000+ étudiants inscrits',
+      '500+ cours disponibles',
+      'Taux de complétion de 78%',
+      "Certification reconnue par l'État",
+    ],
+    tags: ['EdTech', 'LMS', 'Video Streaming', 'Gamification', 'Certificates'],
+    featuredImage: 'online learning platform modern',
+    mainImage: 'online learning platform modern',
+    images: ['elearning dashboard student interface', 'video course player interactive', 'certification system online education'],
+    status: 'published',
+  },
+];
+
 const defaultSettings = {
   siteSettings: {
     siteTitle: 'SMOVE',
@@ -368,10 +576,41 @@ class ContentService {
   }
 
   listProjects() {
-    return (this.readState().projects || [])
+    return this.seedProjectsFromLegacy()
       .map((project) => this.normalizeProject(project))
       .filter((project) => this.validateProject(project))
       .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || Number.parseInt(b.year, 10) - Number.parseInt(a.year, 10));
+  }
+
+  seedProjectsFromLegacy() {
+    const state = this.readState();
+    const existingProjects = Array.isArray(state.projects)
+      ? state.projects.map((project) => this.normalizeProject(project)).filter((project) => this.validateProject(project))
+      : [];
+
+    const existingBySlug = new Set(existingProjects.map((project) => project.slug));
+    const existingById = new Set(existingProjects.map((project) => project.id));
+    const legacyProjects = defaultLegacyProjects.map((project) => this.normalizeProject(project));
+    const missingProjects = legacyProjects.filter((project) => !existingBySlug.has(project.slug) && !existingById.has(project.id));
+
+    if (missingProjects.length === 0) {
+      return existingProjects;
+    }
+
+    state.projects = [...existingProjects, ...missingProjects];
+    state.migrationHistory = [
+      {
+        migrationId: `projects-legacy-import-${Date.now()}`,
+        migratedAt: new Date().toISOString(),
+        importedCount: missingProjects.length,
+        skippedExistingCount: legacyProjects.length - missingProjects.length,
+        source: 'site-legacy-projects',
+        strategy: 'slug_then_id',
+      },
+      ...(Array.isArray(state.migrationHistory) ? state.migrationHistory : []),
+    ].slice(0, 100);
+    this.writeState(state);
+    return state.projects;
   }
 
   saveProject(project) {
