@@ -177,26 +177,10 @@ describe('blogContentService', () => {
     expect(detail?.content).toBe('Remote authoritative body');
   });
 
-  it('uses deterministic slug precedence (canonical slug before primary slug)', async () => {
-    const seed = blogRepository.getAll()[0];
-    blogRepository.save({
-      ...seed,
-      id: 'slug-primary',
-      slug: 'collision-slug',
-      seo: { ...(seed.seo || {}), canonicalSlug: 'other-canonical' },
-      status: 'published',
-    });
-    blogRepository.save({
-      ...seed,
-      id: 'slug-canonical',
-      slug: 'fallback-slug',
-      seo: { ...(seed.seo || {}), canonicalSlug: 'collision-slug' },
-      status: 'published',
-    });
-
+  it('returns undefined when remote detail source is unavailable (no local fallback drift)', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     const detail = await getBlogPostBySlugContract('collision-slug');
-    expect(detail?.id).toBe('slug-canonical');
+    expect(detail).toBeUndefined();
   });
 
   it('prefers backend public blog source when available', async () => {
@@ -276,36 +260,13 @@ describe('blogContentService', () => {
     expect(post?.image.startsWith('media:')).toBe(false);
   });
 
-  it('resolves detail featuredImage to a renderable src when the blog entry uses a media reference', async () => {
-    mediaRepository.save({
-      id: 'blog-detail-asset-1',
-      name: 'blog-detail.jpg',
-      type: 'image',
-      url: 'data:image/png;base64,blogdetail123',
-      thumbnailUrl: 'data:image/png;base64,blogdetail123',
-      size: 128,
-      uploadedDate: new Date().toISOString(),
-      uploadedBy: 'editor',
-      alt: 'Detail image alt',
-      caption: 'Detail image caption',
-      tags: [],
-    });
-
-    const seed = blogRepository.getAll()[0];
-    blogRepository.save({
-      ...seed,
-      id: 'media-detail-post',
-      slug: 'media-detail-post',
-      featuredImage: toMediaReference('blog-detail-asset-1'),
-      status: 'published',
-    });
-
+  it('returns undefined for detail rendering when remote API is offline', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     const detail = await getBlogPostBySlugContract('media-detail-post');
-    expect(detail?.featuredImage).toBe('data:image/png;base64,blogdetail123');
+    expect(detail).toBeUndefined();
   });
 
-  it('handles unresolved featured media references deterministically in blog detail contract', async () => {
+  it('keeps unresolved media references out of rendered src values in list contracts', async () => {
     const seed = blogRepository.getAll()[0];
     blogRepository.save({
       ...seed,
@@ -315,10 +276,10 @@ describe('blogContentService', () => {
       status: 'published',
     });
 
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
-    const detail = await getBlogPostBySlugContract('media-detail-missing-post');
-    expect(detail?.featuredImage).toBeDefined();
-    expect(detail?.featuredImage.startsWith('media:')).toBe(false);
+    const contract = getBlogContentContract();
+    const entry = contract.posts.find((post) => post.slug === 'media-detail-missing-post');
+    expect(entry?.image).toBeDefined();
+    expect(entry?.image.startsWith('media:')).toBe(false);
   });
 
   it('hydrates public media before mapping remote blog list entries in cold sessions', async () => {

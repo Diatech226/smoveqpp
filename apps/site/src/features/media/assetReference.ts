@@ -12,9 +12,9 @@ import {
 
 export { MEDIA_REFERENCE_PREFIX };
 
-
-
 const HTTP_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+const FALLBACK_MEDIA_DATA_URL =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="%23eef2ff"/><text x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%234f46e5" font-family="Arial,sans-serif" font-size="40">Media unavailable</text></svg>';
 
 const toApiOrigin = (apiBaseUrl: string): string => {
   if (!apiBaseUrl.startsWith('http://') && !apiBaseUrl.startsWith('https://')) {
@@ -28,6 +28,8 @@ const toApiOrigin = (apiBaseUrl: string): string => {
   }
 };
 
+const toDeterministicFallbackUrl = (): string => FALLBACK_MEDIA_DATA_URL;
+
 export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = RUNTIME_CONFIG.apiBaseUrl): string => {
   const normalizedUrl = url.trim();
   if (!normalizedUrl) return normalizedUrl;
@@ -37,6 +39,14 @@ export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = RUNTIME_CONF
   }
 
   if (!normalizedUrl.startsWith('/')) {
+    const apiOrigin = toApiOrigin(apiBaseUrl);
+    const looksLikeRelativeAssetPath =
+      !normalizedUrl.includes(' ') &&
+      /^[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(normalizedUrl) &&
+      (normalizedUrl.includes('/') || normalizedUrl.startsWith('uploads') || normalizedUrl.startsWith('media'));
+    if (looksLikeRelativeAssetPath && apiOrigin) {
+      return `${apiOrigin}/${normalizedUrl.replace(/^\.?\//, '')}`;
+    }
     return normalizedUrl;
   }
 
@@ -52,6 +62,14 @@ export interface ResolvedAssetReference {
   isMediaAsset: boolean;
   isFallback: boolean;
   mediaState: 'resolved' | 'missing' | 'archived' | 'direct-url' | 'fallback';
+}
+
+export interface CanonicalResolvedMedia {
+  reference: string;
+  url: string;
+  alt: string;
+  isValid: boolean;
+  mediaState: ResolvedAssetReference['mediaState'];
 }
 
 const normalizeText = (value: string | undefined, fallback: string): string => {
@@ -74,11 +92,10 @@ export const isValidMediaFieldValue = (value: string): boolean =>
     hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)),
   });
 
-export const resolveAssetReference = (
+export const resolveCanonicalMedia = (
   reference: string | undefined,
   fallbackAlt: string,
-  fallbackQuery: string,
-): ResolvedAssetReference => {
+): CanonicalResolvedMedia => {
   const normalizedReference = (reference || '').trim();
 
   if (isMediaReferenceValue(normalizedReference)) {
@@ -89,56 +106,66 @@ export const resolveAssetReference = (
       if (media.archivedAt) {
         return {
           reference: normalizedReference,
-          src: fallbackQuery,
+          url: toDeterministicFallbackUrl(),
           alt: fallbackAlt,
-          caption: fallbackAlt,
-          isMediaAsset: true,
-          isFallback: true,
+          isValid: false,
           mediaState: 'archived',
         };
       }
 
       return {
         reference: normalizedReference,
-        src: resolveRenderableMediaUrl(media.url),
+        url: resolveRenderableMediaUrl(media.url),
         alt: normalizeText(media.alt, fallbackAlt),
-        caption: normalizeText(media.caption, media.title || media.name || fallbackAlt),
-        isMediaAsset: true,
-        isFallback: false,
+        isValid: true,
         mediaState: 'resolved',
       };
     }
 
     return {
       reference: normalizedReference,
-      src: fallbackQuery,
+      url: toDeterministicFallbackUrl(),
       alt: fallbackAlt,
-      caption: fallbackAlt,
-      isMediaAsset: true,
-      isFallback: true,
+      isValid: false,
       mediaState: 'missing',
     };
   }
 
   if (normalizedReference) {
+    const resolvedUrl = resolveRenderableMediaUrl(normalizedReference);
+    const isValid = Boolean(resolvedUrl) && !isMediaReferenceValue(resolvedUrl);
     return {
       reference: normalizedReference,
-      src: resolveRenderableMediaUrl(normalizedReference),
+      url: isValid ? resolvedUrl : toDeterministicFallbackUrl(),
       alt: fallbackAlt,
-      caption: fallbackAlt,
-      isMediaAsset: false,
-      isFallback: false,
+      isValid,
       mediaState: 'direct-url',
     };
   }
 
   return {
-    reference: fallbackQuery,
-    src: fallbackQuery,
+    reference: '',
+    url: toDeterministicFallbackUrl(),
     alt: fallbackAlt,
-    caption: fallbackAlt,
-    isMediaAsset: false,
-    isFallback: true,
+    isValid: false,
     mediaState: 'fallback',
+  };
+};
+
+export const resolveAssetReference = (
+  reference: string | undefined,
+  fallbackAlt: string,
+  fallbackQuery: string,
+): ResolvedAssetReference => {
+  const canonical = resolveCanonicalMedia(reference, fallbackAlt || fallbackQuery);
+
+  return {
+    reference: canonical.reference || fallbackQuery,
+    src: canonical.url,
+    alt: canonical.alt,
+    caption: canonical.alt,
+    isMediaAsset: isMediaReferenceValue(canonical.reference),
+    isFallback: !canonical.isValid,
+    mediaState: canonical.mediaState,
   };
 };
