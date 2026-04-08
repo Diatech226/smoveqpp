@@ -8,15 +8,16 @@
 
 ## One-time consolidation behavior
 
-- `ContentService.listProjects()` now executes `seedProjectsFromLegacy()` before returning records.
+- `ContentService` runs `seedProjectsFromLegacy()` at service bootstrap, and `listProjects()` still enforces it defensively.
 - `seedProjectsFromLegacy()` imports legacy site-only projects using deterministic matching:
   1. slug match
   2. id match
 - Only missing records are imported; existing canonical records are preserved.
-- Import writes a migration telemetry entry in `migrationHistory` with counts for imported and skipped records.
+- Import writes a migration telemetry entry in `migrationHistory` with counts for imported, skipped, and invalid legacy records.
 
 ## Drift prevention
 
 - Re-running the project import is idempotent (no duplicate projects by slug/id).
 - CMS edit/delete remains authoritative because imported projects are persisted as regular canonical project records.
 - Public site and CMS both read/write the same normalized project contract through `ContentService`.
+- CMS local project repository now defaults to an empty local snapshot so stale static project seeds cannot override backend canonical records.

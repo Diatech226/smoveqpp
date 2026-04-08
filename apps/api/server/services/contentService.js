@@ -414,6 +414,7 @@ const defaultSettings = {
 class ContentService {
   constructor({ contentRepository }) {
     this.contentRepository = contentRepository;
+    this.seedProjectsFromLegacy();
   }
 
   readState() {
@@ -590,27 +591,36 @@ class ContentService {
 
     const existingBySlug = new Set(existingProjects.map((project) => project.slug));
     const existingById = new Set(existingProjects.map((project) => project.id));
-    const legacyProjects = defaultLegacyProjects.map((project) => this.normalizeProject(project));
+    const normalizedLegacyProjects = defaultLegacyProjects.map((project) => this.normalizeProject(project));
+    const legacyProjects = normalizedLegacyProjects.filter((project) => this.validateProject(project));
+    const invalidLegacyProjectsCount = normalizedLegacyProjects.length - legacyProjects.length;
     const missingProjects = legacyProjects.filter((project) => !existingBySlug.has(project.slug) && !existingById.has(project.id));
 
-    if (missingProjects.length === 0) {
+    if (missingProjects.length === 0 && invalidLegacyProjectsCount === 0) {
       return existingProjects;
     }
 
-    state.projects = [...existingProjects, ...missingProjects];
-    state.migrationHistory = [
-      {
-        migrationId: `projects-legacy-import-${Date.now()}`,
-        migratedAt: new Date().toISOString(),
-        importedCount: missingProjects.length,
-        skippedExistingCount: legacyProjects.length - missingProjects.length,
-        source: 'site-legacy-projects',
-        strategy: 'slug_then_id',
-      },
-      ...(Array.isArray(state.migrationHistory) ? state.migrationHistory : []),
-    ].slice(0, 100);
-    this.writeState(state);
-    return state.projects;
+    if (missingProjects.length > 0) {
+      state.projects = [...existingProjects, ...missingProjects];
+    }
+
+    if (missingProjects.length > 0 || invalidLegacyProjectsCount > 0) {
+      state.migrationHistory = [
+        {
+          migrationId: `projects-legacy-import-${Date.now()}`,
+          migratedAt: new Date().toISOString(),
+          importedCount: missingProjects.length,
+          skippedExistingCount: legacyProjects.length - missingProjects.length,
+          invalidLegacyProjectsCount,
+          source: 'site-legacy-projects',
+          strategy: 'slug_then_id',
+        },
+        ...(Array.isArray(state.migrationHistory) ? state.migrationHistory : []),
+      ].slice(0, 100);
+      this.writeState(state);
+    }
+
+    return Array.isArray(state.projects) ? state.projects : existingProjects;
   }
 
   saveProject(project) {
