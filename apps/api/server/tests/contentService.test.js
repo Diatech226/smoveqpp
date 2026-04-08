@@ -320,6 +320,28 @@ describe('ContentService project persistence', () => {
     expect(imported.category).toBeTruthy();
   });
 
+  it('allows CMS edit/delete lifecycle for imported legacy projects', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const imported = service.listProjects().find((project) => project.slug === 'plateforme-smove-digital');
+
+    expect(imported).toBeTruthy();
+
+    const updated = service.saveProject({
+      ...imported,
+      title: 'Plateforme SMOVE Digital MAJ',
+      summary: 'Résumé édité depuis CMS avec suffisamment de détails pour rester publiable.',
+      status: 'published',
+    });
+    expect(updated.ok).toBe(true);
+
+    const afterUpdate = service.listProjects().find((project) => project.id === imported.id);
+    expect(afterUpdate?.title).toBe('Plateforme SMOVE Digital MAJ');
+
+    const deleted = service.deleteProject(imported.id);
+    expect(deleted.ok).toBe(true);
+    expect(service.listProjects().some((project) => project.id === imported.id)).toBe(false);
+  });
+
   it('normalizes legacy project link fields into canonical links contract', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 
