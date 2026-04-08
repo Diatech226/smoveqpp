@@ -149,6 +149,31 @@ describe('ContentService blog persistence', () => {
 
 
 describe('ContentService project persistence', () => {
+  it('imports legacy site projects into canonical CMS store when missing', () => {
+    const repo = new MemoryContentRepository();
+    const service = new ContentService({ contentRepository: repo });
+
+    const projects = service.listProjects();
+    const state = repo.getState();
+
+    expect(projects.length).toBeGreaterThan(0);
+    expect(projects.some((project) => project.slug === 'plateforme-smove-digital')).toBe(true);
+    expect(state.migrationHistory[0].source).toBe('site-legacy-projects');
+    expect(state.migrationHistory[0].strategy).toBe('slug_then_id');
+  });
+
+  it('keeps legacy project import idempotent and avoids duplicates by slug/id', () => {
+    const repo = new MemoryContentRepository();
+    const service = new ContentService({ contentRepository: repo });
+
+    const first = service.listProjects();
+    const second = service.listProjects();
+
+    expect(second).toHaveLength(first.length);
+    expect(new Set(second.map((project) => project.slug)).size).toBe(second.length);
+    expect(new Set(second.map((project) => project.id)).size).toBe(second.length);
+  });
+
   it('creates and updates projects with normalized slug/status contract', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
 
@@ -175,12 +200,12 @@ describe('ContentService project persistence', () => {
     expect(created.project.featuredImage).toBe('image projet');
     expect(created.project.imageAlt).toBe('Projet CMS Démo');
 
-    const updated = service.saveProject({ ...created.project, title: 'Projet CMS Démo MAJ' });
-    expect(updated.ok).toBe(true);
+    const updatedResult = service.saveProject({ ...created.project, title: 'Projet CMS Démo MAJ' });
+    expect(updatedResult.ok).toBe(true);
 
     const listed = service.listProjects();
-    expect(listed).toHaveLength(1);
-    expect(listed[0].title).toBe('Projet CMS Démo MAJ');
+    const updatedProject = listed.find((project) => project.id === 'project-cms-1');
+    expect(updatedProject?.title).toBe('Projet CMS Démo MAJ');
   });
 
 
@@ -279,6 +304,20 @@ describe('ContentService project persistence', () => {
     expect(result.project.images).toEqual(['img-1', 'img-2', 'img-3']);
     expect(result.project.links.caseStudy).toBe('https://smove.africa/case-study');
     expect(result.project.testimonial.author).toBe('Mariam');
+  });
+
+  it('preserves migration fields required for CMS edit/delete lifecycle', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const imported = service.listProjects().find((project) => project.slug === 'plateforme-smove-digital');
+
+    expect(imported).toBeTruthy();
+    expect(imported.summary).toBeTruthy();
+    expect(imported.featuredImage).toBeTruthy();
+    expect(imported.mainImage).toBeTruthy();
+    expect(imported.images.length).toBeGreaterThan(0);
+    expect(imported.status).toBe('published');
+    expect(imported.client).toBeTruthy();
+    expect(imported.category).toBeTruthy();
   });
 
   it('normalizes legacy project link fields into canonical links contract', () => {
