@@ -1,11 +1,65 @@
 import { HOME_SECTIONS, isCmsRoute, resolveAuthPageGuard, resolveCmsRouteGuard } from './guards';
 import type { AppRoute, AuthRoutingState, RouteResolution } from './navigationTypes';
 import { PREMIUM_SERVICE_ROUTES, normalizeServiceSlug } from '../features/marketing/serviceRouting';
+import { normalizePublicRoutePath } from '../features/marketing/publicRoutes';
+import { normalizeSlug } from '../shared/contentContracts';
 
 export function parseHashRoute(hash: string): AppRoute {
   const rawRoute = (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';
   return rawRoute.split('?')[0] as AppRoute;
 }
+
+const routeFromPathAlias = (route: string): string => {
+  const normalizedPath = normalizePublicRoutePath(route);
+  const detailMatchers: Array<{ prefix: string; format: (slug: string) => string | null }> = [
+    {
+      prefix: '/blog/',
+      format: (slug) => {
+        const canonicalSlug = normalizeSlug(slug);
+        return canonicalSlug ? `blog-${canonicalSlug}` : null;
+      },
+    },
+    {
+      prefix: '/projects/',
+      format: (slug) => {
+        const canonicalSlug = normalizeSlug(slug);
+        return canonicalSlug ? `project-${canonicalSlug}` : null;
+      },
+    },
+    {
+      prefix: '/services/',
+      format: (slug) => {
+        const canonicalSlug = normalizeServiceSlug(slug);
+        return canonicalSlug ? `service-${canonicalSlug}` : null;
+      },
+    },
+  ];
+
+  for (const matcher of detailMatchers) {
+    if (normalizedPath.startsWith(matcher.prefix)) {
+      return matcher.format(normalizedPath.slice(matcher.prefix.length)) || 'home';
+    }
+  }
+
+  const aliases: Record<string, string> = {
+    '/': 'home',
+    '/home': 'home',
+    '/blog': 'blog',
+    '/projects': 'projects',
+    '/services': 'services-all',
+    '/portfolio': 'portfolio',
+    '/about': 'apropos',
+    '/apropos': 'apropos',
+    '/contact': 'contact',
+    '/login': 'login',
+    '/register': 'register',
+    '/account': 'account',
+    '/cms': 'cms-dashboard',
+    '/cms-dashboard': 'cms-dashboard',
+  };
+
+  return aliases[normalizedPath] || route;
+};
 
 const extractServiceSlug = (route: string): string | null => {
   const normalized = route.trim();
@@ -31,7 +85,8 @@ const extractServiceSlug = (route: string): string | null => {
 };
 
 export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolution {
-  const route = parseHashRoute(hash);
+  const requestedRoute = parseHashRoute(hash);
+  const route = routeFromPathAlias(requestedRoute);
 
   const guardedAuthRoute = resolveAuthPageGuard(route, auth);
   if (guardedAuthRoute) {
@@ -44,14 +99,13 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
 
   if (isCmsRoute(route)) {
     const page = resolveCmsRouteGuard(auth);
-    const normalizedHash = page === 'cms-dashboard' ? 'cms' : page;
+    const normalizedHash = page === 'cms-dashboard' ? '/cms' : page;
     return {
       page,
       sectionToScroll: null,
       normalizedHash,
     };
   }
-
 
   if (route === 'account') {
     if (!auth.isAuthReady) {
@@ -73,6 +127,7 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     return {
       page: 'account',
       sectionToScroll: null,
+      normalizedHash: '/account',
     };
   }
 
@@ -83,11 +138,11 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     };
   }
 
-
   if (route === 'service-design' || route === 'service-web') {
     return {
       page: route,
       sectionToScroll: null,
+      normalizedHash: route === 'service-design' ? '/services/design-branding' : '/services/web-development',
     };
   }
 
@@ -95,53 +150,62 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
   if (serviceSlug !== null) {
     const slug = normalizeServiceSlug(serviceSlug);
     if (!slug) {
-      return { page: 'services-all', sectionToScroll: null };
+      return { page: 'services-all', sectionToScroll: null, normalizedHash: '/services' };
     }
     const premiumRoute = PREMIUM_SERVICE_ROUTES[slug];
     if (premiumRoute) {
-      return { page: premiumRoute, sectionToScroll: null };
+      return {
+        page: premiumRoute,
+        sectionToScroll: null,
+        normalizedHash: `/services/${slug}`,
+      };
     }
-    return { page: `service-${slug}`, sectionToScroll: null };
+    return { page: `service-${slug}`, sectionToScroll: null, normalizedHash: `/services/${slug}` };
   }
 
   if (route.startsWith('blog/')) {
-    const slug = route.slice('blog/'.length).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const slug = normalizeSlug(route.slice('blog/'.length));
     if (slug) {
       return {
         page: `blog-${slug}`,
         sectionToScroll: null,
+        normalizedHash: `/blog/${slug}`,
       };
     }
   }
 
   if (route.startsWith('project-')) {
-    return {
-      page: route,
-      sectionToScroll: null,
-    };
+    const slug = normalizeSlug(route.slice('project-'.length));
+    if (slug) {
+      return {
+        page: `project-${slug}`,
+        sectionToScroll: null,
+        normalizedHash: `/projects/${slug}`,
+      };
+    }
   }
 
-  const knownPages = new Set([
-    'home',
-    'projects',
-    'services-all',
-    'portfolio',
-    'blog',
-    'apropos',
-    'cms-unavailable',
-    'cms-forbidden',
-    'auth-loading',
-  ]);
+  const knownPages = new Set(['home', 'projects', 'services-all', 'portfolio', 'blog', 'apropos', 'cms-unavailable', 'cms-forbidden', 'auth-loading']);
 
   if (knownPages.has(route)) {
+    const normalizedHashByPage: Partial<Record<typeof route, string>> = {
+      home: '/',
+      projects: '/projects',
+      'services-all': '/services',
+      portfolio: '/portfolio',
+      blog: '/blog',
+      apropos: '/about',
+    };
     return {
       page: route,
       sectionToScroll: null,
+      normalizedHash: normalizedHashByPage[route],
     };
   }
 
   return {
     page: 'home',
     sectionToScroll: null,
+    normalizedHash: '/',
   };
 }

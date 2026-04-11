@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import Navigation from '../Navigation';
 import Footer from '../Footer';
@@ -8,6 +8,8 @@ import { serviceRepository } from '../../repositories/serviceRepository';
 import { fetchPublicServices } from '../../utils/publicContentApi';
 import { useRemoteRepositorySync } from '../../features/content-sync/useRemoteRepositorySync';
 import { buildServiceDetailContract, findPublishedServiceBySlug } from '../../features/marketing/serviceDetailContract';
+import { applyPageMetadata } from '../../features/marketing/pageMetadata';
+import { PUBLIC_ROUTE_HASH } from '../../features/marketing/publicRoutes';
 import { toRenderableService } from '../../features/marketing/serviceCatalog';
 
 interface ServiceDetailPageProps {
@@ -35,6 +37,16 @@ export default function ServiceDetailPage({ slug }: ServiceDetailPageProps) {
   const detail = useMemo(() => (service ? buildServiceDetailContract(service) : null), [service]);
   const renderable = useMemo(() => (service ? toRenderableService(service) : null), [service]);
 
+  useEffect(() => {
+    if (!detail) return;
+    applyPageMetadata({
+      title: detail.title,
+      description: detail.shortDescription || detail.overview,
+      routePath: `/services/${detail.routeSlug}` ,
+      image: detail.heroMedia.src || '',
+    });
+  }, [detail]);
+
   if (!detail || !renderable) {
     return (
       <div className="min-h-screen bg-white">
@@ -46,7 +58,7 @@ export default function ServiceDetailPage({ slug }: ServiceDetailPageProps) {
               Ce service n'est pas publié ou n'existe pas.
             </p>
             <a
-              href="#services-all"
+              href={PUBLIC_ROUTE_HASH.services}
               className="inline-flex items-center gap-2 bg-[#00b3e8] text-white px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif]"
             >
               Retour aux services

@@ -5,6 +5,7 @@ import { useHashNavigation } from './app-routing/useHashNavigation';
 import AppErrorBoundary from './features/app-shell/AppErrorBoundary';
 import AppPageRenderer from './features/app-shell/AppPageRenderer';
 import { fetchPublicSettings } from './utils/contentApi';
+import { applyResolvedPageMetadata, configurePublicMetadata } from './features/marketing/pageMetadata';
 
 function AppContent() {
   const {
@@ -33,9 +34,10 @@ function AppContent() {
     void fetchPublicSettings()
       .then((settings) => {
         if (!active) return;
-        if (settings.siteSettings.siteTitle.trim()) {
-          document.title = settings.siteSettings.siteTitle.trim();
-        }
+        configurePublicMetadata({
+          siteTitle: settings.siteSettings.siteTitle.trim(),
+          defaultSocialImage: settings.siteSettings.brandMedia.defaultSocialImage.trim(),
+        });
         const faviconHref = settings.siteSettings.brandMedia.favicon.trim();
         if (faviconHref) {
           const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
@@ -44,18 +46,7 @@ function AppContent() {
           }
         }
 
-        const defaultSocialImage = settings.siteSettings.brandMedia.defaultSocialImage.trim();
-        if (defaultSocialImage) {
-          const ogImageTag = document.querySelector("meta[property='og:image']") || document.createElement('meta');
-          ogImageTag.setAttribute('property', 'og:image');
-          ogImageTag.setAttribute('content', defaultSocialImage);
-          if (!ogImageTag.parentNode) document.head.appendChild(ogImageTag);
 
-          const twitterImageTag = document.querySelector("meta[name='twitter:image']") || document.createElement('meta');
-          twitterImageTag.setAttribute('name', 'twitter:image');
-          twitterImageTag.setAttribute('content', defaultSocialImage);
-          if (!twitterImageTag.parentNode) document.head.appendChild(twitterImageTag);
-        }
       })
       .catch(() => undefined);
 
@@ -63,6 +54,10 @@ function AppContent() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    applyResolvedPageMetadata(currentPage);
+  }, [currentPage]);
 
   return (
     <div className="min-h-screen">

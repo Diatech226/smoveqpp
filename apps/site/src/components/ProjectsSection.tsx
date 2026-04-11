@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { useCallback, useState } from 'react';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { projectRepository } from '../repositories/projectRepository';
+import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { fetchPublicProjects } from '../utils/publicContentApi';
 import { toProjectCardContract } from '../features/projects/projectCardAdapter';
@@ -50,7 +51,7 @@ export default function ProjectsSection() {
           viewport={{ once: true }}
           transition={{ delay: index * 0.1, duration: 0.6 }}
           onClick={() => {
-            window.location.hash = `project-${project.slug || project.id}`;
+            window.location.hash = PUBLIC_ROUTE_HASH.projectDetail(project.slug || project.id).slice(1);
           }}
         >
           <motion.div

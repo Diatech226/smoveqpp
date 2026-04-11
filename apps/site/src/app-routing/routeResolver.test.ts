@@ -25,6 +25,7 @@ describe('routeResolver', () => {
 
     expect(resolution.page).toBe('project-alpha-123');
     expect(resolution.sectionToScroll).toBeNull();
+    expect(resolution.normalizedHash).toBe('/projects/alpha-123');
   });
 
 
@@ -33,6 +34,14 @@ describe('routeResolver', () => {
 
     expect(resolution.page).toBe('blog-mon-super-article');
     expect(resolution.sectionToScroll).toBeNull();
+    expect(resolution.normalizedHash).toBe('/blog/mon-super-article');
+  });
+
+  it('resolves canonical hash paths for public list routes', () => {
+    expect(resolveRoute('#/blog', baseAuth).page).toBe('blog');
+    expect(resolveRoute('#/projects', baseAuth).page).toBe('projects');
+    expect(resolveRoute('#/services', baseAuth).page).toBe('services-all');
+    expect(resolveRoute('#/about', baseAuth).page).toBe('apropos');
   });
 
   it('maps canonical service slugs to deterministic service pages', () => {
@@ -73,7 +82,7 @@ describe('routeResolver', () => {
     });
 
     expect(resolution.page).toBe('cms-dashboard');
-    expect(resolution.normalizedHash).toBe('cms');
+    expect(resolution.normalizedHash).toBe('/cms');
   });
 
   it('normalizes legacy cms dashboard hash to cms root', () => {
@@ -84,7 +93,7 @@ describe('routeResolver', () => {
     });
 
     expect(resolution.page).toBe('cms-dashboard');
-    expect(resolution.normalizedHash).toBe('cms');
+    expect(resolution.normalizedHash).toBe('/cms');
   });
 
   it('redirects cms routes to login when unauthenticated', () => {
