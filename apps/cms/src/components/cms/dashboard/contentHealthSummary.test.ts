@@ -36,6 +36,10 @@ const makeHealth = (overrides: Partial<ContentHealthSummary> = {}): ContentHealt
     topIssues: [],
   },
   mediaRolePresets: ['cardImage', 'heroImage'],
+  releaseReadinessChecks: [
+    { id: 'check-1', level: 'blocker', status: 'failed', message: 'x', checkedAt: '2026-04-11T00:00:00.000Z' },
+    { id: 'check-2', level: 'warning', status: 'passed', message: 'y', checkedAt: '2026-04-11T00:00:00.000Z' },
+  ],
   ...overrides,
 });
 
@@ -49,6 +53,7 @@ describe('deriveDashboardReadinessSnapshot', () => {
       publishedCount: 4,
       unresolvedRouteCount: 2,
       unresolvedMediaCount: 6,
+      failedReleaseChecks: 1,
     });
   });
 

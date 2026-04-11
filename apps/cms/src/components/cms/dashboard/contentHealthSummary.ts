@@ -7,6 +7,7 @@ export interface DashboardReadinessSnapshot {
   publishedCount: number;
   unresolvedRouteCount: number;
   unresolvedMediaCount: number;
+  failedReleaseChecks: number;
 }
 
 export const deriveDashboardReadinessSnapshot = (health: ContentHealthSummary): DashboardReadinessSnapshot => {
@@ -33,5 +34,6 @@ export const deriveDashboardReadinessSnapshot = (health: ContentHealthSummary): 
       health.quality.missingPublishedMedia.blog +
       health.quality.missingPublishedMedia.projects +
       health.quality.missingPublishedMedia.services,
+    failedReleaseChecks: (health.releaseReadinessChecks || []).filter((check) => check.status === 'failed').length,
   };
 };

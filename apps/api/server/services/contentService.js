@@ -798,9 +798,17 @@ class ContentService {
   }
 
   archiveMediaFile(id) {
-    const references = this.findMediaReferences(id);
-    if (references.length > 0) {
-      return { ok: false, error: { code: 'MEDIA_IN_USE', message: 'Media file is still referenced by published or editable content.', references } };
+    const usageImpact = this.getMediaUsageImpact(id);
+    if (!usageImpact.okToArchive) {
+      return {
+        ok: false,
+        error: {
+          code: 'MEDIA_IN_USE',
+          message: 'Media file is still referenced by published or protected content.',
+          references: usageImpact.references,
+          impact: usageImpact,
+        },
+      };
     }
 
     const files = this.listMediaFiles({ includeArchived: true });
@@ -819,6 +827,30 @@ class ContentService {
     state.mediaFiles = files;
     this.writeState(state);
     return { ok: true, mediaFile: files[index] };
+  }
+
+  restoreMediaFile(id) {
+    const files = this.listMediaFiles({ includeArchived: true });
+    const index = files.findIndex((entry) => entry.id === id);
+    if (index < 0) {
+      return { ok: false, error: { code: 'MEDIA_NOT_FOUND', message: 'Media file not found.' } };
+    }
+
+    if (!files[index].archivedAt) {
+      return { ok: true, mediaFile: files[index], restored: false };
+    }
+
+    files[index] = {
+      ...files[index],
+      archivedAt: null,
+      restoredAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const state = this.readState();
+    state.mediaFiles = files;
+    this.writeState(state);
+    return { ok: true, mediaFile: files[index], restored: true };
   }
 
   replaceMediaFile(id, nextPayload = {}) {
@@ -963,6 +995,8 @@ class ContentService {
 
   getSyncDiagnostics() {
     const invalidMediaReferences = this.collectAllMediaReferences().filter((entry) => !entry.isValid);
+    const criticalUnresolvedMediaReferences = invalidMediaReferences.filter((entry) => this.isCriticalMediaReference(entry));
+    const publishedCriticalUnresolvedMediaReferences = criticalUnresolvedMediaReferences.filter((entry) => entry.status === 'published');
     const settings = this.getSettings();
 
     return {
@@ -971,6 +1005,8 @@ class ContentService {
       invalidMediaReferences,
       summary: {
         invalidMediaReferenceCount: invalidMediaReferences.length,
+        criticalUnresolvedMediaReferenceCount: criticalUnresolvedMediaReferences.length,
+        publishedCriticalUnresolvedMediaReferenceCount: publishedCriticalUnresolvedMediaReferences.length,
         blogCount: this.listBlogPosts().length,
         projectCount: this.listProjects().length,
         serviceCount: this.listServices().length,
@@ -1084,6 +1120,13 @@ class ContentService {
         legacyFieldUsage,
         mediaMissingAlt,
         missingBrandAssets,
+        unresolvedMediaByStatus: {
+          published: unresolvedMediaReferences.filter((entry) => entry.status === 'published').length,
+          draft: unresolvedMediaReferences.filter((entry) => entry.status === 'draft').length,
+          inReview: unresolvedMediaReferences.filter((entry) => entry.status === 'in_review').length,
+          archived: unresolvedMediaReferences.filter((entry) => entry.status === 'archived').length,
+          system: unresolvedMediaReferences.filter((entry) => entry.status === 'system').length,
+        },
       },
       launchReadiness: {
         blockers: [
@@ -1114,6 +1157,19 @@ class ContentService {
         })),
       },
       mediaRolePresets: Array.from(MEDIA_ROLE_PRESETS),
+      releaseReadinessChecks: this.getReleaseReadinessChecks({
+        unresolvedMediaReferences,
+        unresolvedPublishedBlogCardMedia,
+        unresolvedPublishedProjectCardMedia,
+        unresolvedPublishedProjectHeroMedia,
+        unresolvedPublishedProjectGalleryMedia,
+        missingPublishedMedia,
+        seoIncompleteBlog,
+        seoIncompleteProjects,
+        seoIncompleteServices,
+        invalidServiceRoutes,
+        routeCollisions,
+      }),
     };
   }
 
@@ -1275,6 +1331,49 @@ class ContentService {
       issues.push({ severity: 'warning', code: 'service_partial_cta', message: 'Service avec label CTA sans lien correspondant.' });
     }
     return issues;
+  }
+
+  getReleaseReadinessChecks(context) {
+    const checks = [
+      {
+        id: 'published-critical-media-resolved',
+        level: 'blocker',
+        status: context.unresolvedPublishedBlogCardMedia.length + context.unresolvedPublishedProjectCardMedia.length + context.unresolvedPublishedProjectHeroMedia.length > 0 ? 'failed' : 'passed',
+        message: 'Published blog/project critical card & hero media references must resolve.',
+      },
+      {
+        id: 'published-gallery-media-resolved',
+        level: 'warning',
+        status: context.unresolvedPublishedProjectGalleryMedia.length > 0 ? 'failed' : 'passed',
+        message: 'Published project gallery references should resolve to active media.',
+      },
+      {
+        id: 'published-essential-media-present',
+        level: 'blocker',
+        status: context.missingPublishedMedia.blog + context.missingPublishedMedia.projects + context.missingPublishedMedia.services > 0 ? 'failed' : 'passed',
+        message: 'Published entities must include required essential media.',
+      },
+      {
+        id: 'published-seo-required',
+        level: 'warning',
+        status: context.seoIncompleteBlog + context.seoIncompleteProjects + context.seoIncompleteServices > 0 ? 'failed' : 'passed',
+        message: 'Published entities should include complete SEO title/description/canonical slug.',
+      },
+      {
+        id: 'service-routing-consistency',
+        level: 'blocker',
+        status: context.invalidServiceRoutes + context.routeCollisions.length > 0 ? 'failed' : 'passed',
+        message: 'Service route slugs must be valid and collision-free.',
+      },
+      {
+        id: 'global-media-reference-resolve-rate',
+        level: 'warning',
+        status: context.unresolvedMediaReferences.length > 0 ? 'failed' : 'passed',
+        message: 'All media: references should resolve or be explicitly remediated before release.',
+      },
+    ];
+
+    return checks.map((check) => ({ ...check, checkedAt: new Date().toISOString() }));
   }
 
   collectRouteCollisions(services) {
@@ -1731,6 +1830,51 @@ class ContentService {
     return this.collectAllMediaReferences().filter((entry) => entry.value === mediaRef);
   }
 
+  getMediaUsageImpact(mediaId) {
+    const references = this.findMediaReferences(mediaId);
+    const publishedReferences = references.filter((entry) => entry.status === 'published');
+    const protectedReferences = references.filter((entry) => entry.status === 'system');
+    const editableReferences = references.filter((entry) => entry.status === 'draft' || entry.status === 'in_review');
+    const criticalReferences = references.filter((entry) => this.isCriticalMediaReference(entry));
+    const criticalPublishedReferences = criticalReferences.filter((entry) => entry.status === 'published' || entry.status === 'system');
+
+    const okToArchive = publishedReferences.length === 0 && protectedReferences.length === 0;
+    return {
+      mediaId,
+      okToArchive,
+      decision: okToArchive ? 'allow_archive' : 'block_archive',
+      references,
+      summary: {
+        total: references.length,
+        published: publishedReferences.length,
+        editable: editableReferences.length,
+        protected: protectedReferences.length,
+        critical: criticalReferences.length,
+        criticalPublished: criticalPublishedReferences.length,
+      },
+    };
+  }
+
+  isCriticalMediaReference(reference) {
+    const key = `${reference.domain}:${reference.field}`;
+    return new Set([
+      'blog:featuredImage',
+      'blog:mediaRoles.featuredImage',
+      'blog:mediaRoles.coverImage',
+      'blog:mediaRoles.cardImage',
+      'project:featuredImage',
+      'project:mainImage',
+      'project:mediaRoles.cardImage',
+      'project:mediaRoles.heroImage',
+      'project:mediaRoles.coverImage',
+      'service:iconLikeAsset',
+      'settings:siteSettings.brandMedia.logo',
+      'settings:siteSettings.brandMedia.logoDark',
+      'settings:siteSettings.brandMedia.favicon',
+      'settings:siteSettings.brandMedia.defaultSocialImage',
+    ]).has(key);
+  }
+
   collectAllMediaReferences() {
     const references = [];
     const mediaFilesById = new Map(this.listMediaFiles({ includeArchived: true }).map((entry) => [entry.id, entry]));
@@ -1774,18 +1918,18 @@ class ContentService {
     });
 
     this.listServices().forEach((service) => {
-      register(service.iconLikeAsset, { domain: 'service', id: service.id, field: 'iconLikeAsset', label: service.title });
-      register(service.seo?.socialImage, { domain: 'service', id: service.id, field: 'seo.socialImage', label: service.title });
+      register(service.iconLikeAsset, { domain: 'service', id: service.id, status: service.status, field: 'iconLikeAsset', label: service.title });
+      register(service.seo?.socialImage, { domain: 'service', id: service.id, status: service.status, field: 'seo.socialImage', label: service.title });
     });
 
     const home = this.getPageContent().home;
-    register(home.aboutImage, { domain: 'home', id: 'home', field: 'aboutImage', label: 'Home page' });
+    register(home.aboutImage, { domain: 'home', id: 'home', status: 'system', field: 'aboutImage', label: 'Home page' });
 
     const settings = this.getSettings();
-    register(settings.siteSettings.brandMedia.logo, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.logo', label: 'Site settings' });
-    register(settings.siteSettings.brandMedia.logoDark, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.logoDark', label: 'Site settings' });
-    register(settings.siteSettings.brandMedia.favicon, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.favicon', label: 'Site settings' });
-    register(settings.siteSettings.brandMedia.defaultSocialImage, { domain: 'settings', id: 'global', field: 'siteSettings.brandMedia.defaultSocialImage', label: 'Site settings' });
+    register(settings.siteSettings.brandMedia.logo, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.logo', label: 'Site settings' });
+    register(settings.siteSettings.brandMedia.logoDark, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.logoDark', label: 'Site settings' });
+    register(settings.siteSettings.brandMedia.favicon, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.favicon', label: 'Site settings' });
+    register(settings.siteSettings.brandMedia.defaultSocialImage, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.defaultSocialImage', label: 'Site settings' });
 
     return references;
   }
