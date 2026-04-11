@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
+const { ContentService } = require('../apps/api/server/services/contentService');
 
 const root = process.cwd();
 const contentPath = path.join(root, 'apps/api/server/data/content.json');
@@ -43,3 +44,16 @@ console.log(`Blog posts: ${content.blogPosts.length}`);
 console.log(`Projects: ${content.projects.length}`);
 console.log(`Media files: ${content.mediaFiles.length}`);
 console.log(`Audit events: ${audit.events.length}`);
+
+const service = new ContentService({
+  contentRepository: {
+    getState: () => JSON.parse(JSON.stringify(content)),
+    saveState: () => {},
+  },
+});
+const health = service.getContentHealthSummary();
+const failedBlockerChecks = (health.releaseReadinessChecks || []).filter((check) => check.level === 'blocker' && check.status === 'failed');
+if (failedBlockerChecks.length > 0) {
+  fail(`Release readiness blocker checks failed: ${failedBlockerChecks.map((check) => check.id).join(', ')}`);
+}
+console.log(`Release readiness checks: ${(health.releaseReadinessChecks || []).length} total, ${failedBlockerChecks.length} blocker failures.`);

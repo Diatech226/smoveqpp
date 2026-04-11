@@ -118,6 +118,8 @@ export interface SyncDiagnostics {
   }>;
   summary: {
     invalidMediaReferenceCount: number;
+    criticalUnresolvedMediaReferenceCount?: number;
+    publishedCriticalUnresolvedMediaReferenceCount?: number;
     blogCount: number;
     projectCount: number;
     serviceCount: number;
@@ -152,6 +154,13 @@ export interface ContentHealthSummary {
       projectGallery: number;
       archivedReferencedByPublished: number;
     };
+    unresolvedMediaByStatus?: {
+      published: number;
+      draft: number;
+      inReview: number;
+      archived: number;
+      system: number;
+    };
     legacyFieldUsage?: {
       blog: number;
       projects: number;
@@ -180,6 +189,28 @@ export interface ContentHealthSummary {
     }>;
   };
   mediaRolePresets: string[];
+  releaseReadinessChecks?: Array<{
+    id: string;
+    level: 'blocker' | 'warning';
+    status: 'passed' | 'failed';
+    message: string;
+    checkedAt: string;
+  }>;
+}
+
+export interface MediaUsageImpact {
+  mediaId: string;
+  okToArchive: boolean;
+  decision: 'allow_archive' | 'block_archive';
+  references: Array<{ domain: string; id: string; field: string; label: string; status?: string }>;
+  summary: {
+    total: number;
+    published: number;
+    editable: number;
+    protected: number;
+    critical: number;
+    criticalPublished: number;
+  };
 }
 
 const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content`;
@@ -370,10 +401,22 @@ export async function fetchBackendMediaReferences(id: string): Promise<Array<{ d
   return body.data?.references || [];
 }
 
+export async function fetchBackendMediaImpact(id: string): Promise<MediaUsageImpact> {
+  const body = await request<{ impact: MediaUsageImpact }>(`/media/${id}/impact`);
+  return body.data!.impact;
+}
+
 export async function replaceBackendMediaFile(id: string, mediaFile: Partial<MediaFile>): Promise<MediaFile> {
   const body = await request<{ mediaFile: MediaFile }>(`/media/${id}/replace`, {
     method: 'POST',
     body: JSON.stringify(mediaFile),
+  });
+  return body.data!.mediaFile;
+}
+
+export async function restoreBackendMediaFile(id: string): Promise<MediaFile> {
+  const body = await request<{ mediaFile: MediaFile }>(`/media/${id}/restore`, {
+    method: 'POST',
   });
   return body.data!.mediaFile;
 }

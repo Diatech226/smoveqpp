@@ -884,6 +884,96 @@ describe('ContentService production hardening', () => {
     expect(service.listMediaFiles({ includeArchived: true }).some((entry) => entry.id === 'asset-archive-1')).toBe(true);
   });
 
+  it('blocks media archive when used by published critical content and allows archive for draft-only references', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        mediaFiles: [
+          {
+            id: 'asset-governance-1',
+            name: 'asset.jpg',
+            type: 'image',
+            url: 'https://example.com/asset.jpg',
+            thumbnailUrl: 'https://example.com/asset.jpg',
+            size: 10,
+            uploadedDate: '2024-01-01T00:00:00.000Z',
+            uploadedBy: 'admin',
+            tags: [],
+          },
+        ],
+        blogPosts: [
+          {
+            id: 'post-published',
+            title: 'Post Published',
+            slug: 'post-published',
+            excerpt: 'Excerpt',
+            content: 'Content',
+            author: 'Author',
+            authorRole: 'Role',
+            category: 'Cat',
+            tags: [],
+            publishedDate: '2024-01-01T00:00:00.000Z',
+            readTime: '5 min',
+            featuredImage: 'media:asset-governance-1',
+            images: [],
+            status: 'published',
+          },
+          {
+            id: 'post-draft',
+            title: 'Post Draft',
+            slug: 'post-draft',
+            excerpt: 'Excerpt',
+            content: 'Content',
+            author: 'Author',
+            authorRole: 'Role',
+            category: 'Cat',
+            tags: [],
+            publishedDate: '2024-01-01T00:00:00.000Z',
+            readTime: '5 min',
+            featuredImage: 'media:asset-governance-1',
+            images: [],
+            status: 'draft',
+          },
+        ],
+      }),
+    });
+
+    const impact = service.getMediaUsageImpact('asset-governance-1');
+    expect(impact.okToArchive).toBe(false);
+    expect(impact.summary.published).toBeGreaterThan(0);
+    expect(service.archiveMediaFile('asset-governance-1').ok).toBe(false);
+
+    const publishToDraft = service.transitionBlogStatus('post-published', 'draft');
+    expect(publishToDraft.ok).toBe(true);
+    const archived = service.archiveMediaFile('asset-governance-1');
+    expect(archived.ok).toBe(true);
+  });
+
+  it('restores archived media to active state', () => {
+    const service = new ContentService({
+      contentRepository: new MemoryContentRepository({
+        mediaFiles: [
+          {
+            id: 'asset-restore-1',
+            name: 'asset.jpg',
+            type: 'image',
+            url: 'https://example.com/asset.jpg',
+            thumbnailUrl: 'https://example.com/asset.jpg',
+            size: 10,
+            uploadedDate: '2024-01-01T00:00:00.000Z',
+            uploadedBy: 'admin',
+            tags: [],
+            archivedAt: '2024-01-02T00:00:00.000Z',
+          },
+        ],
+      }),
+    });
+
+    const restored = service.restoreMediaFile('asset-restore-1');
+    expect(restored.ok).toBe(true);
+    expect(restored.restored).toBe(true);
+    expect(restored.mediaFile.archivedAt).toBeNull();
+  });
+
   it('tracks references across services and settings brand media fields', () => {
     const service = new ContentService({
       contentRepository: new MemoryContentRepository({
@@ -1131,6 +1221,7 @@ describe('ContentService production hardening', () => {
     expect(summary.mediaRolePresets).toContain('heroImage');
     expect(summary.launchReadiness.blockers.length).toBeGreaterThan(0);
     expect(summary.launchReadiness.summary.blockerCount).toBeGreaterThanOrEqual(0);
+    expect((summary.releaseReadinessChecks || []).length).toBeGreaterThan(0);
   });
 
   it('flags unresolved published blog/project critical media with archived-vs-missing diagnostics', () => {

@@ -9,6 +9,7 @@ import {
   mediaReferenceExists,
   toMediaReference,
 } from '../../shared/contentContracts';
+import { logWarn } from '../../utils/observability';
 
 export { MEDIA_REFERENCE_PREFIX };
 
@@ -29,6 +30,18 @@ const toApiOrigin = (apiBaseUrl: string): string => {
 };
 
 const toDeterministicFallbackUrl = (): string => FALLBACK_MEDIA_DATA_URL;
+const reportedFallbacks = new Set<string>();
+
+const reportFallback = (reference: string, reason: string) => {
+  const key = `${reference || 'empty'}::${reason}`;
+  if (reportedFallbacks.has(key)) return;
+  reportedFallbacks.add(key);
+  logWarn({
+    scope: 'public-media',
+    event: 'media_fallback_applied',
+    details: { reference: reference || null, reason },
+  });
+};
 
 export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = RUNTIME_CONFIG.apiBaseUrl): string => {
   const normalizedUrl = url.trim();
@@ -104,6 +117,7 @@ export const resolveCanonicalMedia = (
 
     if (media?.url) {
       if (media.archivedAt) {
+        reportFallback(normalizedReference, 'archived_media_reference');
         return {
           reference: normalizedReference,
           url: toDeterministicFallbackUrl(),
@@ -122,6 +136,7 @@ export const resolveCanonicalMedia = (
       };
     }
 
+    reportFallback(normalizedReference, 'missing_media_reference');
     return {
       reference: normalizedReference,
       url: toDeterministicFallbackUrl(),
@@ -143,6 +158,7 @@ export const resolveCanonicalMedia = (
     };
   }
 
+  reportFallback('', 'empty_media_reference');
   return {
     reference: '',
     url: toDeterministicFallbackUrl(),

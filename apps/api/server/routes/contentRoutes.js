@@ -253,6 +253,8 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
 
   router.get('/media/:id/references', requirePermission(Permissions.CONTENT_READ), (req, res) =>
     sendSuccess(res, 200, { references: contentService.findMediaReferences(req.params.id) }));
+  router.get('/media/:id/impact', requirePermission(Permissions.CONTENT_READ), (req, res) =>
+    sendSuccess(res, 200, { impact: contentService.getMediaUsageImpact(req.params.id) }));
 
   router.post('/media/upload', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const parsed = parseUploadPayload(req.body || {});
@@ -331,13 +333,22 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { mediaFile: result.mediaFile, replaced: true });
   });
 
+  router.post('/media/:id/restore', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const restored = contentService.restoreMediaFile(req.params.id);
+    if (!restored.ok) {
+      const statusCode = restored.error.code === 'MEDIA_NOT_FOUND' ? 404 : 400;
+      return sendError(res, statusCode, restored.error.code, restored.error.message);
+    }
+    return sendSuccess(res, 200, { restored: restored.restored, mediaFile: restored.mediaFile });
+  });
+
   router.delete('/media/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
-    const references = contentService.findMediaReferences(req.params.id);
-    if (references.length > 0) {
+    const impact = contentService.getMediaUsageImpact(req.params.id);
+    if (!impact.okToArchive) {
       auditService?.record(toAuditContext(req, 'cms_media_delete', 'failure', {
         entityType: 'media_asset',
         entityId: req.params.id,
-        metadata: { code: 'MEDIA_IN_USE', references },
+        metadata: { code: 'MEDIA_IN_USE', impact },
       }));
       return sendError(res, 409, 'MEDIA_IN_USE', 'Media file is still referenced by published or editable content.');
     }
