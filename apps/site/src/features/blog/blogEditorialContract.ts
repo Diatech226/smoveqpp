@@ -1,4 +1,5 @@
 import { normalizeSlug } from './blogEntryAdapter';
+import { isValidSlug } from '../../shared/contentContracts';
 
 export interface BlogEditorialDraft {
   title: string;
@@ -18,7 +19,6 @@ export interface BlogEditorialReadiness {
   warnings: string[];
 }
 
-const BLOG_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const parseTags = (tags: string): string[] =>
   tags
@@ -40,7 +40,7 @@ export function evaluateBlogEditorialReadiness(
   const normalizedSlug = normalizeSlug(form.slug, form.title);
 
   if (!form.title.trim()) blockers.push('Titre manquant.');
-  if (!normalizedSlug || !BLOG_SLUG_PATTERN.test(normalizedSlug)) {
+  if (!normalizedSlug || !isValidSlug(normalizedSlug)) {
     blockers.push('Slug invalide (mots-separes-par-tirets).');
   }
 

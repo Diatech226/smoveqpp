@@ -69,6 +69,7 @@ import { deriveDashboardCmsStats } from './dashboard/cmsStats';
 import { canMutateSensitiveUserFields, filterAdminUsers } from './users/adminUsersViewModel';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
 import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSummary';
+import { isValidSlug } from '../../shared/contentContracts';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
@@ -162,8 +163,6 @@ interface ServiceFormState {
   processSteps: string;
 }
 
-const PROJECT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const BLOG_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const SERVICE_COLOR_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
 const BLOG_MANAGED_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
@@ -263,7 +262,7 @@ const getBlogPublishabilityErrors = (form: BlogFormState): Partial<Record<keyof 
   if (!form.title.trim()) errors.title = 'Le titre est requis pour publication.';
 
   const normalized = normalizeSlug(form.slug, form.title);
-  if (!normalized || !BLOG_SLUG_PATTERN.test(normalized)) {
+  if (!normalized || !isValidSlug(normalized)) {
     errors.slug = 'Slug invalide pour publication (format attendu: mots-separes-par-tirets).';
   }
 
@@ -1220,7 +1219,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setProjectsError('');
 
     const normalizedSlug = normalizeSlug(projectForm.slug, projectForm.title);
-    if (!PROJECT_SLUG_PATTERN.test(normalizedSlug)) {
+    if (!isValidSlug(normalizedSlug)) {
       setProjectFormErrors((prev) => ({ ...prev, slug: 'Le slug généré est invalide. Modifiez le titre ou le slug.' }));
       setProjectsError('Slug invalide. Corrigez le titre ou le slug puis réessayez.');
       setIsSavingProject(false);
