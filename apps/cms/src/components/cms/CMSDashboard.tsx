@@ -65,6 +65,7 @@ import { isProjectMediaReference, resolveProjectFeaturedImage, resolveProjectHer
 import { toMediaReferenceValue } from '../../features/media/assetReference';
 import { resolveServiceRouteSlug } from '../../features/marketing/serviceRouting';
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
+import { OverviewSection, SettingsSection, UsersSection } from './dashboard/CMSExtendedSections';
 import { deriveDashboardCmsStats } from './dashboard/cmsStats';
 import { canMutateSensitiveUserFields, filterAdminUsers } from './users/adminUsersViewModel';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
@@ -2324,314 +2325,69 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     if (currentSection === 'users') {
       return (
-        <div className="space-y-6">
-          <AdminPageHeader
-            title="Utilisateurs"
-            subtitle="Module d’administration des identités: recherche, filtres, détails, rôle/statut/vérification et contexte d’audit."
-            actions={
-              <AdminButton
-                type="button"
-                onClick={() => {
-                  void loadAdminUsers();
-                  if (user?.role === 'admin') {
-                    void loadAuditEvents();
-                  }
-                }}
-                size="sm"
-              >
-                Rafraîchir
-              </AdminButton>
-            }
-          />
-          {adminUsersNotice ? <AdminSuccessFeedback label={adminUsersNotice} /> : null}
-          {adminUsersError ? <AdminErrorState label={adminUsersError} /> : null}
-          {adminUsersLoading ? <AdminLoadingState label="Chargement des utilisateurs..." /> : null}
-          {user?.role !== 'admin' ? (
-            <AdminWarningState label="Les modifications de rôle, de statut et de vérification sont réservées aux administrateurs." />
-          ) : null}
-          <AdminPanel title="Filtres & recherche">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <input
-                value={userSearch}
-                onChange={(event) => setUserSearch(event.target.value)}
-                placeholder="Rechercher par nom ou email"
-                className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]"
-              />
-              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]">
-                <option value="all">Tous les rôles</option>
-                {USER_ROLE_OPTIONS.map((role) => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]">
-                <option value="all">Tous les statuts</option>
-                {USER_ACCOUNT_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-              <select value={verificationFilter} onChange={(event) => setVerificationFilter(event.target.value as typeof verificationFilter)} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]">
-                <option value="all">Toutes vérifications</option>
-                <option value="verified">Email vérifié</option>
-                <option value="unverified">Email non vérifié</option>
-              </select>
-              <select value={providerFilter} onChange={(event) => setProviderFilter(event.target.value as typeof providerFilter)} className="rounded-[10px] border border-[#d8e4e8] px-3 py-2 text-[14px]">
-                <option value="all">Tous les fournisseurs</option>
-                {USER_PROVIDER_OPTIONS.map((provider) => (
-                  <option key={provider} value={provider}>{provider}</option>
-                ))}
-              </select>
-            </div>
-          </AdminPanel>
-          <AdminPanel title="Comptes">
-            {!adminUsersLoading && adminUsers.length === 0 ? (
-              <AdminEmptyState label="Aucun utilisateur trouvé." />
-            ) : null}
-            {!adminUsersLoading && adminUsers.length > 0 && filteredAdminUsers.length === 0 ? (
-              <AdminEmptyState label="Aucun compte ne correspond aux filtres actifs." />
-            ) : null}
-            {filteredAdminUsers.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-[#e4edf1] text-left text-[14px]">
-                  <thead>
-                    <tr className="text-[#5f727a]">
-                      <th className="px-3 py-2 font-semibold">Utilisateur</th>
-                      <th className="px-3 py-2 font-semibold">Rôle</th>
-                      <th className="px-3 py-2 font-semibold">Statut</th>
-                      <th className="px-3 py-2 font-semibold">Vérification</th>
-                      <th className="px-3 py-2 font-semibold">Provider</th>
-                      <th className="px-3 py-2 font-semibold">Dernière activité</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#eef3f5]">
-                    {filteredAdminUsers.map((entry) => (
-                      <tr key={entry.id} className={`cursor-pointer hover:bg-[#f8fbfc] ${entry.id === selectedUserId ? 'bg-[#f3f9fd]' : ''}`} onClick={() => setSelectedUserId(entry.id)}>
-                        <td className="px-3 py-3">
-                          <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{entry.name || 'Utilisateur sans nom'}</p>
-                          <p className="text-[13px] text-[#6f7f85]">{entry.email || 'Email manquant'}</p>
-                          <p className="text-[12px] text-[#8a9ba2]">Créé: {formatUserDate(entry.createdAt)} · MAJ: {formatUserDate(entry.updatedAt)}</p>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className={`inline-flex rounded-full border px-2 py-1 text-[12px] font-medium capitalize ${getUserRoleTone(entry.role)}`}>{entry.role}</span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className={`inline-flex rounded-full border px-2 py-1 text-[12px] font-medium capitalize ${getUserStatusTone(entry.accountStatus)}`}>{entry.accountStatus ?? 'active'}</span>
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className={`inline-flex rounded-full border px-2 py-1 text-[12px] font-medium ${entry.emailVerified ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                            {entry.emailVerified ? 'Vérifié' : 'Non vérifié'}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-[13px] text-[#4b5a60]">{entry.authProvider ?? 'local'}</td>
-                        <td className="px-3 py-3 text-[13px] text-[#4b5a60]">{formatUserDate(entry.lastLoginAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              null
-            )}
-          </AdminPanel>
-          {selectedAdminUser ? (
-            <AdminPanel title="Détail & gestion du compte">
-              <div className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="rounded-[12px] border border-[#eef3f5] p-3">
-                    <p className="text-[12px] text-[#7b868c]">Nom complet</p>
-                    <p className="text-[14px] text-[#273a41] font-medium">{selectedAdminUser.name || 'n/a'}</p>
-                  </div>
-                  <div className="rounded-[12px] border border-[#eef3f5] p-3">
-                    <p className="text-[12px] text-[#7b868c]">Email</p>
-                    <p className="text-[14px] text-[#273a41] font-medium">{selectedAdminUser.email || 'n/a'}</p>
-                  </div>
-                  <div className="rounded-[12px] border border-[#eef3f5] p-3">
-                    <p className="text-[12px] text-[#7b868c]">Fournisseur</p>
-                    <p className="text-[14px] text-[#273a41] font-medium">{selectedAdminUser.authProvider ?? 'local'} {selectedAdminUser.providerId ? `(${selectedAdminUser.providerId})` : ''}</p>
-                  </div>
-                  <div className="rounded-[12px] border border-[#eef3f5] p-3">
-                    <p className="text-[12px] text-[#7b868c]">Dernière activité</p>
-                    <p className="text-[14px] text-[#273a41] font-medium">{formatUserDate(selectedAdminUser.lastLoginAt)}</p>
-                  </div>
-                </div>
-                {user?.id === selectedAdminUser.id ? (
-                  <AdminWarningState label="Vous consultez votre propre compte. Les opérations sensibles (rétrogradation / suspension) sont bloquées." />
-                ) : null}
-                <div className="grid gap-3 md:grid-cols-3">
-                  <select
-                    value={selectedAdminUser.role}
-                    disabled={updatingUserId === selectedAdminUser.id || user?.role !== 'admin' || user?.id === selectedAdminUser.id}
-                    onChange={(event) => void patchAdminUser(selectedAdminUser.id, { role: event.target.value as AppUser['role'] })}
-                    className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
-                  >
-                    {USER_ROLE_OPTIONS.map((role) => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={selectedAdminUser.accountStatus ?? 'active'}
-                    disabled={updatingUserId === selectedAdminUser.id || user?.role !== 'admin' || user?.id === selectedAdminUser.id}
-                    onChange={(event) => void patchAdminUser(selectedAdminUser.id, { accountStatus: event.target.value as AppUser['accountStatus'] })}
-                    className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
-                  >
-                    {USER_ACCOUNT_STATUS_OPTIONS.map((status) => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    disabled={updatingUserId === selectedAdminUser.id || user?.role !== 'admin'}
-                    onClick={() => void patchAdminUser(selectedAdminUser.id, { emailVerified: !selectedAdminUser.emailVerified })}
-                    className="rounded-[10px] border border-[#d8e4e8] px-2 py-2 text-[14px]"
-                  >
-                    {selectedAdminUser.emailVerified ? 'Marquer non vérifié' : 'Marquer vérifié'}
-                  </button>
-                </div>
-              </div>
-            </AdminPanel>
-          ) : null}
-          {user?.role === 'admin' ? (
-            <AdminPanel title="Journal d’audit (identité)">
-              {auditLoading ? <AdminLoadingState label="Chargement du journal d’audit..." /> : null}
-              {!auditLoading && auditEvents.length === 0 ? <AdminEmptyState label="Aucun événement disponible." /> : null}
-              {!auditLoading && auditEvents.length > 0 ? (
-                <div className="space-y-2">
-                  {auditEvents.slice(0, 20).map((event, index) => (
-                    <div key={`${String(event.at ?? index)}-${index}`} className="rounded-[10px] border border-[#eef3f5] px-3 py-2 text-[13px] text-[#4b5a60]">
-                      <span className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">{String(event.event ?? 'event')}</span>
-                      {' · '}
-                      <span>{String(event.outcome ?? 'unknown')}</span>
-                      {' · '}
-                      <span>{event.at ? new Date(String(event.at)).toLocaleString('fr-FR') : 'n/a'}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </AdminPanel>
-          ) : null}
-        </div>
+        <UsersSection
+          user={user}
+          adminUsersNotice={adminUsersNotice}
+          adminUsersError={adminUsersError}
+          adminUsersLoading={adminUsersLoading}
+          userSearch={userSearch}
+          setUserSearch={setUserSearch}
+          roleFilter={roleFilter}
+          setRoleFilter={setRoleFilter}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          verificationFilter={verificationFilter}
+          setVerificationFilter={setVerificationFilter}
+          providerFilter={providerFilter}
+          setProviderFilter={setProviderFilter}
+          roleOptions={USER_ROLE_OPTIONS}
+          accountStatusOptions={USER_ACCOUNT_STATUS_OPTIONS}
+          providerOptions={USER_PROVIDER_OPTIONS}
+          adminUsers={adminUsers}
+          filteredAdminUsers={filteredAdminUsers}
+          selectedUserId={selectedUserId}
+          setSelectedUserId={setSelectedUserId}
+          selectedAdminUser={selectedAdminUser}
+          updatingUserId={updatingUserId}
+          patchAdminUser={patchAdminUser}
+          formatUserDate={formatUserDate}
+          getUserRoleTone={getUserRoleTone}
+          getUserStatusTone={getUserStatusTone}
+          refresh={() => {
+            void loadAdminUsers();
+            if (user?.role === 'admin') void loadAuditEvents();
+          }}
+          auditLoading={auditLoading}
+          auditEvents={auditEvents}
+        />
       );
     }
 
     if (currentSection === 'settings') {
       return (
-        <div className="space-y-6">
-          <AdminPageHeader title="Paramètres" subtitle="Configuration globale et garde-fous de publication." />
-          {sectionError ? (
-            <AdminActionBar>
-              <AdminErrorState label={sectionError} />
-              {instantPublishingEnabled ? null : (
-                <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions "Publier" sont bloquées tant que ce mode reste inactif.</p>
-              )}
-              <AdminButton
-                onClick={() => {
-                  void hydrateBackendFromLocalSnapshot();
-                }}
-                disabled={isHydratingBackend}
-                intent="danger"
-              >
-                {isHydratingBackend ? 'Hydratation...' : 'Hydrater backend depuis local'}
-              </AdminButton>
-              <AdminButton
-                onClick={saveSettings}
-                disabled={settingsSaving}
-              >
-                <RotateCcw size={15} /> Réessayer
-              </AdminButton>
-            </AdminActionBar>
-          ) : null}
-          <AdminPanel title="Paramètres globaux (autorité CMS)">
-            <div className="space-y-5">
-              <p className="text-[12px] text-[#6f7f85]">Autorité site: <span className="font-semibold">siteSettings</span> • Autorité opérationnelle: <span className="font-semibold">operationalSettings</span> • Autorité éditoriale: <span className="font-semibold">taxonomySettings</span>.</p>
-              {settingsHasUnsavedChanges ? (
-                <div className="rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
-                  Modifications non sauvegardées détectées dans les paramètres.
-                </div>
-              ) : null}
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-[14px] border border-[#e7eff3] bg-[#fbfdfe] p-4 space-y-3">
-                  <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Informations générales</h3>
-                  <p className="text-[12px] text-[#6f7f85]">Utilisé par le site public pour l’identité globale (header/contact).</p>
-                  <label className="block">
-                    <span className="text-[13px] text-[#6f7f85]">Nom du site</span>
-                    <input value={siteSettingsTitle} onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...prev.siteSettings, siteTitle: event.target.value } }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
-                  </label>
-                  <label className="block">
-                    <span className="text-[13px] text-[#6f7f85]">Email support/contact</span>
-                    <input value={siteSettingsSupportEmail} onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...prev.siteSettings, supportEmail: event.target.value } }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
-                  </label>
-                </div>
-                <div className="rounded-[14px] border border-[#e7eff3] bg-[#fbfdfe] p-4 space-y-3">
-                  <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Branding (logo/favicon/social)</h3>
-                  <p className="text-[12px] text-[#6f7f85]">Champs branchés au backend <code>siteSettings.brandMedia</code> (URL ou <code>media:asset-id</code>).</p>
-                  <div className="grid gap-3">
-                    <input value={siteBrandMedia.logo || ''} onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...prev.siteSettings, brandMedia: { ...prev.siteSettings.brandMedia, logo: event.target.value } } }))} className="w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Logo principal" />
-                    <input value={siteBrandMedia.logoDark || ''} onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...prev.siteSettings, brandMedia: { ...prev.siteSettings.brandMedia, logoDark: event.target.value } } }))} className="w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Logo sombre (optionnel)" />
-                    <input value={siteBrandMedia.favicon || ''} onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...prev.siteSettings, brandMedia: { ...prev.siteSettings.brandMedia, favicon: event.target.value } } }))} className="w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Favicon" />
-                    <input value={siteBrandMedia.defaultSocialImage || ''} onChange={(event) => setSettingsValues((prev) => ({ ...prev, siteSettings: { ...prev.siteSettings, brandMedia: { ...prev.siteSettings.brandMedia, defaultSocialImage: event.target.value } } }))} className="w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="Image sociale par défaut" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-[14px] border border-[#e7eff3] bg-[#fbfdfe] p-4 space-y-3">
-                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Taxonomie éditoriale (blog)</h3>
-                <p className="text-[12px] text-[#6f7f85]">Ces valeurs pilotent les choix disponibles dans l’éditeur blog CMS.</p>
-                <div className="grid md:grid-cols-2 gap-3">
-                  <label className="block">
-                    <span className="text-[13px] text-[#6f7f85]">Catégories gérées (1 par ligne)</span>
-                    <textarea value={managedBlogCategories.join('\n')} onChange={(event) => setSettingsValues((prev) => ({ ...prev, taxonomySettings: { ...prev.taxonomySettings, blog: { ...prev.taxonomySettings.blog, managedCategories: parseManagedTaxonomyInput(event.target.value) } } }))} className="mt-1 min-h-[130px] w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
-                  </label>
-                  <label className="block">
-                    <span className="text-[13px] text-[#6f7f85]">Tags gérés (1 par ligne)</span>
-                    <textarea value={managedBlogTags.join('\n')} onChange={(event) => setSettingsValues((prev) => ({ ...prev, taxonomySettings: { ...prev.taxonomySettings, blog: { ...prev.taxonomySettings.blog, managedTags: parseManagedTaxonomyInput(event.target.value) } } }))} className="mt-1 min-h-[130px] w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />
-                  </label>
-                </div>
-                <label className="flex items-center justify-between rounded-[12px] border border-[#dfe9ee] bg-white p-4">
-                  <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Forcer les tags gérés</span>
-                  <input type="checkbox" checked={enforceManagedTags} onChange={(event) => setSettingsValues((prev) => ({ ...prev, taxonomySettings: { ...prev.taxonomySettings, blog: { ...prev.taxonomySettings.blog, enforceManagedTags: event.target.checked } } }))} />
-                </label>
-              </div>
-
-              <div className="rounded-[14px] border border-[#e7eff3] bg-[#fbfdfe] p-4 space-y-3">
-                <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Publication & opérations</h3>
-                <label className="flex items-center justify-between rounded-[12px] border border-[#dfe9ee] bg-white p-4">
-                  <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[#273a41]">Autoriser la publication immédiate</span>
-                  <input type="checkbox" checked={instantPublishingEnabled} onChange={(event) => setSettingsValues((prev) => ({ ...prev, operationalSettings: { ...prev.operationalSettings, instantPublishing: event.target.checked } }))} />
-                </label>
-                {instantPublishingEnabled ? null : <p className="text-[12px] text-amber-700">Publication instantanée désactivée: les actions “Publier” sont bloquées.</p>}
-                <p className="text-[12px] text-[#6f7f85]">Le rollback et l’hydratation backend sont des opérations avancées à réserver aux admins.</p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <AdminButton onClick={() => setSettingsValues(savedSettingsSnapshot || settingsValues)} disabled={!savedSettingsSnapshot || settingsSaving}>Annuler</AdminButton>
-                  <AdminButton onClick={saveSettings} disabled={settingsSaving} intent="primary">{settingsSaving ? 'Sauvegarde...' : 'Enregistrer'}</AdminButton>
-                  <AdminActionCluster danger>
-                    <AdminButton onClick={() => { void hydrateBackendFromLocalSnapshot(); }} disabled={isHydratingBackend} intent="danger">
-                      {isHydratingBackend ? 'Hydratation...' : 'Action risquée: hydrater backend depuis local'}
-                    </AdminButton>
-                  </AdminActionCluster>
-                </div>
-              </div>
-            </div>
-          </AdminPanel>
-          <AdminPanel title="Historique & rollback paramètres globaux">
-            {settingsHistory.length === 0 ? <AdminEmptyState label="Aucun historique enregistré." /> : null}
-            <div className="space-y-2">
-              {settingsHistory.map((entry) => (
-                <div key={entry.versionId} className="rounded-[10px] border border-[#eef3f5] px-3 py-2 flex items-center justify-between gap-3">
-                  <div className="text-[12px] text-[#4b5a60]">
-                    <p><strong>{entry.changedBy || 'unknown'}</strong> · {entry.changeSummary}</p>
-                    <p>{new Date(entry.changedAt).toLocaleString('fr-FR')} · {entry.changedFields.join(', ') || 'Aucun champ changé'}</p>
-                  </div>
-                  <AdminButton
-                    onClick={() => { void rollbackSettings(entry.versionId); }}
-                    disabled={settingsSaving}
-                    size="sm"
-                  >
-                    Restaurer
-                  </AdminButton>
-                </div>
-              ))}
-            </div>
-          </AdminPanel>
-        </div>
+        <SettingsSection
+          sectionError={sectionError}
+          instantPublishingEnabled={instantPublishingEnabled}
+          isHydratingBackend={isHydratingBackend}
+          hydrateBackendFromLocalSnapshot={() => {
+            void hydrateBackendFromLocalSnapshot();
+          }}
+          saveSettings={saveSettings}
+          settingsHasUnsavedChanges={settingsHasUnsavedChanges}
+          siteSettingsTitle={siteSettingsTitle}
+          siteSettingsSupportEmail={siteSettingsSupportEmail}
+          siteBrandMedia={siteBrandMedia}
+          managedBlogCategories={managedBlogCategories}
+          managedBlogTags={managedBlogTags}
+          enforceManagedTags={enforceManagedTags}
+          settingsSaving={settingsSaving}
+          settingsValues={settingsValues}
+          setSettingsValues={setSettingsValues}
+          savedSettingsSnapshot={savedSettingsSnapshot}
+          parseManagedTaxonomyInput={parseManagedTaxonomyInput}
+          settingsHistory={settingsHistory}
+          rollbackSettings={rollbackSettings}
+        />
       );
     }
 
@@ -2745,111 +2501,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           ) : null}
           {feedback ? <AdminSuccessFeedback label={feedback} /> : null}
           {currentSection === 'overview' ? (
-            <>
-              {contentHealth ? (
-                <div className="bg-white rounded-[20px] p-6 shadow-sm">
-                  <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-4">Santé contenu & readiness</h3>
-                  <p className="mb-4 text-[12px] text-[#6f7f85]">Source: endpoint backend /content/health. Fraîcheur: calculée à la requête (timestamp non exposé).</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-[13px]">
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">SEO manquant (publié)</p>
-                      <p className="text-[#273a41] font-bold">Blog {contentHealth.quality.seoIncomplete.blog} • Projets {contentHealth.quality.seoIncomplete.projects} • Services {contentHealth.quality.seoIncomplete.services}</p>
-                    </div>
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">Médias manquants (publié)</p>
-                      <p className="text-[#273a41] font-bold">Blog {contentHealth.quality.missingPublishedMedia.blog} • Projets {contentHealth.quality.missingPublishedMedia.projects} • Services {contentHealth.quality.missingPublishedMedia.services}</p>
-                    </div>
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">Routes services invalides</p>
-                      <p className="text-[#273a41] font-bold">{contentHealth.quality.invalidServiceRoutes}</p>
-                    </div>
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">Collisions de routes</p>
-                      <p className="text-[#273a41] font-bold">{contentHealth.quality.routeCollisions || 0}</p>
-                    </div>
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">Médias sans alt</p>
-                      <p className="text-[#273a41] font-bold">{contentHealth.quality.mediaMissingAlt}</p>
-                    </div>
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">Références média non résolues</p>
-                      <p className="text-[#273a41] font-bold">{contentHealth.quality.unresolvedMediaReferences || 0}</p>
-                    </div>
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">Brand assets manquants</p>
-                      <p className="text-[#273a41] font-bold">{contentHealth.quality.missingBrandAssets}</p>
-                    </div>
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">Blockers lancement</p>
-                      <p className="text-[#273a41] font-bold">{contentHealth.launchReadiness.blockers.length}</p>
-                    </div>
-                    <div className="rounded-[12px] border border-[#e5edf0] p-3">
-                      <p className="text-[#6f7f85]">Legacy fields actifs</p>
-                      <p className="text-[#273a41] font-bold">
-                        Blog {contentHealth.quality.legacyFieldUsage?.blog || 0} • Projets {contentHealth.quality.legacyFieldUsage?.projects || 0} • Services {contentHealth.quality.legacyFieldUsage?.services || 0}
-                      </p>
-                    </div>
-                  </div>
-                  {readinessSnapshot ? (
-                    <div className="mt-4 rounded-[12px] border border-[#e5edf0] p-4 text-[13px]">
-                      <p className="text-[#6f7f85]">Release baseline</p>
-                      <p className="text-[#273a41] font-bold">
-                        {readinessSnapshot.publishReadyCount}/{readinessSnapshot.publishedCount} publiés réellement prêts • {readinessSnapshot.blockerCount} blockers • {readinessSnapshot.warningCount} warnings
-                      </p>
-                      <p className="text-[#6f7f85] mt-1">
-                        Routes à résoudre: {readinessSnapshot.unresolvedRouteCount} • médias critiques à résoudre: {readinessSnapshot.unresolvedMediaCount}
-                      </p>
-                    </div>
-                  ) : null}
-                  {contentHealth.launchReadiness.topIssues && contentHealth.launchReadiness.topIssues.length > 0 ? (
-                    <div className="mt-4 rounded-[12px] border border-amber-200 bg-amber-50/40 p-4">
-                      <p className="text-[13px] font-['Abhaya_Libre:Bold',sans-serif] text-[#273a41]">Diagnostics actionnables prioritaires</p>
-                      <ul className="mt-2 space-y-1 text-[12px] text-[#42545a]">
-                        {contentHealth.launchReadiness.topIssues.slice(0, 6).map((entry) => (
-                          <li key={entry.id}>
-                            <span className="font-semibold">{entry.label}</span> — {entry.issues.map((issue) => issue.message).join(' | ')}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {stats.map((stat, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-[20px] p-6 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`w-12 h-12 rounded-[12px] bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
-                        <stat.icon className="text-white" size={24} />
-                      </div>
-                    </div>
-                    <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[32px] text-[#273a41] mb-1">{stat.value}</h3>
-                    <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">{stat.label}</p>
-                    <p className="mt-2 text-[11px] text-[#7d8b90]">Source: référentiel CMS local chargé au runtime.</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {[['projects', 'Nouveau Projet', 'Ajouter un projet', 'from-[#00b3e8] to-[#00c0e8]'], ['blog', 'Nouvel Article', 'Rédiger un article', 'from-[#a855f7] to-[#9333ea]'], ['media', 'Upload Média', 'Ajouter des fichiers', 'from-[#ffc247] to-[#ff9f47]']].map(([id, title, subtitle, color]) => (
-                  <button
-                    key={id}
-                    onClick={() => handleSectionChange(id)}
-                    className={`bg-gradient-to-r ${color} text-white p-6 rounded-[20px] flex items-center justify-between group`}
-                  >
-                    <div className="text-left">
-                      <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">{title}</p>
-                      <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">{subtitle}</p>
-                    </div>
-                    <Plus className="group-hover:rotate-90 transition-transform" size={32} />
-                  </button>
-                ))}
-              </div>
-
+            <OverviewSection
+              contentHealth={contentHealth}
+              readinessSnapshot={readinessSnapshot}
+              stats={stats}
+              handleSectionChange={handleSectionChange}
+            >
               <div className="bg-white rounded-[20px] p-6 shadow-sm">
                 <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-2">Activité récente</h3>
                 <p className="text-[12px] text-[#6f7f85]">Source: timeline backend non encore connectée.</p>
@@ -2857,8 +2514,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
                   Le flux d’activité est momentanément indisponible. Cette zone sera réactivée dès que la source d’événements CMS (sauvegardes, transitions, uploads, settings) sera branchée côté backend.
                 </div>
               </div>
-            </>
-) : (
+            </OverviewSection>
+          ) : (
             <section
               key={currentSection}
               className="relative isolate min-h-[calc(100vh-12rem)] overflow-x-hidden"
