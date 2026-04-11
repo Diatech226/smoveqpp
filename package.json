@@ -19,7 +19,7 @@
     "typecheck": "node scripts/typecheck.js",
     "test": "npm run test:site && npm run test:api",
     "test:site": "vitest run apps/site/src/**/*.test.ts",
-    "test:api": "node --test apps/api/server/tests/*.test.js",
+    "test:api": "vitest run apps/api/server/tests/*.test.js",
     "test:e2e:smoke": "node scripts/test-auth-smoke.js",
     "ops:backup": "node scripts/backup-content.js",
     "ops:restore": "node scripts/restore-content.js",
