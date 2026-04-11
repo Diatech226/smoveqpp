@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Filter, Search, ArrowRight, ExternalLink } from 'lucide-react';
 import Navigation from './Navigation';
@@ -10,6 +10,8 @@ import { toProjectCardContract } from '../features/projects/projectCardAdapter';
 import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepositorySync';
 import { selectPublishedProjects } from '../features/projects/projectSelectors';
 import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
+import { applyPageMetadata } from '../features/marketing/pageMetadata';
+import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 
 export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
@@ -39,6 +41,14 @@ export default function ProjectsPage() {
     onSynced: handleProjectsSynced,
     onError: handleProjectsSyncError,
   });
+
+  useEffect(() => {
+    applyPageMetadata({
+      title: 'Projets',
+      description: 'Découvrez nos réalisations et études de cas pour des marques et entreprises ambitieuses.',
+      routePath: '/projects',
+    });
+  }, []);
   const projectCategories = useMemo(() => projectRepository.getCategories(), [projects]);
 
   const filteredProjects = projects.filter((project) => {
@@ -224,7 +234,7 @@ export default function ProjectsPage() {
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ delay: index * 0.1, duration: 0.6 }}
                   onClick={() => {
-                    window.location.hash = `project-${card.slug}`;
+                    window.location.hash = PUBLIC_ROUTE_HASH.projectDetail(card.slug).slice(1);
                   }}
                 >
                   <motion.div

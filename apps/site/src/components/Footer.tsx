@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 import { fetchPublicSettings } from '../utils/contentApi';
 import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
+import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -76,11 +77,11 @@ export default function Footer() {
               Liens Rapides
             </h3>
             <ul className="space-y-3 font-['Abhaya_Libre:Regular',sans-serif] text-[14px]">
-              <li><a href="#home" className="hover:text-[#00b3e8] transition-colors">Accueil</a></li>
+              <li><a href={PUBLIC_ROUTE_HASH.home} className="hover:text-[#00b3e8] transition-colors">Accueil</a></li>
               <li><a href="#about" className="hover:text-[#00b3e8] transition-colors">À Propos</a></li>
               <li><a href="#portfolio" className="hover:text-[#00b3e8] transition-colors">Portfolio</a></li>
-              <li><a href="#blog" className="hover:text-[#00b3e8] transition-colors">Blog</a></li>
-              <li><a href="#contact" className="hover:text-[#00b3e8] transition-colors">Contact</a></li>
+              <li><a href={PUBLIC_ROUTE_HASH.blog} className="hover:text-[#00b3e8] transition-colors">Blog</a></li>
+              <li><a href={PUBLIC_ROUTE_HASH.contact} className="hover:text-[#00b3e8] transition-colors">Contact</a></li>
             </ul>
           </div>
 

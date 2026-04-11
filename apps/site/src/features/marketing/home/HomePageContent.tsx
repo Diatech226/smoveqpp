@@ -14,6 +14,7 @@ import { getBlogContentContractFromSource, type BlogListItem } from '../../blog/
 import { selectHomepageBlogPosts, selectHomepageServices } from './homePreview';
 import { resolveAboutTeamHref } from '../navigationCta';
 import { submitContactForm } from '../../../utils/contactApi';
+import { PUBLIC_ROUTE_HASH } from '../publicRoutes';
 
 function HomePageContent() {
   const [homeContent, setHomeContent] = useState(() => pageContentRepository.getHomePageContent());
@@ -198,7 +199,7 @@ function HomePageContent() {
             transition={{ delay: 0.5 }}
           >
             <motion.a
-              href="#services-all"
+              href={PUBLIC_ROUTE_HASH.services}
               className="inline-block bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] text-white px-10 py-5 rounded-[20px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px]"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -414,7 +415,7 @@ function HomePageContent() {
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.1)',
                 }}
               >
-                <a href={`#blog/${post.slug}`} className="block aspect-video overflow-hidden">
+                <a href={PUBLIC_ROUTE_HASH.blogDetail(post.slug)} className="block aspect-video overflow-hidden">
                   <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.6 }}>
                     <ImageWithFallback
                       src={media.src}
@@ -429,7 +430,7 @@ function HomePageContent() {
                     {post.category}
                   </span>
 
-                  <a href={`#blog/${post.slug}`} className="block">
+                  <a href={PUBLIC_ROUTE_HASH.blogDetail(post.slug)} className="block">
                     <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-3 line-clamp-2 group-hover:text-[#00b3e8] transition-colors">
                       {post.title}
                     </h3>

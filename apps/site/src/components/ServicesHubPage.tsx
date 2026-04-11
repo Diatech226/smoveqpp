@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
@@ -7,6 +7,8 @@ import { serviceRepository } from '../repositories/serviceRepository';
 import { selectRenderablePublicServices } from '../features/marketing/serviceCatalog';
 import { fetchPublicServices } from '../utils/publicContentApi';
 import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepositorySync';
+import { applyPageMetadata } from '../features/marketing/pageMetadata';
+import { CONTACT_CTA_HREF } from '../features/marketing/navigationCta';
 
 export default function ServicesHubPage() {
   const [services, setServices] = useState(() => selectRenderablePublicServices(serviceRepository.getAll()));
@@ -21,6 +23,14 @@ export default function ServicesHubPage() {
 
   const handleServicesSyncError = useCallback((error: unknown) => {
     console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);
+  }, []);
+
+  useEffect(() => {
+    applyPageMetadata({
+      title: 'Services',
+      description: 'Solutions digitales, branding et développement pour accélérer votre croissance.',
+      routePath: '/services',
+    });
   }, []);
 
   useRemoteRepositorySync({
@@ -305,7 +315,7 @@ export default function ServicesHubPage() {
             Contactez-nous dès aujourd'hui pour discuter de vos besoins et obtenir un devis gratuit.
           </motion.p>
           <motion.a
-            href="#contact"
+            href={CONTACT_CTA_HREF}
             className="inline-block bg-[#34c759] text-white px-12 py-5 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[20px]"
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}

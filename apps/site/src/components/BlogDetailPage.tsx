@@ -5,6 +5,8 @@ import Navigation from './Navigation';
 import Footer from './Footer';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { getBlogPostBySlugContract, type BlogDetailContract } from '../features/blog/blogContentService';
+import { applyPageMetadata } from '../features/marketing/pageMetadata';
+import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 
 interface BlogDetailPageProps {
   slug: string;
@@ -27,7 +29,13 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
 
   useEffect(() => {
     if (!post) return;
-    document.title = `${post.seo.title || post.title} | SMOVE`;
+    applyPageMetadata({
+      title: post.seo.title || post.title,
+      description: post.seo.description || post.excerpt || 'Article du blog SMOVE.',
+      routePath: `/blog/${post.seo.canonicalSlug || post.slug}` ,
+      image: post.seo.socialImage || post.featuredImage || '',
+      type: 'article',
+    });
   }, [post]);
 
   const publishedDate = useMemo(() => {
@@ -47,7 +55,7 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
         <Navigation currentPath="/blog" />
         <div className="pt-32 pb-20 text-center px-4">
           <h1 className="text-[42px] text-[#273a41]">Article non trouvé</h1>
-          <a href="#blog" className="text-[#00b3e8] underline">
+          <a href={PUBLIC_ROUTE_HASH.blog} className="text-[#00b3e8] underline">
             Retour au blog
           </a>
         </div>
@@ -79,7 +87,7 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <motion.a
-              href="#blog"
+              href={PUBLIC_ROUTE_HASH.blog}
               className="inline-flex items-center gap-2 text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] text-[15px] sm:text-[16px]"
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}

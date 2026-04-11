@@ -5,6 +5,8 @@ import Navigation from './Navigation';
 import Footer from './Footer';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { getBlogContentContractFromSource, type BlogContentContract } from '../features/blog/blogContentService';
+import { applyPageMetadata } from '../features/marketing/pageMetadata';
+import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -56,21 +58,12 @@ export default function BlogPageEnhanced() {
   const featuredPost = filteredPosts.find((post) => post.featured) || filteredPosts[0];
 
   useEffect(() => {
-    const defaultTitle = 'Blog | SMOVE';
-    const seoTitle = featuredPost?.seo.title ? `${featuredPost.seo.title} | SMOVE` : defaultTitle;
-    document.title = seoTitle;
-
-    const metaDescription =
-      featuredPost?.seo.description || 'Actualités, conseils et insights sur le digital et la communication.';
-    const descriptionTag = document.querySelector('meta[name="description"]') || document.createElement('meta');
-    descriptionTag.setAttribute('name', 'description');
-    descriptionTag.setAttribute('content', metaDescription);
-    if (!descriptionTag.parentNode) document.head.appendChild(descriptionTag);
-
-    const canonicalTag = document.querySelector('link[rel="canonical"]') || document.createElement('link');
-    canonicalTag.setAttribute('rel', 'canonical');
-    canonicalTag.setAttribute('href', `${window.location.origin}/#/blog`);
-    if (!canonicalTag.parentNode) document.head.appendChild(canonicalTag);
+    applyPageMetadata({
+      title: 'Blog',
+      description: featuredPost?.seo.description || 'Actualités, conseils et insights sur le digital et la communication.',
+      routePath: '/blog',
+      image: featuredPost?.seo.socialImage || featuredPost?.featuredImage || '',
+    });
   }, [featuredPost]);
 
   return (
@@ -290,7 +283,7 @@ export default function BlogPageEnhanced() {
                       </div>
                     </div>
                     <motion.a
-                      href={featuredPost?.slug ? `#blog/${featuredPost.seo.canonicalSlug || featuredPost.slug}` : '#blog'}
+                      href={featuredPost?.slug ? PUBLIC_ROUTE_HASH.blogDetail(featuredPost.seo.canonicalSlug || featuredPost.slug) : PUBLIC_ROUTE_HASH.blog}
                       className="inline-flex items-center gap-2 bg-white text-[#00b3e8] px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
                       whileHover={{ scale: 1.05, x: 5 }}
                       whileTap={{ scale: 0.95 }}
@@ -372,7 +365,7 @@ export default function BlogPageEnhanced() {
                 }}
                 style={{ transformStyle: 'preserve-3d' }}
               >
-                <a href={`#blog/${post.seo.canonicalSlug || post.slug}`} className="block aspect-video overflow-hidden relative">
+                <a href={PUBLIC_ROUTE_HASH.blogDetail(post.seo.canonicalSlug || post.slug)} className="block aspect-video overflow-hidden relative">
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.6 }}
@@ -417,7 +410,7 @@ export default function BlogPageEnhanced() {
                       <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px]">{post.author}</span>
                     </div>
                     <motion.a
-                      href={`#blog/${post.seo.canonicalSlug || post.slug}`}
+                      href={PUBLIC_ROUTE_HASH.blogDetail(post.seo.canonicalSlug || post.slug)}
                       className="inline-flex items-center gap-1 text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] text-[14px]"
                       whileHover={{ gap: 8 }}
                     >

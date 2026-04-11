@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getCmsAppUrl } from '../config/cmsRuntime';
 import { fetchPublicSettings } from '../utils/contentApi';
+import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 
 interface NavigationProps {
   currentPath?: string;
@@ -13,7 +14,7 @@ interface NavigationProps {
 export default function Navigation({ currentPath = '/' }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, cmsEnabled, canAccessCMS, registrationEnabled } = useAuth();
-  const currentHash = window.location.hash.slice(1) || 'home';
+  const currentHash = window.location.hash.slice(1) || '/';
   const showAuthActions = cmsEnabled && !isAuthenticated;
   const showCMSAction = cmsEnabled && canAccessCMS;
   const showAccountAction = isAuthenticated && !canAccessCMS;
@@ -39,7 +40,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
     e.preventDefault();
 
     const hash = window.location.hash.slice(1);
-    const isHomeContext = hash === '' || hash === 'home' || ['services', 'about', 'portfolio', 'contact'].includes(hash);
+    const isHomeContext = hash === '' || hash === '/' || hash === 'home' || ['services', 'about', 'portfolio', 'contact'].includes(hash);
 
     if (sectionId) {
       if (isHomeContext) {
@@ -62,11 +63,11 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
   };
 
   const navItems = [
-    { name: 'Accueil', path: 'home', icon: Home },
+    { name: 'Accueil', path: '/', icon: Home },
     { name: 'Services', path: 'home', sectionId: 'services', icon: Briefcase },
     { name: 'À Propos', path: 'home', sectionId: 'about', icon: Info },
     { name: 'Portfolio', path: 'home', sectionId: 'portfolio', icon: FolderOpen },
-    { name: 'Blog', path: 'blog', icon: BookOpen },
+    { name: 'Blog', path: '/blog', icon: BookOpen },
     { name: 'Contact', path: 'home', sectionId: 'contact', icon: Mail },
   ];
 
@@ -80,7 +81,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <a href="#home" className="flex items-center" onClick={(e) => handleNavClick(e, 'home')}>
+          <a href={PUBLIC_ROUTE_HASH.home} className="flex items-center" onClick={(e) => handleNavClick(e, '/')}>
             <img 
               src={logoSrc}
               alt="SMOVE Communication" 
@@ -91,8 +92,8 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <a
-              href="#home"
-              onClick={(e) => handleNavClick(e, 'home')}
+              href={PUBLIC_ROUTE_HASH.home}
+              onClick={(e) => handleNavClick(e, '/')}
               className={`font-['Abhaya_Libre:Regular',sans-serif] text-[16px] transition-colors ${
                 currentPath === '/' ? 'text-[#00b3e8]' : 'text-[#273a41] hover:text-[#00b3e8]'
               }`}
@@ -121,8 +122,8 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
               Portfolio
             </a>
             <a
-              href="#blog"
-              onClick={(e) => handleNavClick(e, 'blog')}
+              href={PUBLIC_ROUTE_HASH.blog}
+              onClick={(e) => handleNavClick(e, '/blog')}
               className={`font-['Abhaya_Libre:Regular',sans-serif] text-[16px] transition-colors ${
                 currentPath === '/blog' ? 'text-[#00b3e8]' : 'text-[#273a41] hover:text-[#00b3e8]'
               }`}
@@ -134,7 +135,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
             {showAuthActions ? (
               <>
                 <motion.a
-                  href="#login"
+                  href="#/login"
                   className="flex items-center gap-2 text-[#00b3e8] px-4 py-2 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px] hover:bg-[#00b3e8]/10 transition-colors border-2 border-[#00b3e8]"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -144,7 +145,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                 </motion.a>
                 {registrationEnabled && (
                   <motion.a
-                    href="#register"
+                    href="#/register"
                     className="flex items-center gap-2 bg-gradient-to-r from-[#34c759] to-[#2da84a] text-white px-4 py-2 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -169,7 +170,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
 
                 {showAccountAction && (
                   <motion.a
-                    href="#account"
+                    href="#/account"
                     className="flex items-center gap-2 bg-[#00b3e8] text-white px-5 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -194,8 +195,8 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
             ) : null}
 
             <a
-              href="#contact"
-              onClick={(e) => handleNavClick(e, 'home', 'contact')}
+              href={PUBLIC_ROUTE_HASH.contact}
+              onClick={(e) => handleNavClick(e, '/', 'contact')}
               className="bg-[#34c759] text-white px-6 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px] hover:bg-[#2da84a] transition-colors"
             >
               Contact
@@ -252,7 +253,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
             {showAuthActions ? (
               <>
                 <a
-                  href="#login"
+                  href="#/login"
                   className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-white/10 border-2 border-white/30 font-['Abhaya_Libre:Bold',sans-serif]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -261,7 +262,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
                 </a>
                 {registrationEnabled && (
                   <a
-                    href="#register"
+                    href="#/register"
                     className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-[#34c759] border-2 border-[#34c759] font-['Abhaya_Libre:Bold',sans-serif]"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -273,7 +274,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
               <>
                 {showAccountAction && (
                   <a
-                    href="#account"
+                    href="#/account"
                     className="flex items-center gap-3 text-white py-3 px-3 rounded-lg bg-white/10 border-2 border-white/30 font-['Abhaya_Libre:Bold',sans-serif]"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -295,9 +296,9 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
             )}
 
             <a
-              href="#contact"
+              href={PUBLIC_ROUTE_HASH.contact}
               className="block bg-[#34c759] text-white text-center py-3 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] mt-4"
-              onClick={(e) => handleNavClick(e, 'home', 'contact')}
+              onClick={(e) => handleNavClick(e, '/', 'contact')}
             >
               Contact
             </a>
