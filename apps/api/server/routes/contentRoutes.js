@@ -66,9 +66,33 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
-  const isPublicBlogEligible = (post) => post.status === 'published' && post.title?.trim() && post.slug?.trim() && post.featuredImage?.trim();
+  const hasRenderableMedia = (...values) =>
+    values.some((value) => typeof value === 'string' && value.trim().length > 0);
+  const isPublicBlogEligible = (post) =>
+    post.status === 'published' &&
+    post.title?.trim() &&
+    post.slug?.trim() &&
+    hasRenderableMedia(
+      post.mediaRoles?.cardImage,
+      post.mediaRoles?.coverImage,
+      post.mediaRoles?.featuredImage,
+      post.featuredImage,
+    );
+  const isPublicProjectEligible = (project) =>
+    project.status === 'published' &&
+    project.title?.trim() &&
+    project.slug?.trim() &&
+    hasRenderableMedia(
+      project.mediaRoles?.cardImage,
+      project.mediaRoles?.heroImage,
+      project.mediaRoles?.coverImage,
+      project.mediaRoles?.featuredImage,
+      project.featuredImage,
+      project.mainImage,
+    );
 
-  router.get('/public/projects', (_req, res) => sendSuccess(res, 200, { projects: contentService.listProjects().filter((p) => p.status === 'published') }));
+  router.get('/public/projects', (_req, res) =>
+    sendSuccess(res, 200, { projects: contentService.listProjects().filter(isPublicProjectEligible) }));
   router.get('/public/services', (_req, res) => sendSuccess(res, 200, { services: contentService.listServices().filter((s) => s.status === 'published') }));
   router.get('/public/blog', (_req, res) =>
     sendSuccess(res, 200, {

@@ -5,6 +5,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/uploads/(.*)", "destination": "/api/uploads/$1" },
     { "source": "/cms", "destination": "/cms/index.html" },
     { "source": "/cms/(.*)", "destination": "/cms/index.html" },
