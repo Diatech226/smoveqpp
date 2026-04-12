@@ -16,6 +16,7 @@ const defaultState = {
   settings: null,
   settingsHistory: [],
   migrationHistory: [],
+  analyticsEvents: [],
 };
 
 function ensureStore() {
@@ -39,6 +40,7 @@ function normalizeState(candidate = {}) {
     settings: candidate.settings && typeof candidate.settings === 'object' ? candidate.settings : null,
     settingsHistory: Array.isArray(candidate.settingsHistory) ? candidate.settingsHistory : [],
     migrationHistory: Array.isArray(candidate.migrationHistory) ? candidate.migrationHistory : [],
+    analyticsEvents: Array.isArray(candidate.analyticsEvents) ? candidate.analyticsEvents : [],
   };
 }
 

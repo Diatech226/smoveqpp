@@ -7,6 +7,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { getBlogPostBySlugContract, type BlogDetailContract } from '../features/blog/blogContentService';
 import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
+import { trackSiteEvent } from '../utils/analytics';
 
 interface BlogDetailPageProps {
   slug: string;
@@ -29,6 +30,7 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
 
   useEffect(() => {
     if (!post) return;
+    trackSiteEvent({ name: 'blog_article_opened', route: 'blog-detail', entityType: 'blog', entityId: post.slug, targetRoute: `/blog/${post.slug}` });
     applyPageMetadata({
       title: post.seo.title || post.title,
       description: post.seo.description || post.excerpt || 'Article du blog SMOVE.',

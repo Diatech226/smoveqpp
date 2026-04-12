@@ -10,18 +10,31 @@ interface ApiEnvelope<T> {
 }
 
 const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content/public`;
+const inFlightRequests = new Map<string, Promise<unknown>>();
 
 async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${CONTENT_BASE_URL}${path}`);
-  const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
+  const cacheKey = `GET:${path}`;
+  const existing = inFlightRequests.get(cacheKey) as Promise<T> | undefined;
+  if (existing) return existing;
 
-  if (!response.ok || !body?.success || !body.data) {
-    const code = body?.error?.code || `CONTENT_API_${response.status || 0}`;
-    const message = body?.error?.message || 'Public content source unavailable.';
-    throw new ContentApiError(message, code, response.status || 0);
-  }
+  const pending = fetch(`${CONTENT_BASE_URL}${path}`)
+    .then(async (response) => {
+      const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
 
-  return body.data;
+      if (!response.ok || !body?.success || !body.data) {
+        const code = body?.error?.code || `CONTENT_API_${response.status || 0}`;
+        const message = body?.error?.message || 'Public content source unavailable.';
+        throw new ContentApiError(message, code, response.status || 0);
+      }
+
+      return body.data;
+    })
+    .finally(() => {
+      inFlightRequests.delete(cacheKey);
+    });
+
+  inFlightRequests.set(cacheKey, pending);
+  return pending;
 }
 
 export async function fetchPublicProjects(): Promise<Project[]> {

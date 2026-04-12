@@ -130,6 +130,20 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       diagnostics: contentService.getSyncDiagnostics(),
       health: contentService.getContentHealthSummary(),
     }));
+  router.get('/public/metrics', (_req, res) =>
+    sendSuccess(res, 200, {
+      metrics: contentService.getPublicAnalyticsSummary(),
+    }));
+
+  router.post('/public/events', (req, res) => {
+    const result = contentService.recordAnalyticsEvent(req.body || {}, { source: 'public', requestId: req.requestId });
+    if (!result.ok) {
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+
+    return sendSuccess(res, 202, { accepted: true });
+  });
+
 
   router.use(requireAuthenticated);
 
@@ -142,8 +156,23 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { analytics: contentService.getAnalytics() });
   });
 
+  router.get('/metrics', requirePermission(Permissions.CONTENT_READ), (req, res) => {
+    return sendSuccess(res, 200, { metrics: contentService.getPublicAnalyticsSummary() });
+  });
+
   router.get('/health-summary', requirePermission(Permissions.CONTENT_READ), (req, res) => {
     return sendSuccess(res, 200, { health: contentService.getContentHealthSummary() });
+  });
+
+  router.post('/events', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.recordAnalyticsEvent(req.body || {}, {
+      source: 'cms',
+      requestId: req.requestId,
+    });
+    if (!result.ok) {
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+    return sendSuccess(res, 202, { accepted: true });
   });
 
   router.post('/blog', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {

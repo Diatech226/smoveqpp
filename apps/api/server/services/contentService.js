@@ -427,6 +427,7 @@ class ContentService {
           services: [],
           pageContent: null,
           settings: null,
+          analyticsEvents: [],
         };
   }
 
@@ -559,6 +560,76 @@ class ContentService {
     state.blogPosts = posts;
     this.writeState(state);
     return { ok: true, post: next };
+  }
+
+
+  recordAnalyticsEvent(event = {}, context = {}) {
+    const state = this.readState();
+    const events = Array.isArray(state.analyticsEvents) ? state.analyticsEvents : [];
+    const name = `${event.name || ''}`.trim().toLowerCase();
+
+    if (!name) {
+      return { ok: false, error: { code: 'ANALYTICS_EVENT_INVALID', message: 'Event name is required.' } };
+    }
+
+    const now = new Date().toISOString();
+    const normalized = {
+      id: `evt_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      name,
+      route: `${event.route || ''}`.trim() || 'unknown',
+      source: `${context.source || event.source || 'public'}`.trim(),
+      entityType: typeof event.entityType === 'string' ? event.entityType : null,
+      entityId: typeof event.entityId === 'string' ? event.entityId : null,
+      ctaId: typeof event.ctaId === 'string' ? event.ctaId : null,
+      targetRoute: typeof event.targetRoute === 'string' ? event.targetRoute : null,
+      success: typeof event.success === 'boolean' ? event.success : null,
+      happenedAt: typeof event.happenedAt === 'string' ? event.happenedAt : now,
+      requestId: context.requestId || null,
+      metadata: event.metadata && typeof event.metadata === 'object' ? event.metadata : {},
+    };
+
+    state.analyticsEvents = [normalized, ...events].slice(0, 1000);
+    this.writeState(state);
+    return { ok: true, event: normalized };
+  }
+
+  listAnalyticsEvents(limit = 100) {
+    const state = this.readState();
+    const events = Array.isArray(state.analyticsEvents) ? state.analyticsEvents : [];
+    const parsedLimit = Number(limit);
+    const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(Math.floor(parsedLimit), 500) : 100;
+    return events.slice(0, safeLimit);
+  }
+
+  getPublicAnalyticsSummary() {
+    const events = this.listAnalyticsEvents(1000);
+    const byName = events.reduce((acc, event) => {
+      acc[event.name] = (acc[event.name] || 0) + 1;
+      return acc;
+    }, {});
+
+    const conversionPath = {
+      homeToDiscovery: events.filter((entry) => entry.name === 'cta_clicked' && entry.route === 'home').length,
+      discoveryToContact: events.filter((entry) => entry.name === 'cta_clicked' && /contact/.test(`${entry.targetRoute || ''}`)).length,
+      contactFormSubmissions: events.filter((entry) => entry.name === 'contact_form_submitted').length,
+    };
+
+    const topRoutes = Array.from(events.reduce((acc, entry) => {
+      const key = entry.route || 'unknown';
+      acc.set(key, (acc.get(key) || 0) + 1);
+      return acc;
+    }, new Map()).entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([route, hits]) => ({ route, hits }));
+
+    return {
+      eventsLast1000: events.length,
+      byName,
+      conversionPath,
+      topRoutes,
+      recent: events.slice(0, 25),
+    };
   }
 
   getAnalytics() {

@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { AppUser } from '../../../utils/securityPolicy';
-import type { CmsSettings, ContentHealthSummary, SettingsHistoryEntry } from '../../../utils/contentApi';
+import type { CmsSettings, ContentHealthSummary, ConversionMetrics, SettingsHistoryEntry } from '../../../utils/contentApi';
 import type { AuthAuditEvent } from '../../../contexts/AuthContext';
 import type { DashboardCmsStats } from './cmsStats';
 import type { DashboardReadinessSnapshot } from './contentHealthSummary';
@@ -152,12 +152,14 @@ interface OverviewSectionProps {
   contentHealth: ContentHealthSummary | null;
   readinessSnapshot: DashboardReadinessSnapshot | null;
   stats: DashboardCmsStats[];
+  conversionMetrics: ConversionMetrics | null;
   handleSectionChange: (section: string) => void;
   children: ReactNode;
 }
 
-export function OverviewSection({ contentHealth, readinessSnapshot, stats, handleSectionChange, children }: OverviewSectionProps) {
+export function OverviewSection({ contentHealth, readinessSnapshot, stats, conversionMetrics, handleSectionChange, children }: OverviewSectionProps) {
   return <>
+    {conversionMetrics ? <div className="bg-white rounded-[20px] p-6 shadow-sm mb-6"><h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-3">Conversion & parcours (1000 événements)</h3><div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[13px]"><div className="rounded-[12px] border border-[#e5edf0] p-3"><p className="text-[#6f7f85]">Home → discovery</p><p className="text-[#273a41] font-bold">{conversionMetrics.conversionPath.homeToDiscovery}</p></div><div className="rounded-[12px] border border-[#e5edf0] p-3"><p className="text-[#6f7f85]">Discovery → contact</p><p className="text-[#273a41] font-bold">{conversionMetrics.conversionPath.discoveryToContact}</p></div><div className="rounded-[12px] border border-[#e5edf0] p-3"><p className="text-[#6f7f85]">Formulaires contact</p><p className="text-[#273a41] font-bold">{conversionMetrics.conversionPath.contactFormSubmissions}</p></div></div>{conversionMetrics.topRoutes.length > 0 ? <div className="mt-4 text-[12px] text-[#4b5a60]"><p className="font-semibold mb-1">Top routes suivies</p><p>{conversionMetrics.topRoutes.slice(0, 4).map((entry) => `${entry.route} (${entry.hits})`).join(' • ')}</p></div> : null}</div> : null}
     {contentHealth ? <div className="bg-white rounded-[20px] p-6 shadow-sm"><h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-4">Santé contenu & readiness</h3><p className="mb-4 text-[12px] text-[#6f7f85]">Source: endpoint backend /content/health.</p>{readinessSnapshot ? <div className="mt-4 rounded-[12px] border border-[#e5edf0] p-4 text-[13px]"><p className="text-[#273a41] font-bold">{readinessSnapshot.publishReadyCount}/{readinessSnapshot.publishedCount} publiés prêts • {readinessSnapshot.blockerCount} blockers • {readinessSnapshot.warningCount} warnings • {readinessSnapshot.failedReleaseChecks} checks release en échec</p></div> : null}</div> : null}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">{stats.map((stat, index) => <div key={index} className="bg-white rounded-[20px] p-6 shadow-sm"><h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[32px] text-[#273a41] mb-1">{stat.value}</h3><p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">{stat.label}</p></div>)}</div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">{[['projects', 'Nouveau Projet', 'Ajouter un projet', 'from-[#00b3e8] to-[#00c0e8]'], ['blog', 'Nouvel Article', 'Rédiger un article', 'from-[#a855f7] to-[#9333ea]'], ['media', 'Upload Média', 'Ajouter des fichiers', 'from-[#ffc247] to-[#ff9f47]']].map(([id, title, subtitle, color]) => <button key={id} onClick={() => handleSectionChange(id)} className={`bg-gradient-to-r ${color} text-white p-6 rounded-[20px] flex items-center justify-between group`}><div className="text-left"><p className="font-['Abhaya_Libre:Bold',sans-serif] text-[18px] mb-1">{title}</p><p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">{subtitle}</p></div><Plus className="group-hover:rotate-90 transition-transform" size={32} /></button>)}</div>

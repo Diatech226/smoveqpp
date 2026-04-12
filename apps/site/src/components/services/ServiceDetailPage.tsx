@@ -11,6 +11,7 @@ import { buildServiceDetailContract, findPublishedServiceBySlug } from '../../fe
 import { applyPageMetadata } from '../../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../../features/marketing/publicRoutes';
 import { toRenderableService } from '../../features/marketing/serviceCatalog';
+import { trackSiteEvent } from '../../utils/analytics';
 
 interface ServiceDetailPageProps {
   slug: string;
@@ -39,6 +40,7 @@ export default function ServiceDetailPage({ slug }: ServiceDetailPageProps) {
 
   useEffect(() => {
     if (!detail) return;
+    trackSiteEvent({ name: 'service_detail_opened', route: 'service-detail', entityType: 'service', entityId: detail.routeSlug, targetRoute: `/services/${detail.routeSlug}` });
     applyPageMetadata({
       title: detail.title,
       description: detail.shortDescription || detail.overview,
@@ -145,6 +147,7 @@ export default function ServiceDetailPage({ slug }: ServiceDetailPageProps) {
           <a
             href={detail.cta.primaryHref}
             className="inline-flex items-center gap-2 bg-white text-[#00b3e8] px-8 py-4 rounded-[14px] font-['Abhaya_Libre:Bold',sans-serif]"
+            onClick={() => trackSiteEvent({ name: 'cta_clicked', route: 'service-detail', ctaId: 'service_contact', targetRoute: detail.cta.primaryHref, entityType: 'service', entityId: detail.routeSlug })}
           >
             {detail.cta.primaryLabel}
             <ArrowRight size={18} />

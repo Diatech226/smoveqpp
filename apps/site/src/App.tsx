@@ -6,6 +6,7 @@ import AppErrorBoundary from './features/app-shell/AppErrorBoundary';
 import AppPageRenderer from './features/app-shell/AppPageRenderer';
 import { fetchPublicSettings } from './utils/contentApi';
 import { applyResolvedPageMetadata, configurePublicMetadata } from './features/marketing/pageMetadata';
+import { trackSiteEvent } from './utils/analytics';
 
 function AppContent() {
   const {
@@ -57,6 +58,10 @@ function AppContent() {
 
   useEffect(() => {
     applyResolvedPageMetadata(currentPage);
+    trackSiteEvent({
+      name: 'route_viewed',
+      route: currentPage,
+    });
   }, [currentPage]);
 
   return (
