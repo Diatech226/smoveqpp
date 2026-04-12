@@ -35,6 +35,12 @@ const defaultHomePageContent = {
   heroPrimaryCtaHref: '#services',
   heroSecondaryCtaLabel: 'Lancer un projet',
   heroSecondaryCtaHref: '#contact',
+  heroBackgroundItems: [],
+  heroBackgroundRotationEnabled: false,
+  heroBackgroundAutoplay: true,
+  heroBackgroundIntervalMs: 6000,
+  heroBackgroundTransitionStyle: 'fade',
+  heroBackgroundOverlayOpacity: 0.45,
   aboutBadge: 'À PROPOS DE NOUS',
   aboutTitle: 'Innovation & Excellence Digitale',
   aboutParagraphOne:
@@ -1980,13 +1986,85 @@ class ContentService {
     const home = value && typeof value === 'object' ? value : {};
     const normalized = {};
     for (const [key, fallback] of Object.entries(defaultHomePageContent)) {
+      if (key === 'heroBackgroundItems') {
+        const items = Array.isArray(home.heroBackgroundItems) ? home.heroBackgroundItems : [];
+        normalized.heroBackgroundItems = items
+          .map((item, index) => {
+            if (!item || typeof item !== 'object') return null;
+            const media = typeof item.media === 'string' ? item.media.trim() : '';
+            if (!media) return null;
+            const overlayOpacity = typeof item.overlayOpacity === 'number' ? item.overlayOpacity : defaultHomePageContent.heroBackgroundOverlayOpacity;
+            return {
+              id: typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `hero-bg-${index + 1}`,
+              label: typeof item.label === 'string' ? item.label.trim() : '',
+              media,
+              alt: typeof item.alt === 'string' ? item.alt.trim() : '',
+              overlayOpacity: Math.max(0, Math.min(0.9, overlayOpacity)),
+              focalPoint: typeof item.focalPoint === 'string' ? item.focalPoint.trim() : 'center',
+            };
+          })
+          .filter(Boolean);
+        continue;
+      }
+      if (key === 'heroBackgroundRotationEnabled' || key === 'heroBackgroundAutoplay') {
+        normalized[key] = typeof home[key] === 'boolean' ? home[key] : fallback;
+        continue;
+      }
+      if (key === 'heroBackgroundIntervalMs') {
+        const interval = Number.parseInt(`${home[key] ?? fallback}`, 10);
+        normalized[key] = Number.isFinite(interval) ? Math.max(2000, Math.min(30000, interval)) : fallback;
+        continue;
+      }
+      if (key === 'heroBackgroundTransitionStyle') {
+        normalized[key] = home[key] === 'slide' ? 'slide' : 'fade';
+        continue;
+      }
+      if (key === 'heroBackgroundOverlayOpacity') {
+        const opacity = Number.parseFloat(`${home[key] ?? fallback}`);
+        normalized[key] = Number.isFinite(opacity) ? Math.max(0.1, Math.min(0.9, opacity)) : fallback;
+        continue;
+      }
       normalized[key] = typeof home[key] === 'string' ? home[key].trim() || fallback : fallback;
     }
     return normalized;
   }
 
   validateHomePageContent(home) {
-    return Object.keys(defaultHomePageContent).every((key) => typeof home[key] === 'string') &&
+    const hasValidHeroBackgroundItems = Array.isArray(home.heroBackgroundItems) &&
+      home.heroBackgroundItems.every((item) =>
+        item &&
+        typeof item === 'object' &&
+        typeof item.id === 'string' &&
+        typeof item.label === 'string' &&
+        typeof item.media === 'string' &&
+        item.media.trim().length > 0 &&
+        typeof item.alt === 'string' &&
+        typeof item.overlayOpacity === 'number' &&
+        item.overlayOpacity >= 0 &&
+        item.overlayOpacity <= 0.9 &&
+        typeof item.focalPoint === 'string' &&
+        this.isValidMediaLink(item.media)
+      );
+
+    const hasValidScalarBackgroundConfig =
+      typeof home.heroBackgroundRotationEnabled === 'boolean' &&
+      typeof home.heroBackgroundAutoplay === 'boolean' &&
+      typeof home.heroBackgroundIntervalMs === 'number' &&
+      home.heroBackgroundIntervalMs >= 2000 &&
+      home.heroBackgroundIntervalMs <= 30000 &&
+      (home.heroBackgroundTransitionStyle === 'fade' || home.heroBackgroundTransitionStyle === 'slide') &&
+      typeof home.heroBackgroundOverlayOpacity === 'number' &&
+      home.heroBackgroundOverlayOpacity >= 0.1 &&
+      home.heroBackgroundOverlayOpacity <= 0.9;
+
+    return Object.keys(defaultHomePageContent).filter((key) => ![
+      'heroBackgroundItems',
+      'heroBackgroundRotationEnabled',
+      'heroBackgroundAutoplay',
+      'heroBackgroundIntervalMs',
+      'heroBackgroundTransitionStyle',
+      'heroBackgroundOverlayOpacity',
+    ].includes(key)).every((key) => typeof home[key] === 'string') &&
       typeof home.heroTitleLine1 === 'string' &&
       home.heroTitleLine1.trim().length > 0 &&
       typeof home.heroTitleLine2 === 'string' &&
@@ -1996,7 +2074,9 @@ class ContentService {
       this.isValidContentHref(home.aboutCtaHref) &&
       this.isValidContentHref(home.portfolioCtaHref) &&
       this.isValidContentHref(home.blogCtaHref) &&
-      (!home.aboutImage || this.isValidMediaLink(home.aboutImage));
+      (!home.aboutImage || this.isValidMediaLink(home.aboutImage)) &&
+      hasValidHeroBackgroundItems &&
+      hasValidScalarBackgroundConfig;
   }
 
   findMediaReferences(mediaId) {
@@ -2098,6 +2178,9 @@ class ContentService {
 
     const home = this.getPageContent().home;
     register(home.aboutImage, { domain: 'home', id: 'home', status: 'system', field: 'aboutImage', label: 'Home page' });
+    (Array.isArray(home.heroBackgroundItems) ? home.heroBackgroundItems : []).forEach((item, index) =>
+      register(item.media, { domain: 'home', id: 'home', status: 'system', field: `heroBackgroundItems[${index}].media`, label: 'Home page' }),
+    );
 
     const settings = this.getSettings();
     register(settings.siteSettings.brandMedia.logo, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.logo', label: 'Site settings' });

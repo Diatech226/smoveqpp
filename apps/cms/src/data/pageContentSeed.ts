@@ -1,3 +1,14 @@
+export type HeroBackgroundTransitionStyle = 'fade' | 'slide';
+
+export interface HeroBackgroundItem {
+  id: string;
+  label: string;
+  media: string;
+  alt: string;
+  overlayOpacity: number;
+  focalPoint: string;
+}
+
 export interface HomePageContentSettings {
   heroBadge: string;
   heroTitleLine1: string;
@@ -7,6 +18,12 @@ export interface HomePageContentSettings {
   heroPrimaryCtaHref: string;
   heroSecondaryCtaLabel: string;
   heroSecondaryCtaHref: string;
+  heroBackgroundItems: HeroBackgroundItem[];
+  heroBackgroundRotationEnabled: boolean;
+  heroBackgroundAutoplay: boolean;
+  heroBackgroundIntervalMs: number;
+  heroBackgroundTransitionStyle: HeroBackgroundTransitionStyle;
+  heroBackgroundOverlayOpacity: number;
   aboutBadge: string;
   aboutTitle: string;
   aboutParagraphOne: string;
@@ -41,6 +58,12 @@ export const defaultHomePageContent: HomePageContentSettings = {
   heroPrimaryCtaHref: '#services',
   heroSecondaryCtaLabel: 'Lancer un projet',
   heroSecondaryCtaHref: '#contact',
+  heroBackgroundItems: [],
+  heroBackgroundRotationEnabled: false,
+  heroBackgroundAutoplay: true,
+  heroBackgroundIntervalMs: 6000,
+  heroBackgroundTransitionStyle: 'fade',
+  heroBackgroundOverlayOpacity: 0.45,
   aboutBadge: 'À PROPOS DE NOUS',
   aboutTitle: 'Innovation & Excellence Digitale',
   aboutParagraphOne:

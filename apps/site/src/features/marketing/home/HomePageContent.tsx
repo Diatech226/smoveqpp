@@ -103,6 +103,12 @@ function HomePageContent() {
         primaryCtaHref={homeContent.heroPrimaryCtaHref}
         secondaryCtaLabel={homeContent.heroSecondaryCtaLabel}
         secondaryCtaHref={homeContent.heroSecondaryCtaHref}
+        backgroundItems={homeContent.heroBackgroundItems}
+        backgroundRotationEnabled={homeContent.heroBackgroundRotationEnabled}
+        backgroundAutoplay={homeContent.heroBackgroundAutoplay}
+        backgroundIntervalMs={homeContent.heroBackgroundIntervalMs}
+        backgroundTransitionStyle={homeContent.heroBackgroundTransitionStyle}
+        backgroundOverlayOpacity={homeContent.heroBackgroundOverlayOpacity}
       />
 
       {/* Services Section */}

@@ -804,6 +804,8 @@ describe('ContentService production hardening', () => {
     expect(savedLegacy.ok).toBe(true);
     expect(savedLegacy.pageContent.home.heroPrimaryCtaHref).toBe('#services');
     expect(savedLegacy.pageContent.home.portfolioTitle).toBe('Nos derniers projets');
+    expect(savedLegacy.pageContent.home.heroBackgroundItems).toEqual([]);
+    expect(savedLegacy.pageContent.home.heroBackgroundIntervalMs).toBe(6000);
 
     const invalidHref = service.savePageContent({
       home: {
@@ -813,6 +815,51 @@ describe('ContentService production hardening', () => {
     });
     expect(invalidHref.ok).toBe(false);
     expect(invalidHref.error.code).toBe('PAGE_CONTENT_VALIDATION_ERROR');
+  });
+
+  it('persists hero background media collection and rejects invalid slideshow config', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    service.saveMediaFile({
+      id: 'hero-bg-1',
+      name: 'hero-bg-1.jpg',
+      type: 'image',
+      url: 'https://example.com/hero-bg-1.jpg',
+      thumbnailUrl: 'https://example.com/hero-bg-1.jpg',
+      size: 120,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'admin',
+      alt: 'hero',
+      tags: [],
+    });
+
+    const base = service.getPageContent().home;
+    const rejected = service.savePageContent({
+      home: {
+        ...base,
+        heroBackgroundItems: [
+          { id: 'slide-1', label: 'Slide 1', media: 'media:missing', alt: 'Alt', overlayOpacity: 0.4, focalPoint: 'center' },
+        ],
+      },
+    });
+    expect(rejected.ok).toBe(false);
+    expect(rejected.error.code).toBe('PAGE_CONTENT_VALIDATION_ERROR');
+
+    const accepted = service.savePageContent({
+      home: {
+        ...base,
+        heroBackgroundItems: [
+          { id: 'slide-1', label: 'Slide 1', media: 'media:hero-bg-1', alt: 'Alt', overlayOpacity: 0.4, focalPoint: 'center' },
+        ],
+        heroBackgroundRotationEnabled: true,
+        heroBackgroundAutoplay: true,
+        heroBackgroundIntervalMs: 5000,
+        heroBackgroundTransitionStyle: 'fade',
+        heroBackgroundOverlayOpacity: 0.35,
+      },
+    });
+    expect(accepted.ok).toBe(true);
+    expect(service.getPageContent().home.heroBackgroundItems).toHaveLength(1);
+    expect(service.findMediaReferences('hero-bg-1').some((entry) => entry.field.includes('heroBackgroundItems'))).toBe(true);
   });
 
   it('returns media usage references to support safe delete guardrails', () => {

@@ -341,6 +341,93 @@ export function PageContentSection({ homeContentError, saveHomePageContent, home
                 <input value={homeContentForm.heroSecondaryCtaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroSecondaryCtaHref: event.target.value }))} className={ADMIN_INPUT_CLASS} placeholder="CTA secondaire (lien)" />
                 <textarea value={homeContentForm.heroDescription} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroDescription: event.target.value }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Description hero (paragraphe introductif)" />
               </div>
+              <div className={ADMIN_SECTION_SUBCARD}>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-[13px] font-semibold text-[#273a41]">Background media (CMS)</p>
+                  <AdminButton
+                    type="button"
+                    size="sm"
+                    onClick={() => setHomeContentForm((prev) => ({
+                      ...prev,
+                      heroBackgroundItems: [
+                        ...prev.heroBackgroundItems,
+                        {
+                          id: `hero-bg-${Date.now()}`,
+                          label: `Slide ${prev.heroBackgroundItems.length + 1}`,
+                          media: '',
+                          alt: '',
+                          overlayOpacity: prev.heroBackgroundOverlayOpacity,
+                          focalPoint: 'center',
+                        },
+                      ],
+                    }))}
+                  >
+                    Ajouter un média
+                  </AdminButton>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
+                    <input type="checkbox" checked={homeContentForm.heroBackgroundRotationEnabled} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundRotationEnabled: event.target.checked }))} />
+                    Rotation activée
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
+                    <input type="checkbox" checked={homeContentForm.heroBackgroundAutoplay} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundAutoplay: event.target.checked }))} />
+                    Autoplay
+                  </label>
+                  <label className="space-y-1">
+                    <span className={ADMIN_FIELD_LABEL_CLASS}>Intervalle (ms)</span>
+                    <input type="number" min={2000} max={30000} step={500} value={homeContentForm.heroBackgroundIntervalMs} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundIntervalMs: Number(event.target.value) || 6000 }))} className={ADMIN_INPUT_CLASS} />
+                  </label>
+                  <label className="space-y-1">
+                    <span className={ADMIN_FIELD_LABEL_CLASS}>Transition</span>
+                    <select value={homeContentForm.heroBackgroundTransitionStyle} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundTransitionStyle: event.target.value === 'slide' ? 'slide' : 'fade' }))} className={ADMIN_INPUT_CLASS}>
+                      <option value="fade">Fade premium</option>
+                      <option value="slide">Slide latéral</option>
+                    </select>
+                  </label>
+                  <label className="space-y-1 md:col-span-2">
+                    <span className={ADMIN_FIELD_LABEL_CLASS}>Overlay global ({homeContentForm.heroBackgroundOverlayOpacity.toFixed(2)})</span>
+                    <input type="range" min={0.1} max={0.9} step={0.05} value={homeContentForm.heroBackgroundOverlayOpacity} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundOverlayOpacity: Number(event.target.value) }))} className="w-full accent-[#00b3e8]" />
+                  </label>
+                </div>
+
+                <div className="mt-3 space-y-3">
+                  {homeContentForm.heroBackgroundItems.length === 0 ? <p className={ADMIN_HELPER_TEXT_CLASS}>Aucun média configuré: le hero utilise son fond premium par défaut.</p> : null}
+                  {homeContentForm.heroBackgroundItems.map((item, index) => (
+                    <div key={item.id} className="rounded-[12px] border border-[#dbe7ec] bg-white p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[13px] font-semibold text-[#273a41]">Slide {index + 1}</p>
+                        <div className="flex gap-2">
+                          <AdminButton type="button" size="sm" disabled={index === 0} onClick={() => setHomeContentForm((prev) => {
+                            const items = [...prev.heroBackgroundItems];
+                            [items[index - 1], items[index]] = [items[index], items[index - 1]];
+                            return { ...prev, heroBackgroundItems: items };
+                          })}>↑</AdminButton>
+                          <AdminButton type="button" size="sm" disabled={index === homeContentForm.heroBackgroundItems.length - 1} onClick={() => setHomeContentForm((prev) => {
+                            const items = [...prev.heroBackgroundItems];
+                            [items[index + 1], items[index]] = [items[index], items[index + 1]];
+                            return { ...prev, heroBackgroundItems: items };
+                          })}>↓</AdminButton>
+                          <AdminButton type="button" size="sm" intent="danger" onClick={() => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.filter((entry) => entry.id !== item.id) }))}>Supprimer</AdminButton>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <input value={item.label} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, label: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Label interne (optionnel)" />
+                        <select value={item.media} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, media: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                          <option value="">Sélectionner un média</option>
+                          {mediaFiles.filter((file) => file.type === 'image' || file.type === 'video').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                        </select>
+                        <input value={item.alt} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, alt: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Alt (optionnel)" />
+                        <input value={item.focalPoint} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, focalPoint: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Focal point (ex: center, top, 65% 30%)" />
+                        <label className="space-y-1 md:col-span-2">
+                          <span className={ADMIN_FIELD_LABEL_CLASS}>Overlay slide ({item.overlayOpacity.toFixed(2)})</span>
+                          <input type="range" min={0} max={0.9} step={0.05} value={item.overlayOpacity} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, overlayOpacity: Number(event.target.value) } : entry)) }))} className="w-full accent-[#00b3e8]" />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </AdminPanel>
           <AdminPanel title="À propos & services">

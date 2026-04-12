@@ -8,6 +8,29 @@ interface PageContentPayload {
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+const isTransitionStyle = (value: unknown): value is HomePageContentSettings['heroBackgroundTransitionStyle'] =>
+  value === 'fade' || value === 'slide';
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+const normalizeHeroBackgroundItems = (value: unknown): HomePageContentSettings['heroBackgroundItems'] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry, index) => {
+      if (!isRecord(entry)) return null;
+      const media = typeof entry.media === 'string' ? entry.media.trim() : '';
+      if (!media) return null;
+      const overlayOpacityInput = typeof entry.overlayOpacity === 'number' ? entry.overlayOpacity : defaultHomePageContent.heroBackgroundOverlayOpacity;
+      return {
+        id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : `hero-bg-${index + 1}`,
+        label: typeof entry.label === 'string' ? entry.label.trim() : '',
+        media,
+        alt: typeof entry.alt === 'string' ? entry.alt.trim() : '',
+        overlayOpacity: clamp(overlayOpacityInput, 0, 0.9),
+        focalPoint: typeof entry.focalPoint === 'string' ? entry.focalPoint.trim() : 'center',
+      };
+    })
+    .filter((entry): entry is HomePageContentSettings['heroBackgroundItems'][number] => Boolean(entry));
+};
 
 const isHomePageContentSettings = (value: unknown): value is HomePageContentSettings => {
   if (!isRecord(value)) return false;
@@ -44,7 +67,13 @@ const isHomePageContentSettings = (value: unknown): value is HomePageContentSett
     'contactSubmitLabel',
   ];
 
-  return keys.every((key) => typeof value[key] === 'string');
+  return keys.every((key) => typeof value[key] === 'string') &&
+    (value.heroBackgroundItems === undefined || Array.isArray(value.heroBackgroundItems)) &&
+    (value.heroBackgroundRotationEnabled === undefined || typeof value.heroBackgroundRotationEnabled === 'boolean') &&
+    (value.heroBackgroundAutoplay === undefined || typeof value.heroBackgroundAutoplay === 'boolean') &&
+    (value.heroBackgroundIntervalMs === undefined || (typeof value.heroBackgroundIntervalMs === 'number' && Number.isFinite(value.heroBackgroundIntervalMs))) &&
+    (value.heroBackgroundTransitionStyle === undefined || isTransitionStyle(value.heroBackgroundTransitionStyle)) &&
+    (value.heroBackgroundOverlayOpacity === undefined || (typeof value.heroBackgroundOverlayOpacity === 'number' && Number.isFinite(value.heroBackgroundOverlayOpacity)));
 };
 
 const isPageContentPayload = (value: unknown): value is PageContentPayload =>
@@ -61,6 +90,14 @@ const normalizeHomeContent = (value: HomePageContentSettings): HomePageContentSe
   heroPrimaryCtaHref: value.heroPrimaryCtaHref.trim() || defaultHomePageContent.heroPrimaryCtaHref,
   heroSecondaryCtaLabel: value.heroSecondaryCtaLabel.trim() || defaultHomePageContent.heroSecondaryCtaLabel,
   heroSecondaryCtaHref: value.heroSecondaryCtaHref.trim() || defaultHomePageContent.heroSecondaryCtaHref,
+  heroBackgroundItems: normalizeHeroBackgroundItems(value.heroBackgroundItems),
+  heroBackgroundRotationEnabled: Boolean(value.heroBackgroundRotationEnabled),
+  heroBackgroundAutoplay: Boolean(value.heroBackgroundAutoplay),
+  heroBackgroundIntervalMs: clamp(Math.round(value.heroBackgroundIntervalMs || defaultHomePageContent.heroBackgroundIntervalMs), 2000, 30000),
+  heroBackgroundTransitionStyle: isTransitionStyle(value.heroBackgroundTransitionStyle)
+    ? value.heroBackgroundTransitionStyle
+    : defaultHomePageContent.heroBackgroundTransitionStyle,
+  heroBackgroundOverlayOpacity: clamp(value.heroBackgroundOverlayOpacity ?? defaultHomePageContent.heroBackgroundOverlayOpacity, 0.1, 0.9),
   aboutBadge: value.aboutBadge.trim() || defaultHomePageContent.aboutBadge,
   aboutTitle: value.aboutTitle.trim() || defaultHomePageContent.aboutTitle,
   aboutParagraphOne: value.aboutParagraphOne.trim() || defaultHomePageContent.aboutParagraphOne,

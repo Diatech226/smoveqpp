@@ -1,6 +1,8 @@
-import { motion, useMotionValue, useScroll, useSpring, useTransform } from 'motion/react';
-import { useEffect, useRef, type MouseEvent } from 'react';
+import { AnimatePresence, motion, useMotionValue, useScroll, useSpring, useTransform } from 'motion/react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { ArrowDown, ArrowRight, Sparkles } from 'lucide-react';
+import type { HomePageContentSettings } from '../data/pageContentSeed';
+import { nextHeroBackgroundIndex, resolveHeroBackgroundItems, shouldAutoplayHeroBackground } from '../features/marketing/home/heroBackground';
 
 interface Hero3DEnhancedProps {
   badgeLabel?: string;
@@ -11,6 +13,12 @@ interface Hero3DEnhancedProps {
   primaryCtaHref?: string;
   secondaryCtaLabel?: string;
   secondaryCtaHref?: string;
+  backgroundItems?: HomePageContentSettings['heroBackgroundItems'];
+  backgroundRotationEnabled?: boolean;
+  backgroundAutoplay?: boolean;
+  backgroundIntervalMs?: number;
+  backgroundTransitionStyle?: HomePageContentSettings['heroBackgroundTransitionStyle'];
+  backgroundOverlayOpacity?: number;
 }
 
 export default function Hero3DEnhanced({
@@ -23,6 +31,12 @@ export default function Hero3DEnhanced({
   primaryCtaHref = '#services',
   secondaryCtaLabel = 'Lancer un projet',
   secondaryCtaHref = '#contact',
+  backgroundItems = [],
+  backgroundRotationEnabled = false,
+  backgroundAutoplay = true,
+  backgroundIntervalMs = 6000,
+  backgroundTransitionStyle = 'fade',
+  backgroundOverlayOpacity = 0.45,
 }: Hero3DEnhancedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -40,6 +54,12 @@ export default function Hero3DEnhanced({
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7, 1], [1, 0.9, 0.65]);
   const heroY = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 140]);
+  const [activeBackgroundIndex, setActiveBackgroundIndex] = useState(0);
+
+  const resolvedBackgrounds = useMemo(() => resolveHeroBackgroundItems(backgroundItems), [backgroundItems]);
+  const hasCmsMediaBackground = resolvedBackgrounds.length > 0;
+  const canAutoplay = shouldAutoplayHeroBackground(backgroundRotationEnabled, backgroundAutoplay, resolvedBackgrounds.length);
+  const activeBackground = hasCmsMediaBackground ? resolvedBackgrounds[activeBackgroundIndex % resolvedBackgrounds.length] : null;
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -70,6 +90,18 @@ export default function Hero3DEnhanced({
     };
   }, [tiltX, tiltY]);
 
+  useEffect(() => {
+    setActiveBackgroundIndex(0);
+  }, [resolvedBackgrounds.length, backgroundRotationEnabled]);
+
+  useEffect(() => {
+    if (!canAutoplay) return;
+    const interval = window.setInterval(() => {
+      setActiveBackgroundIndex((current) => nextHeroBackgroundIndex(current, resolvedBackgrounds.length));
+    }, Math.max(2000, backgroundIntervalMs));
+    return () => window.clearInterval(interval);
+  }, [backgroundIntervalMs, canAutoplay, resolvedBackgrounds.length]);
+
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
     section?.scrollIntoView({ behavior: 'smooth' });
@@ -88,6 +120,36 @@ export default function Hero3DEnhanced({
       className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#0d1f2d] via-[#1a2f3d] to-[#0d1f2d] pt-32 pb-20"
       style={{ opacity: heroOpacity }}
     >
+      {hasCmsMediaBackground ? (
+        <div className="absolute inset-0 z-0">
+          <AnimatePresence mode="wait">
+            {activeBackground ? (
+              <motion.div
+                key={activeBackground.id}
+                className="absolute inset-0"
+                initial={backgroundTransitionStyle === 'slide' ? { opacity: 0, x: 64 } : { opacity: 0 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={backgroundTransitionStyle === 'slide' ? { opacity: 0, x: -64 } : { opacity: 0 }}
+                transition={{ duration: backgroundTransitionStyle === 'slide' ? 0.8 : 1.1, ease: 'easeOut' }}
+              >
+                <img
+                  src={activeBackground.src}
+                  alt={activeBackground.alt || 'Hero background'}
+                  className="h-full w-full object-cover"
+                  style={{ objectPosition: activeBackground.focalPoint }}
+                  loading="eager"
+                  fetchPriority="high"
+                />
+                <div
+                  className="absolute inset-0 bg-[#04111f]"
+                  style={{ opacity: Math.min(0.85, Math.max(0.15, activeBackground.overlayOpacity || backgroundOverlayOpacity)) }}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
+      ) : null}
+
       <motion.div className="absolute inset-0" style={{ y: backgroundY }}>
         <motion.div
           className="absolute inset-0"
@@ -121,7 +183,10 @@ export default function Hero3DEnhanced({
         />
       </motion.div>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent" />
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent"
+        style={{ opacity: hasCmsMediaBackground ? Math.min(0.9, Math.max(0.2, backgroundOverlayOpacity + 0.2)) : 1 }}
+      />
 
       <motion.div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ y: heroY }}>
         <div className="text-center">

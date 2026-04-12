@@ -427,8 +427,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     });
 
     register(homeContentForm.aboutImage, 'Home page • aboutImage');
+    homeContentForm.heroBackgroundItems.forEach((item, index) => {
+      register(item.media, `Home page • heroBackgroundItems[${index}]`);
+    });
     return index;
-  }, [homeContentForm.aboutImage, posts, projects]);
+  }, [homeContentForm.aboutImage, homeContentForm.heroBackgroundItems, posts, projects]);
 
   useEffect(() => {
     if (!selectedMediaId) {
@@ -1022,6 +1025,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
     if (homeContentForm.aboutImage.trim() && !isValidMediaField(homeContentForm.aboutImage)) {
       setHomeContentError('Image À propos invalide. Utilisez une URL valide ou media:asset-id existant.');
+      return;
+    }
+    const invalidHeroBackground = homeContentForm.heroBackgroundItems.find((item) => item.media.trim() && !isValidMediaField(item.media));
+    if (invalidHeroBackground) {
+      setHomeContentError('Un média de background hero est invalide. Utilisez une URL valide ou media:asset-id existant.');
+      return;
+    }
+    if (homeContentForm.heroBackgroundIntervalMs < 2000 || homeContentForm.heroBackgroundIntervalMs > 30000) {
+      setHomeContentError("L'intervalle du slideshow hero doit être compris entre 2000 et 30000 ms.");
       return;
     }
     const hrefFields: Array<[string, string]> = [
