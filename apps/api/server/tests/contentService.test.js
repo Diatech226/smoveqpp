@@ -1372,3 +1372,78 @@ describe('ContentService analytics tracking', () => {
     expect(result.error.code).toBe('ANALYTICS_EVENT_INVALID');
   });
 });
+
+describe('ContentService ownership and tenant scoping', () => {
+  it('scopes content by organization and stamps ownership metadata', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const created = service.saveService(
+      {
+        id: 'svc-owned',
+        title: 'Owned Service',
+        slug: 'owned-service',
+        description: 'Description',
+        icon: 'palette',
+        color: 'from-[#00b3e8] to-[#00c0e8]',
+        features: ['Feature'],
+        status: 'draft',
+      },
+      { userId: 'author-1', role: 'author', organizationId: 'org_alpha' },
+    );
+
+    expect(created.ok).toBe(true);
+    expect(created.service.ownerUserId).toBe('author-1');
+    expect(created.service.organizationId).toBe('org_alpha');
+    expect(service.listServices({ organizationId: 'org_alpha' }).some((entry) => entry.id === 'svc-owned')).toBe(true);
+    expect(service.listServices({ organizationId: 'org_beta' }).some((entry) => entry.id === 'svc-owned')).toBe(false);
+  });
+
+  it('prevents authors from editing content they do not own', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    service.saveProject(
+      {
+        id: 'project-owned',
+        title: 'Project Owned',
+        slug: 'project-owned',
+        client: 'Client',
+        category: 'Web',
+        year: '2026',
+        description: 'Description',
+        challenge: 'Challenge',
+        solution: 'Solution',
+        results: ['Result'],
+        tags: ['Tag'],
+        mainImage: 'cover',
+        featuredImage: 'cover',
+        images: ['cover'],
+        status: 'draft',
+      },
+      { userId: 'author-1', role: 'author', organizationId: 'org_alpha' },
+    );
+
+    const denied = service.saveProject(
+      {
+        id: 'project-owned',
+        title: 'Project Hijacked',
+        slug: 'project-owned',
+        client: 'Client',
+        category: 'Web',
+        year: '2026',
+        description: 'Description',
+        challenge: 'Challenge',
+        solution: 'Solution',
+        results: ['Result'],
+        tags: ['Tag'],
+        mainImage: 'cover',
+        featuredImage: 'cover',
+        images: ['cover'],
+        status: 'draft',
+      },
+      { userId: 'author-2', role: 'author', organizationId: 'org_alpha' },
+    );
+
+    expect(denied.ok).toBe(false);
+    expect(denied.error.code).toBe('FORBIDDEN_OWNERSHIP');
+  });
+});

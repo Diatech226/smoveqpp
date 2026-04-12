@@ -11,7 +11,10 @@ const Permissions = {
   CONTENT_READ: 'content:read',
   CONTENT_WRITE: 'content:write',
   CONTENT_PUBLISH: 'content:publish',
+  CONTENT_WRITE_OWN: 'content:write:own',
+  CONTENT_DELETE_OWN: 'content:delete:own',
   USER_MANAGE: 'user:manage',
+  AUDIT_READ: 'audit:read',
 };
 
 const rolePermissions = {
@@ -21,8 +24,15 @@ const rolePermissions = {
     Permissions.CONTENT_READ,
     Permissions.CONTENT_WRITE,
     Permissions.CONTENT_PUBLISH,
+    Permissions.AUDIT_READ,
   ]),
-  [Roles.AUTHOR]: new Set([Permissions.CMS_ACCESS, Permissions.CONTENT_READ, Permissions.CONTENT_WRITE]),
+  [Roles.AUTHOR]: new Set([
+    Permissions.CMS_ACCESS,
+    Permissions.CONTENT_READ,
+    Permissions.CONTENT_WRITE,
+    Permissions.CONTENT_WRITE_OWN,
+    Permissions.CONTENT_DELETE_OWN,
+  ]),
   [Roles.VIEWER]: new Set([Permissions.CONTENT_READ]),
   [Roles.CLIENT]: new Set(),
 };

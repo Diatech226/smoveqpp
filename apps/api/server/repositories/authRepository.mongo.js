@@ -27,6 +27,10 @@ function mapMongoUser(doc) {
     lastLoginAt: doc.lastLoginAt ?? null,
     passwordResetTokenHash: doc.passwordResetTokenHash ?? null,
     passwordResetTokenExpiresAt: doc.passwordResetTokenExpiresAt ?? null,
+    lastActivityAt: doc.lastActivityAt ?? doc.lastLoginAt ?? null,
+    organizationId: doc.organizationId ?? 'org_default',
+    planTier: doc.planTier ?? 'free',
+    featureFlags: Array.isArray(doc.featureFlags) ? doc.featureFlags : [],
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -54,6 +58,9 @@ class MongoAuthRepository {
       emailVerified: Boolean(input.emailVerified),
       emailVerificationTokenHash: input.emailVerificationTokenHash ?? null,
       emailVerificationTokenExpiresAt: input.emailVerificationTokenExpiresAt ?? null,
+      organizationId: input.organizationId ?? 'org_default',
+      planTier: input.planTier ?? 'free',
+      featureFlags: Array.isArray(input.featureFlags) ? input.featureFlags : [],
     });
 
     return mapMongoUser(user);
@@ -129,6 +136,7 @@ class MongoAuthRepository {
       {
         $set: {
           lastLoginAt: date,
+          lastActivityAt: date,
           updatedAt: new Date(),
         },
       },

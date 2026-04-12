@@ -2,6 +2,23 @@ const USER_ROLES = ['admin', 'editor', 'author', 'viewer', 'client'];
 const USER_STATUSES = ['client', 'staff'];
 const ACCOUNT_STATUSES = ['active', 'invited', 'suspended'];
 const AUTH_PROVIDERS = ['local', 'google', 'facebook'];
+const PLAN_TIERS = ['free', 'pro', 'enterprise'];
+
+function normalizeOrganizationId(value) {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  return normalized || 'org_default';
+}
+
+function normalizeFeatureFlags(value) {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set(
+      value
+        .map((entry) => String(entry ?? '').trim())
+        .filter(Boolean),
+    ),
+  );
+}
 
 function normalizeEmail(email) {
   return String(email ?? '').trim().toLowerCase();
@@ -51,8 +68,12 @@ function normalizeUserInput(input) {
     emailVerificationTokenHash: input.emailVerificationTokenHash ? String(input.emailVerificationTokenHash) : null,
     emailVerificationTokenExpiresAt: input.emailVerificationTokenExpiresAt ?? null,
     lastLoginAt: input.lastLoginAt ?? null,
+    lastActivityAt: input.lastActivityAt ?? input.lastLoginAt ?? null,
     passwordResetTokenHash: input.passwordResetTokenHash ? String(input.passwordResetTokenHash) : null,
     passwordResetTokenExpiresAt: input.passwordResetTokenExpiresAt ?? null,
+    organizationId: normalizeOrganizationId(input.organizationId),
+    planTier: PLAN_TIERS.includes(input.planTier) ? input.planTier : 'free',
+    featureFlags: normalizeFeatureFlags(input.featureFlags),
     createdAt: input.createdAt ?? new Date(),
     updatedAt: input.updatedAt ?? new Date(),
   };
@@ -153,6 +174,10 @@ function createUserModel(mongoose) {
         type: Date,
         default: null,
       },
+      lastActivityAt: {
+        type: Date,
+        default: null,
+      },
       passwordResetTokenHash: {
         type: String,
         default: null,
@@ -160,6 +185,21 @@ function createUserModel(mongoose) {
       passwordResetTokenExpiresAt: {
         type: Date,
         default: null,
+      },
+      organizationId: {
+        type: String,
+        default: 'org_default',
+        index: true,
+      },
+      planTier: {
+        type: String,
+        enum: PLAN_TIERS,
+        default: 'free',
+        index: true,
+      },
+      featureFlags: {
+        type: [String],
+        default: [],
       },
     },
     {
@@ -186,6 +226,8 @@ function createUserModel(mongoose) {
     if (!this.providerId) {
       this.providerId = this.googleId ?? this.facebookId ?? null;
     }
+    this.organizationId = normalizeOrganizationId(this.organizationId);
+    this.featureFlags = normalizeFeatureFlags(this.featureFlags);
     next();
   });
 
@@ -197,7 +239,10 @@ module.exports = {
   USER_STATUSES,
   ACCOUNT_STATUSES,
   AUTH_PROVIDERS,
+  PLAN_TIERS,
   normalizeEmail,
   normalizeUserInput,
+  normalizeOrganizationId,
+  normalizeFeatureFlags,
   createUserModel,
 };

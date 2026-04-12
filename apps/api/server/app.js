@@ -149,6 +149,31 @@ function createApp(deps = {}) {
   app.use(cookieParser());
   app.use(express.json({ limit: '10mb' }));
   app.use(sessionInit.middleware);
+  app.use(async (req, _res, next) => {
+    const sessionUserId = req.session?.userId;
+    if (!sessionUserId) {
+      req.appUser = null;
+      return next();
+    }
+    try {
+      req.appUser = await authService.getSessionUser(sessionUserId);
+      if (!req.appUser) {
+        req.session.userId = null;
+        req.session.role = null;
+        req.session.organizationId = null;
+        req.session.planTier = null;
+        req.session.accountStatus = null;
+      } else {
+        req.session.role = req.appUser.role;
+        req.session.organizationId = req.appUser.organizationId ?? 'org_default';
+        req.session.planTier = req.appUser.planTier ?? 'free';
+        req.session.accountStatus = req.appUser.accountStatus ?? 'active';
+      }
+    } catch (_error) {
+      req.appUser = null;
+    }
+    return next();
+  });
 
   if (!fs.existsSync(MEDIA_UPLOAD_DIR)) {
     fs.mkdirSync(MEDIA_UPLOAD_DIR, { recursive: true });

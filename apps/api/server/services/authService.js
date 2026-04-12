@@ -96,12 +96,16 @@ function sanitizeUser(user) {
     role: user.role,
     status: user.status,
     accountStatus: user.accountStatus ?? 'active',
+    organizationId: user.organizationId ?? 'org_default',
+    planTier: user.planTier ?? 'free',
+    featureFlags: Array.isArray(user.featureFlags) ? user.featureFlags : [],
     authProvider: user.authProvider ?? 'local',
     providers: user.providers ?? [user.authProvider ?? 'local'],
     providerId: user.providerId ?? null,
     avatarUrl: user.avatarUrl ?? null,
     ...buildVerificationMeta(user),
     lastLoginAt: user.lastLoginAt ?? null,
+    lastActivityAt: user.lastActivityAt ?? user.lastLoginAt ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -317,6 +321,9 @@ class AuthService {
         emailVerified,
         emailVerificationTokenHash: null,
         emailVerificationTokenExpiresAt: null,
+        organizationId: 'org_default',
+        planTier: 'free',
+        featureFlags: [],
       });
     } catch (error) {
       if (error?.code === 11000) {
@@ -394,6 +401,9 @@ class AuthService {
       emailVerified: true,
       emailVerificationTokenHash: null,
       emailVerificationTokenExpiresAt: null,
+      organizationId: 'org_default',
+      planTier: 'enterprise',
+      featureFlags: ['analytics:advanced', 'users:manage', 'billing:hooks'],
     });
 
     return { ok: true, created: true, user: sanitizeUser(user) };
@@ -439,6 +449,9 @@ class AuthService {
         emailVerified: false,
         emailVerificationTokenHash: verification.tokenHash,
         emailVerificationTokenExpiresAt: verification.expiresAt,
+        organizationId: 'org_default',
+        planTier: 'free',
+        featureFlags: [],
       });
     } catch (error) {
       if (error?.code === 11000) {
@@ -592,6 +605,34 @@ class AuthService {
         patch.emailVerificationTokenHash = null;
         patch.emailVerificationTokenExpiresAt = null;
       }
+    }
+
+    if (typeof payload.organizationId === 'string' && actor?.role === 'admin') {
+      const normalizedOrg = payload.organizationId.trim().toLowerCase();
+      if (!normalizedOrg) {
+        return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'Invalid organization id' };
+      }
+      patch.organizationId = normalizedOrg;
+    }
+
+    if (typeof payload.planTier === 'string') {
+      if (actor?.role !== 'admin') {
+        return { ok: false, status: 403, code: 'FORBIDDEN_PLAN_CHANGE', message: 'Only admins can change plan tier' };
+      }
+      if (!['free', 'pro', 'enterprise'].includes(payload.planTier)) {
+        return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'Invalid plan tier' };
+      }
+      patch.planTier = payload.planTier;
+    }
+
+    if (payload.featureFlags !== undefined) {
+      if (actor?.role !== 'admin') {
+        return { ok: false, status: 403, code: 'FORBIDDEN_FEATURE_FLAGS_CHANGE', message: 'Only admins can change feature flags' };
+      }
+      if (!Array.isArray(payload.featureFlags) || payload.featureFlags.some((entry) => typeof entry !== 'string')) {
+        return { ok: false, status: 400, code: 'VALIDATION_ERROR', message: 'featureFlags must be an array of strings' };
+      }
+      patch.featureFlags = Array.from(new Set(payload.featureFlags.map((entry) => entry.trim()).filter(Boolean)));
     }
 
     if (patch.accountStatus === 'suspended' && String(actor?.id) === String(user.id)) {

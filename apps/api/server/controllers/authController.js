@@ -23,6 +23,9 @@ function startSession(req, res, user, eventName, statusCode = 200, extras = {}) 
 
     req.session.userId = user.id;
     req.session.role = user.role;
+    req.session.organizationId = user.organizationId ?? 'org_default';
+    req.session.planTier = user.planTier ?? 'free';
+    req.session.accountStatus = user.accountStatus ?? 'active';
     req.session.authenticatedAt = new Date().toISOString();
 
     logAuthEvent(req, eventName, 'success', { userId: user.id, email: user.email });
@@ -44,6 +47,9 @@ function finishOAuthSession(req, res, user, eventName, redirectTo) {
 
     req.session.userId = user.id;
     req.session.role = user.role;
+    req.session.organizationId = user.organizationId ?? 'org_default';
+    req.session.planTier = user.planTier ?? 'free';
+    req.session.accountStatus = user.accountStatus ?? 'active';
     req.session.authenticatedAt = new Date().toISOString();
     logAuthEvent(req, eventName, 'success', { userId: user.id, email: user.email });
     return res.redirect(redirectTo);
@@ -84,6 +90,9 @@ function buildAuthController({ authService }) {
       if (!user) {
         req.session.userId = null;
         req.session.role = null;
+        req.session.organizationId = null;
+        req.session.planTier = null;
+        req.session.accountStatus = null;
         req.session.authenticatedAt = null;
       }
 
