@@ -42,6 +42,7 @@ import {
   fetchBackendMediaReferences,
   fetchSyncDiagnostics,
   fetchContentHealthSummary,
+  fetchConversionMetrics,
   fetchSettingsHistory,
   requestWithRetry,
   rollbackSettingsVersion,
@@ -58,6 +59,7 @@ import {
   type EditorialAnalytics,
   type SettingsHistoryEntry,
   type ContentHealthSummary,
+  type ConversionMetrics,
 } from '../../utils/contentApi';
 import { fromCmsBlogInputWithExisting, normalizeSlug } from '../../features/blog/blogEntryAdapter';
 import { isMediaReference, resolveBlogMediaReference } from '../../features/blog/mediaReference';
@@ -468,6 +470,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const canReviewContent = user?.role === 'admin' || user?.role === 'editor';
   const canPublishContent = user?.role === 'admin' || user?.role === 'editor';
   const [editorialAnalytics, setEditorialAnalytics] = useState<EditorialAnalytics | null>(null);
+  const [conversionMetrics, setConversionMetrics] = useState<ConversionMetrics | null>(null);
   const [adminUsers, setAdminUsers] = useState<AppUser[]>([]);
   const [adminUsersLoading, setAdminUsersLoading] = useState(false);
   const [adminUsersError, setAdminUsersError] = useState('');
@@ -533,6 +536,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         if (active) setEditorialAnalytics(analytics);
       } catch {
         if (active) setEditorialAnalytics(null);
+      }
+
+      try {
+        const metrics = await fetchConversionMetrics();
+        if (active) setConversionMetrics(metrics);
+      } catch {
+        if (active) setConversionMetrics(null);
       }
 
       try {
@@ -2505,6 +2515,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               contentHealth={contentHealth}
               readinessSnapshot={readinessSnapshot}
               stats={stats}
+              conversionMetrics={conversionMetrics}
               handleSectionChange={handleSectionChange}
             >
               <div className="bg-white rounded-[20px] p-6 shadow-sm">

@@ -15,6 +15,7 @@ import { selectHomepageBlogPosts, selectHomepageServices } from './homePreview';
 import { resolveAboutTeamHref } from '../navigationCta';
 import { submitContactForm } from '../../../utils/contactApi';
 import { PUBLIC_ROUTE_HASH } from '../publicRoutes';
+import { trackSiteEvent } from '../../../utils/analytics';
 
 function HomePageContent() {
   const [homeContent, setHomeContent] = useState(() => pageContentRepository.getHomePageContent());
@@ -26,33 +27,29 @@ function HomePageContent() {
 
   useEffect(() => {
     let active = true;
-    void fetchPublicPageContent()
-      .then((remote) => {
+    void Promise.allSettled([fetchPublicPageContent(), fetchPublicServices(), getBlogContentContractFromSource()])
+      .then(([pageResult, servicesResult, blogResult]) => {
         if (!active) return;
-        const synced = pageContentRepository.saveHomePageContent(remote);
-        setHomeContent(synced);
-      })
-      .catch((error) => {
-        console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', error);
-      });
 
-    void fetchPublicServices()
-      .then((remote) => {
-        if (!active) return;
-      const synced = serviceRepository.replaceAll(remote);
-      setServicesData(selectHomepageServices(synced));
-      })
-      .catch((error) => {
-        console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);
-      });
+        if (pageResult.status === 'fulfilled') {
+          const synced = pageContentRepository.saveHomePageContent(pageResult.value);
+          setHomeContent(synced);
+        } else {
+          console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', pageResult.reason);
+        }
 
-    void getBlogContentContractFromSource()
-      .then((contract) => {
-        if (!active) return;
-        setBlogPosts(selectHomepageBlogPosts(contract.posts));
-      })
-      .catch((error) => {
-        console.warn('[public-content] blog API unavailable, keeping repository snapshot.', error);
+        if (servicesResult.status === 'fulfilled') {
+          const synced = serviceRepository.replaceAll(servicesResult.value);
+          setServicesData(selectHomepageServices(synced));
+        } else {
+          console.warn('[public-content] services API unavailable, keeping repository snapshot.', servicesResult.reason);
+        }
+
+        if (blogResult.status === 'fulfilled') {
+          setBlogPosts(selectHomepageBlogPosts(blogResult.value.posts));
+        } else {
+          console.warn('[public-content] blog API unavailable, keeping repository snapshot.', blogResult.reason);
+        }
       });
 
     return () => {
@@ -61,7 +58,7 @@ function HomePageContent() {
   }, []);
 
   const renderableServices = useMemo(() => selectRenderablePublicServices(servicesData), [servicesData]);
-
+  const decorativeDots = useMemo(() => Array.from({ length: 10 }, (_, index) => index), []);
 
   const handleContactSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -78,6 +75,12 @@ function HomePageContent() {
     };
 
     const result = await submitContactForm(payload);
+    trackSiteEvent({
+      name: 'contact_form_submitted',
+      route: 'home',
+      entityType: 'contact',
+      success: result.success,
+    });
     if (result.success) {
       setContactFeedback({ type: 'success', message: result.message });
       event.currentTarget.reset();
@@ -141,6 +144,7 @@ function HomePageContent() {
                 key={service.id}
                 href={service.routeHref}
                 className="group block"
+                onClick={() => trackSiteEvent({ name: 'cta_clicked', route: 'home', ctaId: 'home_service_card', targetRoute: service.routeHref, entityType: 'service', entityId: service.slug })}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -201,6 +205,7 @@ function HomePageContent() {
             <motion.a
               href={PUBLIC_ROUTE_HASH.services}
               className="inline-block bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] text-white px-10 py-5 rounded-[20px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px]"
+              onClick={() => trackSiteEvent({ name: 'cta_clicked', route: 'home', ctaId: 'home_services_all', targetRoute: PUBLIC_ROUTE_HASH.services })}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -308,6 +313,7 @@ function HomePageContent() {
               <motion.a
                 href={resolveAboutTeamHref(homeContent.aboutCtaHref)}
                 className="inline-flex items-center gap-2 bg-[#34c759] text-white px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
+                onClick={() => trackSiteEvent({ name: 'cta_clicked', route: 'home', ctaId: 'home_about_cta', targetRoute: resolveAboutTeamHref(homeContent.aboutCtaHref) })}
                 whileHover={{ scale: 1.05, x: 5 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -360,6 +366,7 @@ function HomePageContent() {
             <motion.a
               href={homeContent.portfolioCtaHref}
               className="inline-block bg-gradient-to-r from-[#ffc247] to-[#ff9f47] text-white px-10 py-5 rounded-[20px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px]"
+              onClick={() => trackSiteEvent({ name: 'cta_clicked', route: 'home', ctaId: 'home_portfolio_cta', targetRoute: homeContent.portfolioCtaHref })}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -415,7 +422,7 @@ function HomePageContent() {
                   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.1)',
                 }}
               >
-                <a href={PUBLIC_ROUTE_HASH.blogDetail(post.slug)} className="block aspect-video overflow-hidden">
+                <a href={PUBLIC_ROUTE_HASH.blogDetail(post.slug)} className="block aspect-video overflow-hidden" onClick={() => trackSiteEvent({ name: 'blog_article_opened', route: 'home', entityType: 'blog', entityId: post.slug, targetRoute: PUBLIC_ROUTE_HASH.blogDetail(post.slug) })}>
                   <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.6 }}>
                     <ImageWithFallback
                       src={media.src}
@@ -430,7 +437,7 @@ function HomePageContent() {
                     {post.category}
                   </span>
 
-                  <a href={PUBLIC_ROUTE_HASH.blogDetail(post.slug)} className="block">
+                  <a href={PUBLIC_ROUTE_HASH.blogDetail(post.slug)} className="block" onClick={() => trackSiteEvent({ name: 'blog_article_opened', route: 'home', entityType: 'blog', entityId: post.slug, targetRoute: PUBLIC_ROUTE_HASH.blogDetail(post.slug) })}>
                     <h3 className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41] mb-3 line-clamp-2 group-hover:text-[#00b3e8] transition-colors">
                       {post.title}
                     </h3>
@@ -469,6 +476,7 @@ function HomePageContent() {
             <motion.a
               href={homeContent.blogCtaHref}
               className="inline-block bg-gradient-to-r from-[#a855f7] to-[#9333ea] text-white px-10 py-5 rounded-[20px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px]"
+              onClick={() => trackSiteEvent({ name: 'cta_clicked', route: 'home', ctaId: 'home_blog_cta', targetRoute: homeContent.blogCtaHref })}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -488,7 +496,7 @@ function HomePageContent() {
         transition={{ duration: 0.8 }}
       >
         {/* Animated Background */}
-        {[...Array(10)].map((_, i) => (
+        {decorativeDots.map((i) => (
           <motion.div
             key={i}
             className="absolute w-2 h-2 bg-white rounded-full"

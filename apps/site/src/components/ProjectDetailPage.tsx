@@ -9,6 +9,7 @@ import { resolveProjectHeroMedia, resolveProjectGalleryMedia } from '../features
 import { resolveProjectInquiryHref } from '../features/marketing/navigationCta';
 import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
+import { trackSiteEvent } from '../utils/analytics';
 import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
 
 interface ProjectDetailPageProps {
@@ -52,6 +53,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
 
   useEffect(() => {
     if (!project) return;
+    trackSiteEvent({ name: 'project_detail_opened', route: 'project-detail', entityType: 'project', entityId: project.slug || project.id, targetRoute: `/projects/${project.slug || project.id}` });
     applyPageMetadata({
       title: `${project.title} | Projet`,
       description: project.description || `Étude de cas ${project.title}.`,
@@ -184,6 +186,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
               <motion.a
                 href={inquiryHref}
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-[#ffc247] to-[#ff9f47] text-white px-8 py-4 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px]"
+                onClick={() => trackSiteEvent({ name: 'cta_clicked', route: 'project-detail', ctaId: 'project_start', targetRoute: inquiryHref, entityType: 'project', entityId: project.slug || project.id })}
                 whileHover={{ scale: 1.05, x: 5 }}
                 whileTap={{ scale: 0.95 }}
               >

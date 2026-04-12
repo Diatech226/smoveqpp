@@ -127,6 +127,27 @@ export interface SyncDiagnostics {
   };
 }
 
+
+export interface ConversionMetrics {
+  eventsLast1000: number;
+  byName: Record<string, number>;
+  conversionPath: {
+    homeToDiscovery: number;
+    discoveryToContact: number;
+    contactFormSubmissions: number;
+  };
+  topRoutes: Array<{ route: string; hits: number }>;
+  recent: Array<{
+    id: string;
+    name: string;
+    route: string;
+    source: string;
+    happenedAt: string;
+    ctaId?: string | null;
+    targetRoute?: string | null;
+  }>;
+}
+
 export interface ContentHealthSummary {
   publication: {
     blog: Record<string, number>;
@@ -569,6 +590,12 @@ function dedupeList(values: string[] | undefined, fallback: string[]): string[] 
 export async function fetchSyncDiagnostics(): Promise<SyncDiagnostics> {
   const body = await request<{ diagnostics: SyncDiagnostics }>('/sync-diagnostics');
   return body.data!.diagnostics;
+}
+
+
+export async function fetchConversionMetrics(): Promise<ConversionMetrics> {
+  const body = await request<{ metrics: ConversionMetrics }>('/metrics');
+  return body.data!.metrics;
 }
 
 export async function fetchContentHealthSummary(): Promise<ContentHealthSummary> {

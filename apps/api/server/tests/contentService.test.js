@@ -1346,3 +1346,29 @@ describe('ContentService production hardening', () => {
     expect((summary.launchReadiness.topIssues || []).length).toBeGreaterThan(0);
   });
 });
+
+describe('ContentService analytics tracking', () => {
+  it('records normalized analytics events and exposes conversion summary', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    service.recordAnalyticsEvent({ name: 'cta_clicked', route: 'home', ctaId: 'hero_primary', targetRoute: '#/services' }, { source: 'public' });
+    service.recordAnalyticsEvent({ name: 'cta_clicked', route: 'service-detail', ctaId: 'service_contact', targetRoute: '#/contact' }, { source: 'public' });
+    service.recordAnalyticsEvent({ name: 'contact_form_submitted', route: 'home', success: true }, { source: 'public' });
+
+    const summary = service.getPublicAnalyticsSummary();
+
+    expect(summary.eventsLast1000).toBe(3);
+    expect(summary.byName.cta_clicked).toBe(2);
+    expect(summary.conversionPath.homeToDiscovery).toBeGreaterThan(0);
+    expect(summary.conversionPath.discoveryToContact).toBeGreaterThan(0);
+    expect(summary.conversionPath.contactFormSubmissions).toBe(1);
+    expect(summary.topRoutes.length).toBeGreaterThan(0);
+  });
+
+  it('rejects analytics events without names', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const result = service.recordAnalyticsEvent({ route: 'home' });
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('ANALYTICS_EVENT_INVALID');
+  });
+});
