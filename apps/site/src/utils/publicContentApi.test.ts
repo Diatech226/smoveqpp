@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ContentApiError } from './contentApi';
-import { fetchPublicMediaFiles, fetchPublicProjects, fetchPublicServices } from './publicContentApi';
+import { fetchPublicMediaFiles, fetchPublicPageContent, fetchPublicProjects, fetchPublicServices } from './publicContentApi';
 
 describe('publicContentApi', () => {
   it('returns public projects from backend envelope', async () => {
@@ -30,6 +30,67 @@ describe('publicContentApi', () => {
 
     const media = await fetchPublicMediaFiles();
     expect(media).toHaveLength(1);
+  });
+
+  it('returns homepage content with hero background slideshow fields from backend envelope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: {
+            pageContent: {
+              home: {
+                heroBadge: 'Badge',
+                heroTitleLine1: 'Line 1',
+                heroTitleLine2: 'Line 2',
+                heroDescription: 'Desc',
+                heroPrimaryCtaLabel: 'CTA1',
+                heroPrimaryCtaHref: '#services',
+                heroSecondaryCtaLabel: 'CTA2',
+                heroSecondaryCtaHref: '#contact',
+                heroBackgroundItems: [
+                  { id: 'slide-1', label: 'Slide 1', media: 'media:hero-1', alt: 'Alt', overlayOpacity: 0.4, focalPoint: 'center' },
+                ],
+                heroBackgroundRotationEnabled: true,
+                heroBackgroundAutoplay: true,
+                heroBackgroundIntervalMs: 5000,
+                heroBackgroundTransitionStyle: 'fade',
+                heroBackgroundOverlayOpacity: 0.35,
+                aboutBadge: 'About',
+                aboutTitle: 'Title',
+                aboutParagraphOne: 'P1',
+                aboutParagraphTwo: 'P2',
+                aboutCtaLabel: 'CTA',
+                aboutCtaHref: '#about',
+                aboutImage: '',
+                servicesIntroTitle: 'Services',
+                servicesIntroSubtitle: 'Subtitle',
+                portfolioBadge: 'Portfolio',
+                portfolioTitle: 'Title',
+                portfolioSubtitle: 'Subtitle',
+                portfolioCtaLabel: 'CTA',
+                portfolioCtaHref: '#projects',
+                blogBadge: 'Blog',
+                blogTitle: 'Title',
+                blogSubtitle: 'Subtitle',
+                blogCtaLabel: 'CTA',
+                blogCtaHref: '#blog',
+                contactTitle: 'Contact',
+                contactSubtitle: 'Subtitle',
+                contactSubmitLabel: 'Send',
+              },
+            },
+          },
+        }),
+      } as Response),
+    );
+
+    const home = await fetchPublicPageContent();
+    expect(home.heroBackgroundItems).toHaveLength(1);
+    expect(home.heroBackgroundIntervalMs).toBe(5000);
   });
 
   it('throws when public services endpoint is unavailable', async () => {
