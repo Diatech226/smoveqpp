@@ -23,6 +23,7 @@ const COLOR_GRADIENT_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+t
 const MEDIA_ROLE_PRESETS = new Set(['cardImage', 'heroImage', 'coverImage', 'socialImage', 'galleryImage', 'iconLikeAsset', 'brandLogo', 'favicon']);
 const MANAGED_BLOG_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
 const MANAGED_BLOG_TAGS = ['React', 'Web Design', 'Performance', 'Innovation', 'Vidéo', 'Branding', 'Corporate', 'BTP', 'Logo Design', 'Identité Visuelle', 'Food', 'SEO', 'Social Media', 'CMS'];
+const DEFAULT_ORGANIZATION_ID = 'org_default';
 
 const defaultHomePageContent = {
   heroBadge: 'Agence de communication',
@@ -439,6 +440,37 @@ class ContentService {
     this.contentRepository.saveBlogPosts(state.blogPosts || []);
   }
 
+  normalizeActorContext(actor = {}) {
+    const userId = typeof actor?.userId === 'string' && actor.userId.trim() ? actor.userId.trim() : 'system';
+    return {
+      userId,
+      role: typeof actor?.role === 'string' ? actor.role : 'system',
+      organizationId:
+        typeof actor?.organizationId === 'string' && actor.organizationId.trim()
+          ? actor.organizationId.trim().toLowerCase()
+          : DEFAULT_ORGANIZATION_ID,
+    };
+  }
+
+  canMutateEntity(actor, entity, action = 'write') {
+    if (!entity) return false;
+    if (actor.role === 'admin' || actor.role === 'editor') return true;
+    if (actor.role === 'author') {
+      if (entity.ownerUserId !== actor.userId) return false;
+      return action === 'write' || action === 'delete';
+    }
+    return false;
+  }
+
+  scopeByOrganization(entries, organizationId) {
+    const normalizedOrganizationId =
+      typeof organizationId === 'string' && organizationId.trim()
+        ? organizationId.trim().toLowerCase()
+        : null;
+    if (!normalizedOrganizationId) return entries;
+    return entries.filter((entry) => (entry.organizationId || DEFAULT_ORGANIZATION_ID) === normalizedOrganizationId);
+  }
+
   seedBlogPostsFromLegacy() {
     const state = this.readState();
     const existingPosts = Array.isArray(state.blogPosts) ? state.blogPosts.map((post) => this.normalizePost(post)).filter((post) => this.validateBlogPost(post)) : [];
@@ -463,20 +495,29 @@ class ContentService {
     return existingPosts;
   }
 
-  listBlogPosts() {
-    return this.seedBlogPostsFromLegacy().map((post) => this.normalizePost(post));
+  listBlogPosts(options = {}) {
+    const entries = this.seedBlogPostsFromLegacy().map((post) => this.normalizePost(post));
+    return this.scopeByOrganization(entries, options.organizationId);
   }
 
-  saveBlogPost(post) {
-    const normalized = this.normalizePost(post);
+  findBlogPostById(id, options = {}) {
+    return this.listBlogPosts(options).find((entry) => entry.id === id) || null;
+  }
+
+  saveBlogPost(post, actor = {}) {
+    const actorContext = this.normalizeActorContext(actor);
+    const normalized = this.normalizePost(post, actorContext);
     if (!this.validateBlogPost(normalized)) {
       return { ok: false, error: { code: 'BLOG_VALIDATION_ERROR', message: 'Invalid blog payload.' } };
     }
 
-    const posts = this.listBlogPosts();
+    const posts = this.listBlogPosts({ organizationId: actorContext.organizationId });
     const duplicateSlug = posts.find((entry) => entry.slug === normalized.slug && entry.id !== normalized.id);
 
     const existing = posts.find((entry) => entry.id === normalized.id);
+    if (existing && !this.canMutateEntity(actorContext, existing, 'write')) {
+      return { ok: false, error: { code: 'FORBIDDEN_OWNERSHIP', message: 'Cannot modify content owned by another user.' } };
+    }
     if (normalized.status === 'published') {
       if (!this.getSettings().operationalSettings.instantPublishing) {
         return {
@@ -508,7 +549,8 @@ class ContentService {
     }
 
     const state = this.readState();
-    state.blogPosts = posts;
+    const globalPosts = this.listBlogPosts().filter((entry) => (entry.organizationId || DEFAULT_ORGANIZATION_ID) !== actorContext.organizationId);
+    state.blogPosts = [...globalPosts, ...posts];
     this.writeState(state);
     return { ok: true, post: normalized };
   }
@@ -521,18 +563,22 @@ class ContentService {
     return { ok: true };
   }
 
-  transitionBlogStatus(id, targetStatus) {
+  transitionBlogStatus(id, targetStatus, actor = {}) {
+    const actorContext = this.normalizeActorContext(actor);
     if (!BLOG_STATUSES.has(targetStatus)) {
       return { ok: false, error: { code: 'BLOG_INVALID_STATUS_TRANSITION', message: 'Invalid target status.' } };
     }
 
-    const posts = this.listBlogPosts();
+    const posts = this.listBlogPosts({ organizationId: actorContext.organizationId });
     const index = posts.findIndex((post) => post.id === id);
     if (index < 0) {
       return { ok: false, error: { code: 'BLOG_NOT_FOUND', message: 'Post not found.' } };
     }
 
     const current = posts[index];
+    if (!this.canMutateEntity(actorContext, current, 'write')) {
+      return { ok: false, error: { code: 'FORBIDDEN_OWNERSHIP', message: 'Cannot transition content owned by another user.' } };
+    }
     const isAllowed = this.isAllowedTransition(current.status, targetStatus);
     if (!isAllowed) {
       return { ok: false, error: { code: 'BLOG_INVALID_STATUS_TRANSITION', message: 'Transition not allowed.' } };
@@ -557,7 +603,8 @@ class ContentService {
 
     posts[index] = next;
     const state = this.readState();
-    state.blogPosts = posts;
+    const globalPosts = this.listBlogPosts().filter((entry) => (entry.organizationId || DEFAULT_ORGANIZATION_ID) !== actorContext.organizationId);
+    state.blogPosts = [...globalPosts, ...posts];
     this.writeState(state);
     return { ok: true, post: next };
   }
@@ -647,11 +694,12 @@ class ContentService {
     };
   }
 
-  listProjects() {
-    return this.seedProjectsFromLegacy()
+  listProjects(options = {}) {
+    const entries = this.seedProjectsFromLegacy()
       .map((project) => this.normalizeProject(project))
       .filter((project) => this.validateProject(project))
       .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || Number.parseInt(b.year, 10) - Number.parseInt(a.year, 10));
+    return this.scopeByOrganization(entries, options.organizationId);
   }
 
   seedProjectsFromLegacy() {
@@ -694,20 +742,28 @@ class ContentService {
     return Array.isArray(state.projects) ? state.projects : existingProjects;
   }
 
-  saveProject(project) {
-    const normalized = this.normalizeProject(project);
+  findProjectById(id, options = {}) {
+    return this.listProjects(options).find((entry) => entry.id === id) || null;
+  }
+
+  saveProject(project, actor = {}) {
+    const actorContext = this.normalizeActorContext(actor);
+    const normalized = this.normalizeProject(project, actorContext);
     if (!this.validateProject(normalized)) {
       return { ok: false, error: { code: 'PROJECT_VALIDATION_ERROR', message: 'Invalid project payload.' } };
     }
 
     const state = this.readState();
-    const projects = this.listProjects();
+    const projects = this.listProjects({ organizationId: actorContext.organizationId });
     const duplicateSlug = projects.find((entry) => entry.slug === normalized.slug && entry.id !== normalized.id);
     if (duplicateSlug) {
       return { ok: false, error: { code: 'PROJECT_SLUG_CONFLICT', message: 'Project slug already exists.' } };
     }
 
     const existing = projects.find((entry) => entry.id === normalized.id);
+    if (existing && !this.canMutateEntity(actorContext, existing, 'write')) {
+      return { ok: false, error: { code: 'FORBIDDEN_OWNERSHIP', message: 'Cannot modify project owned by another user.' } };
+    }
     if (normalized.status === 'published') {
       const publishability = this.evaluateProjectPublishability(normalized);
       if (!publishability.ok) {
@@ -721,30 +777,35 @@ class ContentService {
     const index = projects.findIndex((entry) => entry.id === normalized.id);
     if (index >= 0) projects[index] = normalized;
     else projects.push(normalized);
-    state.projects = projects;
+    const globalProjects = this.listProjects().filter((entry) => (entry.organizationId || DEFAULT_ORGANIZATION_ID) !== actorContext.organizationId);
+    state.projects = [...globalProjects, ...projects];
     this.writeState(state);
     return { ok: true, project: normalized };
   }
 
 
   transitionProjectStatus(id, targetStatus, actor = {}) {
+    const actorContext = this.normalizeActorContext(actor);
     if (!PROJECT_STATUSES.has(targetStatus)) {
       return { ok: false, error: { code: 'PROJECT_INVALID_STATUS_TRANSITION', message: 'Invalid target status.' } };
     }
 
-    const projects = this.listProjects();
+    const projects = this.listProjects({ organizationId: actorContext.organizationId });
     const index = projects.findIndex((project) => project.id === id);
     if (index < 0) {
       return { ok: false, error: { code: 'PROJECT_NOT_FOUND', message: 'Project not found.' } };
     }
 
     const current = projects[index];
+    if (!this.canMutateEntity(actorContext, current, 'write')) {
+      return { ok: false, error: { code: 'FORBIDDEN_OWNERSHIP', message: 'Cannot transition project owned by another user.' } };
+    }
     const isAllowed = this.isAllowedTransition(current.status || 'draft', targetStatus);
     if (!isAllowed) {
       return { ok: false, error: { code: 'PROJECT_INVALID_STATUS_TRANSITION', message: 'Transition not allowed.' } };
     }
 
-    const reviewedBy = typeof actor?.reviewedBy === 'string' ? actor.reviewedBy.trim() : '';
+    const reviewedBy = typeof actor?.reviewedBy === 'string' ? actor.reviewedBy.trim() : actorContext.userId;
     const next = { ...current, status: targetStatus };
 
     if (targetStatus === 'published') {
@@ -763,7 +824,8 @@ class ContentService {
 
     projects[index] = this.normalizeProject(next);
     const state = this.readState();
-    state.projects = projects;
+    const globalProjects = this.listProjects().filter((entry) => (entry.organizationId || DEFAULT_ORGANIZATION_ID) !== actorContext.organizationId);
+    state.projects = [...globalProjects, ...projects];
     this.writeState(state);
     return { ok: true, project: projects[index] };
   }
@@ -802,23 +864,33 @@ class ContentService {
     return existingServices;
   }
 
-  listServices() {
-    return this.seedServicesFromLegacy()
+  listServices(options = {}) {
+    const entries = this.seedServicesFromLegacy()
       .map((service) => this.normalizeService(service))
       .filter((service) => this.validateService(service))
       .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || a.title.localeCompare(b.title, 'fr'));
+    return this.scopeByOrganization(entries, options.organizationId);
   }
 
-  saveService(service) {
-    const normalized = this.normalizeService(service);
+  findServiceById(id, options = {}) {
+    return this.listServices(options).find((entry) => entry.id === id) || null;
+  }
+
+  saveService(service, actor = {}) {
+    const actorContext = this.normalizeActorContext(actor);
+    const normalized = this.normalizeService(service, actorContext);
     if (!this.validateService(normalized)) {
       return { ok: false, error: { code: 'SERVICE_VALIDATION_ERROR', message: 'Invalid service payload.' } };
     }
 
-    const services = this.listServices();
+    const services = this.listServices({ organizationId: actorContext.organizationId });
     const slugConflict = services.find((entry) => entry.slug === normalized.slug && entry.id !== normalized.id);
     if (slugConflict) {
       return { ok: false, error: { code: 'SERVICE_SLUG_CONFLICT', message: 'Service slug already exists.' } };
+    }
+    const existing = services.find((entry) => entry.id === normalized.id);
+    if (existing && !this.canMutateEntity(actorContext, existing, 'write')) {
+      return { ok: false, error: { code: 'FORBIDDEN_OWNERSHIP', message: 'Cannot modify service owned by another user.' } };
     }
     if (normalized.status === 'published') {
       const publishability = this.evaluateServicePublishability(normalized);
@@ -832,7 +904,8 @@ class ContentService {
     else services.push(normalized);
 
     const state = this.readState();
-    state.services = services;
+    const globalServices = this.listServices().filter((entry) => (entry.organizationId || DEFAULT_ORGANIZATION_ID) !== actorContext.organizationId);
+    state.services = [...globalServices, ...services];
     this.writeState(state);
     return { ok: true, service: normalized };
   }
@@ -1470,7 +1543,7 @@ class ContentService {
     return Boolean(map[current] && map[current].has(target));
   }
 
-  normalizePost(raw) {
+  normalizePost(raw, actor = {}) {
     const status = BLOG_STATUSES.has(raw?.status) ? raw.status : 'draft';
     const title = typeof raw?.title === 'string' ? raw.title.trim() : '';
     const slug = this.normalizeSlug(typeof raw?.slug === 'string' ? raw.slug : title || raw?.id || 'article');
@@ -1513,6 +1586,12 @@ class ContentService {
         cardImage: (raw?.mediaRoles?.cardImage || featuredImage || '').trim(),
         socialImage,
       },
+      ownerUserId: typeof raw?.ownerUserId === 'string' && raw.ownerUserId.trim() ? raw.ownerUserId.trim() : actor.userId || 'system',
+      organizationId:
+        typeof raw?.organizationId === 'string' && raw.organizationId.trim()
+          ? raw.organizationId.trim().toLowerCase()
+          : actor.organizationId || DEFAULT_ORGANIZATION_ID,
+      updatedBy: actor.userId || (typeof raw?.updatedBy === 'string' ? raw.updatedBy : 'system'),
     };
   }
 
@@ -1581,12 +1660,16 @@ class ContentService {
           (post.mediaRoles.socialImage === undefined || this.isValidMediaLink(post.mediaRoles.socialImage)) &&
           (post.mediaRoles.coverImage === undefined || this.isValidMediaLink(post.mediaRoles.coverImage)) &&
           (post.mediaRoles.cardImage === undefined || this.isValidMediaLink(post.mediaRoles.cardImage)))) &&
+      typeof post.ownerUserId === 'string' &&
+      post.ownerUserId.trim().length > 0 &&
+      typeof post.organizationId === 'string' &&
+      post.organizationId.trim().length > 0 &&
       isValidSlug(post.slug) &&
       BLOG_STATUSES.has(post.status)
     );
   }
 
-  normalizeProject(project) {
+  normalizeProject(project, actor = {}) {
     const asTrimmedString = requiredTrimmed;
     const title = asTrimmedString(project?.title);
     const slug = this.normalizeSlug(asTrimmedString(project?.slug) || title || asTrimmedString(project?.id));
@@ -1689,6 +1772,12 @@ class ContentService {
               position: project.testimonial.position.trim(),
             }
           : undefined,
+      ownerUserId: typeof project?.ownerUserId === 'string' && project.ownerUserId.trim() ? project.ownerUserId.trim() : actor.userId || 'system',
+      organizationId:
+        typeof project?.organizationId === 'string' && project.organizationId.trim()
+          ? project.organizationId.trim().toLowerCase()
+          : actor.organizationId || DEFAULT_ORGANIZATION_ID,
+      updatedBy: actor.userId || (typeof project?.updatedBy === 'string' ? project.updatedBy : 'system'),
     };
   }
 
@@ -1743,13 +1832,17 @@ class ContentService {
             typeof project.testimonial.position === 'string')) &&
         Array.isArray(project.images) &&
         project.images.every((image) => this.isValidMediaLink(image)) &&
+        typeof project.ownerUserId === 'string' &&
+        project.ownerUserId.trim().length > 0 &&
+        typeof project.organizationId === 'string' &&
+        project.organizationId.trim().length > 0 &&
         PROJECT_STATUSES.has(project.status)
     );
   }
 
 
 
-  normalizeService(service) {
+  normalizeService(service, actor = {}) {
     const asTrimmedString = requiredTrimmed;
     const title = asTrimmedString(service?.title);
     const nowIso = new Date().toISOString();
@@ -1786,6 +1879,12 @@ class ContentService {
       },
       createdAt: service?.createdAt || nowIso,
       updatedAt: nowIso,
+      ownerUserId: typeof service?.ownerUserId === 'string' && service.ownerUserId.trim() ? service.ownerUserId.trim() : actor.userId || 'system',
+      organizationId:
+        typeof service?.organizationId === 'string' && service.organizationId.trim()
+          ? service.organizationId.trim().toLowerCase()
+          : actor.organizationId || DEFAULT_ORGANIZATION_ID,
+      updatedBy: actor.userId || (typeof service?.updatedBy === 'string' ? service.updatedBy : 'system'),
     };
   }
 
@@ -1819,6 +1918,10 @@ class ContentService {
         COLOR_GRADIENT_PATTERN.test(service.color) &&
         Array.isArray(service.features) &&
         service.features.length > 0 &&
+        typeof service.ownerUserId === 'string' &&
+        service.ownerUserId.trim().length > 0 &&
+        typeof service.organizationId === 'string' &&
+        service.organizationId.trim().length > 0 &&
         SERVICE_STATUSES.has(service.status) &&
         (service.processTitle === undefined || typeof service.processTitle === 'string') &&
         (service.processSteps === undefined || (Array.isArray(service.processSteps) && service.processSteps.every((step) => typeof step === 'string' && step.trim().length > 0)))

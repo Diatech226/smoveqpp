@@ -29,6 +29,9 @@ export interface BlogPost {
     coverImage?: string;
     cardImage?: string;
   };
+  ownerUserId?: string;
+  organizationId?: string;
+  updatedBy?: string;
 }
 
 export type MediaType = 'image' | 'video' | 'document';
@@ -56,6 +59,8 @@ export interface MediaAsset {
   uploadedBy: string;
   caption?: string;
   tags: string[];
+  ownerUserId?: string;
+  organizationId?: string;
 }
 
 export type MediaFile = MediaAsset;
@@ -106,6 +111,9 @@ export interface Project {
     canonicalSlug?: string;
     socialImage?: string;
   };
+  ownerUserId?: string;
+  organizationId?: string;
+  updatedBy?: string;
 }
 
 export interface Service {
@@ -137,6 +145,9 @@ export interface Service {
   };
   createdAt?: string;
   updatedAt?: string;
+  ownerUserId?: string;
+  organizationId?: string;
+  updatedBy?: string;
 }
 
 const isString = (value: unknown): value is string => typeof value === 'string' && value.length > 0;

@@ -9,10 +9,14 @@ export interface AppUser {
   accountStatus?: 'active' | 'invited' | 'suspended';
   authProvider?: 'local' | 'google' | 'facebook';
   providerId?: string | null;
+  organizationId?: string;
+  planTier?: 'free' | 'pro' | 'enterprise';
+  featureFlags?: string[];
   emailVerified?: boolean;
   verificationPending?: boolean;
   verificationMethod?: 'email_token' | 'provider_trust';
   lastLoginAt?: string | null;
+  lastActivityAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -89,7 +93,11 @@ export function resolveTrustedSessionUser(serverUser: AppUser | null, _clientSto
     verificationPending: Boolean(serverUser.verificationPending),
     verificationMethod: VERIFICATION_METHODS.includes(serverUser.verificationMethod ?? 'email_token') ? serverUser.verificationMethod : 'email_token',
     providerId: typeof serverUser.providerId === 'string' ? serverUser.providerId : null,
+    organizationId: typeof serverUser.organizationId === 'string' ? serverUser.organizationId : 'org_default',
+    planTier: serverUser.planTier === 'pro' || serverUser.planTier === 'enterprise' ? serverUser.planTier : 'free',
+    featureFlags: Array.isArray(serverUser.featureFlags) ? serverUser.featureFlags.map((entry) => String(entry)) : [],
     lastLoginAt: serverUser.lastLoginAt ? String(serverUser.lastLoginAt) : null,
+    lastActivityAt: serverUser.lastActivityAt ? String(serverUser.lastActivityAt) : null,
     createdAt: serverUser.createdAt ? String(serverUser.createdAt) : null,
     updatedAt: serverUser.updatedAt ? String(serverUser.updatedAt) : null,
   };

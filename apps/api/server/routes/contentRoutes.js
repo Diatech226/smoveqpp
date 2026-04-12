@@ -59,6 +59,11 @@ function parseUploadPayload(payload) {
 
 function createContentRoutes({ contentService, auditService, mediaStorage }) {
   const router = express.Router();
+  const actorFromRequest = (req) => ({
+    userId: req.session?.userId ?? req.appUser?.id ?? 'system',
+    role: req.session?.role ?? req.appUser?.role ?? 'viewer',
+    organizationId: req.appUser?.organizationId ?? req.session?.organizationId ?? 'org_default',
+  });
   const normalizePublicBlogSlug = (value) =>
     `${value || ''}`
       .trim()
@@ -149,7 +154,8 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
 
 
   router.get('/blog', requirePermission(Permissions.CONTENT_READ), (req, res) => {
-    return sendSuccess(res, 200, { posts: contentService.listBlogPosts() });
+    const actor = actorFromRequest(req);
+    return sendSuccess(res, 200, { posts: contentService.listBlogPosts({ organizationId: actor.organizationId }) });
   });
 
   router.get('/analytics', requirePermission(Permissions.CONTENT_READ), (req, res) => {
@@ -176,7 +182,8 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
 
   router.post('/blog', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
-    const result = contentService.saveBlogPost(req.body);
+    const actor = actorFromRequest(req);
+    const result = contentService.saveBlogPost(req.body, actor);
     if (!result.ok) {
       logContentFailure(req, 'cms_blog_save_failed', result.error.code);
       auditService?.record(toAuditContext(req, 'cms_blog_save', 'failure', { entityType: 'blog_post', metadata: { code: result.error.code } }));
@@ -188,6 +195,12 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
 
   router.delete('/blog/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const actor = actorFromRequest(req);
+    const post = contentService.findBlogPostById(req.params.id, { organizationId: actor.organizationId });
+    if (!post) return sendError(res, 404, 'BLOG_NOT_FOUND', 'Blog post not found.');
+    if (actor.role === 'author' && post.ownerUserId !== actor.userId) {
+      return sendError(res, 403, 'FORBIDDEN_OWNERSHIP', 'Authors can only delete their own content.');
+    }
     contentService.deleteBlogPost(req.params.id);
     logInfo('cms_blog_deleted', { requestId: req.requestId, userId: req.session?.userId ?? null, postId: req.params.id });
     auditService?.record(toAuditContext(req, 'cms_blog_delete', 'success', { entityType: 'blog_post', entityId: req.params.id }));
@@ -195,6 +208,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
 
   router.post('/blog/:id/transition', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const actor = actorFromRequest(req);
     const { status } = req.body || {};
 
     if (status === 'published' && req.session?.role === 'author') {
@@ -207,7 +221,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 403, 'FORBIDDEN', 'Authors cannot publish content directly.');
     }
 
-    const result = contentService.transitionBlogStatus(req.params.id, status);
+    const result = contentService.transitionBlogStatus(req.params.id, status, actor);
     if (!result.ok) {
       const statusCode = result.error.code === 'BLOG_NOT_FOUND' ? 404 : 400;
       logContentFailure(req, 'cms_blog_transition_failed', result.error.code, { targetStatus: status, postId: req.params.id });
@@ -228,10 +242,10 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
 
   router.get('/projects', requirePermission(Permissions.CONTENT_READ), (req, res) =>
-    sendSuccess(res, 200, { projects: contentService.listProjects() }));
+    sendSuccess(res, 200, { projects: contentService.listProjects({ organizationId: actorFromRequest(req).organizationId }) }));
 
   router.post('/projects', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
-    const result = contentService.saveProject(req.body);
+    const result = contentService.saveProject(req.body, actorFromRequest(req));
     if (!result.ok) {
       logContentFailure(req, 'cms_project_save_failed', result.error.code);
       auditService?.record(toAuditContext(req, 'cms_project_save', 'failure', { entityType: 'project', metadata: { code: result.error.code } }));
@@ -255,7 +269,8 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 403, 'FORBIDDEN', 'Authors cannot publish projects directly.');
     }
 
-    const result = contentService.transitionProjectStatus(req.params.id, status, { reviewedBy: req.session?.userId || undefined });
+    const actor = actorFromRequest(req);
+    const result = contentService.transitionProjectStatus(req.params.id, status, { ...actor, reviewedBy: req.session?.userId || undefined });
     if (!result.ok) {
       const statusCode = result.error.code === 'PROJECT_NOT_FOUND' ? 404 : 400;
       logContentFailure(req, 'cms_project_transition_failed', result.error.code, { targetStatus: status, projectId: req.params.id });
@@ -276,16 +291,22 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
 
   router.delete('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const actor = actorFromRequest(req);
+    const project = contentService.findProjectById(req.params.id, { organizationId: actor.organizationId });
+    if (!project) return sendError(res, 404, 'PROJECT_NOT_FOUND', 'Project not found.');
+    if (actor.role === 'author' && project.ownerUserId !== actor.userId) {
+      return sendError(res, 403, 'FORBIDDEN_OWNERSHIP', 'Authors can only delete their own projects.');
+    }
     contentService.deleteProject(req.params.id);
     auditService?.record(toAuditContext(req, 'cms_project_delete', 'success', { entityType: 'project', entityId: req.params.id }));
     return sendSuccess(res, 200, { deleted: true });
   });
 
   router.get('/services', requirePermission(Permissions.CONTENT_READ), (req, res) =>
-    sendSuccess(res, 200, { services: contentService.listServices() }));
+    sendSuccess(res, 200, { services: contentService.listServices({ organizationId: actorFromRequest(req).organizationId }) }));
 
   router.post('/services', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
-    const result = contentService.saveService(req.body);
+    const result = contentService.saveService(req.body, actorFromRequest(req));
     if (!result.ok) {
       logContentFailure(req, 'cms_service_save_failed', result.error.code);
       auditService?.record(toAuditContext(req, 'cms_service_save', 'failure', { entityType: 'service', metadata: { code: result.error.code } }));
@@ -296,6 +317,12 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
 
   router.delete('/services/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const actor = actorFromRequest(req);
+    const service = contentService.findServiceById(req.params.id, { organizationId: actor.organizationId });
+    if (!service) return sendError(res, 404, 'SERVICE_NOT_FOUND', 'Service not found.');
+    if (actor.role === 'author' && service.ownerUserId !== actor.userId) {
+      return sendError(res, 403, 'FORBIDDEN_OWNERSHIP', 'Authors can only delete their own services.');
+    }
     contentService.deleteService(req.params.id);
     auditService?.record(toAuditContext(req, 'cms_service_delete', 'success', { entityType: 'service', entityId: req.params.id }));
     return sendSuccess(res, 200, { deleted: true });

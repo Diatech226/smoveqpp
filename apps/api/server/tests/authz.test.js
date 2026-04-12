@@ -53,6 +53,23 @@ describe('authz middleware', () => {
     expect(res.statusCode).toBe(200);
   });
 
+  it('blocks invited accounts before permission checks', () => {
+    const req = {
+      appUser: { id: 'u3', role: 'editor', accountStatus: 'invited' },
+      session: null,
+    };
+    const res = createRes();
+    let nextCalled = false;
+
+    requireAuthenticated(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(false);
+    expect(res.statusCode).toBe(403);
+    expect(res.body?.error?.code).toBe('ACCOUNT_INVITED');
+  });
+
   it('allows local session admin without OAuth claims to pass CMS access checks', () => {
     const req = {
       appUser: null,
