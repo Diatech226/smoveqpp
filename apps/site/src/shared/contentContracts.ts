@@ -14,4 +14,4 @@ export {
   requiredTrimmed,
   hasMinTrimmedLength,
   normalizeStringArray,
-} from '../../../../shared/contracts/contentContracts';
+} from '../../../../shared/contracts/contentContracts.ts';
