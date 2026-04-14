@@ -55,10 +55,10 @@ function CMSContent() {
 
 export default function CMSApp() {
   return (
-    <AuthProvider>
-      <AppErrorBoundary>
+    <AppErrorBoundary>
+      <AuthProvider>
         <CMSContent />
-      </AppErrorBoundary>
-    </AuthProvider>
+      </AuthProvider>
+    </AppErrorBoundary>
   );
 }

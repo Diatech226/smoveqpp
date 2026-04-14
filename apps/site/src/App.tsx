@@ -99,10 +99,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppErrorBoundary>
+    <AppErrorBoundary>
+      <AuthProvider>
         <AppContent />
-      </AppErrorBoundary>
-    </AuthProvider>
+      </AuthProvider>
+    </AppErrorBoundary>
   );
 }
