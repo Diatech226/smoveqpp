@@ -193,7 +193,7 @@ export default function Hero3D() {
             whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
             whileTap={{ scale: 0.95 }}
             onClick={() => {
-              window.location.hash = 'contact';
+              window.location.hash = '/contact';
             }}
           >
             Nous contacter

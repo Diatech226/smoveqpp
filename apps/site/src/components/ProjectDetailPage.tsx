@@ -6,7 +6,7 @@ import Footer from './Footer';
 import { projectRepository } from '../repositories/projectRepository';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { resolveProjectHeroMedia, resolveProjectGalleryMedia } from '../features/projects/projectMedia';
-import { resolveProjectInquiryHref } from '../features/marketing/navigationCta';
+import { buildContactCtaHref } from '../features/marketing/navigationCta';
 import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { trackSiteEvent } from '../utils/analytics';
@@ -49,7 +49,11 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
   const galleryMedia = useMemo(() => (project ? resolveProjectGalleryMedia(project) : []), [project]);
   const liveLink = project?.links?.live?.trim() || project?.link?.trim() || '';
   const caseStudyLink = project?.links?.caseStudy?.trim() || '';
-  const inquiryHref = resolveProjectInquiryHref(undefined);
+  const inquiryHref = buildContactCtaHref({
+    source: 'project',
+    slug: project?.slug || project?.id || projectId,
+    label: project?.title || 'Projet',
+  });
 
   useEffect(() => {
     if (!project) return;

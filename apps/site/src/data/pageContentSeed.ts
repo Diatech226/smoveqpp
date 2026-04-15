@@ -57,7 +57,7 @@ export const defaultHomePageContent: HomePageContentSettings = {
   heroPrimaryCtaLabel: 'Découvrir nos services',
   heroPrimaryCtaHref: '#services',
   heroSecondaryCtaLabel: 'Lancer un projet',
-  heroSecondaryCtaHref: '#contact',
+  heroSecondaryCtaHref: '#/contact',
   heroBackgroundItems: [],
   heroBackgroundRotationEnabled: false,
   heroBackgroundAutoplay: true,

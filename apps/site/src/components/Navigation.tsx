@@ -40,7 +40,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
     e.preventDefault();
 
     const hash = window.location.hash.slice(1);
-    const isHomeContext = hash === '' || hash === '/' || hash === 'home' || ['services', 'about', 'portfolio', 'contact'].includes(hash);
+    const isHomeContext = hash === '' || hash === '/' || hash === 'home' || ['services', 'about', 'portfolio'].includes(hash);
 
     if (sectionId) {
       if (isHomeContext) {
@@ -68,7 +68,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
     { name: 'À Propos', path: 'home', sectionId: 'about', icon: Info },
     { name: 'Portfolio', path: 'home', sectionId: 'portfolio', icon: FolderOpen },
     { name: 'Blog', path: '/blog', icon: BookOpen },
-    { name: 'Contact', path: 'home', sectionId: 'contact', icon: Mail },
+    { name: 'Contact', path: '/contact', icon: Mail },
   ];
 
   return (
@@ -196,7 +196,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
 
             <a
               href={PUBLIC_ROUTE_HASH.contact}
-              onClick={(e) => handleNavClick(e, '/', 'contact')}
+              onClick={(e) => handleNavClick(e, '/contact')}
               className="bg-[#34c759] text-white px-6 py-3 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[16px] hover:bg-[#2da84a] transition-colors"
             >
               Contact
@@ -298,7 +298,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
             <a
               href={PUBLIC_ROUTE_HASH.contact}
               className="block bg-[#34c759] text-white text-center py-3 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] mt-4"
-              onClick={(e) => handleNavClick(e, '/', 'contact')}
+              onClick={(e) => handleNavClick(e, '/contact')}
             >
               Contact
             </a>

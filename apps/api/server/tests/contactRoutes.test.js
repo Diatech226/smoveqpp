@@ -38,10 +38,15 @@ describe('contact route payload validation', () => {
       email: 'john@example.com',
       subject: 'Need a quote',
       message: 'Hello, I need support for a new campaign.',
+      source: 'PROJECT',
+      contextSlug: 'Nouveau-Projet',
+      contextLabel: 'Nouveau Projet',
     });
 
     expect(result.ok).toBe(true);
     expect(result.data.email).toBe('john@example.com');
+    expect(result.data.source).toBe('project');
+    expect(result.data.contextSlug).toBe('nouveau-projet');
   });
 });
 
@@ -67,6 +72,8 @@ describe('contact route delivery responses', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(res.body.data.status).toBeDefined();
+    expect(res.body.data.message).toContain('message');
   });
 
   it('returns provider failure when sender throws', async () => {

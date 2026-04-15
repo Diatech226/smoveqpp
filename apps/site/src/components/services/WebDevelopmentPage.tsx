@@ -8,7 +8,7 @@ import { serviceRepository } from '../../repositories/serviceRepository';
 import { findPublishedServiceBySlug } from '../../features/marketing/serviceDetailContract';
 import { fetchPublicServices } from '../../utils/publicContentApi';
 import { useRemoteRepositorySync } from '../../features/content-sync/useRemoteRepositorySync';
-import { resolveServiceContactHref } from '../../features/marketing/navigationCta';
+import { buildContactCtaHref, resolveServiceContactHref } from '../../features/marketing/navigationCta';
 
 const technologies = [
   { name: 'React', color: '#61DAFB' },
@@ -469,7 +469,7 @@ export default function WebDevelopmentPage() {
             {service?.ctaDescription || 'Que ce soit une simple landing page ou une application complexe, nous sommes là pour vous aider.'}
           </motion.p>
           <motion.a
-            href="#contact"
+            href={buildContactCtaHref({ source: 'service', slug: service?.slug || 'web-development', label: service?.title || 'Développement Web' })}
             className="inline-block bg-white text-[#34c759] px-12 py-5 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[20px]"
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}

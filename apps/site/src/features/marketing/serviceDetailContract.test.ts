@@ -13,7 +13,7 @@ const publishedService: Service = {
   features: ['Feature A'],
   processSteps: ['Step 1'],
   ctaPrimaryLabel: 'Contact us',
-  ctaPrimaryHref: '#contact',
+  ctaPrimaryHref: '#/contact',
   status: 'published',
 };
 
@@ -25,7 +25,7 @@ describe('serviceDetailContract', () => {
     expect(detail.features).toEqual(['Feature A']);
     expect(detail.processSteps).toEqual(['Step 1']);
     expect(detail.cta.primaryLabel).toBe('Contact us');
-    expect(detail.cta.primaryHref).toBe('#contact');
+    expect(detail.cta.primaryHref).toBe('#/contact');
   });
 
   it('uses safe fallbacks when optional CTA and process data are missing', () => {
@@ -38,7 +38,7 @@ describe('serviceDetailContract', () => {
     });
 
     expect(detail.cta.primaryLabel).toBe('Parler à un expert');
-    expect(detail.cta.primaryHref).toBe('#contact');
+    expect(detail.cta.primaryHref).toBe('#/contact');
     expect(detail.features.length).toBeGreaterThan(0);
     expect(detail.processSteps.length).toBeGreaterThan(0);
   });

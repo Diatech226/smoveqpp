@@ -12,11 +12,15 @@ export default function ContactPage() {
     phone: '',
     subject: '',
     message: '',
+    source: 'general',
+    contextSlug: '',
+    contextLabel: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitFeedback, setSubmitFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'email' | 'subject' | 'message', string>>>({});
 
   useEffect(() => {
     let active = true;
@@ -32,8 +36,42 @@ export default function ContactPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const [, queryString = ''] = window.location.hash.split('?');
+    if (!queryString) return;
+    const query = new URLSearchParams(queryString);
+    const source = `${query.get('source') || 'general'}`.trim().toLowerCase();
+    const contextLabel = `${query.get('label') || ''}`.trim();
+    const contextSlug = `${query.get('slug') || ''}`.trim().toLowerCase();
+    const sourceLabel = source === 'project' ? 'projet' : source === 'service' ? 'service' : source === 'blog' ? 'article' : 'demande';
+    const prefillMessage = contextLabel
+      ? `Bonjour, je souhaite discuter de votre ${sourceLabel} "${contextLabel}".`
+      : 'Bonjour, je souhaite obtenir plus d’informations sur vos services.';
+
+    setFormData((prev) => ({
+      ...prev,
+      source,
+      contextLabel,
+      contextSlug,
+      subject: prev.subject || (contextLabel ? `Demande liée à ${contextLabel}` : prev.subject),
+      message: prev.message || prefillMessage,
+    }));
+  }, []);
+
+  const validateForm = () => {
+    const nextErrors: Partial<Record<'name' | 'email' | 'subject' | 'message', string>> = {};
+    if (formData.name.trim().length < 2) nextErrors.name = 'Veuillez saisir votre nom complet.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim().toLowerCase())) nextErrors.email = 'Veuillez saisir un email valide.';
+    if (formData.subject.trim().length < 3) nextErrors.subject = 'Veuillez préciser le sujet.';
+    if (formData.message.trim().length < 10) nextErrors.message = 'Votre message doit contenir au moins 10 caractères.';
+    setFieldErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    if (!validateForm()) return;
     setIsSubmitting(true);
     setSubmitFeedback(null);
 
@@ -46,6 +84,9 @@ export default function ContactPage() {
         phone: '',
         subject: '',
         message: '',
+        source: formData.source,
+        contextSlug: formData.contextSlug,
+        contextLabel: formData.contextLabel,
       });
     } else {
       setSubmitFeedback({ type: 'error', message: result.message });
@@ -59,6 +100,9 @@ export default function ContactPage() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    if (fieldErrors[e.target.name as 'name' | 'email' | 'subject' | 'message']) {
+      setFieldErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
+    }
   };
 
   return (
@@ -75,6 +119,11 @@ export default function ContactPage() {
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[24px] text-[#38484e] max-w-2xl mx-auto">
               Prêt à donner vie à votre projet digital ? Parlons-en ensemble.
             </p>
+            {formData.contextLabel ? (
+              <p className="mt-4 inline-flex items-center rounded-full bg-[#ebf9ff] px-4 py-2 text-[14px] text-[#00b3e8]">
+                Contexte: {formData.contextLabel}
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
@@ -104,6 +153,7 @@ export default function ContactPage() {
                     className="w-full px-4 py-3 border border-[#eef3f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00b3e8]"
                     placeholder="Votre nom"
                   />
+                  {fieldErrors.name ? <p className="mt-1 text-[13px] text-red-600">{fieldErrors.name}</p> : null}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -121,6 +171,7 @@ export default function ContactPage() {
                       className="w-full px-4 py-3 border border-[#eef3f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00b3e8]"
                       placeholder="votre@email.com"
                     />
+                    {fieldErrors.email ? <p className="mt-1 text-[13px] text-red-600">{fieldErrors.email}</p> : null}
                   </div>
 
                   <div>
@@ -159,6 +210,7 @@ export default function ContactPage() {
                     <option value="3d">Création 3D</option>
                     <option value="other">Autre</option>
                   </select>
+                  {fieldErrors.subject ? <p className="mt-1 text-[13px] text-red-600">{fieldErrors.subject}</p> : null}
                 </div>
 
                 <div>
@@ -175,6 +227,7 @@ export default function ContactPage() {
                     className="w-full px-4 py-3 border border-[#eef3f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00b3e8] resize-none"
                     placeholder="Décrivez votre projet..."
                   />
+                  {fieldErrors.message ? <p className="mt-1 text-[13px] text-red-600">{fieldErrors.message}</p> : null}
                 </div>
 
 

@@ -138,7 +138,7 @@ class EmailService {
     return result;
   }
 
-  async sendContactEmail({ name, email, phone, subject, message, source = 'website' }) {
+  async sendContactEmail({ name, email, phone, subject, message, source = 'website', contextSlug = '', contextLabel = '' }) {
     const to = this.config.contactTo;
     if (!to) {
       throw new Error('CONTACT_TO_EMAIL is not configured.');
@@ -152,6 +152,8 @@ class EmailService {
       `Name: ${name}`,
       `Email: ${email}`,
       `Phone: ${safePhone}`,
+      `Context slug: ${contextSlug || 'n/a'}`,
+      `Context label: ${contextLabel || 'n/a'}`,
       '',
       'Message:',
       message,

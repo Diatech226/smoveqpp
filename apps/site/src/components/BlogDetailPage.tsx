@@ -8,6 +8,7 @@ import { getBlogPostBySlugContract, type BlogDetailContract } from '../features/
 import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { trackSiteEvent } from '../utils/analytics';
+import { buildContactCtaHref } from '../features/marketing/navigationCta';
 
 interface BlogDetailPageProps {
   slug: string;
@@ -50,6 +51,10 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
       day: 'numeric',
     });
   }, [post?.publishedDate]);
+  const contactHref = useMemo(
+    () => buildContactCtaHref({ source: 'blog', slug: post?.slug || slug, label: post?.title || 'Article de blog' }),
+    [post?.slug, post?.title, slug],
+  );
 
   if (!post) {
     return (
@@ -193,6 +198,22 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
               </div>
             </div>
           </motion.div>
+        </section>
+        <section className="pb-16 sm:pb-20">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6">
+            <div className="rounded-[22px] border border-[#eaf1f4] bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] p-8 sm:p-10 text-white">
+              <h2 className="font-['ABeeZee:Regular',sans-serif] text-[32px] mb-3">Besoin d'un accompagnement sur ce sujet&nbsp;?</h2>
+              <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[18px] text-white/90 mb-6">
+                Expliquez votre contexte via notre formulaire de contact. Notre équipe vous répond rapidement.
+              </p>
+              <a
+                href={contactHref}
+                className="inline-flex items-center rounded-[12px] bg-white px-6 py-3 text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif]"
+              >
+                Nous contacter
+              </a>
+            </div>
+          </div>
         </section>
       </motion.article>
 

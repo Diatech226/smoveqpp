@@ -42,6 +42,8 @@ describe('routeResolver', () => {
     expect(resolveRoute('#/projects', baseAuth).page).toBe('projects');
     expect(resolveRoute('#/services', baseAuth).page).toBe('services-all');
     expect(resolveRoute('#/about', baseAuth).page).toBe('apropos');
+    expect(resolveRoute('#/contact', baseAuth).page).toBe('contact');
+    expect(resolveRoute('#/contact?source=project', baseAuth).page).toBe('contact');
   });
 
   it('maps canonical service slugs to deterministic service pages', () => {
