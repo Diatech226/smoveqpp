@@ -439,7 +439,7 @@ export function PageContentSection({ homeContentError, saveHomePageContent, home
                           {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.desktopMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, desktopMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
-                          <option value="">Desktop override (>=1024)</option>
+                          <option value="">Desktop override (&gt;=1024)</option>
                           {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.tabletMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, tabletMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
