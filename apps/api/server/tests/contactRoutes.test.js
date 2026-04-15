@@ -48,7 +48,7 @@ describe('contact route payload validation', () => {
 describe('contact route delivery responses', () => {
   it('returns success when email provider sends', async () => {
     const router = createContactRoutes({
-      emailService: { sendContactEmail: async () => ({ delivered: true, mode: 'resend' }) },
+      contactService: { submit: async () => ({ delivered: true, mode: 'resend', submission: { id: 'sub_1' } }) },
     });
 
     const handler = router.stack[0].route.stack[0].handle;
@@ -71,7 +71,7 @@ describe('contact route delivery responses', () => {
 
   it('returns provider failure when sender throws', async () => {
     const router = createContactRoutes({
-      emailService: { sendContactEmail: async () => { throw new Error('provider down'); } },
+      contactService: { submit: async () => { throw new Error('provider down'); } },
     });
 
     const handler = router.stack[0].route.stack[0].handle;

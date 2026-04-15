@@ -23,7 +23,11 @@ const {
 } = require('./config/env');
 const { MongoAuthRepository } = require('./repositories/authRepository.mongo');
 const { MemoryAuthRepository } = require('./repositories/authRepository.memory');
+const { MongoContentRepository } = require('./repositories/contentRepository.mongo');
+const { MongoContactSubmissionRepository } = require('./repositories/contactSubmissionRepository.mongo');
 const { AuthService } = require('./services/authService');
+const { ContentService } = require('./services/contentService');
+const { ContactService } = require('./services/contactService');
 const { createOAuthConfig } = require('./config/passport');
 const { EmailService } = require('./services/emailService');
 const { logInfo, logWarn, logError } = require('./utils/logger');
@@ -34,13 +38,13 @@ async function bootstrap() {
 
   const mongoose = getMongoose();
   const mongoState = getMongoConnectionState();
-  const usingMongoAuth = Boolean(mongoose);
+  const usingMongo = Boolean(mongoose);
 
-  if (!usingMongoAuth && (isProduction || AUTH_STORAGE_MODE === 'mongo')) {
+  if (!usingMongo && (isProduction || AUTH_STORAGE_MODE === 'mongo')) {
     throw new Error(`[auth] MongoDB auth repository unavailable (reason=${mongoState.reason}).`);
   }
 
-  const userRepository = usingMongoAuth ? new MongoAuthRepository({ mongoose }) : new MemoryAuthRepository();
+  const userRepository = usingMongo ? new MongoAuthRepository({ mongoose }) : new MemoryAuthRepository();
   const oauthConfig = createOAuthConfig();
   const emailService = new EmailService({
     smtpHost: SMTP_HOST,
@@ -62,8 +66,26 @@ async function bootstrap() {
     emailService,
   });
 
+  let contentRepository = null;
+  if (usingMongo) {
+    contentRepository = new MongoContentRepository({ mongoose });
+    await contentRepository.initialize();
+  } else {
+    throw new Error('[content] MongoDB is required for CMS persistence. Set AUTH_STORAGE_MODE=memory only for explicit local-only mode.');
+  }
+  const contentService = new ContentService({ contentRepository });
+
+  const contactSubmissionRepository = usingMongo ? new MongoContactSubmissionRepository({ mongoose }) : null;
+  if (!contactSubmissionRepository) {
+    throw new Error('[contact] MongoDB is required for contact submission persistence.');
+  }
+  const contactService = new ContactService({
+    contactSubmissionRepository,
+    emailService,
+  });
+
   logInfo('bootstrap_auth_storage', {
-    storageMode: usingMongoAuth ? 'mongo' : 'memory',
+    storageMode: usingMongo ? 'mongo' : 'memory',
     configuredAuthStorageMode: AUTH_STORAGE_MODE,
     configuredSessionStoreMode: SESSION_STORE_MODE,
     mongoState: mongoState.reason,
@@ -89,7 +111,7 @@ async function bootstrap() {
     logInfo('bootstrap_admin_seed_disabled');
   }
 
-  const app = createApp({ authService, emailService });
+  const app = createApp({ authService, emailService, contentRepository, contentService, contactService, contactSubmissionRepository });
   app.listen(API_PORT, () => {
     logInfo('bootstrap_server_started', { port: API_PORT });
   });

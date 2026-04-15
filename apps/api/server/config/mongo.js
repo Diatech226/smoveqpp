@@ -1,4 +1,5 @@
 const { AUTH_STORAGE_MODE, MONGO_URI, MONGO_DB_NAME } = require('./env');
+const { logInfo } = require('../utils/logger');
 
 let mongooseLib = null;
 let isConnected = false;
@@ -7,23 +8,16 @@ let connectionState = {
   reason: 'not_started',
 };
 
-function isMongoEnabledByMode() {
-  return AUTH_STORAGE_MODE === 'mongo' || AUTH_STORAGE_MODE === 'auto';
-}
-
 async function connectMongo() {
-  if (!isMongoEnabledByMode()) {
+  if (AUTH_STORAGE_MODE === 'memory') {
     connectionState = { connected: false, reason: 'auth_storage_mode_memory' };
     return connectionState;
   }
 
   if (!MONGO_URI) {
-    if (AUTH_STORAGE_MODE === 'mongo') {
-      throw new Error('MONGO_URI is missing. Configure it to enable MongoDB-backed authentication.');
-    }
-
-    connectionState = { connected: false, reason: 'mongo_uri_missing' };
-    return connectionState;
+    throw new Error(
+      'MongoDB URI is missing. Configure MONGO_URI (or MONGODB_URI), or explicitly set AUTH_STORAGE_MODE=memory to opt out.',
+    );
   }
 
   try {
@@ -32,12 +26,8 @@ async function connectMongo() {
     mongooseLib = require('mongoose');
   } catch (error) {
     const message = '[mongo] Missing "mongoose" dependency. Install mongoose to enable persistent MongoDB users.';
-    if (AUTH_STORAGE_MODE === 'mongo') {
-      throw new Error(message);
-    }
-
     connectionState = { connected: false, reason: 'mongoose_dependency_missing' };
-    return connectionState;
+    throw new Error(message);
   }
 
   await mongooseLib.connect(MONGO_URI, {
@@ -47,6 +37,7 @@ async function connectMongo() {
 
   isConnected = true;
   connectionState = { connected: true, reason: 'connected' };
+  logInfo('mongo_connected', { dbName: MONGO_DB_NAME ?? null });
   return connectionState;
 }
 
@@ -65,4 +56,4 @@ function getMongoConnectionState() {
   return { ...connectionState };
 }
 
-module.exports = { connectMongo, disconnectMongo, getMongoose, getMongoConnectionState, isMongoEnabledByMode };
+module.exports = { connectMongo, disconnectMongo, getMongoose, getMongoConnectionState };

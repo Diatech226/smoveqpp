@@ -34,6 +34,8 @@ const { AuditService } = require('./services/auditService');
 const { setAuthAuditService } = require('./utils/authLogger');
 const { LocalDiskMediaStorage } = require('./services/mediaStorageService');
 const { EmailService } = require('./services/emailService');
+const { MongoContactSubmissionRepository } = require('./repositories/contactSubmissionRepository.mongo');
+const { ContactService } = require('./services/contactService');
 const { logInfo, logError } = require('./utils/logger');
 
 const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
@@ -117,6 +119,22 @@ function createApp(deps = {}) {
       appBaseUrl: process.env.APP_BASE_URL ?? FRONTEND_ORIGIN,
       contactTo: process.env.CONTACT_TO_EMAIL ?? '',
     });
+  const contactSubmissionRepository =
+    deps.contactSubmissionRepository ?? (mongoose ? new MongoContactSubmissionRepository({ mongoose }) : null);
+  const contactService =
+    deps.contactService ??
+    (contactSubmissionRepository
+      ? new ContactService({
+          contactSubmissionRepository,
+          emailService,
+        })
+      : null);
+
+  if (!contactService) {
+    throw new Error(
+      '[contact] MongoDB contact submission repository unavailable. Configure MongoDB or pass a custom contactService.',
+    );
+  }
 
   app.use((req, res, next) => {
     const requestId = req.headers['x-request-id'] || createRequestId();
@@ -206,10 +224,10 @@ function createApp(deps = {}) {
 
   app.use('/api/v1/auth', createAuthRoutes({ authController }));
   app.use('/api/v1/content', createContentRoutes({ contentService, auditService, mediaStorage }));
-  app.use('/api/v1/contact', createContactRoutes({ emailService }));
+  app.use('/api/v1/contact', createContactRoutes({ contactService }));
   app.use('/api/auth', createAuthRoutes({ authController }));
   app.use('/api/content', createContentRoutes({ contentService, auditService, mediaStorage }));
-  app.use('/api/contact', createContactRoutes({ emailService }));
+  app.use('/api/contact', createContactRoutes({ contactService }));
 
   app.use((err, req, res, _next) => {
     logError('api_unhandled_error', {
