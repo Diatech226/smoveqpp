@@ -6,6 +6,9 @@ export interface ContactFormPayload {
   phone?: string;
   subject: string;
   message: string;
+  source?: string;
+  contextSlug?: string;
+  contextLabel?: string;
 }
 
 export interface ContactSubmissionResult {
@@ -26,7 +29,15 @@ export async function submitContactForm(payload: ContactFormPayload): Promise<Co
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  });
+  }).catch(() => null);
+
+  if (!response) {
+    return {
+      success: false,
+      code: 'CONTACT_NETWORK_ERROR',
+      message: "Le service de contact est indisponible pour le moment. Veuillez réessayer.",
+    };
+  }
 
   const body = (await response.json().catch(() => null)) as ApiEnvelope | null;
 

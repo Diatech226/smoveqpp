@@ -138,6 +138,14 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     };
   }
 
+  if (route === 'contact') {
+    return {
+      page: 'contact',
+      sectionToScroll: null,
+      normalizedHash: '/contact',
+    };
+  }
+
   if (route === 'service-design' || route === 'service-web') {
     return {
       page: route,
@@ -185,7 +193,7 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     }
   }
 
-  const knownPages = new Set(['home', 'projects', 'services-all', 'portfolio', 'blog', 'apropos', 'cms-unavailable', 'cms-forbidden', 'auth-loading']);
+  const knownPages = new Set(['home', 'projects', 'services-all', 'portfolio', 'blog', 'apropos', 'contact', 'cms-unavailable', 'cms-forbidden', 'auth-loading']);
 
   if (knownPages.has(route)) {
     const normalizedHashByPage: Partial<Record<typeof route, string>> = {
@@ -195,6 +203,7 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
       portfolio: '/portfolio',
       blog: '/blog',
       apropos: '/about',
+      contact: '/contact',
     };
     return {
       page: route,

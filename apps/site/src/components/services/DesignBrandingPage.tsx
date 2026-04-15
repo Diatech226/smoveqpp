@@ -8,7 +8,7 @@ import { serviceRepository } from '../../repositories/serviceRepository';
 import { findPublishedServiceBySlug } from '../../features/marketing/serviceDetailContract';
 import { fetchPublicServices } from '../../utils/publicContentApi';
 import { useRemoteRepositorySync } from '../../features/content-sync/useRemoteRepositorySync';
-import { resolveServiceContactHref } from '../../features/marketing/navigationCta';
+import { buildContactCtaHref, resolveServiceContactHref } from '../../features/marketing/navigationCta';
 
 const defaultFeatures = [
   {
@@ -369,7 +369,7 @@ export default function DesignBrandingPage() {
             {ctaDescription}
           </motion.p>
           <motion.a
-            href="#contact"
+            href={buildContactCtaHref({ source: 'service', slug: service?.slug || 'design-branding', label: service?.title || 'Design & Branding' })}
             className="inline-block bg-[#34c759] text-white px-12 py-5 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[20px]"
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}

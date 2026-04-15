@@ -14,6 +14,9 @@ function validateContactPayload(body) {
   const subject = normalizeString(body?.subject);
   const message = normalizeString(body?.message);
   const phone = normalizeString(body?.phone);
+  const source = normalizeString(body?.source).toLowerCase().slice(0, 40) || 'website';
+  const contextSlug = normalizeString(body?.contextSlug).toLowerCase().slice(0, 120);
+  const contextLabel = normalizeString(body?.contextLabel).slice(0, 160);
 
   if (!name || name.length < 2) {
     return { ok: false, error: { code: 'CONTACT_INVALID_NAME', message: 'Name is required.' } };
@@ -39,6 +42,9 @@ function validateContactPayload(body) {
       subject: subject.slice(0, 160),
       message: message.slice(0, 5000),
       phone: phone.slice(0, 50),
+      source,
+      contextSlug,
+      contextLabel,
     },
   };
 }
@@ -54,13 +60,15 @@ function createContactRoutes({ contactService }) {
 
     try {
       const result = await contactService.submit(parsed.data, {
-        source: req.get('origin') || req.get('host') || 'website',
+        source: parsed.data.source || req.get('origin') || req.get('host') || 'website',
         requestId: req.requestId ?? null,
       });
       return sendSuccess(res, 200, {
         delivered: result.delivered,
         mode: result.mode,
+        status: result.status,
         submissionId: result.submission.id,
+        message: 'Votre message a bien été transmis. Nous revenons vers vous rapidement.',
       });
     } catch (error) {
       logWarn('contact_email_failed', {

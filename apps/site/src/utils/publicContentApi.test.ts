@@ -50,7 +50,7 @@ describe('publicContentApi', () => {
                 heroPrimaryCtaLabel: 'CTA1',
                 heroPrimaryCtaHref: '#services',
                 heroSecondaryCtaLabel: 'CTA2',
-                heroSecondaryCtaHref: '#contact',
+                heroSecondaryCtaHref: '#/contact',
                 heroBackgroundItems: [
                   { id: 'slide-1', label: 'Slide 1', media: 'media:hero-1', alt: 'Alt', overlayOpacity: 0.4, focalPoint: 'center' },
                 ],

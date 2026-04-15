@@ -682,7 +682,7 @@
       "heroPrimaryCtaLabel": "Découvrir nos services",
       "heroPrimaryCtaHref": "#services",
       "heroSecondaryCtaLabel": "Lancer un projet",
-      "heroSecondaryCtaHref": "#contact",
+      "heroSecondaryCtaHref": "#/contact",
       "aboutBadge": "À PROPOS DE NOUS",
       "aboutTitle": "Innovation & Excellence Digitale",
       "aboutParagraphOne": "SMOVE Communication est une agence digitale basée en Côte d'Ivoire, spécialisée dans la création de solutions digitales innovantes. Nous accompagnons les entreprises dans leur transformation digitale avec passion et expertise.",

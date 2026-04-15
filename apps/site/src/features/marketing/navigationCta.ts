@@ -10,6 +10,23 @@ export const resolveServiceContactHref = (_href: string | undefined): string => 
 
 export const resolveProjectInquiryHref = (_href: string | undefined): string => START_PROJECT_CTA_HREF;
 
+interface ContactContextOptions {
+  source: 'project' | 'blog' | 'service' | 'home' | 'general';
+  slug?: string;
+  label?: string;
+}
+
+export const buildContactCtaHref = ({ source, slug, label }: ContactContextOptions): string => {
+  const query = new URLSearchParams({ source });
+  const canonicalSlug = normalize(slug);
+  const canonicalLabel = (label || '').trim();
+
+  if (canonicalSlug) query.set('slug', canonicalSlug);
+  if (canonicalLabel) query.set('label', canonicalLabel.slice(0, 120));
+
+  return `${CONTACT_CTA_HREF}?${query.toString()}`;
+};
+
 export const resolveAboutTeamHref = (href: string | undefined): string => {
   const normalized = normalize(href);
   if (!normalized) return TEAM_CTA_HREF;

@@ -24,6 +24,7 @@ export type AppRoute =
 
 export type ResolvedPage =
   | 'home'
+  | 'contact'
   | 'projects'
   | 'services-all'
   | 'service-design'

@@ -12,6 +12,7 @@ import { selectPublishedProjects } from '../features/projects/projectSelectors';
 import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
 import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
+import { buildContactCtaHref } from '../features/marketing/navigationCta';
 
 export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
@@ -394,7 +395,7 @@ export default function ProjectsPage() {
             Prêt à créer quelque chose d'exceptionnel ensemble ?
           </motion.p>
           <motion.a
-            href="#contact"
+            href={buildContactCtaHref({ source: 'project', label: 'Nouveau projet' })}
             className="inline-block bg-white text-[#ffc247] px-12 py-5 rounded-[15px] font-['Abhaya_Libre:Bold',sans-serif] text-[20px]"
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}

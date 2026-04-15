@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { ArrowDown, ArrowRight, Sparkles } from 'lucide-react';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
 import { nextHeroBackgroundIndex, resolveHeroBackgroundItems, shouldAutoplayHeroBackground } from '../features/marketing/home/heroBackground';
+import { CONTACT_CTA_HREF } from '../features/marketing/navigationCta';
 
 interface Hero3DEnhancedProps {
   badgeLabel?: string;
@@ -30,7 +31,7 @@ export default function Hero3DEnhanced({
   primaryCtaLabel = 'Découvrir nos services',
   primaryCtaHref = '#services',
   secondaryCtaLabel = 'Lancer un projet',
-  secondaryCtaHref = '#contact',
+  secondaryCtaHref = CONTACT_CTA_HREF,
   backgroundItems = [],
   backgroundRotationEnabled = false,
   backgroundAutoplay = true,
@@ -108,7 +109,7 @@ export default function Hero3DEnhanced({
   };
 
   const handleCtaClick = (event: MouseEvent<HTMLAnchorElement>, href: string, fallbackSection: string) => {
-    if (!href.startsWith('#')) return;
+    if (!href.startsWith('#') || href.startsWith('#/')) return;
     event.preventDefault();
     const sectionId = href.slice(1).trim();
     scrollToSection(sectionId || fallbackSection);

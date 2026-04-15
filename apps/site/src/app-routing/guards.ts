@@ -1,6 +1,6 @@
 import type { AppRoute, AuthRoutingState, ResolvedPage } from './navigationTypes';
 
-export const HOME_SECTIONS = new Set(['services', 'about', 'portfolio', 'contact']);
+export const HOME_SECTIONS = new Set(['services', 'about', 'portfolio']);
 export const CMS_SECTIONS = new Set(['overview', 'projects', 'blog', 'media', 'content', 'users', 'settings']);
 
 export function isCmsRoute(route: AppRoute): boolean {

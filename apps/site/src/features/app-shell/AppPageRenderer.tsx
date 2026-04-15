@@ -9,6 +9,7 @@ import WebDevelopmentPage from '../../components/services/WebDevelopmentPage';
 import ServiceDetailPage from '../../components/services/ServiceDetailPage';
 import ProjectsPage from '../../components/ProjectsPage';
 import ProjectDetailPage from '../../components/ProjectDetailPage';
+import ContactPage from '../../components/ContactPage';
 import LoginPage from '../../components/auth/LoginPage';
 import RegisterPage from '../../components/auth/RegisterPage';
 import AccountPage from '../../components/auth/AccountPage';
@@ -159,6 +160,14 @@ export default function AppPageRenderer({
         <PublicSiteShell>
           <SectionErrorBoundary scope="projects">
             <ProjectsPage />
+          </SectionErrorBoundary>
+        </PublicSiteShell>
+      );
+    case 'contact':
+      return (
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="contact">
+            <ContactPage />
           </SectionErrorBoundary>
         </PublicSiteShell>
       );
