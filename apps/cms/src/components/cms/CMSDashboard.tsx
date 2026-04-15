@@ -429,6 +429,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     register(homeContentForm.aboutImage, 'Home page • aboutImage');
     homeContentForm.heroBackgroundItems.forEach((item, index) => {
       register(item.media, `Home page • heroBackgroundItems[${index}]`);
+      register(item.desktopMedia, `Home page • heroBackgroundItems[${index}].desktopMedia`);
+      register(item.tabletMedia, `Home page • heroBackgroundItems[${index}].tabletMedia`);
+      register(item.mobileMedia, `Home page • heroBackgroundItems[${index}].mobileMedia`);
+      register(item.videoMedia, `Home page • heroBackgroundItems[${index}].videoMedia`);
     });
     return index;
   }, [homeContentForm.aboutImage, homeContentForm.heroBackgroundItems, posts, projects]);
@@ -1027,9 +1031,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setHomeContentError('Image À propos invalide. Utilisez une URL valide ou media:asset-id existant.');
       return;
     }
-    const invalidHeroBackground = homeContentForm.heroBackgroundItems.find((item) => item.media.trim() && !isValidMediaField(item.media));
+    const invalidHeroBackground = homeContentForm.heroBackgroundItems.find((item) => (
+      !item.media.trim() ||
+      !isValidMediaField(item.media) ||
+      (item.desktopMedia.trim() && !isValidMediaField(item.desktopMedia)) ||
+      (item.tabletMedia.trim() && !isValidMediaField(item.tabletMedia)) ||
+      (item.mobileMedia.trim() && !isValidMediaField(item.mobileMedia)) ||
+      (item.videoMedia.trim() && !isValidMediaField(item.videoMedia))
+    ));
     if (invalidHeroBackground) {
-      setHomeContentError('Un média de background hero est invalide. Utilisez une URL valide ou media:asset-id existant.');
+      setHomeContentError('Un média de background hero est invalide. Sélectionnez des médias depuis la Media Library (fallback URL legacy toléré).');
       return;
     }
     if (homeContentForm.heroBackgroundIntervalMs < 2000 || homeContentForm.heroBackgroundIntervalMs > 30000) {

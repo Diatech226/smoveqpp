@@ -3,10 +3,18 @@ import { resolveCanonicalMedia } from '../../media/assetReference';
 
 export interface RenderableHeroBackgroundItem {
   id: string;
-  src: string;
+  type: 'image' | 'video';
+  desktopSrc: string;
+  tabletSrc: string;
+  mobileSrc: string;
+  videoSrc: string;
   alt: string;
+  overlayColor: string;
   overlayOpacity: number;
-  focalPoint: string;
+  position: string;
+  size: 'cover' | 'contain';
+  enableParallax: boolean;
+  enable3DEffects: boolean;
   isValid: boolean;
   mediaState: ReturnType<typeof resolveCanonicalMedia>['mediaState'];
 }
@@ -22,15 +30,28 @@ export const resolveHeroBackgroundItems = (
       const media = item?.media?.trim();
       if (!media) return null;
 
-      const canonical = resolveCanonicalMedia(media, item.alt?.trim() || `Hero background ${index + 1}`);
+      const fallbackAlt = item.alt?.trim() || `Hero background ${index + 1}`;
+      const desktop = resolveCanonicalMedia(item.desktopMedia || media, fallbackAlt, 'hero');
+      const tablet = resolveCanonicalMedia(item.tabletMedia || item.desktopMedia || media, fallbackAlt, 'card');
+      const mobile = resolveCanonicalMedia(item.mobileMedia || item.tabletMedia || item.desktopMedia || media, fallbackAlt, 'thumbnail');
+      const hasVideoMedia = Boolean(item.videoMedia?.trim());
+      const video = hasVideoMedia ? resolveCanonicalMedia(item.videoMedia, fallbackAlt) : null;
       return {
         id: item.id || `hero-background-${index + 1}`,
-        src: canonical.url,
-        alt: item.alt?.trim() || canonical.alt,
+        type: item.type === 'video' ? 'video' : 'image',
+        desktopSrc: desktop.url,
+        tabletSrc: tablet.url,
+        mobileSrc: mobile.url,
+        videoSrc: video?.url || '',
+        alt: item.alt?.trim() || desktop.alt,
+        overlayColor: item.overlayColor?.trim() || '#04111f',
         overlayOpacity: clamp(item.overlayOpacity, 0, 0.9),
-        focalPoint: item.focalPoint?.trim() || 'center',
-        isValid: canonical.isValid,
-        mediaState: canonical.mediaState,
+        position: item.position?.trim() || 'center',
+        size: item.size === 'contain' ? 'contain' : 'cover',
+        enableParallax: item.enableParallax !== false,
+        enable3DEffects: item.enable3DEffects !== false,
+        isValid: desktop.isValid,
+        mediaState: desktop.mediaState,
       };
     })
     .filter((item): item is RenderableHeroBackgroundItem => Boolean(item));

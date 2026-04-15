@@ -354,10 +354,19 @@ export function PageContentSection({ homeContentError, saveHomePageContent, home
                         {
                           id: `hero-bg-${Date.now()}`,
                           label: `Slide ${prev.heroBackgroundItems.length + 1}`,
+                          type: 'image',
                           media: '',
+                          desktopMedia: '',
+                          tabletMedia: '',
+                          mobileMedia: '',
+                          videoMedia: '',
                           alt: '',
+                          overlayColor: '#04111f',
                           overlayOpacity: prev.heroBackgroundOverlayOpacity,
-                          focalPoint: 'center',
+                          position: 'center',
+                          size: 'cover',
+                          enableParallax: true,
+                          enable3DEffects: true,
                         },
                       ],
                     }))}
@@ -389,6 +398,14 @@ export function PageContentSection({ homeContentError, saveHomePageContent, home
                     <span className={ADMIN_FIELD_LABEL_CLASS}>Overlay global ({homeContentForm.heroBackgroundOverlayOpacity.toFixed(2)})</span>
                     <input type="range" min={0.1} max={0.9} step={0.05} value={homeContentForm.heroBackgroundOverlayOpacity} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundOverlayOpacity: Number(event.target.value) }))} className="w-full accent-[#00b3e8]" />
                   </label>
+                  <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
+                    <input type="checkbox" checked={homeContentForm.heroBackgroundEnable3DEffects} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundEnable3DEffects: event.target.checked }))} />
+                    Effets 3D globaux activés
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
+                    <input type="checkbox" checked={homeContentForm.heroBackgroundEnableParallax} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundEnableParallax: event.target.checked }))} />
+                    Parallax global activé
+                  </label>
                 </div>
 
                 <div className="mt-3 space-y-3">
@@ -413,16 +430,52 @@ export function PageContentSection({ homeContentError, saveHomePageContent, home
                       </div>
                       <div className="grid gap-2 md:grid-cols-2">
                         <input value={item.label} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, label: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Label interne (optionnel)" />
+                        <select value={item.type} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, type: event.target.value === 'video' ? 'video' : 'image' } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                          <option value="image">Image</option>
+                          <option value="video">Vidéo (optionnel)</option>
+                        </select>
                         <select value={item.media} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, media: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
-                          <option value="">Sélectionner un média</option>
-                          {mediaFiles.filter((file) => file.type === 'image' || file.type === 'video').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                          <option value="">Image principale (required)</option>
+                          {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                        </select>
+                        <select value={item.desktopMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, desktopMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                          <option value="">Desktop override (>=1024)</option>
+                          {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                        </select>
+                        <select value={item.tabletMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, tabletMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                          <option value="">Tablet override (768-1023)</option>
+                          {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                        </select>
+                        <select value={item.mobileMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, mobileMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                          <option value="">Mobile override (&lt;768)</option>
+                          {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                        </select>
+                        <select value={item.videoMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, videoMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                          <option value="">Video source (optional)</option>
+                          {mediaFiles.filter((file) => file.type === 'video').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <input value={item.alt} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, alt: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Alt (optionnel)" />
-                        <input value={item.focalPoint} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, focalPoint: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Focal point (ex: center, top, 65% 30%)" />
+                        <input value={item.position} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, position: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Position (center, top, 65% 30%)" />
+                        <select value={item.size} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, size: event.target.value === 'contain' ? 'contain' : 'cover' } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                          <option value="cover">Cover</option>
+                          <option value="contain">Contain</option>
+                        </select>
+                        <input value={item.overlayColor} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, overlayColor: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Couleur overlay (#04111f)" />
                         <label className="space-y-1 md:col-span-2">
                           <span className={ADMIN_FIELD_LABEL_CLASS}>Overlay slide ({item.overlayOpacity.toFixed(2)})</span>
                           <input type="range" min={0} max={0.9} step={0.05} value={item.overlayOpacity} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, overlayOpacity: Number(event.target.value) } : entry)) }))} className="w-full accent-[#00b3e8]" />
                         </label>
+                        <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
+                          <input type="checkbox" checked={item.enable3DEffects} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, enable3DEffects: event.target.checked } : entry)) }))} />
+                          Effets 3D pour cette slide
+                        </label>
+                        <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
+                          <input type="checkbox" checked={item.enableParallax} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, enableParallax: event.target.checked } : entry)) }))} />
+                          Parallax pour cette slide
+                        </label>
+                        <p className={`${ADMIN_HELPER_TEXT_CLASS} md:col-span-2`}>
+                          Recommandé: Desktop 2400×1400, Tablet 1600×1000, Mobile 1080×1600, format WebP.
+                        </p>
                       </div>
                     </div>
                   ))}
