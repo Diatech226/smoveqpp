@@ -10,6 +10,8 @@ interface PageContentPayload {
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const isTransitionStyle = (value: unknown): value is HomePageContentSettings['heroBackgroundTransitionStyle'] =>
   value === 'fade' || value === 'slide';
+const isBackgroundType = (value: unknown): value is HomePageContentSettings['heroBackgroundItems'][number]['type'] =>
+  value === 'image' || value === 'video';
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
 const normalizeHeroBackgroundItems = (value: unknown): HomePageContentSettings['heroBackgroundItems'] => {
@@ -23,10 +25,19 @@ const normalizeHeroBackgroundItems = (value: unknown): HomePageContentSettings['
       return {
         id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : `hero-bg-${index + 1}`,
         label: typeof entry.label === 'string' ? entry.label.trim() : '',
+        type: isBackgroundType(entry.type) ? entry.type : 'image',
         media,
+        desktopMedia: typeof entry.desktopMedia === 'string' ? entry.desktopMedia.trim() : '',
+        tabletMedia: typeof entry.tabletMedia === 'string' ? entry.tabletMedia.trim() : '',
+        mobileMedia: typeof entry.mobileMedia === 'string' ? entry.mobileMedia.trim() : '',
+        videoMedia: typeof entry.videoMedia === 'string' ? entry.videoMedia.trim() : '',
         alt: typeof entry.alt === 'string' ? entry.alt.trim() : '',
+        overlayColor: typeof entry.overlayColor === 'string' && entry.overlayColor.trim() ? entry.overlayColor.trim() : '#04111f',
         overlayOpacity: clamp(overlayOpacityInput, 0, 0.9),
-        focalPoint: typeof entry.focalPoint === 'string' ? entry.focalPoint.trim() : 'center',
+        position: typeof entry.position === 'string' ? entry.position.trim() || 'center' : 'center',
+        size: entry.size === 'contain' ? 'contain' : 'cover',
+        enableParallax: typeof entry.enableParallax === 'boolean' ? entry.enableParallax : true,
+        enable3DEffects: typeof entry.enable3DEffects === 'boolean' ? entry.enable3DEffects : true,
       };
     })
     .filter((entry): entry is HomePageContentSettings['heroBackgroundItems'][number] => Boolean(entry));
@@ -73,7 +84,9 @@ const isHomePageContentSettings = (value: unknown): value is HomePageContentSett
     (value.heroBackgroundAutoplay === undefined || typeof value.heroBackgroundAutoplay === 'boolean') &&
     (value.heroBackgroundIntervalMs === undefined || (typeof value.heroBackgroundIntervalMs === 'number' && Number.isFinite(value.heroBackgroundIntervalMs))) &&
     (value.heroBackgroundTransitionStyle === undefined || isTransitionStyle(value.heroBackgroundTransitionStyle)) &&
-    (value.heroBackgroundOverlayOpacity === undefined || (typeof value.heroBackgroundOverlayOpacity === 'number' && Number.isFinite(value.heroBackgroundOverlayOpacity)));
+    (value.heroBackgroundOverlayOpacity === undefined || (typeof value.heroBackgroundOverlayOpacity === 'number' && Number.isFinite(value.heroBackgroundOverlayOpacity))) &&
+    (value.heroBackgroundEnable3DEffects === undefined || typeof value.heroBackgroundEnable3DEffects === 'boolean') &&
+    (value.heroBackgroundEnableParallax === undefined || typeof value.heroBackgroundEnableParallax === 'boolean');
 };
 
 const isPageContentPayload = (value: unknown): value is PageContentPayload =>
@@ -98,6 +111,8 @@ const normalizeHomeContent = (value: HomePageContentSettings): HomePageContentSe
     ? value.heroBackgroundTransitionStyle
     : defaultHomePageContent.heroBackgroundTransitionStyle,
   heroBackgroundOverlayOpacity: clamp(value.heroBackgroundOverlayOpacity ?? defaultHomePageContent.heroBackgroundOverlayOpacity, 0.1, 0.9),
+  heroBackgroundEnable3DEffects: value.heroBackgroundEnable3DEffects !== false,
+  heroBackgroundEnableParallax: value.heroBackgroundEnableParallax !== false,
   aboutBadge: value.aboutBadge.trim() || defaultHomePageContent.aboutBadge,
   aboutTitle: value.aboutTitle.trim() || defaultHomePageContent.aboutTitle,
   aboutParagraphOne: value.aboutParagraphOne.trim() || defaultHomePageContent.aboutParagraphOne,

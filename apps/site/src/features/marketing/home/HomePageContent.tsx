@@ -109,6 +109,8 @@ function HomePageContent() {
         backgroundIntervalMs={homeContent.heroBackgroundIntervalMs}
         backgroundTransitionStyle={homeContent.heroBackgroundTransitionStyle}
         backgroundOverlayOpacity={homeContent.heroBackgroundOverlayOpacity}
+        enable3DEffects={homeContent.heroBackgroundEnable3DEffects}
+        enableParallax={homeContent.heroBackgroundEnableParallax}
       />
 
       {/* Services Section */}

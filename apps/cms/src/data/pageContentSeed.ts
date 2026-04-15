@@ -1,12 +1,24 @@
 export type HeroBackgroundTransitionStyle = 'fade' | 'slide';
+export type HeroBackgroundMediaFit = 'cover' | 'contain';
+export type HeroBackgroundMediaPosition = 'center' | 'top' | 'bottom' | 'left' | 'right' | string;
+export type HeroBackgroundType = 'image' | 'video';
 
 export interface HeroBackgroundItem {
   id: string;
   label: string;
+  type: HeroBackgroundType;
   media: string;
+  desktopMedia: string;
+  tabletMedia: string;
+  mobileMedia: string;
+  videoMedia: string;
   alt: string;
+  overlayColor: string;
   overlayOpacity: number;
-  focalPoint: string;
+  position: HeroBackgroundMediaPosition;
+  size: HeroBackgroundMediaFit;
+  enableParallax: boolean;
+  enable3DEffects: boolean;
 }
 
 export interface HomePageContentSettings {
@@ -24,6 +36,8 @@ export interface HomePageContentSettings {
   heroBackgroundIntervalMs: number;
   heroBackgroundTransitionStyle: HeroBackgroundTransitionStyle;
   heroBackgroundOverlayOpacity: number;
+  heroBackgroundEnable3DEffects: boolean;
+  heroBackgroundEnableParallax: boolean;
   aboutBadge: string;
   aboutTitle: string;
   aboutParagraphOne: string;
@@ -64,6 +78,8 @@ export const defaultHomePageContent: HomePageContentSettings = {
   heroBackgroundIntervalMs: 6000,
   heroBackgroundTransitionStyle: 'fade',
   heroBackgroundOverlayOpacity: 0.45,
+  heroBackgroundEnable3DEffects: true,
+  heroBackgroundEnableParallax: true,
   aboutBadge: 'À PROPOS DE NOUS',
   aboutTitle: 'Innovation & Excellence Digitale',
   aboutParagraphOne:

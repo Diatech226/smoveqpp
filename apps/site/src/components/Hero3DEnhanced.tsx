@@ -20,6 +20,8 @@ interface Hero3DEnhancedProps {
   backgroundIntervalMs?: number;
   backgroundTransitionStyle?: HomePageContentSettings['heroBackgroundTransitionStyle'];
   backgroundOverlayOpacity?: number;
+  enable3DEffects?: boolean;
+  enableParallax?: boolean;
 }
 
 export default function Hero3DEnhanced({
@@ -38,6 +40,8 @@ export default function Hero3DEnhanced({
   backgroundIntervalMs = 6000,
   backgroundTransitionStyle = 'fade',
   backgroundOverlayOpacity = 0.45,
+  enable3DEffects = true,
+  enableParallax = true,
 }: Hero3DEnhancedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -56,15 +60,28 @@ export default function Hero3DEnhanced({
   const heroY = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 140]);
   const [activeBackgroundIndex, setActiveBackgroundIndex] = useState(0);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
 
   const resolvedBackgrounds = useMemo(() => resolveHeroBackgroundItems(backgroundItems), [backgroundItems]);
   const hasCmsMediaBackground = resolvedBackgrounds.length > 0;
   const canAutoplay = shouldAutoplayHeroBackground(backgroundRotationEnabled, backgroundAutoplay, resolvedBackgrounds.length);
   const activeBackground = hasCmsMediaBackground ? resolvedBackgrounds[activeBackgroundIndex % resolvedBackgrounds.length] : null;
+  const resolvedBackgroundImage = useMemo(() => {
+    if (!activeBackground) return '';
+    if (viewportWidth < 768) return activeBackground.mobileSrc || activeBackground.tabletSrc || activeBackground.desktopSrc;
+    if (viewportWidth < 1024) return activeBackground.tabletSrc || activeBackground.desktopSrc;
+    return activeBackground.desktopSrc;
+  }, [activeBackground, viewportWidth]);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage) {
+    if (!stage || !enable3DEffects) {
       return;
     }
 
@@ -89,7 +106,7 @@ export default function Hero3DEnhanced({
       stage.removeEventListener('pointermove', handlePointerMove);
       stage.removeEventListener('pointerleave', resetTilt);
     };
-  }, [tiltX, tiltY]);
+  }, [enable3DEffects, tiltX, tiltY]);
 
   useEffect(() => {
     setActiveBackgroundIndex(0);
@@ -133,17 +150,35 @@ export default function Hero3DEnhanced({
                 exit={backgroundTransitionStyle === 'slide' ? { opacity: 0, x: -64 } : { opacity: 0 }}
                 transition={{ duration: backgroundTransitionStyle === 'slide' ? 0.8 : 1.1, ease: 'easeOut' }}
               >
-                <img
-                  src={activeBackground.src}
-                  alt={activeBackground.alt || 'Hero background'}
-                  className="h-full w-full object-cover"
-                  style={{ objectPosition: activeBackground.focalPoint }}
-                  loading="eager"
-                  fetchPriority="high"
+                {activeBackground.type === 'video' && activeBackground.videoSrc ? (
+                  <video
+                    src={activeBackground.videoSrc}
+                    className="h-full w-full object-cover"
+                    style={{ objectPosition: activeBackground.position }}
+                    autoPlay
+                    muted
+                    playsInline
+                    loop
+                    preload="metadata"
+                  />
+                ) : null}
+                <div
+                  aria-label={activeBackground.alt || 'Hero background'}
+                  role="img"
+                  className="h-full w-full"
+                  style={{
+                    backgroundImage: resolvedBackgroundImage ? `url("${resolvedBackgroundImage}")` : 'none',
+                    backgroundSize: activeBackground.size,
+                    backgroundPosition: activeBackground.position,
+                    backgroundRepeat: 'no-repeat',
+                  }}
                 />
                 <div
-                  className="absolute inset-0 bg-[#04111f]"
-                  style={{ opacity: Math.min(0.85, Math.max(0.15, activeBackground.overlayOpacity || backgroundOverlayOpacity)) }}
+                  className="absolute inset-0"
+                  style={{
+                    opacity: Math.min(0.85, Math.max(0.15, activeBackground.overlayOpacity || backgroundOverlayOpacity)),
+                    background: `linear-gradient(180deg, ${activeBackground.overlayColor || '#04111f'}CC 0%, ${activeBackground.overlayColor || '#04111f'}99 50%, ${activeBackground.overlayColor || '#04111f'}CC 100%)`,
+                  }}
                 />
               </motion.div>
             ) : null}
@@ -151,7 +186,7 @@ export default function Hero3DEnhanced({
         </div>
       ) : null}
 
-      <motion.div className="absolute inset-0" style={{ y: backgroundY }}>
+      <motion.div className="absolute inset-0" style={{ y: enableParallax && (activeBackground?.enableParallax ?? true) ? backgroundY : 0 }}>
         <motion.div
           className="absolute inset-0"
           style={{
@@ -189,7 +224,7 @@ export default function Hero3DEnhanced({
         style={{ opacity: hasCmsMediaBackground ? Math.min(0.9, Math.max(0.2, backgroundOverlayOpacity + 0.2)) : 1 }}
       />
 
-      <motion.div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ y: heroY }}>
+      <motion.div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ y: enableParallax ? heroY : 0 }}>
         <div className="text-center">
           <motion.div
             className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-md rounded-full px-6 py-3 mb-8"
@@ -261,7 +296,7 @@ export default function Hero3DEnhanced({
           transition={{ duration: 0.9, delay: 0.4 }}
         >
           <div className="relative w-full h-[500px] flex items-center justify-center" style={{ perspective: 1200 }}>
-            <motion.div className="relative h-[324px] w-[600px]" style={{ rotateX: smoothTiltX, rotateY: smoothTiltY, transformStyle: 'preserve-3d' }}>
+            <motion.div className="relative h-[324px] w-[600px]" style={{ rotateX: enable3DEffects ? smoothTiltX : 0, rotateY: enable3DEffects ? smoothTiltY : 0, transformStyle: 'preserve-3d' }}>
               <motion.div
                 className="absolute inset-0 rounded-[24px] bg-white/10 border border-white/20 backdrop-blur-md shadow-2xl p-8"
                 style={{ transform: 'translateZ(40px)' }}

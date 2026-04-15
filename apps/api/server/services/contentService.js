@@ -43,6 +43,8 @@ const defaultHomePageContent = {
   heroBackgroundIntervalMs: 6000,
   heroBackgroundTransitionStyle: 'fade',
   heroBackgroundOverlayOpacity: 0.45,
+  heroBackgroundEnable3DEffects: true,
+  heroBackgroundEnableParallax: true,
   aboutBadge: 'À PROPOS DE NOUS',
   aboutTitle: 'Innovation & Excellence Digitale',
   aboutParagraphOne:
@@ -2187,7 +2189,14 @@ class ContentService {
       ...home,
       aboutImage: register(home.aboutImage, 'aboutImage'),
       heroBackgroundItems: Array.isArray(home.heroBackgroundItems)
-        ? home.heroBackgroundItems.map((item) => ({ ...item, media: register(item?.media, 'heroBackground') }))
+        ? home.heroBackgroundItems.map((item) => ({
+          ...item,
+          media: register(item?.media, 'heroBackground'),
+          desktopMedia: register(item?.desktopMedia, 'heroBackgroundDesktop'),
+          tabletMedia: register(item?.tabletMedia, 'heroBackgroundTablet'),
+          mobileMedia: register(item?.mobileMedia, 'heroBackgroundMobile'),
+          videoMedia: register(item?.videoMedia, 'heroBackgroundVideo'),
+        }))
         : [],
     };
   }
@@ -2224,10 +2233,19 @@ class ContentService {
             return {
               id: typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `hero-bg-${index + 1}`,
               label: typeof item.label === 'string' ? item.label.trim() : '',
+              type: item.type === 'video' ? 'video' : 'image',
               media,
+              desktopMedia: typeof item.desktopMedia === 'string' ? item.desktopMedia.trim() : '',
+              tabletMedia: typeof item.tabletMedia === 'string' ? item.tabletMedia.trim() : '',
+              mobileMedia: typeof item.mobileMedia === 'string' ? item.mobileMedia.trim() : '',
+              videoMedia: typeof item.videoMedia === 'string' ? item.videoMedia.trim() : '',
               alt: typeof item.alt === 'string' ? item.alt.trim() : '',
+              overlayColor: typeof item.overlayColor === 'string' && item.overlayColor.trim() ? item.overlayColor.trim() : '#04111f',
               overlayOpacity: Math.max(0, Math.min(0.9, overlayOpacity)),
-              focalPoint: typeof item.focalPoint === 'string' ? item.focalPoint.trim() : 'center',
+              position: typeof item.position === 'string' ? item.position.trim() || 'center' : 'center',
+              size: item.size === 'contain' ? 'contain' : 'cover',
+              enableParallax: typeof item.enableParallax === 'boolean' ? item.enableParallax : true,
+              enable3DEffects: typeof item.enable3DEffects === 'boolean' ? item.enable3DEffects : true,
             };
           })
           .filter(Boolean);
@@ -2251,6 +2269,10 @@ class ContentService {
         normalized[key] = Number.isFinite(opacity) ? Math.max(0.1, Math.min(0.9, opacity)) : fallback;
         continue;
       }
+      if (key === 'heroBackgroundEnable3DEffects' || key === 'heroBackgroundEnableParallax') {
+        normalized[key] = typeof home[key] === 'boolean' ? home[key] : fallback;
+        continue;
+      }
       normalized[key] = typeof home[key] === 'string' ? home[key].trim() || fallback : fallback;
     }
     return normalized;
@@ -2263,14 +2285,27 @@ class ContentService {
         typeof item === 'object' &&
         typeof item.id === 'string' &&
         typeof item.label === 'string' &&
+        (item.type === 'image' || item.type === 'video') &&
         typeof item.media === 'string' &&
         item.media.trim().length > 0 &&
+        (item.desktopMedia === undefined || typeof item.desktopMedia === 'string') &&
+        (item.tabletMedia === undefined || typeof item.tabletMedia === 'string') &&
+        (item.mobileMedia === undefined || typeof item.mobileMedia === 'string') &&
+        (item.videoMedia === undefined || typeof item.videoMedia === 'string') &&
         typeof item.alt === 'string' &&
+        typeof item.overlayColor === 'string' &&
         typeof item.overlayOpacity === 'number' &&
         item.overlayOpacity >= 0 &&
         item.overlayOpacity <= 0.9 &&
-        typeof item.focalPoint === 'string' &&
-        this.isValidMediaLink(item.media)
+        typeof item.position === 'string' &&
+        (item.size === 'cover' || item.size === 'contain') &&
+        typeof item.enableParallax === 'boolean' &&
+        typeof item.enable3DEffects === 'boolean' &&
+        this.isValidMediaLink(item.media) &&
+        (!item.desktopMedia || this.isValidMediaLink(item.desktopMedia)) &&
+        (!item.tabletMedia || this.isValidMediaLink(item.tabletMedia)) &&
+        (!item.mobileMedia || this.isValidMediaLink(item.mobileMedia)) &&
+        (!item.videoMedia || this.isValidMediaLink(item.videoMedia))
       );
 
     const hasValidScalarBackgroundConfig =
@@ -2282,7 +2317,9 @@ class ContentService {
       (home.heroBackgroundTransitionStyle === 'fade' || home.heroBackgroundTransitionStyle === 'slide') &&
       typeof home.heroBackgroundOverlayOpacity === 'number' &&
       home.heroBackgroundOverlayOpacity >= 0.1 &&
-      home.heroBackgroundOverlayOpacity <= 0.9;
+      home.heroBackgroundOverlayOpacity <= 0.9 &&
+      typeof home.heroBackgroundEnable3DEffects === 'boolean' &&
+      typeof home.heroBackgroundEnableParallax === 'boolean';
 
     return Object.keys(defaultHomePageContent).filter((key) => ![
       'heroBackgroundItems',
@@ -2291,6 +2328,8 @@ class ContentService {
       'heroBackgroundIntervalMs',
       'heroBackgroundTransitionStyle',
       'heroBackgroundOverlayOpacity',
+      'heroBackgroundEnable3DEffects',
+      'heroBackgroundEnableParallax',
     ].includes(key)).every((key) => typeof home[key] === 'string') &&
       typeof home.heroTitleLine1 === 'string' &&
       home.heroTitleLine1.trim().length > 0 &&
@@ -2406,8 +2445,13 @@ class ContentService {
     const home = this.getPageContent().home;
     register(home.aboutImage, { domain: 'home', id: 'home', status: 'system', field: 'aboutImage', label: 'Home page' });
     (Array.isArray(home.heroBackgroundItems) ? home.heroBackgroundItems : []).forEach((item, index) =>
-      register(item.media, { domain: 'home', id: 'home', status: 'system', field: `heroBackgroundItems[${index}].media`, label: 'Home page' }),
-    );
+    {
+      register(item.media, { domain: 'home', id: 'home', status: 'system', field: `heroBackgroundItems[${index}].media`, label: 'Home page' });
+      register(item.desktopMedia, { domain: 'home', id: 'home', status: 'system', field: `heroBackgroundItems[${index}].desktopMedia`, label: 'Home page' });
+      register(item.tabletMedia, { domain: 'home', id: 'home', status: 'system', field: `heroBackgroundItems[${index}].tabletMedia`, label: 'Home page' });
+      register(item.mobileMedia, { domain: 'home', id: 'home', status: 'system', field: `heroBackgroundItems[${index}].mobileMedia`, label: 'Home page' });
+      register(item.videoMedia, { domain: 'home', id: 'home', status: 'system', field: `heroBackgroundItems[${index}].videoMedia`, label: 'Home page' });
+    });
 
     const settings = this.getSettings();
     register(settings.siteSettings.brandMedia.logo, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.logo', label: 'Site settings' });
