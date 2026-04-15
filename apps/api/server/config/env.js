@@ -83,12 +83,14 @@ function assertSessionSecretStrength() {
 function validateCriticalEnv() {
   assertSessionSecretStrength();
 
-  if (AUTH_STORAGE_MODE === 'mongo' && !process.env.MONGO_URI) {
-    throw new Error('MONGO_URI is required when AUTH_STORAGE_MODE is set to "mongo".');
+  const hasMongoUri = Boolean(process.env.MONGO_URI || process.env.MONGODB_URI);
+
+  if (AUTH_STORAGE_MODE === 'mongo' && !hasMongoUri) {
+    throw new Error('MONGO_URI (or MONGODB_URI) is required when AUTH_STORAGE_MODE is set to "mongo".');
   }
 
-  if (SESSION_STORE_MODE === 'mongo' && !process.env.MONGO_URI) {
-    throw new Error('MONGO_URI is required when SESSION_STORE_MODE is set to "mongo".');
+  if (SESSION_STORE_MODE === 'mongo' && !hasMongoUri) {
+    throw new Error('MONGO_URI (or MONGODB_URI) is required when SESSION_STORE_MODE is set to "mongo".');
   }
 
   if (isProduction && AUTH_STORAGE_MODE !== 'mongo') {
@@ -167,7 +169,7 @@ module.exports = {
   FRONTEND_ORIGINS,
   API_ORIGIN: DEFAULT_API_ORIGIN,
   SESSION_SECRET,
-  MONGO_URI: process.env.MONGO_URI ?? '',
+  MONGO_URI: process.env.MONGO_URI ?? process.env.MONGODB_URI ?? '',
   MONGO_DB_NAME: process.env.MONGO_DB_NAME ?? undefined,
   SESSION_TTL_SECONDS: parseIntOrDefault(process.env.SESSION_TTL_SECONDS, 60 * 60 * 24),
   PASSWORD_HASH_ROUNDS: parseIntOrDefault(process.env.PASSWORD_HASH_ROUNDS, 12),

@@ -43,7 +43,7 @@ function validateContactPayload(body) {
   };
 }
 
-function createContactRoutes({ emailService }) {
+function createContactRoutes({ contactService }) {
   const router = express.Router();
 
   router.post('/', async (req, res) => {
@@ -53,21 +53,15 @@ function createContactRoutes({ emailService }) {
     }
 
     try {
-      const result = await emailService.sendContactEmail({
-        ...parsed.data,
+      const result = await contactService.submit(parsed.data, {
         source: req.get('origin') || req.get('host') || 'website',
+        requestId: req.requestId ?? null,
       });
-
-      if (!result?.delivered) {
-        return sendError(
-          res,
-          503,
-          'CONTACT_EMAIL_NOT_CONFIGURED',
-          'Contact email delivery is not configured. Please retry later.',
-        );
-      }
-
-      return sendSuccess(res, 200, { delivered: true, mode: result.mode });
+      return sendSuccess(res, 200, {
+        delivered: result.delivered,
+        mode: result.mode,
+        submissionId: result.submission.id,
+      });
     } catch (error) {
       logWarn('contact_email_failed', {
         requestId: req.requestId,

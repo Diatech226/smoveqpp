@@ -9,10 +9,10 @@ function resolveSessionStoreMode() {
   }
 
   if (!MONGO_URI || !getMongoose()) {
-    if (SESSION_STORE_MODE === 'mongo') {
-      return { mode: 'memory', reason: 'mongo_unavailable_hard_requirement' };
-    }
-    return { mode: 'memory', reason: !MONGO_URI ? 'mongo_uri_missing' : 'mongoose_not_connected' };
+    throw new Error(
+      `[session] MongoDB session store unavailable (reason=${!MONGO_URI ? 'mongo_uri_missing' : 'mongoose_not_connected'}). ` +
+        'Configure MONGO_URI/MONGODB_URI and ensure MongoDB is connected, or explicitly set SESSION_STORE_MODE=memory.',
+    );
   }
 
   try {
@@ -28,7 +28,9 @@ function resolveSessionStoreMode() {
       reason: 'mongo_store_ready',
     };
   } catch (_error) {
-    return { mode: 'memory', reason: 'connect_mongo_dependency_missing' };
+    throw new Error(
+      '[session] Missing "connect-mongo" dependency. Install connect-mongo or explicitly set SESSION_STORE_MODE=memory.',
+    );
   }
 }
 
