@@ -50,6 +50,12 @@ export interface MediaAsset {
   createdAt?: string;
   updatedAt?: string;
   archivedAt?: string | null;
+  variants?: Partial<Record<'thumbnail' | 'card' | 'hero' | 'social' | 'original', {
+    url: string;
+    width?: number;
+    height?: number;
+    mimeType?: string;
+  }>>;
 
   // Legacy compatibility fields
   name: string;
@@ -222,6 +228,18 @@ export const isMediaFile = (value: unknown): value is MediaFile => {
     (v.createdAt === undefined || isString(v.createdAt)) &&
     (v.updatedAt === undefined || isString(v.updatedAt)) &&
     (v.archivedAt === undefined || v.archivedAt === null || isString(v.archivedAt)) &&
+    (v.variants === undefined ||
+      (typeof v.variants === 'object' &&
+        v.variants !== null &&
+        Object.entries(v.variants as Record<string, unknown>).every(([key, variant]) =>
+          ['thumbnail', 'card', 'hero', 'social', 'original'].includes(key) &&
+          typeof variant === 'object' &&
+          variant !== null &&
+          isString((variant as Record<string, unknown>).url) &&
+          ((variant as Record<string, unknown>).width === undefined || typeof (variant as Record<string, unknown>).width === 'number') &&
+          ((variant as Record<string, unknown>).height === undefined || typeof (variant as Record<string, unknown>).height === 'number') &&
+          ((variant as Record<string, unknown>).mimeType === undefined || isString((variant as Record<string, unknown>).mimeType))
+        ))) &&
     (v.caption === undefined || isString(v.caption)) &&
     isStringArray(v.tags)
   );

@@ -1494,3 +1494,68 @@ describe('ContentService ownership and tenant scoping', () => {
     expect(denied.error.code).toBe('FORBIDDEN_OWNERSHIP');
   });
 });
+
+describe('ContentService canonical media registration', () => {
+  it('auto-registers blog featured media URLs into media library and stores media references', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository({ blogPosts: [] }) });
+
+    const created = service.saveBlogPost({
+      id: 'blog-media-auto-1',
+      title: 'Blog Auto Media',
+      slug: 'blog-auto-media',
+      excerpt: 'Excerpt',
+      content: 'Content',
+      author: 'Author',
+      authorRole: 'Role',
+      category: 'Communication',
+      tags: ['media'],
+      publishedDate: '2026-01-02T00:00:00.000Z',
+      readTime: '4 min',
+      featuredImage: 'https://cdn.example.com/blog/featured.jpg',
+      images: [],
+      status: 'draft',
+    }, { userId: 'editor-1', role: 'editor', organizationId: 'org_default' });
+
+    expect(created.ok).toBe(true);
+    expect(created.post.featuredImage.startsWith('media:')).toBe(true);
+    expect(created.post.mediaRoles.cardImage.startsWith('media:')).toBe(true);
+    expect(service.listMediaFiles().length).toBe(1);
+    expect(service.listMediaFiles()[0].metadata.autoRegisteredByFlow).toBe('blog:featuredImage');
+  });
+
+  it('auto-registers project card/hero/gallery images and avoids duplicate media assets for same source', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository({ projects: [], mediaFiles: [] }) });
+
+    const payload = {
+      id: 'project-media-auto-1',
+      title: 'Project Auto Media',
+      slug: 'project-auto-media',
+      client: 'Client',
+      category: 'Web',
+      year: '2026',
+      description: 'Description',
+      challenge: 'Challenge',
+      solution: 'Solution',
+      results: ['Result'],
+      tags: ['Tag'],
+      featuredImage: 'https://cdn.example.com/project/card.jpg',
+      mainImage: 'https://cdn.example.com/project/hero.jpg',
+      images: ['https://cdn.example.com/project/gallery-1.jpg', 'https://cdn.example.com/project/gallery-1.jpg'],
+      status: 'draft',
+    };
+    const first = service.saveProject(payload, { userId: 'editor-1', role: 'editor', organizationId: 'org_default' });
+    const second = service.saveProject({ ...payload, title: 'Project Auto Media v2' }, { userId: 'editor-1', role: 'editor', organizationId: 'org_default' });
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(first.project.mediaRoles.cardImage.startsWith('media:')).toBe(true);
+    expect(first.project.mediaRoles.heroImage.startsWith('media:')).toBe(true);
+    expect(first.project.mediaRoles.galleryImages.every((entry) => entry.startsWith('media:'))).toBe(true);
+
+    const files = service.listMediaFiles();
+    expect(files.length).toBe(3);
+    expect(files[0].variants?.card?.url).toBeTruthy();
+    expect(files[0].variants?.hero?.url).toBeTruthy();
+    expect(files[0].variants?.social?.url).toBeTruthy();
+  });
+});

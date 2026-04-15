@@ -53,7 +53,7 @@ export function toCanonicalProjectMediaRoles(
 export function resolveProjectFeaturedImage(project: Pick<Project, 'featuredImage' | 'mainImage' | 'title' | 'imageAlt' | 'mediaRoles'>): ResolvedProjectMedia {
   const roles = toCanonicalProjectMediaRoles(project);
   const fallbackAlt = asTrimmed(project.imageAlt) || asTrimmed(project.title) || 'Projet SMOVE';
-  const resolved = resolveAssetReference(roles.cardImage, fallbackAlt, PROJECT_MEDIA_FALLBACK_QUERY);
+  const resolved = resolveAssetReference(roles.cardImage, fallbackAlt, PROJECT_MEDIA_FALLBACK_QUERY, { preferredVariant: 'card' });
 
   return {
     reference: resolved.reference,
@@ -64,7 +64,7 @@ export function resolveProjectFeaturedImage(project: Pick<Project, 'featuredImag
 
 export function resolveProjectHeroMedia(project: Pick<Project, 'featuredImage' | 'mainImage' | 'title' | 'imageAlt' | 'mediaRoles'>): ResolvedProjectMedia {
   const roles = toCanonicalProjectMediaRoles(project);
-  const resolved = resolveAssetReference(roles.heroImage, project.imageAlt || project.title || 'Projet SMOVE', PROJECT_MEDIA_FALLBACK_QUERY);
+  const resolved = resolveAssetReference(roles.heroImage, project.imageAlt || project.title || 'Projet SMOVE', PROJECT_MEDIA_FALLBACK_QUERY, { preferredVariant: 'hero' });
 
   return {
     reference: resolved.reference,
@@ -77,7 +77,7 @@ export function resolveProjectGalleryMedia(project: Pick<Project, 'images' | 'ti
   const roles = toCanonicalProjectMediaRoles(project);
 
   return roles.galleryImages.map((reference) => {
-    const resolved = resolveAssetReference(reference, project.imageAlt || project.title || 'Projet SMOVE', PROJECT_MEDIA_FALLBACK_QUERY);
+    const resolved = resolveAssetReference(reference, project.imageAlt || project.title || 'Projet SMOVE', PROJECT_MEDIA_FALLBACK_QUERY, { preferredVariant: 'card' });
     return {
       reference: resolved.reference,
       src: resolved.src,

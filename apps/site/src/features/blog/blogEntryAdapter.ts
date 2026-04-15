@@ -74,12 +74,12 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
     post.mediaRoles?.coverImage?.trim() ||
     post.mediaRoles?.cardImage?.trim() ||
     post.featuredImage;
-  const media = resolveBlogMediaReference(featuredImageRef, title);
+  const media = resolveBlogMediaReference(featuredImageRef, title, 'card');
   const seoTitle = post.seo?.title?.trim() || title;
   const seoDescription = post.seo?.description?.trim() || excerpt;
   const canonicalSlug = normalizeSlug(post.seo?.canonicalSlug || slug, title);
   const socialImageRef = post.mediaRoles?.socialImage?.trim() || post.seo?.socialImage?.trim() || featuredImageRef || media.src;
-  const socialMedia = resolveBlogMediaReference(socialImageRef, title);
+  const socialMedia = resolveBlogMediaReference(socialImageRef, title, 'social');
 
   return {
     id: post.id,

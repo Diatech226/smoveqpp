@@ -76,6 +76,7 @@ export interface ResolvedAssetReference {
   isFallback: boolean;
   mediaState: 'resolved' | 'missing' | 'archived' | 'direct-url' | 'fallback';
 }
+export type MediaVariantKey = 'thumbnail' | 'card' | 'hero' | 'social' | 'original';
 
 export interface CanonicalResolvedMedia {
   reference: string;
@@ -108,6 +109,7 @@ export const isValidMediaFieldValue = (value: string): boolean =>
 export const resolveCanonicalMedia = (
   reference: string | undefined,
   fallbackAlt: string,
+  preferredVariant?: MediaVariantKey,
 ): CanonicalResolvedMedia => {
   const normalizedReference = (reference || '').trim();
 
@@ -127,9 +129,13 @@ export const resolveCanonicalMedia = (
         };
       }
 
+      const variantUrl =
+        (preferredVariant && (media as unknown as { variants?: Record<string, { url?: string }> }).variants?.[preferredVariant]?.url) ||
+        (media as unknown as { variants?: Record<string, { url?: string }> }).variants?.original?.url ||
+        media.url;
       return {
         reference: normalizedReference,
-        url: resolveRenderableMediaUrl(media.url),
+        url: resolveRenderableMediaUrl(variantUrl),
         alt: normalizeText(media.alt, fallbackAlt),
         isValid: true,
         mediaState: 'resolved',
@@ -172,8 +178,9 @@ export const resolveAssetReference = (
   reference: string | undefined,
   fallbackAlt: string,
   fallbackQuery: string,
+  options: { preferredVariant?: MediaVariantKey } = {},
 ): ResolvedAssetReference => {
-  const canonical = resolveCanonicalMedia(reference, fallbackAlt || fallbackQuery);
+  const canonical = resolveCanonicalMedia(reference, fallbackAlt || fallbackQuery, options.preferredVariant);
 
   return {
     reference: canonical.reference || fallbackQuery,
