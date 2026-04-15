@@ -13,6 +13,7 @@ const {
   hasMinTrimmedLength,
   normalizeStringArray,
 } = require('../utils/contentContracts');
+const crypto = require('crypto');
 
 const BLOG_STATUSES = new Set(['draft', 'in_review', 'published', 'archived']);
 const MEDIA_TYPES = new Set(['image', 'video', 'document']);
@@ -24,6 +25,7 @@ const MEDIA_ROLE_PRESETS = new Set(['cardImage', 'heroImage', 'coverImage', 'soc
 const MANAGED_BLOG_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
 const MANAGED_BLOG_TAGS = ['React', 'Web Design', 'Performance', 'Innovation', 'Vidéo', 'Branding', 'Corporate', 'BTP', 'Logo Design', 'Identité Visuelle', 'Food', 'SEO', 'Social Media', 'CMS'];
 const DEFAULT_ORGANIZATION_ID = 'org_default';
+const MEDIA_VARIANT_KEYS = ['thumbnail', 'card', 'hero', 'social', 'original'];
 
 const defaultHomePageContent = {
   heroBadge: 'Agence de communication',
@@ -512,7 +514,8 @@ class ContentService {
 
   saveBlogPost(post, actor = {}) {
     const actorContext = this.normalizeActorContext(actor);
-    const normalized = this.normalizePost(post, actorContext);
+    const state = this.readState();
+    const normalized = this.registerBlogPostMediaReferences(this.normalizePost(post, actorContext), { state, actor: actorContext });
     if (!this.validateBlogPost(normalized)) {
       return { ok: false, error: { code: 'BLOG_VALIDATION_ERROR', message: 'Invalid blog payload.' } };
     }
@@ -554,7 +557,6 @@ class ContentService {
       posts.push(normalized);
     }
 
-    const state = this.readState();
     const globalPosts = this.listBlogPosts().filter((entry) => (entry.organizationId || DEFAULT_ORGANIZATION_ID) !== actorContext.organizationId);
     state.blogPosts = [...globalPosts, ...posts];
     this.writeState(state);
@@ -754,12 +756,12 @@ class ContentService {
 
   saveProject(project, actor = {}) {
     const actorContext = this.normalizeActorContext(actor);
-    const normalized = this.normalizeProject(project, actorContext);
+    const state = this.readState();
+    const normalized = this.registerProjectMediaReferences(this.normalizeProject(project, actorContext), { state, actor: actorContext });
     if (!this.validateProject(normalized)) {
       return { ok: false, error: { code: 'PROJECT_VALIDATION_ERROR', message: 'Invalid project payload.' } };
     }
 
-    const state = this.readState();
     const projects = this.listProjects({ organizationId: actorContext.organizationId });
     const duplicateSlug = projects.find((entry) => entry.slug === normalized.slug && entry.id !== normalized.id);
     if (duplicateSlug) {
@@ -884,7 +886,8 @@ class ContentService {
 
   saveService(service, actor = {}) {
     const actorContext = this.normalizeActorContext(actor);
-    const normalized = this.normalizeService(service, actorContext);
+    const state = this.readState();
+    const normalized = this.registerServiceMediaReferences(this.normalizeService(service, actorContext), { state, actor: actorContext });
     if (!this.validateService(normalized)) {
       return { ok: false, error: { code: 'SERVICE_VALIDATION_ERROR', message: 'Invalid service payload.' } };
     }
@@ -909,7 +912,6 @@ class ContentService {
     if (index >= 0) services[index] = normalized;
     else services.push(normalized);
 
-    const state = this.readState();
     const globalServices = this.listServices().filter((entry) => (entry.organizationId || DEFAULT_ORGANIZATION_ID) !== actorContext.organizationId);
     state.services = [...globalServices, ...services];
     this.writeState(state);
@@ -1044,12 +1046,12 @@ class ContentService {
   }
 
   savePageContent(payload) {
-    const normalized = { home: this.normalizeHomePageContent(payload?.home || {}) };
+    const state = this.readState();
+    const normalized = { home: this.registerHomePageMediaReferences(this.normalizeHomePageContent(payload?.home || {}), { state }) };
     if (!this.validateHomePageContent(normalized.home)) {
       return { ok: false, error: { code: 'PAGE_CONTENT_VALIDATION_ERROR', message: 'Invalid page content payload.' } };
     }
 
-    const state = this.readState();
     state.pageContent = normalized;
     this.writeState(state);
     return { ok: true, pageContent: normalized };
@@ -1105,7 +1107,8 @@ class ContentService {
   }
 
   saveSettings(payload, actor = {}) {
-    const normalized = this.normalizeSettings(payload || {});
+    const state = this.readState();
+    const normalized = this.registerSettingsMediaReferences(this.normalizeSettings(payload || {}), { state });
     if (!normalized.siteSettings.siteTitle.trim() || !normalized.siteSettings.supportEmail.includes('@')) {
       return { ok: false, error: { code: 'SETTINGS_VALIDATION_ERROR', message: 'Invalid settings payload.' } };
     }
@@ -1126,7 +1129,6 @@ class ContentService {
 
     const previous = this.getSettings();
     const diff = this.buildSettingsDiff(previous, normalized);
-    const state = this.readState();
     state.settings = normalized;
     state.settingsHistory = [
       {
@@ -1957,10 +1959,48 @@ class ContentService {
         license: typeof file?.metadata?.license === 'string' ? file.metadata.license.trim() : '',
         focalPoint: typeof file?.metadata?.focalPoint === 'string' ? file.metadata.focalPoint.trim() : '',
       },
+      variants: this.normalizeMediaVariants(file?.variants, file),
       thumbnailUrl: (file?.thumbnailUrl || '').trim() || file?.url,
       createdAt: file?.createdAt || file?.uploadedDate || nowIso,
       updatedAt: nowIso,
     };
+  }
+
+  normalizeMediaVariants(rawVariants, file = {}) {
+    const normalizeVariant = (candidate) => {
+      if (!candidate) return null;
+      if (typeof candidate === 'string') {
+        const url = candidate.trim();
+        return url ? { url } : null;
+      }
+      if (typeof candidate !== 'object') return null;
+      const url = requiredTrimmed(candidate.url);
+      if (!url) return null;
+      return {
+        url,
+        width: typeof candidate.width === 'number' && candidate.width > 0 ? candidate.width : undefined,
+        height: typeof candidate.height === 'number' && candidate.height > 0 ? candidate.height : undefined,
+        mimeType: requiredTrimmed(candidate.mimeType) || undefined,
+      };
+    };
+
+    const provided = rawVariants && typeof rawVariants === 'object' ? rawVariants : {};
+    const fallbackUrl = requiredTrimmed(file?.url);
+    const fallbackThumb = requiredTrimmed(file?.thumbnailUrl) || fallbackUrl;
+    const normalized = {};
+
+    const thumbnail = normalizeVariant(provided.thumbnail) || (fallbackThumb ? { url: fallbackThumb } : null);
+    const card = normalizeVariant(provided.card) || (fallbackUrl ? { url: fallbackUrl } : null);
+    const hero = normalizeVariant(provided.hero) || card;
+    const social = normalizeVariant(provided.social) || card;
+    const original = normalizeVariant(provided.original) || (fallbackUrl ? { url: fallbackUrl } : null);
+
+    if (thumbnail) normalized.thumbnail = thumbnail;
+    if (card) normalized.card = card;
+    if (hero) normalized.hero = hero;
+    if (social) normalized.social = social;
+    if (original) normalized.original = original;
+    return normalized;
   }
 
   validateMediaFile(file) {
@@ -1978,8 +2018,195 @@ class ContentService {
         file.size >= 0 &&
         this.isValidDate(file.uploadedDate) &&
         typeof file.uploadedBy === 'string' &&
+        (file.variants === undefined ||
+          (typeof file.variants === 'object' &&
+            file.variants !== null &&
+            Object.entries(file.variants).every(([key, variant]) =>
+              MEDIA_VARIANT_KEYS.includes(key) &&
+              variant &&
+              typeof variant === 'object' &&
+              typeof variant.url === 'string' &&
+              variant.url.length > 0 &&
+              (this.isValidHttpUrl(variant.url) || variant.url.startsWith('data:') || variant.url.startsWith('/')),
+            ))) &&
         Array.isArray(file.tags)
     );
+  }
+
+  shouldAutoRegisterMedia(value) {
+    const trimmed = requiredTrimmed(value);
+    if (!trimmed || this.isMediaReference(trimmed)) return false;
+    if (this.isValidHttpUrl(trimmed)) return true;
+    if (trimmed.startsWith('data:')) return true;
+    if (trimmed.startsWith('/')) return true;
+    return trimmed.startsWith('uploads/');
+  }
+
+  inferMediaTypeFromLink(link) {
+    const lower = `${link || ''}`.toLowerCase();
+    if (lower.startsWith('data:image/')) return 'image';
+    if (lower.startsWith('data:video/')) return 'video';
+    if (/\.(png|jpe?g|gif|webp|svg|avif)(\?|#|$)/.test(lower)) return 'image';
+    if (/\.(mp4|webm|mov|avi)(\?|#|$)/.test(lower)) return 'video';
+    return 'document';
+  }
+
+  estimateMediaSize(link) {
+    if (!`${link || ''}`.startsWith('data:')) return 0;
+    const payload = `${link}`.split(',')[1] || '';
+    return Buffer.from(payload, 'base64').length;
+  }
+
+  toMediaChecksum(link) {
+    return crypto.createHash('sha256').update(`${link || ''}`).digest('hex');
+  }
+
+  ensureMediaReference(value, context = {}) {
+    const trimmed = requiredTrimmed(value);
+    if (!trimmed) return trimmed;
+    if (this.isMediaReference(trimmed)) return trimmed;
+    if (!this.shouldAutoRegisterMedia(trimmed)) return trimmed;
+
+    const state = context.state || this.readState();
+    const keyChecksum = this.toMediaChecksum(trimmed);
+    const mediaFiles = this.listMediaFiles({ includeArchived: true });
+    const existing = mediaFiles.find((file) =>
+      file.url === trimmed ||
+      file?.metadata?.originalSourceUrl === trimmed ||
+      file?.metadata?.autoRegisterChecksum === keyChecksum,
+    );
+    if (existing) return `${MEDIA_REFERENCE_PREFIX}${existing.id}`;
+
+    const actor = context.actor || {};
+    const hint = requiredTrimmed(context.hint) || 'Media auto';
+    const id = `media_auto_${keyChecksum.slice(0, 16)}`;
+    const now = new Date().toISOString();
+    const created = {
+      id,
+      name: `${hint}-${id}`.slice(0, 120),
+      title: hint,
+      label: hint,
+      type: this.inferMediaTypeFromLink(trimmed),
+      url: trimmed,
+      thumbnailUrl: trimmed,
+      size: this.estimateMediaSize(trimmed),
+      uploadedDate: now,
+      uploadedBy: actor.userId || 'system',
+      alt: requiredTrimmed(context.alt) || hint,
+      caption: requiredTrimmed(context.caption) || requiredTrimmed(context.alt) || hint,
+      tags: Array.from(new Set([requiredTrimmed(context.domain), requiredTrimmed(context.role), 'auto-registered'].filter(Boolean))),
+      source: 'content-canonicalization',
+      metadata: {
+        originalSourceUrl: trimmed,
+        autoRegisterChecksum: keyChecksum,
+        autoRegisteredByFlow: `${requiredTrimmed(context.domain) || 'content'}:${requiredTrimmed(context.role) || 'generic'}`,
+      },
+      variants: {
+        thumbnail: { url: trimmed },
+        card: { url: trimmed },
+        hero: { url: trimmed },
+        social: { url: trimmed },
+        original: { url: trimmed },
+      },
+    };
+    const saved = this.saveMediaFile(created);
+    if (saved.ok) {
+      state.mediaFiles = this.listMediaFiles({ includeArchived: true });
+      return `${MEDIA_REFERENCE_PREFIX}${id}`;
+    }
+    return trimmed;
+  }
+
+  registerBlogPostMediaReferences(post, context = {}) {
+    const title = requiredTrimmed(post?.title) || 'Blog image';
+    const register = (value, role) => this.ensureMediaReference(value, { ...context, domain: 'blog', role, hint: title, alt: title });
+    const featured = register(post.featuredImage, 'featuredImage');
+    return {
+      ...post,
+      featuredImage: featured,
+      images: Array.isArray(post.images) ? post.images.map((image) => register(image, 'galleryImage')) : [],
+      seo: {
+        ...(post.seo || {}),
+        socialImage: register(post?.seo?.socialImage || featured, 'socialImage'),
+      },
+      mediaRoles: {
+        ...(post.mediaRoles || {}),
+        featuredImage: register(post?.mediaRoles?.featuredImage || featured, 'featuredImage'),
+        coverImage: register(post?.mediaRoles?.coverImage || featured, 'coverImage'),
+        cardImage: register(post?.mediaRoles?.cardImage || featured, 'cardImage'),
+        socialImage: register(post?.mediaRoles?.socialImage || post?.seo?.socialImage || featured, 'socialImage'),
+      },
+    };
+  }
+
+  registerProjectMediaReferences(project, context = {}) {
+    const title = requiredTrimmed(project?.title) || 'Project image';
+    const register = (value, role) => this.ensureMediaReference(value, { ...context, domain: 'project', role, hint: title, alt: project?.imageAlt || title });
+    const featured = register(project.featuredImage, 'cardImage');
+    const hero = register(project.mainImage, 'heroImage');
+    const rawGallery =
+      Array.isArray(project?.mediaRoles?.galleryImages) && project.mediaRoles.galleryImages.length > 0
+        ? project.mediaRoles.galleryImages
+        : project.images;
+    const galleryImages = Array.isArray(rawGallery) ? rawGallery.map((image) => register(image, 'galleryImage')) : [];
+    return {
+      ...project,
+      featuredImage: featured,
+      mainImage: hero,
+      images: galleryImages,
+      seo: {
+        ...(project.seo || {}),
+        socialImage: register(project?.seo?.socialImage || featured, 'socialImage'),
+      },
+      mediaRoles: {
+        ...(project.mediaRoles || {}),
+        cardImage: register(project?.mediaRoles?.cardImage || featured, 'cardImage'),
+        heroImage: register(project?.mediaRoles?.heroImage || hero, 'heroImage'),
+        coverImage: register(project?.mediaRoles?.coverImage || hero || featured, 'coverImage'),
+        socialImage: register(project?.mediaRoles?.socialImage || project?.seo?.socialImage || featured, 'socialImage'),
+        galleryImages,
+      },
+    };
+  }
+
+  registerServiceMediaReferences(service, context = {}) {
+    const register = (value, role) => this.ensureMediaReference(value, { ...context, domain: 'service', role, hint: requiredTrimmed(service?.title) || 'Service image' });
+    return {
+      ...service,
+      iconLikeAsset: register(service.iconLikeAsset, 'iconLikeAsset'),
+      seo: {
+        ...(service.seo || {}),
+        socialImage: register(service?.seo?.socialImage || service?.iconLikeAsset, 'socialImage'),
+      },
+    };
+  }
+
+  registerHomePageMediaReferences(home, context = {}) {
+    const register = (value, role) => this.ensureMediaReference(value, { ...context, domain: 'home', role, hint: 'Home page media' });
+    return {
+      ...home,
+      aboutImage: register(home.aboutImage, 'aboutImage'),
+      heroBackgroundItems: Array.isArray(home.heroBackgroundItems)
+        ? home.heroBackgroundItems.map((item) => ({ ...item, media: register(item?.media, 'heroBackground') }))
+        : [],
+    };
+  }
+
+  registerSettingsMediaReferences(settings, context = {}) {
+    const register = (value, role) => this.ensureMediaReference(value, { ...context, domain: 'settings', role, hint: 'Brand media' });
+    return {
+      ...settings,
+      siteSettings: {
+        ...settings.siteSettings,
+        brandMedia: {
+          ...settings.siteSettings.brandMedia,
+          logo: register(settings.siteSettings.brandMedia.logo, 'logo'),
+          logoDark: register(settings.siteSettings.brandMedia.logoDark, 'logoDark'),
+          favicon: register(settings.siteSettings.brandMedia.favicon, 'favicon'),
+          defaultSocialImage: register(settings.siteSettings.brandMedia.defaultSocialImage, 'defaultSocialImage'),
+        },
+      },
+    };
   }
 
   normalizeHomePageContent(value) {

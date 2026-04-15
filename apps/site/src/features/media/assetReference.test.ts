@@ -32,6 +32,34 @@ describe('assetReference', () => {
     expect(resolved.isFallback).toBe(false);
   });
 
+  it('selects requested media variant when available', () => {
+    mediaRepository.replaceAll([
+      {
+        id: 'asset-with-variants',
+        name: 'hero.jpg',
+        type: 'image',
+        url: 'https://cdn.example.com/original.jpg',
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+        size: 1024,
+        uploadedDate: new Date().toISOString(),
+        uploadedBy: 'cms',
+        alt: 'Hero alt',
+        caption: 'Hero caption',
+        tags: [],
+        variants: {
+          card: { url: 'https://cdn.example.com/card.jpg' },
+          hero: { url: 'https://cdn.example.com/hero-large.jpg' },
+          social: { url: 'https://cdn.example.com/social.jpg' },
+        },
+      },
+    ]);
+
+    const card = resolveAssetReference('media:asset-with-variants', 'Fallback alt', 'fallback image', { preferredVariant: 'card' });
+    const hero = resolveAssetReference('media:asset-with-variants', 'Fallback alt', 'fallback image', { preferredVariant: 'hero' });
+    expect(card.src).toBe('https://cdn.example.com/card.jpg');
+    expect(hero.src).toBe('https://cdn.example.com/hero-large.jpg');
+  });
+
   it('rewrites root-relative and relative media URLs to API origin when runtime base is absolute', () => {
     expect(resolveRenderableMediaUrl('/uploads/2026/04/hero.jpg', 'https://api.smove.example/api/v1')).toBe('https://api.smove.example/uploads/2026/04/hero.jpg');
     expect(resolveRenderableMediaUrl('uploads/2026/04/hero.jpg', 'https://api.smove.example/api/v1')).toBe('https://api.smove.example/uploads/2026/04/hero.jpg');
