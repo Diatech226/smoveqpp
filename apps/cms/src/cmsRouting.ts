@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const CMS_SECTIONS = new Set(['overview', 'projects', 'blog', 'media', 'content', 'users', 'settings']);
+const CMS_SECTIONS = new Set(['overview', 'projects', 'blog', 'media', 'content', 'users', 'newsletter', 'settings']);
 
 function parseHashRoute(hash: string): string {
   const rawRoute = (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';

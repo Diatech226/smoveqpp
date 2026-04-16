@@ -3,12 +3,16 @@ import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'luc
 import { fetchPublicSettings } from '../utils/contentApi';
 import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
+import { submitNewsletterSubscription } from '../utils/newsletterApi';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [siteTitle, setSiteTitle] = useState('SMOVE');
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
   const [logoSrc, setLogoSrc] = useState(imgTelegramCloudDocument);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const [newsletterFeedback, setNewsletterFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -27,6 +31,31 @@ export default function Footer() {
       active = false;
     };
   }, []);
+
+
+  const onNewsletterSubmit = async () => {
+    const email = newsletterEmail.trim();
+    if (!email) {
+      setNewsletterFeedback({ type: 'error', message: "Veuillez renseigner un email." });
+      return;
+    }
+
+    setNewsletterSubmitting(true);
+    setNewsletterFeedback(null);
+
+    try {
+      const result = await submitNewsletterSubscription(email, 'footer');
+      if (!result.success) {
+        setNewsletterFeedback({ type: 'error', message: result.message });
+        return;
+      }
+
+      setNewsletterFeedback({ type: 'success', message: result.message });
+      setNewsletterEmail('');
+    } finally {
+      setNewsletterSubmitting(false);
+    }
+  };
 
   return (
     <footer className="bg-[#02033b] text-white pt-16 pb-8">
@@ -119,13 +148,26 @@ export default function Footer() {
             <div className="flex gap-2 max-w-md mx-auto">
               <input
                 type="email"
+                value={newsletterEmail}
+                onChange={(event) => setNewsletterEmail(event.target.value)}
                 placeholder="Votre email"
                 className="flex-1 px-6 py-3 rounded-full text-[#02033b] placeholder:text-[#02033b]/50"
+                aria-label="Email newsletter"
               />
-              <button className="bg-[#02033b] text-white px-8 py-3 rounded-full font-['Inter:Extra_Bold',sans-serif] hover:bg-[#030424] transition-colors">
-                Souscrire
+              <button
+                type="button"
+                onClick={() => { void onNewsletterSubmit(); }}
+                disabled={newsletterSubmitting}
+                className="bg-[#02033b] text-white px-8 py-3 rounded-full font-['Inter:Extra_Bold',sans-serif] hover:bg-[#030424] transition-colors disabled:opacity-70"
+              >
+                {newsletterSubmitting ? 'Envoi...' : 'Souscrire'}
               </button>
             </div>
+            {newsletterFeedback ? (
+              <p className={`mt-3 text-[14px] ${newsletterFeedback.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                {newsletterFeedback.message}
+              </p>
+            ) : null}
           </div>
         </div>
 

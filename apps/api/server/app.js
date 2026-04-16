@@ -25,6 +25,7 @@ const { buildAuthController } = require('./controllers/authController');
 const { createAuthRoutes } = require('./routes/authRoutes');
 const { createContentRoutes } = require('./routes/contentRoutes');
 const { createContactRoutes } = require('./routes/contactRoutes');
+const { createNewsletterRoutes } = require('./routes/newsletterRoutes');
 const { sendError } = require('./utils/apiResponse');
 const { FileContentRepository } = require('./repositories/contentRepository.file');
 const { ContentService } = require('./services/contentService');
@@ -36,7 +37,9 @@ const { LocalDiskMediaStorage } = require('./services/mediaStorageService');
 const { EmailService } = require('./services/emailService');
 const { MongoContactSubmissionRepository } = require('./repositories/contactSubmissionRepository.mongo');
 const { ContactService } = require('./services/contactService');
+const { NewsletterService } = require('./services/newsletterService');
 const { logInfo, logError } = require('./utils/logger');
+const { MongoNewsletterSubscriberRepository } = require('./repositories/newsletterSubscriberRepository.mongo');
 
 const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, 'ws');
 
@@ -130,9 +133,18 @@ function createApp(deps = {}) {
         })
       : null);
 
-  if (!contactService) {
+  const newsletterSubscriberRepository =
+    deps.newsletterSubscriberRepository ?? (mongoose ? new MongoNewsletterSubscriberRepository({ mongoose }) : null);
+
+  const newsletterService =
+    deps.newsletterService ??
+    (newsletterSubscriberRepository
+      ? new NewsletterService({ newsletterSubscriberRepository, userRepository })
+      : null);
+
+  if (!contactService || !newsletterService) {
     throw new Error(
-      '[contact] MongoDB contact submission repository unavailable. Configure MongoDB or pass a custom contactService.',
+      '[contact|newsletter] MongoDB repository unavailable. Configure MongoDB or pass custom contact/newsletter services.',
     );
   }
 
@@ -225,9 +237,11 @@ function createApp(deps = {}) {
   app.use('/api/v1/auth', createAuthRoutes({ authController }));
   app.use('/api/v1/content', createContentRoutes({ contentService, auditService, mediaStorage }));
   app.use('/api/v1/contact', createContactRoutes({ contactService }));
+  app.use('/api/v1/newsletter', createNewsletterRoutes({ newsletterService }));
   app.use('/api/auth', createAuthRoutes({ authController }));
   app.use('/api/content', createContentRoutes({ contentService, auditService, mediaStorage }));
   app.use('/api/contact', createContactRoutes({ contactService }));
+  app.use('/api/newsletter', createNewsletterRoutes({ newsletterService }));
 
   app.use((err, req, res, _next) => {
     logError('api_unhandled_error', {
