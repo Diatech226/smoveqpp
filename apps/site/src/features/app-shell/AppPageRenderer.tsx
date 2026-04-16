@@ -12,6 +12,8 @@ import ProjectDetailPage from '../../components/ProjectDetailPage';
 import ContactPage from '../../components/ContactPage';
 import LoginPage from '../../components/auth/LoginPage';
 import RegisterPage from '../../components/auth/RegisterPage';
+import ForgotPasswordPage from '../../components/auth/ForgotPasswordPage';
+import ResetPasswordPage from '../../components/auth/ResetPasswordPage';
 import AccountPage from '../../components/auth/AccountPage';
 import APropos from '../../imports/APropos';
 import HomePageContent from '../marketing/home/HomePageContent';
@@ -68,6 +70,14 @@ export default function AppPageRenderer({
       );
     }
     return <RegisterPage />;
+  }
+
+  if (currentPage === 'forgot-password') {
+    return <ForgotPasswordPage />;
+  }
+
+  if (currentPage === 'reset-password') {
+    return <ResetPasswordPage />;
   }
 
   if (currentPage === 'account') {

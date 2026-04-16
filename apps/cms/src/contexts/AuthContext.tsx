@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   fetchAdminUsers as fetchAdminUsersApi,
   fetchAuthAuditEvents,
+  fetchOAuthProviders,
   loginWithPassword as loginWithPasswordApi,
   registerWithPassword as registerWithPasswordApi,
   logoutWithSession,
@@ -72,17 +73,13 @@ function resolveSafeOAuthRedirectTo(): string {
   return `${window.location.origin}/#login`;
 }
 
-function resolveErrorMessage(error: unknown, fallbackMessage: string): string {
-  const errorRecord = error as { errors?: Array<{ longMessage?: string }>; message?: string } | null;
-  return errorRecord?.errors?.[0]?.longMessage || errorRecord?.message || fallbackMessage;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [sessionState, setSessionState] = useState<AuthSessionState | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [oauthProviders, setOauthProviders] = useState<OAuthProviderState>({ google: false, facebook: false });
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
   const registrationEnabled = SECURITY_FLAGS.registrationEnabled;
@@ -91,13 +88,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const postLoginRoute = resolvePostLoginRoute(cmsEnabled, user);
 
   const refresh = async (): Promise<AppUser | null> => {
-    const initialized = await initializeCmsAuth({ timeoutMs: 5000 });
+    const [initialized, providersResult] = await Promise.all([
+      initializeCmsAuth({ timeoutMs: 5000 }),
+      fetchOAuthProviders(),
+    ]);
     setUser(initialized.user);
     setSessionState(initialized.sessionState);
     setAuthError(initialized.authError);
     if (initialized.authNotice) {
       setAuthNotice(initialized.authNotice);
     }
+    setOauthProviders({
+      google: Boolean(providersResult.providers?.google?.enabled),
+      facebook: Boolean(providersResult.providers?.facebook?.enabled),
+    });
     return initialized.user;
   };
 
@@ -215,10 +219,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     cmsEnabled,
     registrationEnabled,
     canAccessCMS,
-    oauthProviders: { google: true, facebook: true },
+    oauthProviders,
     postLoginRoute,
     sessionState,
-  }), [authError, authNotice, canAccessCMS, cmsEnabled, isAuthReady, isAuthenticated, postLoginRoute, registrationEnabled, sessionState, user]);
+  }), [authError, authNotice, canAccessCMS, cmsEnabled, isAuthReady, isAuthenticated, oauthProviders, postLoginRoute, registrationEnabled, sessionState, user]);
 
   return <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>;
 }

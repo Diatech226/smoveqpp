@@ -359,6 +359,11 @@ export default function LoginPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
+            <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
+              <a href="#forgot-password" className="text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] hover:underline">
+                Mot de passe oublié ?
+              </a>
+            </p>
             {registrationEnabled && (
               <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-[#9ba1a4]">
                 Pas encore de compte?{' '}

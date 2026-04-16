@@ -27,31 +27,42 @@ describe('evaluateCmsAccess', () => {
     expect(decision).toBe('unauthenticated');
   });
 
-  it('allows only admin role for cms', () => {
+  it('allows admin/editor/author roles for cms', () => {
     expect(
       evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'admin' } }),
     ).toBe('allow');
 
     expect(
       evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'editor' } }),
-    ).toBe('forbidden');
+    ).toBe('allow');
 
     expect(
       evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'author' } }),
-    ).toBe('forbidden');
+    ).toBe('allow');
+  });
+
+
+  it('denies suspended users even with cms role', () => {
+    const decision = evaluateCmsAccess({
+      cmsEnabled: true,
+      isAuthenticated: true,
+      user: { role: 'admin', accountStatus: 'suspended' },
+    });
+
+    expect(decision).toBe('forbidden');
   });
 
   it('denies viewer and client roles for cms', () => {
     const decision = evaluateCmsAccess({
       cmsEnabled: true,
       isAuthenticated: true,
-      user: { role: 'viewer' },
+      user: { role: 'viewer', accountStatus: 'active' },
     });
 
     expect(decision).toBe('forbidden');
 
     expect(
-      evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'client' } }),
+      evaluateCmsAccess({ cmsEnabled: true, isAuthenticated: true, user: { role: 'client', accountStatus: 'active' } }),
     ).toBe('forbidden');
   });
 });

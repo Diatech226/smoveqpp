@@ -27,7 +27,7 @@ function AppContent() {
   });
 
   const shouldHideScrollToTop =
-    ['login', 'register', 'auth-loading', 'cms-unavailable', 'cms-forbidden'].includes(currentPage) ||
+    ['login', 'register', 'forgot-password', 'reset-password', 'auth-loading', 'cms-unavailable', 'cms-forbidden'].includes(currentPage) ||
     currentPage.startsWith('cms-');
 
   useEffect(() => {
