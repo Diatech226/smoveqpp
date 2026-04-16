@@ -17,6 +17,7 @@ import {
   Archive,
   Users,
   Upload,
+  Mail,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useAuth, type AuthAuditEvent } from '../../contexts/AuthContext';
@@ -68,6 +69,7 @@ import { toMediaReferenceValue } from '../../features/media/assetReference';
 import { resolveServiceRouteSlug } from '../../features/marketing/serviceRouting';
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
 import { OverviewSection, SettingsSection, UsersSection } from './dashboard/CMSExtendedSections';
+import { NewsletterSection } from './dashboard/NewsletterSection';
 import { deriveDashboardCmsStats } from './dashboard/cmsStats';
 import { canMutateSensitiveUserFields, filterAdminUsers } from './users/adminUsersViewModel';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
@@ -76,6 +78,7 @@ import { isValidSlug } from '../../shared/contentContracts';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
+import { fetchNewsletterSubscribers, updateNewsletterSubscriberStatus, type NewsletterSubscriber } from '../../utils/newsletterApi';
 import { getPublicSiteUrl } from '../../utils/publicSiteUrl';
 import {
   AdminActionBar,
@@ -491,6 +494,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [providerFilter, setProviderFilter] = useState<'all' | NonNullable<AppUser['authProvider']>>('all');
   const [auditEvents, setAuditEvents] = useState<AuthAuditEvent[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [newsletterSubscribers, setNewsletterSubscribers] = useState<NewsletterSubscriber[]>([]);
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+  const [newsletterError, setNewsletterError] = useState('');
+  const [newsletterNotice, setNewsletterNotice] = useState('');
+  const [newsletterSearch, setNewsletterSearch] = useState('');
+  const [newsletterStatusFilter, setNewsletterStatusFilter] = useState('all');
+  const [newsletterSourceFilter, setNewsletterSourceFilter] = useState('all');
 
   const instantPublishingEnabled = settingsValues.operationalSettings.instantPublishing;
   const siteSettingsTitle = settingsValues.siteSettings.siteTitle;
@@ -686,6 +696,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     { id: 'media', label: 'Médiathèque', icon: ImageIcon },
     { id: 'content', label: 'Contenus pages', icon: FileText },
     { id: 'users', label: 'Utilisateurs', icon: Users },
+    { id: 'newsletter', label: 'Newsletter', icon: Mail },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
 
@@ -2223,6 +2234,42 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
+  const loadNewsletterSubscribers = async () => {
+    setNewsletterLoading(true);
+    setNewsletterError('');
+    try {
+      const result = await fetchNewsletterSubscribers({
+        q: newsletterSearch,
+        status: newsletterStatusFilter,
+        source: newsletterSourceFilter,
+      });
+      setNewsletterSubscribers(result.items);
+    } catch (error) {
+      setNewsletterError(error instanceof Error ? error.message : 'Impossible de charger les abonnés newsletter.');
+    } finally {
+      setNewsletterLoading(false);
+    }
+  };
+
+  const patchNewsletterStatus = async (id: string, status: 'active' | 'unsubscribed') => {
+    setNewsletterNotice('');
+    setNewsletterError('');
+    try {
+      await updateNewsletterSubscriberStatus(id, status);
+      setNewsletterNotice(status === 'active' ? 'Abonnement réactivé.' : 'Abonné désinscrit.');
+      await loadNewsletterSubscribers();
+      showSuccess('Statut newsletter mis à jour.');
+    } catch (error) {
+      setNewsletterError(error instanceof Error ? error.message : 'Mise à jour newsletter impossible.');
+    }
+  };
+
+  useEffect(() => {
+    if (currentSection === 'newsletter' && canAccessCMS) {
+      void loadNewsletterSubscribers();
+    }
+  }, [currentSection, canAccessCMS, newsletterSearch, newsletterStatusFilter, newsletterSourceFilter]);
+
   useEffect(() => {
     if (currentSection === 'users' && canAccessCMS) {
       void loadAdminUsers();
@@ -2392,6 +2439,28 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           }}
           auditLoading={auditLoading}
           auditEvents={auditEvents}
+        />
+      );
+    }
+
+    if (currentSection === 'newsletter') {
+      return (
+        <NewsletterSection
+          canManage={user?.role === 'admin'}
+          loading={newsletterLoading}
+          error={newsletterError}
+          notice={newsletterNotice}
+          subscribers={newsletterSubscribers}
+          search={newsletterSearch}
+          setSearch={setNewsletterSearch}
+          statusFilter={newsletterStatusFilter}
+          setStatusFilter={setNewsletterStatusFilter}
+          sourceFilter={newsletterSourceFilter}
+          setSourceFilter={setNewsletterSourceFilter}
+          refresh={() => {
+            void loadNewsletterSubscribers();
+          }}
+          updateStatus={patchNewsletterStatus}
         />
       );
     }
