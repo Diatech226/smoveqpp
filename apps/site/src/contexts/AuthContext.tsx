@@ -2,10 +2,13 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   fetchAdminUsers as fetchAdminUsersApi,
   fetchAuthAuditEvents,
+  fetchOAuthProviders,
   fetchSession,
   loginWithPassword,
   logoutWithSession,
   registerWithPassword,
+  requestPasswordReset as requestPasswordResetApi,
+  confirmPasswordReset as confirmPasswordResetApi,
   updateAdminUserWithApi,
 } from '../utils/authApi';
 import { evaluateCmsAccess, resolvePostLoginRoute, resolveTrustedSessionUser, SECURITY_FLAGS, type AppUser, type PostLoginRoute } from '../utils/securityPolicy';
@@ -26,6 +29,8 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<AuthActionResult>;
   verifyEmail: (_token: string) => Promise<AuthActionResult>;
   resendVerification: () => Promise<AuthActionResult>;
+  requestPasswordReset: (email: string) => Promise<AuthActionResult>;
+  confirmPasswordReset: (token: string, password: string) => Promise<AuthActionResult>;
   fetchAdminUsers: () => Promise<AppUser[]>;
   fetchAdminAuditEvents: () => Promise<AuthAuditEvent[]>;
   updateAdminUser: (userId: string, patch: Partial<Pick<AppUser, 'role' | 'accountStatus' | 'emailVerified'>>) => Promise<AuthActionResult>;
@@ -90,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [oauthProviders, setOauthProviders] = useState<OAuthProviderState>({ google: false, facebook: false });
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
   const registrationEnabled = SECURITY_FLAGS.registrationEnabled;
@@ -98,11 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const postLoginRoute = resolvePostLoginRoute(cmsEnabled, user);
 
   const refresh = async (): Promise<AppUser | null> => {
-    const result = await fetchSession();
+    const [result, providersResult] = await Promise.all([fetchSession(), fetchOAuthProviders()]);
     const trusted = resolveTrustedSessionUser(result.user);
     setUser(trusted);
     setSessionState(mapSession((result.session as Record<string, unknown> | null | undefined) ?? null));
     setAuthError(result.success ? null : result.errorMessage);
+    setOauthProviders({
+      google: Boolean(providersResult.providers?.google?.enabled),
+      facebook: Boolean(providersResult.providers?.facebook?.enabled),
+    });
     return trusted;
   };
 
@@ -138,6 +148,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user, authError, authNotice, login, loginWithOAuth: beginOAuthLogin, beginOAuthLogin, register,
     verifyEmail: async () => ({ success: false, error: 'Use backend email token endpoint.', destination: null }),
     resendVerification: async () => ({ success: false, error: 'Use backend resend verification endpoint.', destination: null }),
+    requestPasswordReset: async (email) => {
+      const result = await requestPasswordResetApi(email);
+      return { success: result.success, error: result.errorMessage, destination: null, infoMessage: result.success ? 'Si ce compte existe, un email de réinitialisation a été envoyé.' : null };
+    },
+    confirmPasswordReset: async (token, password) => {
+      const result = await confirmPasswordResetApi(token, password);
+      return { success: result.success, error: result.errorMessage, destination: result.success ? 'login' : null, infoMessage: result.success ? 'Mot de passe mis à jour. Vous pouvez vous connecter.' : null };
+    },
     fetchAdminUsers: async () => (await fetchAdminUsersApi()).users ?? [],
     fetchAdminAuditEvents: async () => (await fetchAuthAuditEvents()).events ?? [],
     updateAdminUser: async (userId, patch) => {
@@ -145,8 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: result.success, error: result.errorMessage, destination: null };
     },
     clearAuthNotice: () => setAuthNotice(null), logout, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled,
-    canAccessCMS, oauthProviders: { google: true, facebook: true }, postLoginRoute, sessionState,
-  }), [user, authError, authNotice, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS, postLoginRoute, sessionState]);
+    canAccessCMS, oauthProviders, postLoginRoute, sessionState,
+  }), [user, authError, authNotice, isAuthenticated, isAuthReady, cmsEnabled, registrationEnabled, canAccessCMS, oauthProviders, postLoginRoute, sessionState]);
 
   return <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>;
 }

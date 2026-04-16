@@ -46,6 +46,12 @@ describe('routeResolver', () => {
     expect(resolveRoute('#/contact?source=project', baseAuth).page).toBe('contact');
   });
 
+
+
+  it('resolves forgot and reset password routes', () => {
+    expect(resolveRoute('#/forgot-password', baseAuth).page).toBe('forgot-password');
+    expect(resolveRoute('#/reset-password?token=test', baseAuth).page).toBe('reset-password');
+  });
   it('maps canonical service slugs to deterministic service pages', () => {
     expect(resolveRoute('#service/design-branding', baseAuth).page).toBe('service-design');
     expect(resolveRoute('#/services/design-branding', baseAuth).page).toBe('service-design');
@@ -117,6 +123,23 @@ describe('guards', () => {
     expect(decision).toBe('cms-dashboard');
   });
 
+
+
+  it('redirects authenticated users away from forgot/reset password pages', () => {
+    const forgotDecision = resolveAuthPageGuard('forgot-password', {
+      ...baseAuth,
+      isAuthenticated: true,
+      postLoginRoute: 'account',
+    });
+    const resetDecision = resolveAuthPageGuard('reset-password', {
+      ...baseAuth,
+      isAuthenticated: true,
+      postLoginRoute: 'account',
+    });
+
+    expect(forgotDecision).toBe('account');
+    expect(resetDecision).toBe('account');
+  });
   it('allows register when registration is enabled', () => {
     const decision = resolveAuthPageGuard('register', {
       ...baseAuth,

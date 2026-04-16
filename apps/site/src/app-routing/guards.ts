@@ -26,7 +26,7 @@ export function resolveCmsSectionFromRoute(route: AppRoute): string {
 }
 
 export function resolveAuthPageGuard(route: AppRoute, auth: AuthRoutingState): ResolvedPage | null {
-  if (route !== 'login' && route !== 'register') {
+  if (route !== 'login' && route !== 'register' && route !== 'forgot-password' && route !== 'reset-password') {
     return null;
   }
 
@@ -40,6 +40,10 @@ export function resolveAuthPageGuard(route: AppRoute, auth: AuthRoutingState): R
 
   if (route === 'register' && !auth.registrationEnabled) {
     return 'login';
+  }
+
+  if ((route === 'forgot-password' || route === 'reset-password') && auth.isAuthenticated) {
+    return auth.postLoginRoute;
   }
 
   return route;

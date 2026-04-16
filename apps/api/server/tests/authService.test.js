@@ -260,4 +260,46 @@ describe('AuthService', () => {
     expect(result.ok).toBe(true);
     expect(users).toHaveLength(1);
   });
+
+
+  it('login fails with invalid credentials', async () => {
+    const result = await service.login({ email: 'missing@x.com', password: 'password123' });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('register rejects duplicate email', async () => {
+    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
+    await registerEnabledService.register({ email: 'dup@x.com', password: 'password123', name: 'First' });
+
+    const duplicate = await registerEnabledService.register({ email: 'dup@x.com', password: 'password123', name: 'Second' });
+    expect(duplicate.ok).toBe(false);
+    expect(duplicate.code).toBe('EMAIL_ALREADY_EXISTS');
+  });
+
+  it('request password reset returns generic success for unknown email', async () => {
+    const result = await service.requestPasswordReset({ email: 'nobody@x.com' });
+    expect(result.ok).toBe(true);
+    expect(result.devToken).toBeUndefined();
+  });
+
+  it('resets password with valid token and rejects invalid token', async () => {
+    const registerEnabledService = new AuthService({ userRepository: repository, publicRegistrationEnabled: true });
+    await registerEnabledService.register({ email: 'reset@x.com', password: 'password123', name: 'Reset User' });
+
+    const requestResult = await registerEnabledService.requestPasswordReset({ email: 'reset@x.com' });
+    expect(requestResult.ok).toBe(true);
+    expect(requestResult.devToken).toBeTruthy();
+
+    const invalid = await registerEnabledService.resetPasswordWithToken({ token: 'bad-token', password: 'newpassword123' });
+    expect(invalid.ok).toBe(false);
+    expect(invalid.code).toBe('INVALID_RESET_TOKEN');
+
+    const success = await registerEnabledService.resetPasswordWithToken({ token: requestResult.devToken, password: 'newpassword123' });
+    expect(success.ok).toBe(true);
+
+    const login = await registerEnabledService.login({ email: 'reset@x.com', password: 'newpassword123' });
+    expect(login.ok).toBe(true);
+  });
+
 });
