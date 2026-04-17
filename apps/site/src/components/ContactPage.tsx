@@ -12,7 +12,7 @@ export default function ContactPage() {
     phone: '',
     subject: '',
     message: '',
-    source: 'general',
+    source: 'contact_page',
     contextSlug: '',
     contextLabel: '',
   });
@@ -40,10 +40,17 @@ export default function ContactPage() {
     const [, queryString = ''] = window.location.hash.split('?');
     if (!queryString) return;
     const query = new URLSearchParams(queryString);
-    const source = `${query.get('source') || 'general'}`.trim().toLowerCase();
+    const rawSource = `${query.get('source') || 'contact_page'}`.trim().toLowerCase();
+    const source = rawSource === 'project'
+      ? 'project_detail'
+      : rawSource === 'service'
+        ? 'service_detail'
+        : rawSource === 'blog'
+          ? 'blog_detail'
+          : rawSource || 'contact_page';
     const contextLabel = `${query.get('label') || ''}`.trim();
     const contextSlug = `${query.get('slug') || ''}`.trim().toLowerCase();
-    const sourceLabel = source === 'project' ? 'projet' : source === 'service' ? 'service' : source === 'blog' ? 'article' : 'demande';
+    const sourceLabel = source.includes('project') ? 'projet' : source.includes('service') ? 'service' : source.includes('blog') ? 'article' : 'demande';
     const prefillMessage = contextLabel
       ? `Bonjour, je souhaite discuter de votre ${sourceLabel} "${contextLabel}".`
       : 'Bonjour, je souhaite obtenir plus d’informations sur vos services.';

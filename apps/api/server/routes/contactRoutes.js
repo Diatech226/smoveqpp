@@ -1,4 +1,6 @@
 const express = require('express');
+const { requireAuthenticated, requirePermission } = require('../middleware/authz');
+const { Permissions } = require('../security/rbac');
 const { sendError, sendSuccess } = require('../utils/apiResponse');
 const { logWarn } = require('../utils/logger');
 
@@ -75,8 +77,26 @@ function createContactRoutes({ contactService }) {
         requestId: req.requestId,
         message: error?.message,
       });
+      if (`${error?.message || ''}`.includes('CONTACT_PERSISTENCE_FAILED')) {
+        return sendError(res, 500, 'CONTACT_PERSISTENCE_FAILED', 'Unable to store message right now. Please try again later.');
+      }
       return sendError(res, 502, 'CONTACT_EMAIL_FAILED', 'Unable to send message right now. Please try again later.');
     }
+  });
+
+  router.use(requireAuthenticated, requirePermission(Permissions.USER_MANAGE));
+
+  router.get('/admin/submissions', async (req, res) => {
+    const data = await contactService.listSubmissions({
+      page: req.query?.page,
+      limit: req.query?.limit,
+      query: normalizeString(req.query?.q),
+      source: normalizeString(req.query?.source || 'all').toLowerCase(),
+      deliveryStatus: normalizeString(req.query?.deliveryStatus || 'all').toLowerCase(),
+    });
+
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, data);
   });
 
   return router;
