@@ -4,17 +4,19 @@ import { fetchPublicMediaFiles, fetchPublicPageContent, fetchPublicProjects, fet
 
 describe('publicContentApi', () => {
   it('returns public projects from backend envelope', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
+    const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         json: async () => ({ success: true, data: { projects: [{ id: 'p-1', title: 'P1' }] } }),
-      } as Response),
-    );
+      } as Response);
+    vi.stubGlobal('fetch', fetchMock);
 
     const projects = await fetchPublicProjects();
     expect(projects).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/content/public/projects'),
+      expect.objectContaining({ cache: 'no-store' }),
+    );
   });
 
 
