@@ -22,6 +22,7 @@ import { toMediaReferenceValue } from '../../../features/media/assetReference';
 import type { HomePageContentSettings } from '../../../data/pageContentSeed';
 import { getMetadataCompleteness, summarizeReferences, type BackendMediaReference } from './mediaGovernance';
 import { resolveCmsPreviewReference, resolveMediaLibraryThumbnail } from './mediaPreview';
+import { handleAddHeroMediaClick } from './pageContentHeroActions';
 
 const ROW_CONTAINER = 'rounded-[14px] border border-[#e4edf1] bg-[#fcfeff] px-4 py-3.5 shadow-[0_4px_14px_rgba(20,51,63,0.04)]';
 const ROW_TITLE = "font-['Abhaya_Libre:Bold',sans-serif] text-[17px] text-[#273a41] leading-tight";
@@ -292,12 +293,24 @@ interface PageContentSectionProps {
   hasUnsavedChanges: boolean;
   canEditContent: boolean;
   resetHomePageContent: () => void;
+  openMediaLibrary: () => void;
   homeContentForm: HomePageContentSettings;
   setHomeContentForm: (updater: (prev: HomePageContentSettings) => HomePageContentSettings) => void;
   mediaFiles: MediaFile[];
 }
 
-export function PageContentSection({ homeContentError, saveHomePageContent, homeContentSaving, hasUnsavedChanges, canEditContent, resetHomePageContent, homeContentForm, setHomeContentForm, mediaFiles }: PageContentSectionProps) {
+export function PageContentSection({
+  homeContentError,
+  saveHomePageContent,
+  homeContentSaving,
+  hasUnsavedChanges,
+  canEditContent,
+  resetHomePageContent,
+  openMediaLibrary,
+  homeContentForm,
+  setHomeContentForm,
+  mediaFiles,
+}: PageContentSectionProps) {
   const imageMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'image'), [mediaFiles]);
   const videoMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'video'), [mediaFiles]);
   const sections = [
@@ -346,35 +359,19 @@ export function PageContentSection({ homeContentError, saveHomePageContent, home
               <div className={ADMIN_SECTION_SUBCARD}>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-[13px] font-semibold text-[#273a41]">Background media (CMS)</p>
-                  <AdminButton
-                    type="button"
-                    size="sm"
-                    onClick={() => setHomeContentForm((prev) => ({
-                      ...prev,
-                      heroBackgroundItems: [
-                        ...prev.heroBackgroundItems,
-                        {
-                          id: `hero-bg-${Date.now()}`,
-                          label: `Slide ${prev.heroBackgroundItems.length + 1}`,
-                          type: 'image',
-                          media: '',
-                          desktopMedia: '',
-                          tabletMedia: '',
-                          mobileMedia: '',
-                          videoMedia: '',
-                          alt: '',
-                          overlayColor: '#04111f',
-                          overlayOpacity: prev.heroBackgroundOverlayOpacity,
-                          position: 'center',
-                          size: 'cover',
-                          enableParallax: true,
-                          enable3DEffects: true,
-                        },
-                      ],
-                    }))}
-                  >
-                    Ajouter un média
-                  </AdminButton>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AdminButton
+                      type="button"
+                      size="sm"
+                      data-testid="hero-add-media-button"
+                      onClick={(event) => setHomeContentForm((prev) => handleAddHeroMediaClick(event, prev))}
+                    >
+                      Ajouter un média
+                    </AdminButton>
+                    <AdminButton type="button" size="sm" data-testid="hero-open-media-library-button" onClick={openMediaLibrary}>
+                      Ouvrir la médiathèque CMS
+                    </AdminButton>
+                  </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
