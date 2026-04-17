@@ -30,8 +30,13 @@ export function appendHeroBackgroundItem(content: HomePageContentSettings): Home
   };
 }
 
+type AddHeroMediaClickEvent = {
+  preventDefault: () => void;
+  stopPropagation: () => void;
+};
+
 export function handleAddHeroMediaClick(
-  event: Pick<MouseEvent, 'preventDefault' | 'stopPropagation'> | undefined,
+  event: AddHeroMediaClickEvent | undefined,
   content: HomePageContentSettings,
 ): HomePageContentSettings {
   event?.preventDefault();

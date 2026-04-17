@@ -25,7 +25,7 @@ describe('pageContentHeroActions', () => {
       {
         preventDefault,
         stopPropagation,
-      } as unknown as Pick<MouseEvent, 'preventDefault' | 'stopPropagation'>,
+      },
       defaultHomePageContent,
     );
 
@@ -54,5 +54,7 @@ describe('pageContentHeroActions', () => {
     expect(html).toContain('Ouvrir la médiathèque CMS');
     expect(html).not.toContain('Retour au site');
     expect(html).not.toContain('Voir le site');
+    expect(html).toContain('data-testid="hero-add-media-button"');
+    expect(html).toContain('type="button"');
   });
 });
