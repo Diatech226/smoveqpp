@@ -50,4 +50,19 @@ describe('newsletter api', () => {
     expect(result.success).toBe(false);
     expect(result.code).toBe('NEWSLETTER_INVALID_EMAIL');
   });
+
+  it('does not fake success when backend payload is malformed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, data: {} }),
+      })),
+    );
+
+    const result = await submitNewsletterSubscription('john@example.com');
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('NEWSLETTER_PERSISTENCE_UNCONFIRMED');
+  });
 });

@@ -19,6 +19,7 @@ export async function submitNewsletterSubscription(email: string, source = 'foot
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, source }),
+    cache: 'no-store',
   }).catch(() => null);
 
   if (!response) {
@@ -39,12 +40,21 @@ export async function submitNewsletterSubscription(email: string, source = 'foot
     };
   }
 
+  const action = body?.data?.action;
+  if (!action || !['created', 'reactivated', 'already_active'].includes(action)) {
+    return {
+      success: false,
+      code: 'NEWSLETTER_PERSISTENCE_UNCONFIRMED',
+      message: "La confirmation d'inscription newsletter est invalide. Merci de réessayer.",
+    };
+  }
+
   return {
     success: true,
-    action: body?.data?.action,
+    action,
     message:
-      body?.data?.action === 'already_active'
+      action === 'already_active'
         ? 'Cet email est déjà inscrit à la newsletter.'
-        : 'Inscription newsletter confirmée.',
+        : (body?.data?.message || 'Inscription newsletter confirmée.'),
   };
 }

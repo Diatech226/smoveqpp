@@ -17,6 +17,8 @@ describe('NewsletterSection', () => {
         setStatusFilter={() => {}}
         sourceFilter="all"
         setSourceFilter={() => {}}
+        summary={{ total: 0, active: 0, unsubscribed: 0 }}
+        lastRefreshedAt={null}
         refresh={() => {}}
         updateStatus={async () => {}}
       />, 
@@ -51,6 +53,8 @@ describe('NewsletterSection', () => {
         setStatusFilter={() => {}}
         sourceFilter="all"
         setSourceFilter={() => {}}
+        summary={{ total: 1, active: 1, unsubscribed: 0 }}
+        lastRefreshedAt="2026-01-02T00:00:00.000Z"
         refresh={() => {}}
         updateStatus={async () => {}}
       />, 
@@ -58,5 +62,7 @@ describe('NewsletterSection', () => {
 
     expect(html).toContain('john@example.com');
     expect(html).toContain('Désabonner');
+    expect(html).toContain('Compteurs abonnés');
+    expect(html).toContain('Total');
   });
 });

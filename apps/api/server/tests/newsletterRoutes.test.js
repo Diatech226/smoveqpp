@@ -76,7 +76,11 @@ describe('newsletter routes', () => {
     const router = createNewsletterRoutes({
       newsletterService: {
         subscribe: async () => ({ action: 'created', subscriber: { id: 'sub_1', status: 'active' } }),
-        listSubscribers: async () => ({ items: [{ id: 'sub_1', email: 'user@example.com' }], pagination: { page: 1, limit: 50, total: 1, pages: 1 } }),
+        listSubscribers: async () => ({
+          items: [{ id: 'sub_1', email: 'user@example.com' }],
+          pagination: { page: 1, limit: 50, total: 1, pages: 1 },
+          summary: { total: 1, active: 1, unsubscribed: 0 },
+        }),
       },
     });
 
@@ -88,6 +92,7 @@ describe('newsletter routes', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data.items).toHaveLength(1);
+    expect(res.body.data.summary.active).toBe(1);
   });
 
   it('keeps admin-only protection on newsletter admin endpoints', () => {
