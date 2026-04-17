@@ -13,6 +13,8 @@ interface NewsletterSectionProps {
   setStatusFilter: (value: string) => void;
   sourceFilter: string;
   setSourceFilter: (value: string) => void;
+  summary: { total: number; active: number; unsubscribed: number };
+  lastRefreshedAt: string | null;
   refresh: () => void;
   updateStatus: (id: string, status: 'active' | 'unsubscribed') => Promise<void>;
 }
@@ -37,6 +39,8 @@ export function NewsletterSection(props: NewsletterSectionProps) {
     setStatusFilter,
     sourceFilter,
     setSourceFilter,
+    summary,
+    lastRefreshedAt,
     refresh,
     updateStatus,
   } = props;
@@ -74,6 +78,26 @@ export function NewsletterSection(props: NewsletterSectionProps) {
             ))}
           </select>
         </div>
+      </AdminPanel>
+
+      <AdminPanel title="Compteurs abonnés">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-[10px] border border-[#e4edf1] bg-[#fcfeff] px-3 py-3">
+            <p className="text-[12px] text-[#6b7d85]">Total</p>
+            <p className="text-[18px] font-semibold text-[#273a41]">{summary.total}</p>
+          </div>
+          <div className="rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-3">
+            <p className="text-[12px] text-emerald-700">Actifs</p>
+            <p className="text-[18px] font-semibold text-emerald-800">{summary.active}</p>
+          </div>
+          <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-3">
+            <p className="text-[12px] text-amber-700">Désinscrits</p>
+            <p className="text-[18px] font-semibold text-amber-800">{summary.unsubscribed}</p>
+          </div>
+        </div>
+        <p className="mt-2 text-[12px] text-[#6f7f85]">
+          Dernier rafraîchissement: {toDisplayDate(lastRefreshedAt)}
+        </p>
       </AdminPanel>
 
       <AdminPanel title="Abonnés newsletter">

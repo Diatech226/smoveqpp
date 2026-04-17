@@ -495,6 +495,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [auditEvents, setAuditEvents] = useState<AuthAuditEvent[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [newsletterSubscribers, setNewsletterSubscribers] = useState<NewsletterSubscriber[]>([]);
+  const [newsletterSummary, setNewsletterSummary] = useState({ total: 0, active: 0, unsubscribed: 0 });
+  const [newsletterLastRefreshedAt, setNewsletterLastRefreshedAt] = useState<string | null>(null);
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterError, setNewsletterError] = useState('');
   const [newsletterNotice, setNewsletterNotice] = useState('');
@@ -2244,6 +2246,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         source: newsletterSourceFilter,
       });
       setNewsletterSubscribers(result.items);
+      setNewsletterSummary(result.summary);
+      setNewsletterLastRefreshedAt(new Date().toISOString());
     } catch (error) {
       setNewsletterError(error instanceof Error ? error.message : 'Impossible de charger les abonnés newsletter.');
     } finally {
@@ -2457,6 +2461,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           setStatusFilter={setNewsletterStatusFilter}
           sourceFilter={newsletterSourceFilter}
           setSourceFilter={setNewsletterSourceFilter}
+          summary={newsletterSummary}
+          lastRefreshedAt={newsletterLastRefreshedAt}
           refresh={() => {
             void loadNewsletterSubscribers();
           }}

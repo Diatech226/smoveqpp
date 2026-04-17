@@ -56,16 +56,8 @@ class MongoNewsletterSubscriberRepository {
   }
 
   async list({ page = 1, limit = 50, query = '', status = 'all', source = 'all' } = {}) {
-    const mongoQuery = {};
-    if (query.trim()) {
-      mongoQuery.email = { $regex: query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
-    }
-    if (status !== 'all') {
-      mongoQuery.status = status;
-    }
-    if (source !== 'all') {
-      mongoQuery.source = source;
-    }
+    const mongoQuery = this.buildMongoQuery({ query, status, source });
+    const summaryQuery = this.buildMongoQuery({ query, source, status: 'all' });
 
     const normalizedPage = Math.max(1, Number(page) || 1);
     const normalizedLimit = Math.min(200, Math.max(1, Number(limit) || 50));
@@ -79,6 +71,11 @@ class MongoNewsletterSubscriberRepository {
       this.NewsletterSubscriberModel.countDocuments(mongoQuery),
     ]);
 
+    const [activeCount, unsubscribedCount] = await Promise.all([
+      this.NewsletterSubscriberModel.countDocuments({ ...summaryQuery, status: 'active' }),
+      this.NewsletterSubscriberModel.countDocuments({ ...summaryQuery, status: 'unsubscribed' }),
+    ]);
+
     return {
       items: docs.map((doc) => this.serialize(doc)),
       pagination: {
@@ -87,7 +84,26 @@ class MongoNewsletterSubscriberRepository {
         total,
         pages: Math.max(1, Math.ceil(total / normalizedLimit)),
       },
+      summary: {
+        total: activeCount + unsubscribedCount,
+        active: activeCount,
+        unsubscribed: unsubscribedCount,
+      },
     };
+  }
+
+  buildMongoQuery({ query = '', status = 'all', source = 'all' } = {}) {
+    const mongoQuery = {};
+    if (query.trim()) {
+      mongoQuery.email = { $regex: query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
+    }
+    if (status !== 'all') {
+      mongoQuery.status = status;
+    }
+    if (source !== 'all') {
+      mongoQuery.source = source;
+    }
+    return mongoQuery;
   }
 
   serialize(doc) {

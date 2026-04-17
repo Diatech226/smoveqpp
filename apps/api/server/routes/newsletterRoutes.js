@@ -46,6 +46,7 @@ function createNewsletterRoutes({ newsletterService }) {
     }
 
     const result = await newsletterService.subscribe(parsed.data);
+    res.setHeader('Cache-Control', 'no-store');
     return sendSuccess(res, 200, {
       status: result.subscriber.status,
       action: result.action,
@@ -68,6 +69,7 @@ function createNewsletterRoutes({ newsletterService }) {
       source: normalizeString(req.query?.source || 'all').toLowerCase(),
     });
 
+    res.setHeader('Cache-Control', 'no-store');
     return sendSuccess(res, 200, data);
   });
 

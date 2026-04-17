@@ -31,6 +31,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnve
     ...init,
     headers,
     credentials: 'include',
+    cache: 'no-store',
   });
 
   const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
@@ -44,6 +45,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnve
 export async function fetchNewsletterSubscribers(query: { q?: string; status?: string; source?: string } = {}): Promise<{
   items: NewsletterSubscriber[];
   pagination: { page: number; limit: number; total: number; pages: number };
+  summary: { total: number; active: number; unsubscribed: number };
 }> {
   const params = new URLSearchParams();
   if (query.q?.trim()) params.set('q', query.q.trim());
@@ -51,13 +53,18 @@ export async function fetchNewsletterSubscribers(query: { q?: string; status?: s
   if (query.source?.trim()) params.set('source', query.source.trim());
 
   const qs = params.toString();
-  const body = await request<{ items: NewsletterSubscriber[]; pagination: { page: number; limit: number; total: number; pages: number } }>(
+  const body = await request<{
+    items: NewsletterSubscriber[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+    summary?: { total: number; active: number; unsubscribed: number };
+  }>(
     `/admin/subscribers${qs ? `?${qs}` : ''}`,
   );
 
   return {
     items: body.data?.items ?? [],
     pagination: body.data?.pagination ?? { page: 1, limit: 50, total: 0, pages: 1 },
+    summary: body.data?.summary ?? { total: 0, active: 0, unsubscribed: 0 },
   };
 }
 

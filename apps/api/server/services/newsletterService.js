@@ -1,3 +1,5 @@
+const { logInfo } = require('../utils/logger');
+
 class NewsletterService {
   constructor({ newsletterSubscriberRepository, userRepository = null }) {
     if (!newsletterSubscriberRepository) {
@@ -10,10 +12,15 @@ class NewsletterService {
 
   async subscribe(payload) {
     const now = new Date();
+    logInfo('newsletter_subscription_received', { source: payload.source });
     const existing = await this.newsletterSubscriberRepository.findByEmail(payload.email);
     const linkedUser = this.userRepository ? await this.userRepository.findByEmail(payload.email) : null;
 
     if (existing?.status === 'active') {
+      logInfo('newsletter_subscription_duplicate', {
+        subscriberId: existing.id,
+        source: payload.source,
+      });
       return {
         action: 'already_active',
         subscriber: existing,
@@ -32,6 +39,14 @@ class NewsletterService {
         lastSource: payload.source,
       },
     });
+    if (!subscriber?.id) {
+      throw new Error('NEWSLETTER_PERSISTENCE_FAILED');
+    }
+
+    logInfo(existing ? 'newsletter_subscription_reactivated' : 'newsletter_subscription_created', {
+      subscriberId: subscriber.id,
+      source: payload.source,
+    });
 
     return {
       action: existing ? 'reactivated' : 'created',
@@ -41,6 +56,14 @@ class NewsletterService {
 
   async listSubscribers(filters) {
     const result = await this.newsletterSubscriberRepository.list(filters);
+    logInfo('newsletter_admin_list_loaded', {
+      page: result.pagination?.page ?? 1,
+      limit: result.pagination?.limit ?? 50,
+      total: result.pagination?.total ?? 0,
+      active: result.summary?.active ?? 0,
+      unsubscribed: result.summary?.unsubscribed ?? 0,
+    });
+
     return {
       ...result,
       items: await Promise.all(
@@ -72,6 +95,11 @@ class NewsletterService {
       source,
       linkedUserId: linkedUser?.id ?? existing.linkedUserId ?? null,
       unsubscribedAt: status === 'unsubscribed' ? new Date() : null,
+    });
+    logInfo('newsletter_subscription_status_updated', {
+      subscriberId: id,
+      status,
+      source,
     });
 
     return { ok: true, subscriber };
