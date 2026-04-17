@@ -70,6 +70,7 @@ import { resolveServiceRouteSlug } from '../../features/marketing/serviceRouting
 import { BlogSection, MediaSection, PageContentSection, ProjectsSection, ServicesSection } from './dashboard/CMSMainSections';
 import { OverviewSection, SettingsSection, UsersSection } from './dashboard/CMSExtendedSections';
 import { NewsletterSection } from './dashboard/NewsletterSection';
+import { ContactLeadsSection } from './dashboard/ContactLeadsSection';
 import { deriveDashboardCmsStats } from './dashboard/cmsStats';
 import { canMutateSensitiveUserFields, filterAdminUsers } from './users/adminUsersViewModel';
 import { isValidCmsHref, isValidHttpUrl, isValidMediaField, parseManagedTaxonomyInput, toDateTimeLocalValue, toIsoDateTime } from './dashboard/cmsValidation';
@@ -79,6 +80,7 @@ import { summarizeReferences, type BackendMediaReference } from './dashboard/med
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
 import { fetchNewsletterSubscribers, updateNewsletterSubscriberStatus, type NewsletterSubscriber } from '../../utils/newsletterApi';
+import { fetchContactLeads, type ContactLead } from '../../utils/contactLeadsApi';
 import { getPublicSiteUrl } from '../../utils/publicSiteUrl';
 import {
   AdminActionBar,
@@ -503,6 +505,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [newsletterSearch, setNewsletterSearch] = useState('');
   const [newsletterStatusFilter, setNewsletterStatusFilter] = useState('all');
   const [newsletterSourceFilter, setNewsletterSourceFilter] = useState('all');
+  const [contactLeads, setContactLeads] = useState<ContactLead[]>([]);
+  const [contactLeadsSummary, setContactLeadsSummary] = useState({ total: 0, received: 0, sent: 0, failed: 0, disabled: 0 });
+  const [contactLeadsLastRefreshedAt, setContactLeadsLastRefreshedAt] = useState<string | null>(null);
+  const [contactLeadsLoading, setContactLeadsLoading] = useState(false);
+  const [contactLeadsError, setContactLeadsError] = useState('');
+  const [contactLeadsNotice] = useState('');
+  const [contactLeadsSearch, setContactLeadsSearch] = useState('');
+  const [contactLeadsStatusFilter, setContactLeadsStatusFilter] = useState('all');
+  const [contactLeadsSourceFilter, setContactLeadsSourceFilter] = useState('all');
 
   const instantPublishingEnabled = settingsValues.operationalSettings.instantPublishing;
   const siteSettingsTitle = settingsValues.siteSettings.siteTitle;
@@ -688,6 +699,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       icon: ImageIcon,
       color: 'from-[#ffc247] to-[#ff9f47]',
     },
+    {
+      label: 'Leads contact',
+      value: contactLeadsSummary.total,
+      icon: Mail,
+      color: 'from-[#34c759] to-[#2da84a]',
+    },
   ];
 
   const menuItems = [
@@ -698,6 +715,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     { id: 'media', label: 'Médiathèque', icon: ImageIcon },
     { id: 'content', label: 'Contenus pages', icon: FileText },
     { id: 'users', label: 'Utilisateurs', icon: Users },
+    { id: 'contacts', label: 'Contacts / Leads', icon: Mail },
     { id: 'newsletter', label: 'Newsletter', icon: Mail },
     { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
@@ -2255,6 +2273,25 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
+  const loadContactLeads = async () => {
+    setContactLeadsLoading(true);
+    setContactLeadsError('');
+    try {
+      const result = await fetchContactLeads({
+        q: contactLeadsSearch,
+        source: contactLeadsSourceFilter,
+        deliveryStatus: contactLeadsStatusFilter,
+      });
+      setContactLeads(result.items);
+      setContactLeadsSummary(result.summary);
+      setContactLeadsLastRefreshedAt(new Date().toISOString());
+    } catch (error) {
+      setContactLeadsError(error instanceof Error ? error.message : 'Impossible de charger les messages contact.');
+    } finally {
+      setContactLeadsLoading(false);
+    }
+  };
+
   const patchNewsletterStatus = async (id: string, status: 'active' | 'unsubscribed') => {
     setNewsletterNotice('');
     setNewsletterError('');
@@ -2273,6 +2310,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       void loadNewsletterSubscribers();
     }
   }, [currentSection, canAccessCMS, newsletterSearch, newsletterStatusFilter, newsletterSourceFilter]);
+
+  useEffect(() => {
+    if (currentSection === 'contacts' && canAccessCMS) {
+      void loadContactLeads();
+    }
+  }, [currentSection, canAccessCMS, contactLeadsSearch, contactLeadsSourceFilter, contactLeadsStatusFilter]);
 
   useEffect(() => {
     if (currentSection === 'users' && canAccessCMS) {
@@ -2467,6 +2510,28 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             void loadNewsletterSubscribers();
           }}
           updateStatus={patchNewsletterStatus}
+        />
+      );
+    }
+
+    if (currentSection === 'contacts') {
+      return (
+        <ContactLeadsSection
+          loading={contactLeadsLoading}
+          error={contactLeadsError}
+          notice={contactLeadsNotice}
+          leads={contactLeads}
+          search={contactLeadsSearch}
+          setSearch={setContactLeadsSearch}
+          sourceFilter={contactLeadsSourceFilter}
+          setSourceFilter={setContactLeadsSourceFilter}
+          statusFilter={contactLeadsStatusFilter}
+          setStatusFilter={setContactLeadsStatusFilter}
+          summary={contactLeadsSummary}
+          lastRefreshedAt={contactLeadsLastRefreshedAt}
+          refresh={() => {
+            void loadContactLeads();
+          }}
         />
       );
     }

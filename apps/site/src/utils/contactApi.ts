@@ -19,6 +19,10 @@ export interface ContactSubmissionResult {
 
 interface ApiEnvelope {
   success?: boolean;
+  data?: {
+    submissionId?: string;
+    message?: string;
+  } | null;
   error?: { code?: string; message?: string } | null;
 }
 
@@ -49,8 +53,16 @@ export async function submitContactForm(payload: ContactFormPayload): Promise<Co
     };
   }
 
+  if (!body?.data?.submissionId) {
+    return {
+      success: false,
+      code: 'CONTACT_PERSISTENCE_MISSING',
+      message: "Votre message n'a pas pu être enregistré. Merci de réessayer.",
+    };
+  }
+
   return {
     success: true,
-    message: 'Message envoyé avec succès. Nous vous répondrons rapidement.',
+    message: body.data?.message || 'Message envoyé avec succès. Nous vous répondrons rapidement.',
   };
 }

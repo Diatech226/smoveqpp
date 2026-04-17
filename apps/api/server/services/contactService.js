@@ -19,6 +19,9 @@ class ContactService {
       deliveryMode: this.emailService ? 'pending' : 'disabled',
       deliveryStatus: this.emailService ? 'received' : 'disabled',
     });
+    if (!submission?.id) {
+      throw new Error('CONTACT_PERSISTENCE_FAILED');
+    }
 
     try {
       const emailResult = this.emailService
@@ -48,6 +51,10 @@ class ContactService {
       });
       throw error;
     }
+  }
+
+  async listSubmissions(filters = {}) {
+    return this.contactSubmissionRepository.list(filters);
   }
 }
 

@@ -13,7 +13,7 @@ describe('submitContactForm', () => {
         ({
           ok: true,
           status: 200,
-          json: async () => ({ success: true, data: { delivered: true } }),
+          json: async () => ({ success: true, data: { delivered: true, submissionId: 'lead_1', message: 'Stored' } }),
         }) as Response,
       ),
     );
@@ -26,6 +26,7 @@ describe('submitContactForm', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(result.message).toBe('Stored');
   });
 
   it('returns user-safe error message on API failure', async () => {
@@ -65,5 +66,28 @@ describe('submitContactForm', () => {
 
     expect(result.success).toBe(false);
     expect(result.code).toBe('CONTACT_NETWORK_ERROR');
+  });
+
+  it('fails safely when API returns success without persistence id', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({ success: true, data: {} }),
+        }) as Response,
+      ),
+    );
+
+    const result = await submitContactForm({
+      name: 'John Doe',
+      email: 'john@example.com',
+      subject: 'Need a quote',
+      message: 'Hello, I need a quote.',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('CONTACT_PERSISTENCE_MISSING');
   });
 });
