@@ -2468,6 +2468,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           hasUnsavedChanges={homeContentHasUnsavedChanges}
           canEditContent={canEditContent}
           resetHomePageContent={resetHomePageContent}
+          openMediaLibrary={() => {
+            void handleSectionChange('media');
+          }}
           homeContentForm={homeContentForm}
           setHomeContentForm={setHomeContentForm}
           mediaFiles={mediaFiles}
