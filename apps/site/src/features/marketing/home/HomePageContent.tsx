@@ -6,10 +6,11 @@ import Footer from '../../../components/Footer';
 import ProjectsSection from '../../../components/ProjectsSection';
 import { ImageWithFallback } from '../../../components/figma/ImageWithFallback';
 import { pageContentRepository } from '../../../repositories/pageContentRepository';
+import { mediaRepository } from '../../../repositories/mediaRepository';
 import { resolveBlogMediaReference } from '../../blog/mediaReference';
 import { serviceRepository } from '../../../repositories/serviceRepository';
 import { selectRenderablePublicServices } from '../serviceCatalog';
-import { fetchPublicPageContent, fetchPublicServices } from '../../../utils/publicContentApi';
+import { fetchPublicMediaFiles, fetchPublicPageContent, fetchPublicServices } from '../../../utils/publicContentApi';
 import { getBlogContentContractFromSource, type BlogListItem } from '../../blog/blogContentService';
 import { selectHomepageBlogPosts, selectHomepageServices } from './homePreview';
 import { resolveAboutTeamHref } from '../navigationCta';
@@ -27,13 +28,23 @@ function HomePageContent() {
 
   useEffect(() => {
     let active = true;
-    void Promise.allSettled([fetchPublicPageContent(), fetchPublicServices(), getBlogContentContractFromSource()])
-      .then(([pageResult, servicesResult, blogResult]) => {
+    void Promise.allSettled([fetchPublicPageContent(), fetchPublicServices(), fetchPublicMediaFiles(), getBlogContentContractFromSource()])
+      .then(([pageResult, servicesResult, mediaResult, blogResult]) => {
         if (!active) return;
+
+        if (mediaResult.status === 'fulfilled') {
+          mediaRepository.replaceAll(mediaResult.value);
+        } else {
+          console.warn('[public-content] media API unavailable, keeping repository snapshot.', mediaResult.reason);
+        }
 
         if (pageResult.status === 'fulfilled') {
           const synced = pageContentRepository.saveHomePageContent(pageResult.value);
           setHomeContent(synced);
+          const unresolvedSlides = synced.heroBackgroundItems.filter((item) => item.media.trim().startsWith('media:')).length;
+          if (unresolvedSlides > 0 && mediaResult.status !== 'fulfilled') {
+            console.warn('[public-content] hero background uses media references but media catalog did not refresh.');
+          }
         } else {
           console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', pageResult.reason);
         }

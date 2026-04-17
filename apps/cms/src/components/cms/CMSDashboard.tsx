@@ -725,12 +725,25 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     window.location.hash = 'login';
   };
 
-  const handleSectionChange = (section: string) => {
+  const handleSectionChange = async (section: string) => {
     if (section === currentSection) {
       return;
     }
 
-    if (hasUnsavedChanges && !window.confirm('Des modifications non sauvegardées existent. Quitter cette section ?')) {
+    if (currentSection === 'content' && homeContentHasUnsavedChanges) {
+      const shouldSaveBeforeLeaving = window.confirm('Le contenu de page a été modifié. OK = enregistrer avant de quitter, Annuler = choisir ensuite.');
+      if (shouldSaveBeforeLeaving) {
+        const saved = await saveHomePageContent();
+        if (!saved) {
+          return;
+        }
+      } else {
+        const shouldDiscard = window.confirm('Quitter sans enregistrer les modifications de contenu de page ?');
+        if (!shouldDiscard) {
+          return;
+        }
+      }
+    } else if (hasUnsavedChanges && !window.confirm('Des modifications non sauvegardées existent. Quitter cette section ?')) {
       return;
     }
 
@@ -1053,14 +1066,14 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
-  const saveHomePageContent = async () => {
+  const saveHomePageContent = async (): Promise<boolean> => {
     if (!homeContentForm.heroTitleLine1.trim() || !homeContentForm.heroTitleLine2.trim()) {
       setHomeContentError('Le titre hero doit être renseigné.');
-      return;
+      return false;
     }
     if (homeContentForm.aboutImage.trim() && !isValidMediaField(homeContentForm.aboutImage)) {
       setHomeContentError('Image À propos invalide. Utilisez une URL valide ou media:asset-id existant.');
-      return;
+      return false;
     }
     const invalidHeroBackground = homeContentForm.heroBackgroundItems.find((item) => (
       !item.media.trim() ||
@@ -1072,11 +1085,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     ));
     if (invalidHeroBackground) {
       setHomeContentError('Un média de background hero est invalide. Sélectionnez des médias depuis la Media Library (fallback URL legacy toléré).');
-      return;
+      return false;
     }
     if (homeContentForm.heroBackgroundIntervalMs < 2000 || homeContentForm.heroBackgroundIntervalMs > 30000) {
       setHomeContentError("L'intervalle du slideshow hero doit être compris entre 2000 et 30000 ms.");
-      return;
+      return false;
     }
     const hrefFields: Array<[string, string]> = [
       [homeContentForm.heroPrimaryCtaHref, 'Lien CTA principal du hero'],
@@ -1088,7 +1101,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     const invalidHref = hrefFields.find(([href]) => !isValidCmsHref(href));
     if (invalidHref) {
       setHomeContentError(`${invalidHref[1]} invalide. Utilisez une ancre (#section), un chemin (/route) ou une URL https.`);
-      return;
+      return false;
     }
 
     setHomeContentSaving(true);
@@ -1096,13 +1109,25 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
     try {
       const savedRemote = await requestWithRetry(() => saveBackendPageContent(homeContentForm), { retries: 1, retryDelayMs: 250 });
-      const saved = pageContentRepository.saveHomePageContent(savedRemote);
+      const [authoritativeHome, authoritativeMedia] = await Promise.all([
+        requestWithRetry(() => fetchBackendPageContent(), { retries: 1, retryDelayMs: 250 }),
+        requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 }),
+      ]);
+      syncMediaFromBackend(authoritativeMedia);
+      const saved = pageContentRepository.saveHomePageContent(authoritativeHome);
       setHomeContentForm(saved);
       setSavedHomeContentSnapshot(saved);
+      console.info('[cms-page-content] save succeeded', {
+        savedHeroBackgroundItems: saved.heroBackgroundItems.length,
+        returnedHeroBackgroundItems: savedRemote.heroBackgroundItems.length,
+      });
       showSuccess('Contenu de page enregistré via backend CMS.');
+      return true;
     } catch {
       markDegradedMode('Contenu page: écriture backend indisponible, aucune persistance locale automatique.');
       setHomeContentError('Backend indisponible: enregistrement annulé pour éviter une divergence de source de vérité.');
+      console.warn('[cms-page-content] save failed; authoritative reload unavailable');
+      return false;
     } finally {
       setHomeContentSaving(false);
     }
@@ -2607,7 +2632,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => handleSectionChange(item.id)}
+              onClick={() => {
+                void handleSectionChange(item.id);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all ${
                 currentSection === item.id ? 'bg-[#00b3e8] text-white' : 'text-[#273a41] hover:bg-[#f5f9fa]'
               }`}

@@ -17,7 +17,13 @@ async function request<T>(path: string): Promise<T> {
   const existing = inFlightRequests.get(cacheKey) as Promise<T> | undefined;
   if (existing) return existing;
 
-  const pending = fetch(`${CONTENT_BASE_URL}${path}`)
+  const pending = fetch(`${CONTENT_BASE_URL}${path}`, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+    },
+  })
     .then(async (response) => {
       const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
 

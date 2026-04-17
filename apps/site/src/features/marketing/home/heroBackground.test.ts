@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveHeroBackgroundItems, nextHeroBackgroundIndex, shouldAutoplayHeroBackground } from './heroBackground';
+import { mediaRepository } from '../../../repositories/mediaRepository';
 
 describe('hero background model', () => {
   it('resolves a single media item for hero rendering', () => {
@@ -56,5 +57,30 @@ describe('hero background model', () => {
     expect(resolved[0].desktopSrc).toContain('desktop.jpg');
     expect(resolved[0].tabletSrc).toContain('tablet.jpg');
     expect(resolved[0].mobileSrc).toContain('mobile.jpg');
+  });
+
+  it('resolves media library references when the public media catalog is synced', () => {
+    mediaRepository.replaceAll([
+      {
+        id: 'hero-library-1',
+        name: 'hero-library-1.jpg',
+        type: 'image',
+        url: 'https://cdn.example.com/hero-library-1.jpg',
+        thumbnailUrl: 'https://cdn.example.com/hero-library-1-thumb.jpg',
+        size: 12345,
+        uploadedDate: '2026-04-17T00:00:00.000Z',
+        uploadedBy: 'cms',
+        alt: 'Hero media from library',
+        tags: [],
+      },
+    ]);
+
+    const resolved = resolveHeroBackgroundItems([
+      { id: 'slide-lib', label: 'Library', type: 'image', media: 'media:hero-library-1', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: '', overlayColor: '#04111f', overlayOpacity: 0.4, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
+    ]);
+
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0].isValid).toBe(true);
+    expect(resolved[0].desktopSrc).toContain('hero-library-1.jpg');
   });
 });

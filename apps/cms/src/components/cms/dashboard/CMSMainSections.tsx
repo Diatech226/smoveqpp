@@ -1,5 +1,5 @@
 import { Archive, Pencil, RotateCcw, Trash2, Upload } from 'lucide-react';
-import type { ChangeEvent, ReactNode } from 'react';
+import { useMemo, type ChangeEvent, type ReactNode } from 'react';
 import type { BlogPost, MediaFile, Project, Service } from '../../../domain/contentSchemas';
 import {
   AdminActionBar,
@@ -298,6 +298,8 @@ interface PageContentSectionProps {
 }
 
 export function PageContentSection({ homeContentError, saveHomePageContent, homeContentSaving, hasUnsavedChanges, canEditContent, resetHomePageContent, homeContentForm, setHomeContentForm, mediaFiles }: PageContentSectionProps) {
+  const imageMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'image'), [mediaFiles]);
+  const videoMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'video'), [mediaFiles]);
   const sections = [
     { id: 'hero', title: 'Hero', description: 'Contenu de première impression visible au chargement.' },
     { id: 'about', title: 'À propos & services', description: 'Storytelling, promesse et image de marque.' },
@@ -412,6 +414,25 @@ export function PageContentSection({ homeContentError, saveHomePageContent, home
                   {homeContentForm.heroBackgroundItems.length === 0 ? <p className={ADMIN_HELPER_TEXT_CLASS}>Aucun média configuré: le hero utilise son fond premium par défaut.</p> : null}
                   {homeContentForm.heroBackgroundItems.map((item, index) => (
                     <div key={item.id} className="rounded-[12px] border border-[#dbe7ec] bg-white p-3">
+                      {(() => {
+                        const preview = resolveCmsPreviewReference(item.desktopMedia || item.media, item.alt || `Hero slide ${index + 1}`, `Hero slide ${index + 1}`);
+                        return (
+                          <div className="mb-3 rounded-[10px] border border-[#e4edf1] bg-[#f8fbfd] p-2.5">
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <p className="text-[12px] font-semibold text-[#273a41]">Aperçu rendu public (desktop)</p>
+                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${previewToneClass(preview.statusTone)}`}>{preview.statusLabel}</span>
+                            </div>
+                            {preview.state === 'resolvable' ? (
+                              <img src={preview.src} alt={preview.alt} className="h-[140px] w-full rounded-[8px] border border-[#e4edf1] object-cover" loading="lazy" />
+                            ) : (
+                              <div className="flex h-[140px] items-center justify-center rounded-[8px] border border-dashed border-amber-300 bg-amber-50 px-3 text-center text-[12px] text-amber-800">
+                                Média non résolu: cette slide risque de ne pas apparaître sur le site public.
+                              </div>
+                            )}
+                            <p className="mt-2 text-[11px] text-[#5f7178]">{preview.sourceLabel} · {preview.reference || 'Aucune référence'}</p>
+                          </div>
+                        );
+                      })()}
                       <div className="mb-2 flex items-center justify-between">
                         <p className="text-[13px] font-semibold text-[#273a41]">Slide {index + 1}</p>
                         <div className="flex gap-2">
@@ -436,23 +457,23 @@ export function PageContentSection({ homeContentError, saveHomePageContent, home
                         </select>
                         <select value={item.media} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, media: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Image principale (required)</option>
-                          {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                          {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.desktopMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, desktopMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Desktop override (&gt;=1024)</option>
-                          {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                          {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.tabletMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, tabletMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Tablet override (768-1023)</option>
-                          {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                          {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.mobileMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, mobileMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Mobile override (&lt;768)</option>
-                          {mediaFiles.filter((file) => file.type === 'image').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                          {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.videoMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, videoMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Video source (optional)</option>
-                          {mediaFiles.filter((file) => file.type === 'video').map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
+                          {videoMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <input value={item.alt} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, alt: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Alt (optionnel)" />
                         <input value={item.position} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, position: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Position (center, top, 65% 30%)" />

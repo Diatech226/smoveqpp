@@ -249,6 +249,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnve
   const response = await fetch(`${CONTENT_BASE_URL}${path}`, {
     ...init,
     headers,
+    cache: 'no-store',
     credentials: 'include',
   });
 
