@@ -16,11 +16,13 @@ Dans l’éditeur **CMS → Contenus pages → Hero → Background media**, le b
 1. Le bouton **Ajouter un média** utilise désormais un handler CMS explicite qui :
    - appelle `preventDefault()` et `stopPropagation()`,
    - applique directement `appendHeroBackgroundItem` sur l’état `homeContentForm`.
+   - est centralisé via `handleAddHeroMediaClick` pour éviter tout recâblage accidentel vers une action de navigation.
 2. L’action d’ajout de slide est séparée des actions de preview/navigation publique (qui restent des contrôles distincts ailleurs dans le dashboard).
 3. Les tests CMS couvrent l’intention :
    - création d’une slide vide structurée,
    - protection contre toute navigation par défaut,
-   - présence d’un vrai bouton `type="button"` pour l’action d’ajout.
+   - présence d’un vrai bouton `type="button"` pour l’action d’ajout,
+   - persistance/rechargement d’un item `heroBackgroundItems` ajouté puis sauvegardé.
 
 ## Contrat save/render
 
