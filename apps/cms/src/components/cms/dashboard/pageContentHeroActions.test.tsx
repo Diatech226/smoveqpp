@@ -34,6 +34,11 @@ describe('pageContentHeroActions', () => {
     expect(updated.heroBackgroundItems).toHaveLength(1);
   });
 
+  it('still appends a new item when no event object is provided', () => {
+    const updated = handleAddHeroMediaClick(undefined, defaultHomePageContent);
+    expect(updated.heroBackgroundItems).toHaveLength(1);
+  });
+
   it('renders dedicated CMS slider actions without public navigation labels', () => {
     const html = renderToStaticMarkup(
       <PageContentSection
@@ -56,5 +61,6 @@ describe('pageContentHeroActions', () => {
     expect(html).not.toContain('Voir le site');
     expect(html).toContain('data-testid="hero-add-media-button"');
     expect(html).toContain('type="button"');
+    expect(html).not.toContain('data-testid="hero-add-media-button" href=');
   });
 });
