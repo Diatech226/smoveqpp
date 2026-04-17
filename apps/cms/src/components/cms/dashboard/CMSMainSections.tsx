@@ -22,7 +22,7 @@ import { toMediaReferenceValue } from '../../../features/media/assetReference';
 import type { HomePageContentSettings } from '../../../data/pageContentSeed';
 import { getMetadataCompleteness, summarizeReferences, type BackendMediaReference } from './mediaGovernance';
 import { resolveCmsPreviewReference, resolveMediaLibraryThumbnail } from './mediaPreview';
-import { handleAddHeroMediaClick } from './pageContentHeroActions';
+import { appendHeroBackgroundItem } from './pageContentHeroActions';
 
 const ROW_CONTAINER = 'rounded-[14px] border border-[#e4edf1] bg-[#fcfeff] px-4 py-3.5 shadow-[0_4px_14px_rgba(20,51,63,0.04)]';
 const ROW_TITLE = "font-['Abhaya_Libre:Bold',sans-serif] text-[17px] text-[#273a41] leading-tight";
@@ -364,7 +364,11 @@ export function PageContentSection({
                       type="button"
                       size="sm"
                       data-testid="hero-add-media-button"
-                      onClick={(event) => setHomeContentForm((prev) => handleAddHeroMediaClick(event, prev))}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setHomeContentForm((prev) => appendHeroBackgroundItem(prev));
+                      }}
                     >
                       Ajouter un média
                     </AdminButton>
