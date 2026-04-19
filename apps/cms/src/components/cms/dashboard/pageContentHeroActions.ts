@@ -3,8 +3,12 @@ import type { HomePageContentSettings } from '../../../data/pageContentSeed';
 type HeroBackgroundItem = HomePageContentSettings['heroBackgroundItems'][number];
 
 export function createHeroBackgroundItem(itemIndex: number, overlayOpacity: number): HeroBackgroundItem {
+  const randomSuffix =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10);
   return {
-    id: `hero-bg-${Date.now()}-${itemIndex + 1}`,
+    id: `hero-bg-${Date.now()}-${itemIndex + 1}-${randomSuffix}`,
     label: `Slide ${itemIndex + 1}`,
     type: 'image',
     media: '',

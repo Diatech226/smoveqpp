@@ -106,12 +106,39 @@ describe('pageContentHeroActions', () => {
       />,
     );
 
-    expect(html).toContain('Ajouter une image');
+    expect(html).toContain('Ajouter une slide');
     expect(html).toContain('Ouvrir la médiathèque CMS');
+    expect(html).toContain('Prévisualiser le site');
     expect(html).not.toContain('Retour au site');
     expect(html).not.toContain('Voir le site');
     expect(html).toContain('data-testid="hero-add-media-button"');
     expect(html).toContain('type="button"');
     expect(html).not.toContain('data-testid="hero-add-media-button" href=');
+  });
+
+  it('keeps unresolved saved media references visible in select controls', () => {
+    const withSlide = appendHeroBackgroundItem(defaultHomePageContent);
+    const slideId = withSlide.heroBackgroundItems[0].id;
+    const withMissingReference = assignHeroBackgroundMedia(withSlide, slideId, 'media', 'media:missing-asset');
+
+    const html = renderToStaticMarkup(
+      <PageContentSection
+        homeContentError=""
+        saveHomePageContent={async () => {}}
+        homeContentSaving={false}
+        hasUnsavedChanges={false}
+        canEditContent
+        resetHomePageContent={() => {}}
+        openMediaLibrary={() => {}}
+        heroMediaUploadError=""
+        heroMediaUploadTarget={null}
+        uploadHeroBackgroundMedia={async () => {}}
+        homeContentForm={withMissingReference}
+        setHomeContentForm={() => {}}
+        mediaFiles={[]}
+      />,
+    );
+
+    expect(html).toContain('Référence actuelle (introuvable): media:missing-asset');
   });
 });

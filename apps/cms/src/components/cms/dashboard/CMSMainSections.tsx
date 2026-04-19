@@ -319,6 +319,15 @@ export function PageContentSection({
 }: PageContentSectionProps) {
   const imageMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'image'), [mediaFiles]);
   const videoMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'video'), [mediaFiles]);
+  const imageMediaReferenceSet = useMemo(() => new Set(imageMediaOptions.map((file) => toMediaReferenceValue(file.id))), [imageMediaOptions]);
+  const unresolvedHeroMediaCount = useMemo(
+    () =>
+      homeContentForm.heroBackgroundItems.reduce((count, item) => {
+        const preview = resolveCmsPreviewReference(item.desktopMedia || item.media, item.alt || item.label || 'Hero background', item.label || 'Hero background');
+        return preview.state === 'resolvable' ? count : count + 1;
+      }, 0),
+    [homeContentForm.heroBackgroundItems],
+  );
   const sections = [
     { id: 'hero', title: 'Hero', description: 'Contenu de première impression visible au chargement.' },
     { id: 'about', title: 'À propos & services', description: 'Storytelling, promesse et image de marque.' },
@@ -374,13 +383,19 @@ export function PageContentSection({
                         setHomeContentForm((prev) => handleAddHeroMediaClick(event, prev));
                       }}
                     >
-                      Ajouter une image
+                      Ajouter une slide
                     </AdminButton>
                     <AdminButton type="button" size="sm" data-testid="hero-open-media-library-button" onClick={openMediaLibrary}>
                       Ouvrir la médiathèque CMS
                     </AdminButton>
+                    <AdminButton type="button" size="sm" onClick={() => { window.open('/', '_blank', 'noopener,noreferrer'); }}>
+                      Prévisualiser le site
+                    </AdminButton>
                   </div>
                 </div>
+                <p className={ADMIN_HELPER_TEXT_CLASS}>
+                  Workflow recommandé : 1) ajouter une slide, 2) choisir un média depuis la médiathèque ou uploader, 3) régler responsive/overlay, 4) enregistrer.
+                </p>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
                     <input type="checkbox" checked={homeContentForm.heroBackgroundRotationEnabled} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundRotationEnabled: event.target.checked }))} />
@@ -417,6 +432,7 @@ export function PageContentSection({
 
                 <div className="mt-3 space-y-3">
                   {heroMediaUploadError ? <AdminWarningState label={heroMediaUploadError} /> : null}
+                  {unresolvedHeroMediaCount > 0 ? <AdminWarningState label={`${unresolvedHeroMediaCount} slide(s) utilisent un média non résolu. Corrigez avant publication.`} /> : null}
                   {homeContentForm.heroBackgroundItems.length === 0 ? <p className={ADMIN_HELPER_TEXT_CLASS}>Aucun média configuré: le hero utilise son fond premium par défaut.</p> : null}
                   {homeContentForm.heroBackgroundItems.map((item, index) => (
                     <div key={item.id} className="rounded-[12px] border border-[#dbe7ec] bg-white p-3">
@@ -463,6 +479,9 @@ export function PageContentSection({
                         </select>
                         <select value={item.media} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'media', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Image principale (required)</option>
+                          {!item.media || imageMediaReferenceSet.has(item.media) ? null : (
+                            <option value={item.media}>Référence actuelle (introuvable): {item.media}</option>
+                          )}
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#00b3e8] bg-[#f0fbff] px-3 py-2 text-[13px] text-[#006b89] transition-colors hover:bg-[#dff6ff]">
@@ -471,14 +490,23 @@ export function PageContentSection({
                         </label>
                         <select value={item.desktopMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'desktopMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Desktop override (&gt;=1024)</option>
+                          {!item.desktopMedia || imageMediaReferenceSet.has(item.desktopMedia) ? null : (
+                            <option value={item.desktopMedia}>Référence actuelle (introuvable): {item.desktopMedia}</option>
+                          )}
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.tabletMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'tabletMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Tablet override (768-1023)</option>
+                          {!item.tabletMedia || imageMediaReferenceSet.has(item.tabletMedia) ? null : (
+                            <option value={item.tabletMedia}>Référence actuelle (introuvable): {item.tabletMedia}</option>
+                          )}
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.mobileMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'mobileMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Mobile override (&lt;768)</option>
+                          {!item.mobileMedia || imageMediaReferenceSet.has(item.mobileMedia) ? null : (
+                            <option value={item.mobileMedia}>Référence actuelle (introuvable): {item.mobileMedia}</option>
+                          )}
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <select value={item.videoMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'videoMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>

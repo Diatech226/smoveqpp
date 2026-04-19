@@ -83,4 +83,29 @@ describe('hero background model', () => {
     expect(resolved[0].isValid).toBe(true);
     expect(resolved[0].desktopSrc).toContain('hero-library-1.jpg');
   });
+
+  it('falls back to safe overlay opacity when incoming content is malformed', () => {
+    const resolved = resolveHeroBackgroundItems([
+      {
+        id: 'slide-malformed-overlay',
+        label: 'Malformed overlay',
+        type: 'image',
+        media: 'https://cdn.example.com/hero-safe.jpg',
+        desktopMedia: '',
+        tabletMedia: '',
+        mobileMedia: '',
+        videoMedia: '',
+        alt: 'Safe hero',
+        overlayColor: '#04111f',
+        overlayOpacity: Number.NaN,
+        position: 'center',
+        size: 'cover',
+        enableParallax: true,
+        enable3DEffects: true,
+      },
+    ]);
+
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0].overlayOpacity).toBe(0.45);
+  });
 });
