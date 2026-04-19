@@ -78,6 +78,7 @@ import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSumma
 import { isValidSlug } from '../../shared/contentContracts';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
+import { appendHeroBackgroundItemWithMedia, assignHeroBackgroundMedia } from './dashboard/pageContentHeroActions';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
 import { fetchNewsletterSubscribers, updateNewsletterSubscriberStatus, type NewsletterSubscriber } from '../../utils/newsletterApi';
 import { fetchContactLeads, type ContactLead } from '../../utils/contactLeadsApi';
@@ -392,6 +393,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const [homeContentForm, setHomeContentForm] = useState<HomePageContentSettings>(() => pageContentRepository.getHomePageContent());
   const [homeContentSaving, setHomeContentSaving] = useState(false);
   const [homeContentError, setHomeContentError] = useState('');
+  const [heroMediaUploadError, setHeroMediaUploadError] = useState('');
+  const [heroMediaUploadTarget, setHeroMediaUploadTarget] = useState<string | null>(null);
   const [savedHomeContentSnapshot, setSavedHomeContentSnapshot] = useState<HomePageContentSettings | null>(null);
   const [mediaVersion, setMediaVersion] = useState(0);
   const mediaFiles = useMemo(() => mediaRepository.getAll(), [mediaVersion]);
@@ -1625,6 +1628,60 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
+  const uploadHeroBackgroundMedia = async (
+    itemId: string,
+    field: 'media' | 'desktopMedia' | 'tabletMedia' | 'mobileMedia' | 'videoMedia',
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setHeroMediaUploadError('');
+    setHeroMediaUploadTarget(itemId);
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result !== 'string') {
+            reject(new Error('Invalid media payload'));
+            return;
+          }
+          resolve(reader.result);
+        };
+        reader.onerror = () => reject(new Error('Failed to read media file'));
+        reader.readAsDataURL(file);
+      });
+
+      const uploaded = await requestWithRetry(
+        () =>
+          uploadBackendMediaFile({
+            filename: file.name,
+            title: file.name,
+            dataUrl,
+            alt: file.name,
+          }),
+        { retries: 1, retryDelayMs: 250 },
+      );
+
+      const mediaReference = toMediaReferenceValue(uploaded.id);
+      setHomeContentForm((prev) => {
+        if (!prev.heroBackgroundItems.some((item) => item.id === itemId)) {
+          return appendHeroBackgroundItemWithMedia(prev, mediaReference);
+        }
+        return assignHeroBackgroundMedia(prev, itemId, field, mediaReference);
+      });
+      const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+      syncMediaFromBackend(refreshedMedia);
+      showSuccess('Image uploadée dans la médiathèque et liée au background hero.');
+    } catch {
+      setHeroMediaUploadError("Upload impossible pour cette slide. Vérifiez le format/taille puis réessayez.");
+    } finally {
+      setHeroMediaUploadTarget(null);
+      event.currentTarget.value = '';
+    }
+  };
+
   const deleteSelectedMedia = async (authoritativeReferences: BackendMediaReference[]) => {
     if (!selectedMedia) return;
     if (!canDeleteContent) {
@@ -2471,6 +2528,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           openMediaLibrary={() => {
             void handleSectionChange('media');
           }}
+          heroMediaUploadError={heroMediaUploadError}
+          heroMediaUploadTarget={heroMediaUploadTarget}
+          uploadHeroBackgroundMedia={uploadHeroBackgroundMedia}
           homeContentForm={homeContentForm}
           setHomeContentForm={setHomeContentForm}
           mediaFiles={mediaFiles}

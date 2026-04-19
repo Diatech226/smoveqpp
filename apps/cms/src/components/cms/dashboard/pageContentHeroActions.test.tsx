@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { defaultHomePageContent } from '../../../data/pageContentSeed';
 import { PageContentSection } from './CMSMainSections';
-import { appendHeroBackgroundItem, handleAddHeroMediaClick } from './pageContentHeroActions';
+import { appendHeroBackgroundItem, appendHeroBackgroundItemWithMedia, assignHeroBackgroundMedia, handleAddHeroMediaClick } from './pageContentHeroActions';
+import { toMediaReferenceValue } from '../../../features/media/assetReference';
 
 describe('pageContentHeroActions', () => {
   it('adds a new hero slide item in CMS form state', () => {
@@ -39,6 +40,25 @@ describe('pageContentHeroActions', () => {
     expect(updated.heroBackgroundItems).toHaveLength(1);
   });
 
+  it('assigns selected media to a specific hero background item field', () => {
+    const withItem = appendHeroBackgroundItem(defaultHomePageContent);
+    const targetItemId = withItem.heroBackgroundItems[0].id;
+    const mediaReference = toMediaReferenceValue('asset-hero-1');
+
+    const updated = assignHeroBackgroundMedia(withItem, targetItemId, 'desktopMedia', mediaReference);
+
+    expect(updated.heroBackgroundItems[0].desktopMedia).toBe(mediaReference);
+  });
+
+  it('creates a new hero background item pre-linked to uploaded media', () => {
+    const mediaReference = toMediaReferenceValue('asset-uploaded');
+    const updated = appendHeroBackgroundItemWithMedia(defaultHomePageContent, mediaReference);
+
+    expect(updated.heroBackgroundItems).toHaveLength(1);
+    expect(updated.heroBackgroundItems[0].media).toBe(mediaReference);
+    expect(updated.heroBackgroundItems[0].desktopMedia).toBe(mediaReference);
+  });
+
   it('renders dedicated CMS slider actions without public navigation labels', () => {
     const html = renderToStaticMarkup(
       <PageContentSection
@@ -49,13 +69,16 @@ describe('pageContentHeroActions', () => {
         canEditContent
         resetHomePageContent={() => {}}
         openMediaLibrary={() => {}}
+        heroMediaUploadError=""
+        heroMediaUploadTarget={null}
+        uploadHeroBackgroundMedia={async () => {}}
         homeContentForm={defaultHomePageContent}
         setHomeContentForm={() => {}}
         mediaFiles={[]}
       />,
     );
 
-    expect(html).toContain('Ajouter un média');
+    expect(html).toContain('Ajouter une image');
     expect(html).toContain('Ouvrir la médiathèque CMS');
     expect(html).not.toContain('Retour au site');
     expect(html).not.toContain('Voir le site');

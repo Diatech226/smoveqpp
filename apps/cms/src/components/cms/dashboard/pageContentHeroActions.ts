@@ -30,6 +30,31 @@ export function appendHeroBackgroundItem(content: HomePageContentSettings): Home
   };
 }
 
+type HeroBackgroundMediaField = 'media' | 'desktopMedia' | 'tabletMedia' | 'mobileMedia' | 'videoMedia';
+
+export function assignHeroBackgroundMedia(
+  content: HomePageContentSettings,
+  itemId: string,
+  field: HeroBackgroundMediaField,
+  mediaReference: string,
+): HomePageContentSettings {
+  return {
+    ...content,
+    heroBackgroundItems: content.heroBackgroundItems.map((item) => (item.id === itemId ? { ...item, [field]: mediaReference } : item)),
+  };
+}
+
+export function appendHeroBackgroundItemWithMedia(
+  content: HomePageContentSettings,
+  mediaReference: string,
+): HomePageContentSettings {
+  const nextItem = createHeroBackgroundItem(content.heroBackgroundItems.length, content.heroBackgroundOverlayOpacity);
+  return {
+    ...content,
+    heroBackgroundItems: [...content.heroBackgroundItems, { ...nextItem, media: mediaReference, desktopMedia: mediaReference }],
+  };
+}
+
 type AddHeroMediaClickEvent = {
   preventDefault: () => void;
   stopPropagation: () => void;
