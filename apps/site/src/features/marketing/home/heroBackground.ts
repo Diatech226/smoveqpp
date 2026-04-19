@@ -36,6 +36,10 @@ export const resolveHeroBackgroundItems = (
       const mobile = resolveCanonicalMedia(item.mobileMedia || item.tabletMedia || item.desktopMedia || media, fallbackAlt, 'thumbnail');
       const hasVideoMedia = Boolean(item.videoMedia?.trim());
       const video = hasVideoMedia ? resolveCanonicalMedia(item.videoMedia, fallbackAlt) : null;
+      const overlayOpacity =
+        typeof item.overlayOpacity === 'number' && Number.isFinite(item.overlayOpacity)
+          ? clamp(item.overlayOpacity, 0, 0.9)
+          : 0.45;
       return {
         id: item.id || `hero-background-${index + 1}`,
         type: item.type === 'video' ? 'video' : 'image',
@@ -45,7 +49,7 @@ export const resolveHeroBackgroundItems = (
         videoSrc: video?.url || '',
         alt: item.alt?.trim() || desktop.alt,
         overlayColor: item.overlayColor?.trim() || '#04111f',
-        overlayOpacity: clamp(item.overlayOpacity, 0, 0.9),
+        overlayOpacity,
         position: item.position?.trim() || 'center',
         size: item.size === 'contain' ? 'contain' : 'cover',
         enableParallax: item.enableParallax !== false,
