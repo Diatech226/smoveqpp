@@ -22,7 +22,7 @@ import { toMediaReferenceValue } from '../../../features/media/assetReference';
 import type { HomePageContentSettings } from '../../../data/pageContentSeed';
 import { getMetadataCompleteness, summarizeReferences, type BackendMediaReference } from './mediaGovernance';
 import { resolveCmsPreviewReference, resolveMediaLibraryThumbnail } from './mediaPreview';
-import { handleAddHeroMediaClick } from './pageContentHeroActions';
+import { assignHeroBackgroundMedia, handleAddHeroMediaClick } from './pageContentHeroActions';
 
 const ROW_CONTAINER = 'rounded-[14px] border border-[#e4edf1] bg-[#fcfeff] px-4 py-3.5 shadow-[0_4px_14px_rgba(20,51,63,0.04)]';
 const ROW_TITLE = "font-['Abhaya_Libre:Bold',sans-serif] text-[17px] text-[#273a41] leading-tight";
@@ -461,7 +461,7 @@ export function PageContentSection({
                           <option value="image">Image</option>
                           <option value="video">Vidéo (optionnel)</option>
                         </select>
-                        <select value={item.media} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, media: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                        <select value={item.media} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'media', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Image principale (required)</option>
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
@@ -469,19 +469,19 @@ export function PageContentSection({
                           Upload image principale
                           <input type="file" accept="image/*" className="hidden" onChange={(event) => { void uploadHeroBackgroundMedia(item.id, 'media', event); }} />
                         </label>
-                        <select value={item.desktopMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, desktopMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                        <select value={item.desktopMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'desktopMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Desktop override (&gt;=1024)</option>
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
-                        <select value={item.tabletMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, tabletMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                        <select value={item.tabletMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'tabletMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Tablet override (768-1023)</option>
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
-                        <select value={item.mobileMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, mobileMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                        <select value={item.mobileMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'mobileMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Mobile override (&lt;768)</option>
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
-                        <select value={item.videoMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, videoMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
+                        <select value={item.videoMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'videoMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Video source (optional)</option>
                           {videoMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>

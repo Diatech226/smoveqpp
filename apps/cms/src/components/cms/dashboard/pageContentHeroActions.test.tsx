@@ -21,17 +21,22 @@ describe('pageContentHeroActions', () => {
   it('prevents default click navigation before adding media item', () => {
     const preventDefault = vi.fn();
     const stopPropagation = vi.fn();
+    const stopImmediatePropagation = vi.fn();
 
     const updated = handleAddHeroMediaClick(
       {
         preventDefault,
         stopPropagation,
+        nativeEvent: {
+          stopImmediatePropagation,
+        },
       },
       defaultHomePageContent,
     );
 
     expect(preventDefault).toHaveBeenCalledTimes(1);
     expect(stopPropagation).toHaveBeenCalledTimes(1);
+    expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
     expect(updated.heroBackgroundItems).toHaveLength(1);
   });
 
@@ -48,6 +53,29 @@ describe('pageContentHeroActions', () => {
     const updated = assignHeroBackgroundMedia(withItem, targetItemId, 'desktopMedia', mediaReference);
 
     expect(updated.heroBackgroundItems[0].desktopMedia).toBe(mediaReference);
+  });
+
+  it('keeps media fields coherent when assigning desktop media first', () => {
+    const withItem = appendHeroBackgroundItem(defaultHomePageContent);
+    const targetItemId = withItem.heroBackgroundItems[0].id;
+    const mediaReference = toMediaReferenceValue('asset-desktop-only');
+
+    const updated = assignHeroBackgroundMedia(withItem, targetItemId, 'desktopMedia', mediaReference);
+
+    expect(updated.heroBackgroundItems[0].desktopMedia).toBe(mediaReference);
+    expect(updated.heroBackgroundItems[0].media).toBe(mediaReference);
+  });
+
+  it('hydrates media + desktop when tablet media is assigned first', () => {
+    const withItem = appendHeroBackgroundItem(defaultHomePageContent);
+    const targetItemId = withItem.heroBackgroundItems[0].id;
+    const mediaReference = toMediaReferenceValue('asset-tablet-first');
+
+    const updated = assignHeroBackgroundMedia(withItem, targetItemId, 'tabletMedia', mediaReference);
+
+    expect(updated.heroBackgroundItems[0].tabletMedia).toBe(mediaReference);
+    expect(updated.heroBackgroundItems[0].desktopMedia).toBe(mediaReference);
+    expect(updated.heroBackgroundItems[0].media).toBe(mediaReference);
   });
 
   it('creates a new hero background item pre-linked to uploaded media', () => {
