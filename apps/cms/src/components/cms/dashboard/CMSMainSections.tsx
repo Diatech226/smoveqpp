@@ -294,6 +294,9 @@ interface PageContentSectionProps {
   canEditContent: boolean;
   resetHomePageContent: () => void;
   openMediaLibrary: () => void;
+  heroMediaUploadError: string;
+  heroMediaUploadTarget: string | null;
+  uploadHeroBackgroundMedia: (itemId: string, field: 'media' | 'desktopMedia' | 'tabletMedia' | 'mobileMedia' | 'videoMedia', event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   homeContentForm: HomePageContentSettings;
   setHomeContentForm: (updater: (prev: HomePageContentSettings) => HomePageContentSettings) => void;
   mediaFiles: MediaFile[];
@@ -307,6 +310,9 @@ export function PageContentSection({
   canEditContent,
   resetHomePageContent,
   openMediaLibrary,
+  heroMediaUploadError,
+  heroMediaUploadTarget,
+  uploadHeroBackgroundMedia,
   homeContentForm,
   setHomeContentForm,
   mediaFiles,
@@ -368,7 +374,7 @@ export function PageContentSection({
                         setHomeContentForm((prev) => handleAddHeroMediaClick(event, prev));
                       }}
                     >
-                      Ajouter un média
+                      Ajouter une image
                     </AdminButton>
                     <AdminButton type="button" size="sm" data-testid="hero-open-media-library-button" onClick={openMediaLibrary}>
                       Ouvrir la médiathèque CMS
@@ -410,6 +416,7 @@ export function PageContentSection({
                 </div>
 
                 <div className="mt-3 space-y-3">
+                  {heroMediaUploadError ? <AdminWarningState label={heroMediaUploadError} /> : null}
                   {homeContentForm.heroBackgroundItems.length === 0 ? <p className={ADMIN_HELPER_TEXT_CLASS}>Aucun média configuré: le hero utilise son fond premium par défaut.</p> : null}
                   {homeContentForm.heroBackgroundItems.map((item, index) => (
                     <div key={item.id} className="rounded-[12px] border border-[#dbe7ec] bg-white p-3">
@@ -458,6 +465,10 @@ export function PageContentSection({
                           <option value="">Image principale (required)</option>
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
+                        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#00b3e8] bg-[#f0fbff] px-3 py-2 text-[13px] text-[#006b89] transition-colors hover:bg-[#dff6ff]">
+                          Upload image principale
+                          <input type="file" accept="image/*" className="hidden" onChange={(event) => { void uploadHeroBackgroundMedia(item.id, 'media', event); }} />
+                        </label>
                         <select value={item.desktopMedia} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, desktopMedia: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Desktop override (&gt;=1024)</option>
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
@@ -496,6 +507,7 @@ export function PageContentSection({
                         <p className={`${ADMIN_HELPER_TEXT_CLASS} md:col-span-2`}>
                           Recommandé: Desktop 2400×1400, Tablet 1600×1000, Mobile 1080×1600, format WebP.
                         </p>
+                        {heroMediaUploadTarget === item.id ? <p className={ADMIN_HELPER_TEXT_CLASS}>Upload en cours… l’image sera ajoutée à la médiathèque puis liée automatiquement.</p> : null}
                       </div>
                     </div>
                   ))}
