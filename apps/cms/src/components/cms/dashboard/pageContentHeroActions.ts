@@ -32,6 +32,36 @@ export function appendHeroBackgroundItem(content: HomePageContentSettings): Home
 
 type HeroBackgroundMediaField = 'media' | 'desktopMedia' | 'tabletMedia' | 'mobileMedia' | 'videoMedia';
 
+export function updateHeroBackgroundItemMediaField(
+  item: HeroBackgroundItem,
+  field: HeroBackgroundMediaField,
+  mediaReference: string,
+): HeroBackgroundItem {
+  const nextValue = mediaReference.trim();
+  const nextItem: HeroBackgroundItem = { ...item, [field]: nextValue };
+
+  if (!nextValue) {
+    return nextItem;
+  }
+
+  if (field === 'media') {
+    if (!nextItem.desktopMedia.trim()) {
+      nextItem.desktopMedia = nextValue;
+    }
+    return nextItem;
+  }
+
+  if (!nextItem.media.trim()) {
+    nextItem.media = nextValue;
+  }
+
+  if (field === 'tabletMedia' && !nextItem.desktopMedia.trim()) {
+    nextItem.desktopMedia = nextValue;
+  }
+
+  return nextItem;
+}
+
 export function assignHeroBackgroundMedia(
   content: HomePageContentSettings,
   itemId: string,
@@ -40,7 +70,11 @@ export function assignHeroBackgroundMedia(
 ): HomePageContentSettings {
   return {
     ...content,
-    heroBackgroundItems: content.heroBackgroundItems.map((item) => (item.id === itemId ? { ...item, [field]: mediaReference } : item)),
+    heroBackgroundItems: content.heroBackgroundItems.map((item) => (
+      item.id === itemId
+        ? updateHeroBackgroundItemMediaField(item, field, mediaReference)
+        : item
+    )),
   };
 }
 
@@ -58,6 +92,9 @@ export function appendHeroBackgroundItemWithMedia(
 type AddHeroMediaClickEvent = {
   preventDefault: () => void;
   stopPropagation: () => void;
+  nativeEvent?: {
+    stopImmediatePropagation?: () => void;
+  };
 };
 
 export function handleAddHeroMediaClick(
@@ -66,5 +103,6 @@ export function handleAddHeroMediaClick(
 ): HomePageContentSettings {
   event?.preventDefault();
   event?.stopPropagation();
+  event?.nativeEvent?.stopImmediatePropagation?.();
   return appendHeroBackgroundItem(content);
 }
