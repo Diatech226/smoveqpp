@@ -10,6 +10,8 @@ export function createHeroBackgroundItem(itemIndex: number, overlayOpacity: numb
   return {
     id: `hero-bg-${Date.now()}-${itemIndex + 1}-${randomSuffix}`,
     label: `Slide ${itemIndex + 1}`,
+    title: '',
+    description: '',
     type: 'image',
     media: '',
     desktopMedia: '',

@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useMotionValue, useScroll, useSpring, useTransform } from 'motion/react';
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowDown, ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
 import { nextHeroBackgroundIndex, resolveHeroBackgroundItems, shouldAutoplayHeroBackground } from '../features/marketing/home/heroBackground';
 import { CONTACT_CTA_HREF } from '../features/marketing/navigationCta';
@@ -132,6 +132,16 @@ export default function Hero3DEnhanced({
     scrollToSection(sectionId || fallbackSection);
   };
 
+  const goToPreviousBackground = () => {
+    if (resolvedBackgrounds.length <= 1) return;
+    setActiveBackgroundIndex((current) => (current - 1 + resolvedBackgrounds.length) % resolvedBackgrounds.length);
+  };
+
+  const goToNextBackground = () => {
+    if (resolvedBackgrounds.length <= 1) return;
+    setActiveBackgroundIndex((current) => nextHeroBackgroundIndex(current, resolvedBackgrounds.length));
+  };
+
   return (
     <motion.section
       ref={containerRef}
@@ -180,9 +190,38 @@ export default function Hero3DEnhanced({
                     background: `linear-gradient(180deg, ${activeBackground.overlayColor || '#04111f'}CC 0%, ${activeBackground.overlayColor || '#04111f'}99 50%, ${activeBackground.overlayColor || '#04111f'}CC 100%)`,
                   }}
                 />
+                {activeBackground.title || activeBackground.description ? (
+                  <div className="pointer-events-none absolute bottom-6 left-6 right-6 z-10 rounded-[14px] border border-white/20 bg-black/35 p-4 text-white backdrop-blur-sm">
+                    {activeBackground.title ? <p className="text-[18px] font-semibold">{activeBackground.title}</p> : null}
+                    {activeBackground.description ? <p className="mt-1 text-[14px] text-white/85">{activeBackground.description}</p> : null}
+                  </div>
+                ) : null}
               </motion.div>
             ) : null}
           </AnimatePresence>
+          {resolvedBackgrounds.length > 1 ? (
+            <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2">
+              <button type="button" aria-label="Diapositive précédente" className="rounded-full border border-white/30 bg-black/30 p-2 text-white transition hover:bg-black/45" onClick={goToPreviousBackground}>
+                <ArrowLeft size={18} />
+              </button>
+              <button type="button" aria-label="Diapositive suivante" className="rounded-full border border-white/30 bg-black/30 p-2 text-white transition hover:bg-black/45" onClick={goToNextBackground}>
+                <ArrowRight size={18} />
+              </button>
+            </div>
+          ) : null}
+          {resolvedBackgrounds.length > 1 ? (
+            <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+              {resolvedBackgrounds.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={`Aller à la diapositive ${index + 1}`}
+                  className={`h-2.5 w-2.5 rounded-full transition ${index === activeBackgroundIndex ? 'bg-white' : 'bg-white/45 hover:bg-white/70'}`}
+                  onClick={() => setActiveBackgroundIndex(index)}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
