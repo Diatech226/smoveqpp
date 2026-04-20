@@ -9,9 +9,12 @@ export function createHeroBackgroundItem(itemIndex: number, overlayOpacity: numb
       : Math.random().toString(36).slice(2, 10);
   return {
     id: `hero-bg-${Date.now()}-${itemIndex + 1}-${randomSuffix}`,
+    sortOrder: itemIndex,
     label: `Slide ${itemIndex + 1}`,
     title: '',
     description: '',
+    ctaLabel: '',
+    ctaHref: '',
     type: 'image',
     media: '',
     desktopMedia: '',

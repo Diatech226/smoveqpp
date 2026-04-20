@@ -194,6 +194,15 @@ export default function Hero3DEnhanced({
                   <div className="pointer-events-none absolute bottom-6 left-6 right-6 z-10 rounded-[14px] border border-white/20 bg-black/35 p-4 text-white backdrop-blur-sm">
                     {activeBackground.title ? <p className="text-[18px] font-semibold">{activeBackground.title}</p> : null}
                     {activeBackground.description ? <p className="mt-1 text-[14px] text-white/85">{activeBackground.description}</p> : null}
+                    {activeBackground.ctaLabel && activeBackground.ctaHref ? (
+                      <a
+                        href={activeBackground.ctaHref}
+                        className="pointer-events-auto mt-3 inline-flex items-center rounded-full border border-white/35 bg-white/10 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-white/20"
+                        onClick={(event) => handleCtaClick(event, activeBackground.ctaHref, 'services')}
+                      >
+                        {activeBackground.ctaLabel}
+                      </a>
+                    ) : null}
                   </div>
                 ) : null}
               </motion.div>

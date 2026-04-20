@@ -84,6 +84,7 @@ export interface CanonicalResolvedMedia {
   alt: string;
   isValid: boolean;
   mediaState: ResolvedAssetReference['mediaState'];
+  mediaType: MediaFile['type'] | 'url' | 'fallback';
 }
 
 const normalizeText = (value: string | undefined, fallback: string): string => {
@@ -126,6 +127,7 @@ export const resolveCanonicalMedia = (
           alt: fallbackAlt,
           isValid: false,
           mediaState: 'archived',
+          mediaType: media.type,
         };
       }
 
@@ -139,6 +141,7 @@ export const resolveCanonicalMedia = (
         alt: normalizeText(media.alt, fallbackAlt),
         isValid: true,
         mediaState: 'resolved',
+        mediaType: media.type,
       };
     }
 
@@ -149,6 +152,7 @@ export const resolveCanonicalMedia = (
       alt: fallbackAlt,
       isValid: false,
       mediaState: 'missing',
+      mediaType: 'fallback',
     };
   }
 
@@ -161,6 +165,7 @@ export const resolveCanonicalMedia = (
       alt: fallbackAlt,
       isValid,
       mediaState: 'direct-url',
+      mediaType: 'url',
     };
   }
 
@@ -171,6 +176,7 @@ export const resolveCanonicalMedia = (
     alt: fallbackAlt,
     isValid: false,
     mediaState: 'fallback',
+    mediaType: 'fallback',
   };
 };
 

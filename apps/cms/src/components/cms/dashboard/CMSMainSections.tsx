@@ -319,7 +319,9 @@ export function PageContentSection({
 }: PageContentSectionProps) {
   const imageMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'image'), [mediaFiles]);
   const videoMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'video'), [mediaFiles]);
+  const documentMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'document'), [mediaFiles]);
   const imageMediaReferenceSet = useMemo(() => new Set(imageMediaOptions.map((file) => toMediaReferenceValue(file.id))), [imageMediaOptions]);
+  const documentMediaReferenceSet = useMemo(() => new Set(documentMediaOptions.map((file) => toMediaReferenceValue(file.id))), [documentMediaOptions]);
   const unresolvedHeroMediaCount = useMemo(
     () =>
       homeContentForm.heroBackgroundItems.reduce((count, item) => {
@@ -461,20 +463,22 @@ export function PageContentSection({
                           <AdminButton type="button" size="sm" disabled={index === 0} onClick={() => setHomeContentForm((prev) => {
                             const items = [...prev.heroBackgroundItems];
                             [items[index - 1], items[index]] = [items[index], items[index - 1]];
-                            return { ...prev, heroBackgroundItems: items };
+                            return { ...prev, heroBackgroundItems: items.map((entry, position) => ({ ...entry, sortOrder: position })) };
                           })}>↑</AdminButton>
                           <AdminButton type="button" size="sm" disabled={index === homeContentForm.heroBackgroundItems.length - 1} onClick={() => setHomeContentForm((prev) => {
                             const items = [...prev.heroBackgroundItems];
                             [items[index + 1], items[index]] = [items[index], items[index + 1]];
-                            return { ...prev, heroBackgroundItems: items };
+                            return { ...prev, heroBackgroundItems: items.map((entry, position) => ({ ...entry, sortOrder: position })) };
                           })}>↓</AdminButton>
-                          <AdminButton type="button" size="sm" intent="danger" onClick={() => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.filter((entry) => entry.id !== item.id) }))}>Supprimer</AdminButton>
+                          <AdminButton type="button" size="sm" intent="danger" onClick={() => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.filter((entry) => entry.id !== item.id).map((entry, position) => ({ ...entry, sortOrder: position })) }))}>Supprimer</AdminButton>
                         </div>
                       </div>
                       <div className="grid gap-2 md:grid-cols-2">
                         <input value={item.label} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, label: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Label interne (optionnel)" />
                         <input value={item.title} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, title: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Titre de la diapositive (optionnel)" />
                         <textarea value={item.description} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, description: event.target.value } : entry)) }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Description de la diapositive (optionnel)" />
+                        <input value={item.ctaLabel} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, ctaLabel: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="CTA slide (label, optionnel)" />
+                        <input value={item.ctaHref} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, ctaHref: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="CTA slide (lien #ancre, /route ou https://)" />
                         <select value={item.type} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, type: event.target.value === 'video' ? 'video' : 'image' } : entry)) }))} className={ADMIN_INPUT_CLASS}>
                           <option value="image">Image</option>
                           <option value="video">Vidéo (optionnel)</option>
@@ -486,6 +490,11 @@ export function PageContentSection({
                           )}
                           {imageMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
+                        {documentMediaReferenceSet.has(item.media) ? (
+                          <p className={`${ADMIN_HELPER_TEXT_CLASS} md:col-span-2 text-amber-700`}>
+                            Document détecté sur média principal: il sera ignoré côté site pour le fond hero. Utilisez une image ou une vidéo.
+                          </p>
+                        ) : null}
                         <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-[#00b3e8] bg-[#f0fbff] px-3 py-2 text-[13px] text-[#006b89] transition-colors hover:bg-[#dff6ff]">
                           Upload image principale
                           <input type="file" accept="image/*" className="hidden" onChange={(event) => { void uploadHeroBackgroundMedia(item.id, 'media', event); }} />

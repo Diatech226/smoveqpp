@@ -848,7 +848,7 @@ describe('ContentService production hardening', () => {
       home: {
         ...base,
         heroBackgroundItems: [
-          { id: 'slide-1', label: 'Slide 1', media: 'media:hero-bg-1', alt: 'Alt', overlayOpacity: 0.4, focalPoint: 'center' },
+          { id: 'slide-1', sortOrder: 2, label: 'Slide 1', title: 'Slide headline', description: 'Slide body', ctaLabel: 'Voir le projet', ctaHref: '/projects', media: 'media:hero-bg-1', alt: 'Alt', overlayOpacity: 0.4, focalPoint: 'center' },
         ],
         heroBackgroundRotationEnabled: true,
         heroBackgroundAutoplay: true,
@@ -859,7 +859,38 @@ describe('ContentService production hardening', () => {
     });
     expect(accepted.ok).toBe(true);
     expect(service.getPageContent().home.heroBackgroundItems).toHaveLength(1);
+    expect(service.getPageContent().home.heroBackgroundItems[0].ctaHref).toBe('/projects');
+    expect(service.getPageContent().home.heroBackgroundItems[0].sortOrder).toBe(2);
     expect(service.findMediaReferences('hero-bg-1').some((entry) => entry.field.includes('heroBackgroundItems'))).toBe(true);
+  });
+
+  it('rejects hero slide CTA links with invalid protocols', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    service.saveMediaFile({
+      id: 'hero-bg-cta',
+      name: 'hero-bg-cta.jpg',
+      type: 'image',
+      url: 'https://example.com/hero-bg-cta.jpg',
+      thumbnailUrl: 'https://example.com/hero-bg-cta.jpg',
+      size: 120,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'admin',
+      alt: 'hero',
+      tags: [],
+    });
+
+    const base = service.getPageContent().home;
+    const result = service.savePageContent({
+      home: {
+        ...base,
+        heroBackgroundItems: [
+          { id: 'slide-cta', label: 'Slide CTA', media: 'media:hero-bg-cta', ctaHref: 'ftp://invalid-link' },
+        ],
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('PAGE_CONTENT_VALIDATION_ERROR');
   });
 
   it('returns media usage references to support safe delete guardrails', () => {
