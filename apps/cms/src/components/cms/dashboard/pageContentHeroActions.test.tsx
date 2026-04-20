@@ -106,7 +106,7 @@ describe('pageContentHeroActions', () => {
       />,
     );
 
-    expect(html).toContain('Ajouter une slide');
+    expect(html).toContain('Ajouter une diapositive');
     expect(html).toContain('Ouvrir la médiathèque CMS');
     expect(html).toContain('Prévisualiser le site');
     expect(html).not.toContain('Retour au site');

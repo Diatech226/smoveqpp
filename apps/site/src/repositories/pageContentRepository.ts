@@ -20,16 +20,22 @@ const normalizeHeroBackgroundItems = (value: unknown): HomePageContentSettings['
     .map((entry, index) => {
       if (!isRecord(entry)) return null;
       const media = typeof entry.media === 'string' ? entry.media.trim() : '';
-      if (!media) return null;
+      const desktopMedia = typeof entry.desktopMedia === 'string' ? entry.desktopMedia.trim() : '';
+      const tabletMedia = typeof entry.tabletMedia === 'string' ? entry.tabletMedia.trim() : '';
+      const mobileMedia = typeof entry.mobileMedia === 'string' ? entry.mobileMedia.trim() : '';
+      const primaryMedia = media || desktopMedia || tabletMedia || mobileMedia;
+      if (!primaryMedia) return null;
       const overlayOpacityInput = typeof entry.overlayOpacity === 'number' ? entry.overlayOpacity : defaultHomePageContent.heroBackgroundOverlayOpacity;
       return {
         id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : `hero-bg-${index + 1}`,
         label: typeof entry.label === 'string' ? entry.label.trim() : '',
+        title: typeof entry.title === 'string' ? entry.title.trim() : '',
+        description: typeof entry.description === 'string' ? entry.description.trim() : '',
         type: isBackgroundType(entry.type) ? entry.type : 'image',
-        media,
-        desktopMedia: typeof entry.desktopMedia === 'string' ? entry.desktopMedia.trim() : '',
-        tabletMedia: typeof entry.tabletMedia === 'string' ? entry.tabletMedia.trim() : '',
-        mobileMedia: typeof entry.mobileMedia === 'string' ? entry.mobileMedia.trim() : '',
+        media: primaryMedia,
+        desktopMedia,
+        tabletMedia,
+        mobileMedia,
         videoMedia: typeof entry.videoMedia === 'string' ? entry.videoMedia.trim() : '',
         alt: typeof entry.alt === 'string' ? entry.alt.trim() : '',
         overlayColor: typeof entry.overlayColor === 'string' && entry.overlayColor.trim() ? entry.overlayColor.trim() : '#04111f',

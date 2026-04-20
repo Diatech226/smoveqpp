@@ -1078,14 +1078,17 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setHomeContentError('Image À propos invalide. Utilisez une URL valide ou media:asset-id existant.');
       return false;
     }
-    const invalidHeroBackground = homeContentForm.heroBackgroundItems.find((item) => (
-      !item.media.trim() ||
-      !isValidMediaField(item.media) ||
+    const invalidHeroBackground = homeContentForm.heroBackgroundItems.find((item) => {
+      const primaryMedia = item.media.trim() || item.desktopMedia.trim() || item.tabletMedia.trim() || item.mobileMedia.trim();
+      return (
+      !primaryMedia ||
+      !isValidMediaField(primaryMedia) ||
       (item.desktopMedia.trim() && !isValidMediaField(item.desktopMedia)) ||
       (item.tabletMedia.trim() && !isValidMediaField(item.tabletMedia)) ||
       (item.mobileMedia.trim() && !isValidMediaField(item.mobileMedia)) ||
       (item.videoMedia.trim() && !isValidMediaField(item.videoMedia))
-    ));
+    );
+    });
     if (invalidHeroBackground) {
       setHomeContentError('Un média de background hero est invalide. Sélectionnez des médias depuis la Media Library (fallback URL legacy toléré).');
       return false;

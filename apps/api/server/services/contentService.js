@@ -2228,16 +2228,22 @@ class ContentService {
           .map((item, index) => {
             if (!item || typeof item !== 'object') return null;
             const media = typeof item.media === 'string' ? item.media.trim() : '';
-            if (!media) return null;
+            const desktopMedia = typeof item.desktopMedia === 'string' ? item.desktopMedia.trim() : '';
+            const tabletMedia = typeof item.tabletMedia === 'string' ? item.tabletMedia.trim() : '';
+            const mobileMedia = typeof item.mobileMedia === 'string' ? item.mobileMedia.trim() : '';
+            const primaryMedia = media || desktopMedia || tabletMedia || mobileMedia;
+            if (!primaryMedia) return null;
             const overlayOpacity = typeof item.overlayOpacity === 'number' ? item.overlayOpacity : defaultHomePageContent.heroBackgroundOverlayOpacity;
             return {
               id: typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `hero-bg-${index + 1}`,
               label: typeof item.label === 'string' ? item.label.trim() : '',
+              title: typeof item.title === 'string' ? item.title.trim() : '',
+              description: typeof item.description === 'string' ? item.description.trim() : '',
               type: item.type === 'video' ? 'video' : 'image',
-              media,
-              desktopMedia: typeof item.desktopMedia === 'string' ? item.desktopMedia.trim() : '',
-              tabletMedia: typeof item.tabletMedia === 'string' ? item.tabletMedia.trim() : '',
-              mobileMedia: typeof item.mobileMedia === 'string' ? item.mobileMedia.trim() : '',
+              media: primaryMedia,
+              desktopMedia,
+              tabletMedia,
+              mobileMedia,
               videoMedia: typeof item.videoMedia === 'string' ? item.videoMedia.trim() : '',
               alt: typeof item.alt === 'string' ? item.alt.trim() : '',
               overlayColor: typeof item.overlayColor === 'string' && item.overlayColor.trim() ? item.overlayColor.trim() : '#04111f',
@@ -2285,6 +2291,8 @@ class ContentService {
         typeof item === 'object' &&
         typeof item.id === 'string' &&
         typeof item.label === 'string' &&
+        typeof item.title === 'string' &&
+        typeof item.description === 'string' &&
         (item.type === 'image' || item.type === 'video') &&
         typeof item.media === 'string' &&
         item.media.trim().length > 0 &&

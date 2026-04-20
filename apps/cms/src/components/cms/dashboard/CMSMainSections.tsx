@@ -383,7 +383,7 @@ export function PageContentSection({
                         setHomeContentForm((prev) => handleAddHeroMediaClick(event, prev));
                       }}
                     >
-                      Ajouter une slide
+                      Ajouter une diapositive
                     </AdminButton>
                     <AdminButton type="button" size="sm" data-testid="hero-open-media-library-button" onClick={openMediaLibrary}>
                       Ouvrir la médiathèque CMS
@@ -473,6 +473,8 @@ export function PageContentSection({
                       </div>
                       <div className="grid gap-2 md:grid-cols-2">
                         <input value={item.label} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, label: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Label interne (optionnel)" />
+                        <input value={item.title} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, title: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Titre de la diapositive (optionnel)" />
+                        <textarea value={item.description} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, description: event.target.value } : entry)) }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Description de la diapositive (optionnel)" />
                         <select value={item.type} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, type: event.target.value === 'video' ? 'video' : 'image' } : entry)) }))} className={ADMIN_INPUT_CLASS}>
                           <option value="image">Image</option>
                           <option value="video">Vidéo (optionnel)</option>

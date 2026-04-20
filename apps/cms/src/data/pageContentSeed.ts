@@ -6,6 +6,8 @@ export type HeroBackgroundType = 'image' | 'video';
 export interface HeroBackgroundItem {
   id: string;
   label: string;
+  title: string;
+  description: string;
   type: HeroBackgroundType;
   media: string;
   desktopMedia: string;

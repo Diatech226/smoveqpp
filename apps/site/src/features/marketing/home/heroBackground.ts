@@ -3,6 +3,9 @@ import { resolveCanonicalMedia } from '../../media/assetReference';
 
 export interface RenderableHeroBackgroundItem {
   id: string;
+  label: string;
+  title: string;
+  description: string;
   type: 'image' | 'video';
   desktopSrc: string;
   tabletSrc: string;
@@ -27,7 +30,7 @@ export const resolveHeroBackgroundItems = (
   const list = Array.isArray(items) ? items : [];
   return list
     .map((item, index) => {
-      const media = item?.media?.trim();
+      const media = item?.media?.trim() || item?.desktopMedia?.trim() || item?.tabletMedia?.trim() || item?.mobileMedia?.trim();
       if (!media) return null;
 
       const fallbackAlt = item.alt?.trim() || `Hero background ${index + 1}`;
@@ -42,6 +45,9 @@ export const resolveHeroBackgroundItems = (
           : 0.45;
       return {
         id: item.id || `hero-background-${index + 1}`,
+        label: item.label?.trim() || `Slide ${index + 1}`,
+        title: item.title?.trim() || '',
+        description: item.description?.trim() || '',
         type: item.type === 'video' ? 'video' : 'image',
         desktopSrc: desktop.url,
         tabletSrc: tablet.url,
@@ -58,7 +64,7 @@ export const resolveHeroBackgroundItems = (
         mediaState: desktop.mediaState,
       };
     })
-    .filter((item): item is RenderableHeroBackgroundItem => Boolean(item));
+    .filter((item): item is RenderableHeroBackgroundItem => Boolean(item?.desktopSrc));
 };
 
 export const shouldAutoplayHeroBackground = (
