@@ -1086,7 +1086,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       (item.desktopMedia.trim() && !isValidMediaField(item.desktopMedia)) ||
       (item.tabletMedia.trim() && !isValidMediaField(item.tabletMedia)) ||
       (item.mobileMedia.trim() && !isValidMediaField(item.mobileMedia)) ||
-      (item.videoMedia.trim() && !isValidMediaField(item.videoMedia))
+      (item.videoMedia.trim() && !isValidMediaField(item.videoMedia)) ||
+      (item.ctaHref.trim() && !isValidCmsHref(item.ctaHref))
     );
     });
     if (invalidHeroBackground) {

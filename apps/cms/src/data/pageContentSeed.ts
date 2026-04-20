@@ -5,9 +5,12 @@ export type HeroBackgroundType = 'image' | 'video';
 
 export interface HeroBackgroundItem {
   id: string;
+  sortOrder: number;
   label: string;
   title: string;
   description: string;
+  ctaLabel: string;
+  ctaHref: string;
   type: HeroBackgroundType;
   media: string;
   desktopMedia: string;

@@ -3,9 +3,12 @@ import { resolveCanonicalMedia } from '../../media/assetReference';
 
 export interface RenderableHeroBackgroundItem {
   id: string;
+  sortOrder: number;
   label: string;
   title: string;
   description: string;
+  ctaLabel: string;
+  ctaHref: string;
   type: 'image' | 'video';
   desktopSrc: string;
   tabletSrc: string;
@@ -39,16 +42,22 @@ export const resolveHeroBackgroundItems = (
       const mobile = resolveCanonicalMedia(item.mobileMedia || item.tabletMedia || item.desktopMedia || media, fallbackAlt, 'thumbnail');
       const hasVideoMedia = Boolean(item.videoMedia?.trim());
       const video = hasVideoMedia ? resolveCanonicalMedia(item.videoMedia, fallbackAlt) : null;
+      const requestedType = item.type === 'video' ? 'video' : 'image';
+      const hasRenderableImage = desktop.isValid && desktop.mediaType !== 'document';
+      const hasRenderableVideo = video?.mediaType === 'video';
       const overlayOpacity =
         typeof item.overlayOpacity === 'number' && Number.isFinite(item.overlayOpacity)
           ? clamp(item.overlayOpacity, 0, 0.9)
           : 0.45;
       return {
         id: item.id || `hero-background-${index + 1}`,
+        sortOrder: typeof item.sortOrder === 'number' && Number.isFinite(item.sortOrder) ? Math.max(0, Math.round(item.sortOrder)) : index,
         label: item.label?.trim() || `Slide ${index + 1}`,
         title: item.title?.trim() || '',
         description: item.description?.trim() || '',
-        type: item.type === 'video' ? 'video' : 'image',
+        ctaLabel: item.ctaLabel?.trim() || '',
+        ctaHref: item.ctaHref?.trim() || '',
+        type: requestedType,
         desktopSrc: desktop.url,
         tabletSrc: tablet.url,
         mobileSrc: mobile.url,
@@ -60,11 +69,12 @@ export const resolveHeroBackgroundItems = (
         size: item.size === 'contain' ? 'contain' : 'cover',
         enableParallax: item.enableParallax !== false,
         enable3DEffects: item.enable3DEffects !== false,
-        isValid: desktop.isValid,
+        isValid: requestedType === 'video' ? Boolean(hasRenderableVideo || hasRenderableImage) : Boolean(hasRenderableImage),
         mediaState: desktop.mediaState,
       };
     })
-    .filter((item): item is RenderableHeroBackgroundItem => Boolean(item?.desktopSrc));
+    .filter((item): item is RenderableHeroBackgroundItem => Boolean(item?.desktopSrc))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 };
 
 export const shouldAutoplayHeroBackground = (

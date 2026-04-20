@@ -2236,9 +2236,12 @@ class ContentService {
             const overlayOpacity = typeof item.overlayOpacity === 'number' ? item.overlayOpacity : defaultHomePageContent.heroBackgroundOverlayOpacity;
             return {
               id: typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `hero-bg-${index + 1}`,
+              sortOrder: typeof item.sortOrder === 'number' && Number.isFinite(item.sortOrder) ? Math.max(0, Math.round(item.sortOrder)) : index,
               label: typeof item.label === 'string' ? item.label.trim() : '',
               title: typeof item.title === 'string' ? item.title.trim() : '',
               description: typeof item.description === 'string' ? item.description.trim() : '',
+              ctaLabel: typeof item.ctaLabel === 'string' ? item.ctaLabel.trim() : '',
+              ctaHref: typeof item.ctaHref === 'string' ? item.ctaHref.trim() : '',
               type: item.type === 'video' ? 'video' : 'image',
               media: primaryMedia,
               desktopMedia,
@@ -2290,9 +2293,12 @@ class ContentService {
         item &&
         typeof item === 'object' &&
         typeof item.id === 'string' &&
+        typeof item.sortOrder === 'number' &&
         typeof item.label === 'string' &&
         typeof item.title === 'string' &&
         typeof item.description === 'string' &&
+        typeof item.ctaLabel === 'string' &&
+        typeof item.ctaHref === 'string' &&
         (item.type === 'image' || item.type === 'video') &&
         typeof item.media === 'string' &&
         item.media.trim().length > 0 &&
@@ -2309,6 +2315,7 @@ class ContentService {
         (item.size === 'cover' || item.size === 'contain') &&
         typeof item.enableParallax === 'boolean' &&
         typeof item.enable3DEffects === 'boolean' &&
+        (!item.ctaHref || this.isValidContentHref(item.ctaHref)) &&
         this.isValidMediaLink(item.media) &&
         (!item.desktopMedia || this.isValidMediaLink(item.desktopMedia)) &&
         (!item.tabletMedia || this.isValidMediaLink(item.tabletMedia)) &&

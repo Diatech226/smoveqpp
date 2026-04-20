@@ -5,7 +5,7 @@ import { mediaRepository } from '../../../repositories/mediaRepository';
 describe('hero background model', () => {
   it('resolves a single media item for hero rendering', () => {
     const resolved = resolveHeroBackgroundItems([
-      { id: 'slide-1', label: 'Main', type: 'image', media: 'https://cdn.example.com/hero-1.jpg', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: 'Main hero', overlayColor: '#04111f', overlayOpacity: 0.3, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
+      { id: 'slide-1', sortOrder: 0, label: 'Main', title: '', description: '', ctaLabel: '', ctaHref: '', type: 'image', media: 'https://cdn.example.com/hero-1.jpg', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: 'Main hero', overlayColor: '#04111f', overlayOpacity: 0.3, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
     ]);
 
     expect(resolved).toHaveLength(1);
@@ -15,9 +15,9 @@ describe('hero background model', () => {
 
   it('resolves multiple items and keeps invalid media as safe fallback instead of blank', () => {
     const resolved = resolveHeroBackgroundItems([
-      { id: 'slide-1', label: 'Valid', type: 'image', media: 'https://cdn.example.com/hero-1.jpg', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: 'Hero 1', overlayColor: '#04111f', overlayOpacity: 0.2, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
-      { id: 'slide-2', label: 'Invalid', type: 'image', media: 'media:unknown', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: 'Hero 2', overlayColor: '#04111f', overlayOpacity: 0.5, position: 'top', size: 'cover', enableParallax: true, enable3DEffects: true },
-      { id: 'slide-3', label: 'Valid 2', type: 'image', media: 'https://cdn.example.com/hero-2.jpg', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: 'Hero 3', overlayColor: '#04111f', overlayOpacity: 0.4, position: 'bottom', size: 'cover', enableParallax: true, enable3DEffects: true },
+      { id: 'slide-1', sortOrder: 0, label: 'Valid', title: '', description: '', ctaLabel: '', ctaHref: '', type: 'image', media: 'https://cdn.example.com/hero-1.jpg', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: 'Hero 1', overlayColor: '#04111f', overlayOpacity: 0.2, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
+      { id: 'slide-2', sortOrder: 1, label: 'Invalid', title: '', description: '', ctaLabel: '', ctaHref: '', type: 'image', media: 'media:unknown', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: 'Hero 2', overlayColor: '#04111f', overlayOpacity: 0.5, position: 'top', size: 'cover', enableParallax: true, enable3DEffects: true },
+      { id: 'slide-3', sortOrder: 2, label: 'Valid 2', title: '', description: '', ctaLabel: '', ctaHref: '', type: 'image', media: 'https://cdn.example.com/hero-2.jpg', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: 'Hero 3', overlayColor: '#04111f', overlayOpacity: 0.4, position: 'bottom', size: 'cover', enableParallax: true, enable3DEffects: true },
     ]);
 
     expect(resolved).toHaveLength(3);
@@ -37,7 +37,12 @@ describe('hero background model', () => {
     const resolved = resolveHeroBackgroundItems([
       {
         id: 'slide-r',
+        sortOrder: 0,
         label: 'Responsive',
+        title: '',
+        description: '',
+        ctaLabel: '',
+        ctaHref: '',
         type: 'image',
         media: 'https://cdn.example.com/base.jpg',
         desktopMedia: 'https://cdn.example.com/desktop.jpg',
@@ -76,7 +81,7 @@ describe('hero background model', () => {
     ]);
 
     const resolved = resolveHeroBackgroundItems([
-      { id: 'slide-lib', label: 'Library', type: 'image', media: 'media:hero-library-1', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: '', overlayColor: '#04111f', overlayOpacity: 0.4, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
+      { id: 'slide-lib', sortOrder: 0, label: 'Library', title: '', description: '', ctaLabel: '', ctaHref: '', type: 'image', media: 'media:hero-library-1', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: '', overlayColor: '#04111f', overlayOpacity: 0.4, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
     ]);
 
     expect(resolved).toHaveLength(1);
@@ -88,7 +93,12 @@ describe('hero background model', () => {
     const resolved = resolveHeroBackgroundItems([
       {
         id: 'slide-malformed-overlay',
+        sortOrder: 0,
         label: 'Malformed overlay',
+        title: '',
+        description: '',
+        ctaLabel: '',
+        ctaHref: '',
         type: 'image',
         media: 'https://cdn.example.com/hero-safe.jpg',
         desktopMedia: '',
@@ -107,5 +117,27 @@ describe('hero background model', () => {
 
     expect(resolved).toHaveLength(1);
     expect(resolved[0].overlayOpacity).toBe(0.45);
+  });
+
+  it('does not treat document assets as valid hero background images', () => {
+    mediaRepository.replaceAll([
+      {
+        id: 'hero-doc-1',
+        name: 'hero-doc.pdf',
+        type: 'document',
+        url: 'https://cdn.example.com/hero-doc.pdf',
+        size: 123,
+        uploadedDate: '2026-04-20T00:00:00.000Z',
+        uploadedBy: 'cms',
+        tags: [],
+      },
+    ]);
+
+    const resolved = resolveHeroBackgroundItems([
+      { id: 'slide-doc', sortOrder: 0, label: 'Doc', title: '', description: '', ctaLabel: '', ctaHref: '', type: 'image', media: 'media:hero-doc-1', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: '', overlayColor: '#04111f', overlayOpacity: 0.4, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
+    ]);
+
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0].isValid).toBe(false);
   });
 });

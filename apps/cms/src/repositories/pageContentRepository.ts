@@ -28,9 +28,12 @@ const normalizeHeroBackgroundItems = (value: unknown): HomePageContentSettings['
       const overlayOpacityInput = typeof entry.overlayOpacity === 'number' ? entry.overlayOpacity : defaultHomePageContent.heroBackgroundOverlayOpacity;
       return {
         id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : `hero-bg-${index + 1}`,
+        sortOrder: typeof entry.sortOrder === 'number' && Number.isFinite(entry.sortOrder) ? Math.max(0, Math.round(entry.sortOrder)) : index,
         label: typeof entry.label === 'string' ? entry.label.trim() : '',
         title: typeof entry.title === 'string' ? entry.title.trim() : '',
         description: typeof entry.description === 'string' ? entry.description.trim() : '',
+        ctaLabel: typeof entry.ctaLabel === 'string' ? entry.ctaLabel.trim() : '',
+        ctaHref: typeof entry.ctaHref === 'string' ? entry.ctaHref.trim() : '',
         type: isBackgroundType(entry.type) ? entry.type : 'image',
         media: primaryMedia,
         desktopMedia,
