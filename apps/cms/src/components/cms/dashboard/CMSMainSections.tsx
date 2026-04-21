@@ -400,6 +400,12 @@ export function PageContentSection({
                 <p className={ADMIN_HELPER_TEXT_CLASS}>
                   Workflow recommandé : 1) ajouter une slide, 2) choisir un média depuis la médiathèque ou uploader, 3) régler responsive/overlay, 4) enregistrer.
                 </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-[#d8e7ee] bg-[#f5fbfe] px-2.5 py-1 text-[11px] font-medium text-[#225062]">{heroBackgroundItems.length} slide(s)</span>
+                  <span className="rounded-full border border-[#d8e7ee] bg-[#f5fbfe] px-2.5 py-1 text-[11px] font-medium text-[#225062]">Transition: {homeContentForm.heroBackgroundTransitionStyle}</span>
+                  <span className="rounded-full border border-[#d8e7ee] bg-[#f5fbfe] px-2.5 py-1 text-[11px] font-medium text-[#225062]">Intervalle: {homeContentForm.heroBackgroundIntervalMs} ms</span>
+                  <span className="rounded-full border border-[#d8e7ee] bg-[#f5fbfe] px-2.5 py-1 text-[11px] font-medium text-[#225062]">Rotation: {homeContentForm.heroBackgroundRotationEnabled ? 'active' : 'inactive'}</span>
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
                     <input type="checkbox" checked={homeContentForm.heroBackgroundRotationEnabled} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundRotationEnabled: event.target.checked }))} />
@@ -460,7 +466,7 @@ export function PageContentSection({
                         );
                       })()}
                       <div className="mb-2 flex items-center justify-between">
-                        <p className="text-[13px] font-semibold text-[#273a41]">Slide {index + 1}</p>
+                        <p className="text-[13px] font-semibold text-[#273a41]">Slide {index + 1} {item.label?.trim() ? `• ${item.label.trim()}` : ''}</p>
                         <div className="flex gap-2">
                           <AdminButton type="button" size="sm" disabled={index === 0} onClick={() => setHomeContentForm((prev) => {
                             const items = [...prev.heroBackgroundItems];
@@ -472,8 +478,20 @@ export function PageContentSection({
                             [items[index + 1], items[index]] = [items[index], items[index + 1]];
                             return { ...prev, heroBackgroundItems: items.map((entry, position) => ({ ...entry, sortOrder: position })) };
                           })}>↓</AdminButton>
+                          <AdminButton type="button" size="sm" onClick={() => setHomeContentForm((prev) => {
+                            const duplicate = { ...item, id: `${item.id}-copy-${Date.now()}` };
+                            const items = [...prev.heroBackgroundItems];
+                            items.splice(index + 1, 0, duplicate);
+                            return { ...prev, heroBackgroundItems: items.map((entry, position) => ({ ...entry, sortOrder: position })), heroBackgroundRotationEnabled: items.length > 1 ? true : prev.heroBackgroundRotationEnabled };
+                          })}>Dupliquer</AdminButton>
                           <AdminButton type="button" size="sm" intent="danger" onClick={() => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.filter((entry) => entry.id !== item.id).map((entry, position) => ({ ...entry, sortOrder: position })) }))}>Supprimer</AdminButton>
                         </div>
+                      </div>
+                      <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
+                        <span className="rounded-full border border-[#dce8ed] bg-[#f7fbfd] px-2 py-0.5 text-[#48606a]">Desktop: {item.desktopMedia || item.media || 'auto'}</span>
+                        <span className="rounded-full border border-[#dce8ed] bg-[#f7fbfd] px-2 py-0.5 text-[#48606a]">Tablet: {item.tabletMedia || item.desktopMedia || item.media || 'auto'}</span>
+                        <span className="rounded-full border border-[#dce8ed] bg-[#f7fbfd] px-2 py-0.5 text-[#48606a]">Mobile: {item.mobileMedia || item.tabletMedia || item.desktopMedia || item.media || 'auto'}</span>
+                        {item.videoMedia ? <span className="rounded-full border border-[#dce8ed] bg-[#f7fbfd] px-2 py-0.5 text-[#48606a]">Video: {item.videoMedia}</span> : null}
                       </div>
                       <div className="grid gap-2 md:grid-cols-2">
                         <input value={item.label} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, label: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Label interne (optionnel)" />

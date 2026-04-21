@@ -37,9 +37,11 @@ export function createHeroBackgroundItem(itemIndex: number, overlayOpacity: numb
 export function appendHeroBackgroundItem(content: HomePageContentSettings): HomePageContentSettings {
   const existingItems = getHeroBackgroundItems(content);
   const nextItem = createHeroBackgroundItem(existingItems.length, content.heroBackgroundOverlayOpacity);
+  const heroBackgroundItems = [...existingItems, nextItem];
   return {
     ...content,
-    heroBackgroundItems: [...existingItems, nextItem],
+    heroBackgroundItems,
+    heroBackgroundRotationEnabled: heroBackgroundItems.length > 1 ? true : content.heroBackgroundRotationEnabled,
   };
 }
 
@@ -102,12 +104,14 @@ export function appendHeroBackgroundItemWithMedia(
   const existingItems = getHeroBackgroundItems(content);
   const nextItem = createHeroBackgroundItem(existingItems.length, content.heroBackgroundOverlayOpacity);
   const normalizedReference = mediaReference.trim();
+  const heroBackgroundItems = [
+    ...existingItems,
+    updateHeroBackgroundItemMediaField(nextItem, 'media', normalizedReference),
+  ];
   return {
     ...content,
-    heroBackgroundItems: [
-      ...existingItems,
-      updateHeroBackgroundItemMediaField(nextItem, 'media', normalizedReference),
-    ],
+    heroBackgroundItems,
+    heroBackgroundRotationEnabled: heroBackgroundItems.length > 1 ? true : content.heroBackgroundRotationEnabled,
   };
 }
 

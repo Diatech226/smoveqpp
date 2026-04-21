@@ -1,5 +1,5 @@
-import { AnimatePresence, motion, useMotionValue, useScroll, useSpring, useTransform } from 'motion/react';
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { motion, useMotionValue, useScroll, useSpring, useTransform } from 'motion/react';
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
 import { nextHeroBackgroundIndex, resolveHeroBackgroundItems, shouldAutoplayHeroBackground } from '../features/marketing/home/heroBackground';
@@ -61,17 +61,13 @@ export default function Hero3DEnhanced({
   const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 140]);
   const [activeBackgroundIndex, setActiveBackgroundIndex] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
+  const [isInteractionPaused, setIsInteractionPaused] = useState(false);
 
   const resolvedBackgrounds = useMemo(() => resolveHeroBackgroundItems(backgroundItems), [backgroundItems]);
   const hasCmsMediaBackground = resolvedBackgrounds.length > 0;
-  const canAutoplay = shouldAutoplayHeroBackground(backgroundRotationEnabled, backgroundAutoplay, resolvedBackgrounds.length);
-  const activeBackground = hasCmsMediaBackground ? resolvedBackgrounds[activeBackgroundIndex % resolvedBackgrounds.length] : null;
-  const resolvedBackgroundImage = useMemo(() => {
-    if (!activeBackground) return '';
-    if (viewportWidth < 768) return activeBackground.mobileSrc || activeBackground.tabletSrc || activeBackground.desktopSrc;
-    if (viewportWidth < 1024) return activeBackground.tabletSrc || activeBackground.desktopSrc;
-    return activeBackground.desktopSrc;
-  }, [activeBackground, viewportWidth]);
+  const safeActiveBackgroundIndex = resolvedBackgrounds.length > 0 ? activeBackgroundIndex % resolvedBackgrounds.length : 0;
+  const canAutoplay = shouldAutoplayHeroBackground(backgroundRotationEnabled, backgroundAutoplay, resolvedBackgrounds.length) && !isInteractionPaused;
+  const activeBackground = hasCmsMediaBackground ? resolvedBackgrounds[safeActiveBackgroundIndex] : null;
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -109,8 +105,12 @@ export default function Hero3DEnhanced({
   }, [enable3DEffects, tiltX, tiltY]);
 
   useEffect(() => {
-    setActiveBackgroundIndex(0);
-  }, [resolvedBackgrounds.length, backgroundRotationEnabled]);
+    if (resolvedBackgrounds.length === 0) {
+      setActiveBackgroundIndex(0);
+      return;
+    }
+    setActiveBackgroundIndex((current) => current % resolvedBackgrounds.length);
+  }, [resolvedBackgrounds.length]);
 
   useEffect(() => {
     if (!canAutoplay) return;
@@ -142,6 +142,22 @@ export default function Hero3DEnhanced({
     setActiveBackgroundIndex((current) => nextHeroBackgroundIndex(current, resolvedBackgrounds.length));
   };
 
+  const getResolvedBackgroundImage = (index: number) => {
+    const background = resolvedBackgrounds[index];
+    if (!background) return '';
+    if (viewportWidth < 768) return background.mobileSrc || background.tabletSrc || background.desktopSrc;
+    if (viewportWidth < 1024) return background.tabletSrc || background.desktopSrc;
+    return background.desktopSrc;
+  };
+
+  const handleControlsFocus = (_event: FocusEvent<HTMLElement>) => {
+    setIsInteractionPaused(true);
+  };
+
+  const handleControlsBlur = (_event: FocusEvent<HTMLElement>) => {
+    setIsInteractionPaused(false);
+  };
+
   return (
     <motion.section
       ref={containerRef}
@@ -149,22 +165,31 @@ export default function Hero3DEnhanced({
       style={{ opacity: heroOpacity }}
     >
       {hasCmsMediaBackground ? (
-        <div className="absolute inset-0 z-0">
-          <AnimatePresence mode="wait">
-            {activeBackground ? (
+        <div
+          className="absolute inset-0 z-0"
+          onMouseEnter={() => setIsInteractionPaused(true)}
+          onMouseLeave={() => setIsInteractionPaused(false)}
+        >
+          {resolvedBackgrounds.map((background, index) => {
+            const resolvedBackgroundImage = getResolvedBackgroundImage(index);
+            const isActive = index === safeActiveBackgroundIndex;
+            return (
               <motion.div
-                key={activeBackground.id}
+                key={background.id}
                 className="absolute inset-0"
-                initial={backgroundTransitionStyle === 'slide' ? { opacity: 0, x: 64 } : { opacity: 0 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={backgroundTransitionStyle === 'slide' ? { opacity: 0, x: -64 } : { opacity: 0 }}
-                transition={{ duration: backgroundTransitionStyle === 'slide' ? 0.8 : 1.1, ease: 'easeOut' }}
+                initial={false}
+                animate={backgroundTransitionStyle === 'slide'
+                  ? { opacity: isActive ? 1 : 0, x: isActive ? 0 : index < safeActiveBackgroundIndex ? -72 : 72, scale: isActive ? 1 : 1.02 }
+                  : { opacity: isActive ? 1 : 0, scale: isActive ? 1 : 1.015 }}
+                transition={{ duration: backgroundTransitionStyle === 'slide' ? 0.8 : 1.05, ease: 'easeOut' }}
+                style={{ zIndex: isActive ? 2 : 1, pointerEvents: isActive ? 'auto' : 'none' }}
+                aria-hidden={!isActive}
               >
-                {activeBackground.type === 'video' && activeBackground.videoSrc ? (
+                {background.type === 'video' && background.videoSrc ? (
                   <video
-                    src={activeBackground.videoSrc}
+                    src={background.videoSrc}
                     className="h-full w-full object-cover"
-                    style={{ objectPosition: activeBackground.position }}
+                    style={{ objectPosition: background.position }}
                     autoPlay
                     muted
                     playsInline
@@ -173,59 +198,60 @@ export default function Hero3DEnhanced({
                   />
                 ) : null}
                 <div
-                  aria-label={activeBackground.alt || 'Hero background'}
+                  aria-label={background.alt || 'Hero background'}
                   role="img"
                   className="h-full w-full"
                   style={{
                     backgroundImage: resolvedBackgroundImage ? `url("${resolvedBackgroundImage}")` : 'none',
-                    backgroundSize: activeBackground.size,
-                    backgroundPosition: activeBackground.position,
+                    backgroundSize: background.size,
+                    backgroundPosition: background.position,
                     backgroundRepeat: 'no-repeat',
                   }}
                 />
                 <div
                   className="absolute inset-0"
                   style={{
-                    opacity: Math.min(0.85, Math.max(0.15, activeBackground.overlayOpacity || backgroundOverlayOpacity)),
-                    background: `linear-gradient(180deg, ${activeBackground.overlayColor || '#04111f'}CC 0%, ${activeBackground.overlayColor || '#04111f'}99 50%, ${activeBackground.overlayColor || '#04111f'}CC 100%)`,
+                    opacity: Math.min(0.85, Math.max(0.15, background.overlayOpacity || backgroundOverlayOpacity)),
+                    background: `linear-gradient(180deg, ${background.overlayColor || '#04111f'}CC 0%, ${background.overlayColor || '#04111f'}99 50%, ${background.overlayColor || '#04111f'}CC 100%)`,
                   }}
                 />
-                {activeBackground.title || activeBackground.description ? (
+                {isActive && (background.title || background.description) ? (
                   <div className="pointer-events-none absolute bottom-6 left-6 right-6 z-10 rounded-[14px] border border-white/20 bg-black/35 p-4 text-white backdrop-blur-sm">
-                    {activeBackground.title ? <p className="text-[18px] font-semibold">{activeBackground.title}</p> : null}
-                    {activeBackground.description ? <p className="mt-1 text-[14px] text-white/85">{activeBackground.description}</p> : null}
-                    {activeBackground.ctaLabel && activeBackground.ctaHref ? (
+                    {background.title ? <p className="text-[18px] font-semibold">{background.title}</p> : null}
+                    {background.description ? <p className="mt-1 text-[14px] text-white/85">{background.description}</p> : null}
+                    {background.ctaLabel && background.ctaHref ? (
                       <a
-                        href={activeBackground.ctaHref}
+                        href={background.ctaHref}
                         className="pointer-events-auto mt-3 inline-flex items-center rounded-full border border-white/35 bg-white/10 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-white/20"
-                        onClick={(event) => handleCtaClick(event, activeBackground.ctaHref, 'services')}
+                        onClick={(event) => handleCtaClick(event, background.ctaHref, 'services')}
                       >
-                        {activeBackground.ctaLabel}
+                        {background.ctaLabel}
                       </a>
                     ) : null}
                   </div>
                 ) : null}
               </motion.div>
-            ) : null}
-          </AnimatePresence>
+            );
+          })}
           {resolvedBackgrounds.length > 1 ? (
-            <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2">
-              <button type="button" aria-label="Diapositive précédente" className="rounded-full border border-white/30 bg-black/30 p-2 text-white transition hover:bg-black/45" onClick={goToPreviousBackground}>
+            <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2" onFocus={handleControlsFocus} onBlur={handleControlsBlur}>
+              <button type="button" aria-label="Diapositive précédente" className="rounded-full border border-white/30 bg-black/30 p-2 text-white transition hover:bg-black/45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" onClick={goToPreviousBackground}>
                 <ArrowLeft size={18} />
               </button>
-              <button type="button" aria-label="Diapositive suivante" className="rounded-full border border-white/30 bg-black/30 p-2 text-white transition hover:bg-black/45" onClick={goToNextBackground}>
+              <button type="button" aria-label="Diapositive suivante" className="rounded-full border border-white/30 bg-black/30 p-2 text-white transition hover:bg-black/45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" onClick={goToNextBackground}>
                 <ArrowRight size={18} />
               </button>
             </div>
           ) : null}
           {resolvedBackgrounds.length > 1 ? (
-            <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+            <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2" onFocus={handleControlsFocus} onBlur={handleControlsBlur}>
               {resolvedBackgrounds.map((item, index) => (
                 <button
                   key={item.id}
                   type="button"
                   aria-label={`Aller à la diapositive ${index + 1}`}
-                  className={`h-2.5 w-2.5 rounded-full transition ${index === activeBackgroundIndex ? 'bg-white' : 'bg-white/45 hover:bg-white/70'}`}
+                  aria-pressed={index === safeActiveBackgroundIndex}
+                  className={`h-2.5 w-2.5 rounded-full transition ${index === safeActiveBackgroundIndex ? 'bg-white ring-2 ring-white/60' : 'bg-white/45 hover:bg-white/70'}`}
                   onClick={() => setActiveBackgroundIndex(index)}
                 />
               ))}
