@@ -38,6 +38,8 @@ describe('routeResolver', () => {
   });
 
   it('resolves canonical hash paths for public list routes', () => {
+    expect(resolveRoute('#/home', baseAuth).page).toBe('home');
+    expect(resolveRoute('#/home', baseAuth).normalizedHash).toBe('/');
     expect(resolveRoute('#/blog', baseAuth).page).toBe('blog');
     expect(resolveRoute('#/projects', baseAuth).page).toBe('projects');
     expect(resolveRoute('#/services', baseAuth).page).toBe('services-all');

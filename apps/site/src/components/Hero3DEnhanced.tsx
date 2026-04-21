@@ -68,11 +68,12 @@ export default function Hero3DEnhanced({
   const [activeBackgroundIndex, setActiveBackgroundIndex] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
   const [isInteractionPaused, setIsInteractionPaused] = useState(false);
+  const [isPageVisible, setIsPageVisible] = useState(() => (typeof document === 'undefined' ? true : document.visibilityState === 'visible'));
 
   const resolvedBackgrounds = useMemo(() => resolveHeroBackgroundItems(backgroundItems), [backgroundItems]);
   const hasCmsMediaBackground = resolvedBackgrounds.length > 0;
   const safeActiveBackgroundIndex = resolvedBackgrounds.length > 0 ? activeBackgroundIndex % resolvedBackgrounds.length : 0;
-  const canAutoplay = shouldAutoplayHeroBackground(backgroundRotationEnabled, backgroundAutoplay, resolvedBackgrounds.length) && !isInteractionPaused;
+  const canAutoplay = shouldAutoplayHeroBackground(backgroundRotationEnabled || resolvedBackgrounds.length > 1, backgroundAutoplay, resolvedBackgrounds.length) && !isInteractionPaused && isPageVisible;
   const rotationIntervalMs = normalizeHeroBackgroundIntervalMs(backgroundIntervalMs);
   const activeBackground = hasCmsMediaBackground ? resolvedBackgrounds[safeActiveBackgroundIndex] : null;
 
@@ -80,6 +81,15 @@ export default function Hero3DEnhanced({
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(document.visibilityState === 'visible');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   useEffect(() => {
@@ -172,11 +182,7 @@ export default function Hero3DEnhanced({
       style={{ opacity: heroOpacity }}
     >
       {hasCmsMediaBackground ? (
-        <div
-          className="absolute inset-0 z-0"
-          onMouseEnter={() => setIsInteractionPaused(true)}
-          onMouseLeave={() => setIsInteractionPaused(false)}
-        >
+        <div className="absolute inset-0 z-0">
           {resolvedBackgrounds.map((background, index) => {
             const resolvedBackgroundImage = getResolvedBackgroundImage(index);
             const isActive = index === safeActiveBackgroundIndex;

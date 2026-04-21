@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import Hero3DEnhanced from './Hero3DEnhanced';
 
@@ -59,5 +60,30 @@ describe('Hero3DEnhanced', () => {
     expect(html).not.toContain('Diapositive précédente');
     expect(html).not.toContain('Diapositive suivante');
     expect(html).not.toContain('Aller à la diapositive 1');
+  });
+
+  it('auto-advances slides when multiple backgrounds are available', () => {
+    vi.useFakeTimers();
+
+    render(
+      <Hero3DEnhanced
+        backgroundItems={[
+          slide('slide-1', 'https://cdn.example.com/hero-1.jpg', 'Slide one'),
+          slide('slide-2', 'https://cdn.example.com/hero-2.jpg', 'Slide two'),
+        ]}
+        backgroundRotationEnabled
+        backgroundAutoplay
+        backgroundIntervalMs={2100}
+      />,
+    );
+
+    expect(screen.getByText('1/2')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(2200);
+    });
+
+    expect(screen.getByText('2/2')).toBeInTheDocument();
+    vi.useRealTimers();
   });
 });
