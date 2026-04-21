@@ -34,15 +34,18 @@ export const resolveHeroBackgroundItems = (
   return list
     .map((item, index) => {
       const media = item?.media?.trim() || item?.desktopMedia?.trim() || item?.tabletMedia?.trim() || item?.mobileMedia?.trim();
-      if (!media) return null;
+      const videoMedia = item?.videoMedia?.trim() || '';
+      const requestedType = item.type === 'video' ? 'video' : 'image';
+      const allowVideoOnlyFallback = requestedType === 'video' && Boolean(videoMedia);
+      const baseMedia = media || (allowVideoOnlyFallback ? videoMedia : '');
+      if (!baseMedia) return null;
 
       const fallbackAlt = item.alt?.trim() || `Hero background ${index + 1}`;
-      const desktop = resolveCanonicalMedia(item.desktopMedia || media, fallbackAlt, 'hero');
-      const tablet = resolveCanonicalMedia(item.tabletMedia || item.desktopMedia || media, fallbackAlt, 'card');
-      const mobile = resolveCanonicalMedia(item.mobileMedia || item.tabletMedia || item.desktopMedia || media, fallbackAlt, 'thumbnail');
-      const hasVideoMedia = Boolean(item.videoMedia?.trim());
-      const video = hasVideoMedia ? resolveCanonicalMedia(item.videoMedia, fallbackAlt) : null;
-      const requestedType = item.type === 'video' ? 'video' : 'image';
+      const desktop = resolveCanonicalMedia(item.desktopMedia || baseMedia, fallbackAlt, 'hero');
+      const tablet = resolveCanonicalMedia(item.tabletMedia || item.desktopMedia || baseMedia, fallbackAlt, 'card');
+      const mobile = resolveCanonicalMedia(item.mobileMedia || item.tabletMedia || item.desktopMedia || baseMedia, fallbackAlt, 'thumbnail');
+      const hasVideoMedia = Boolean(videoMedia);
+      const video = hasVideoMedia ? resolveCanonicalMedia(videoMedia, fallbackAlt) : null;
       const hasRenderableImage = desktop.isValid && desktop.mediaType !== 'document';
       const hasRenderableVideo = video?.mediaType === 'video';
       const overlayOpacity =
@@ -62,7 +65,7 @@ export const resolveHeroBackgroundItems = (
         tabletSrc: tablet.url,
         mobileSrc: mobile.url,
         videoSrc: video?.url || '',
-        alt: item.alt?.trim() || desktop.alt,
+        alt: item.alt?.trim() || desktop.alt || video?.alt || fallbackAlt,
         overlayColor: item.overlayColor?.trim() || '#04111f',
         overlayOpacity,
         position: item.position?.trim() || 'center',
@@ -77,6 +80,11 @@ export const resolveHeroBackgroundItems = (
     .sort((a, b) => a.sortOrder - b.sortOrder);
 };
 
+export const normalizeHeroBackgroundIntervalMs = (value: number): number => {
+  if (!Number.isFinite(value)) return 6000;
+  return clamp(Math.round(value), 2000, 30000);
+};
+
 export const shouldAutoplayHeroBackground = (
   enabled: boolean,
   autoplay: boolean,
@@ -86,4 +94,9 @@ export const shouldAutoplayHeroBackground = (
 export const nextHeroBackgroundIndex = (current: number, itemsCount: number): number => {
   if (itemsCount <= 1) return 0;
   return (current + 1) % itemsCount;
+};
+
+export const previousHeroBackgroundIndex = (current: number, itemsCount: number): number => {
+  if (itemsCount <= 1) return 0;
+  return (current - 1 + itemsCount) % itemsCount;
 };

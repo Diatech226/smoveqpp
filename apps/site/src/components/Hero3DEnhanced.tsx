@@ -2,7 +2,13 @@ import { motion, useMotionValue, useScroll, useSpring, useTransform } from 'moti
 import { useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
-import { nextHeroBackgroundIndex, resolveHeroBackgroundItems, shouldAutoplayHeroBackground } from '../features/marketing/home/heroBackground';
+import {
+  nextHeroBackgroundIndex,
+  normalizeHeroBackgroundIntervalMs,
+  previousHeroBackgroundIndex,
+  resolveHeroBackgroundItems,
+  shouldAutoplayHeroBackground,
+} from '../features/marketing/home/heroBackground';
 import { CONTACT_CTA_HREF } from '../features/marketing/navigationCta';
 
 interface Hero3DEnhancedProps {
@@ -67,6 +73,7 @@ export default function Hero3DEnhanced({
   const hasCmsMediaBackground = resolvedBackgrounds.length > 0;
   const safeActiveBackgroundIndex = resolvedBackgrounds.length > 0 ? activeBackgroundIndex % resolvedBackgrounds.length : 0;
   const canAutoplay = shouldAutoplayHeroBackground(backgroundRotationEnabled, backgroundAutoplay, resolvedBackgrounds.length) && !isInteractionPaused;
+  const rotationIntervalMs = normalizeHeroBackgroundIntervalMs(backgroundIntervalMs);
   const activeBackground = hasCmsMediaBackground ? resolvedBackgrounds[safeActiveBackgroundIndex] : null;
 
   useEffect(() => {
@@ -116,9 +123,9 @@ export default function Hero3DEnhanced({
     if (!canAutoplay) return;
     const interval = window.setInterval(() => {
       setActiveBackgroundIndex((current) => nextHeroBackgroundIndex(current, resolvedBackgrounds.length));
-    }, Math.max(2000, backgroundIntervalMs));
+    }, rotationIntervalMs);
     return () => window.clearInterval(interval);
-  }, [backgroundIntervalMs, canAutoplay, resolvedBackgrounds.length]);
+  }, [canAutoplay, resolvedBackgrounds.length, rotationIntervalMs]);
 
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
@@ -134,7 +141,7 @@ export default function Hero3DEnhanced({
 
   const goToPreviousBackground = () => {
     if (resolvedBackgrounds.length <= 1) return;
-    setActiveBackgroundIndex((current) => (current - 1 + resolvedBackgrounds.length) % resolvedBackgrounds.length);
+    setActiveBackgroundIndex((current) => previousHeroBackgroundIndex(current, resolvedBackgrounds.length));
   };
 
   const goToNextBackground = () => {
@@ -234,7 +241,10 @@ export default function Hero3DEnhanced({
             );
           })}
           {resolvedBackgrounds.length > 1 ? (
-            <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2" onFocus={handleControlsFocus} onBlur={handleControlsBlur}>
+            <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2 rounded-full border border-white/20 bg-black/35 px-2 py-2 backdrop-blur-md" onFocus={handleControlsFocus} onBlur={handleControlsBlur}>
+              <span className="px-2 text-[11px] font-semibold tracking-[0.08em] text-white/75">
+                {safeActiveBackgroundIndex + 1}/{resolvedBackgrounds.length}
+              </span>
               <button type="button" aria-label="Diapositive précédente" className="rounded-full border border-white/30 bg-black/30 p-2 text-white transition hover:bg-black/45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" onClick={goToPreviousBackground}>
                 <ArrowLeft size={18} />
               </button>
@@ -251,6 +261,7 @@ export default function Hero3DEnhanced({
                   type="button"
                   aria-label={`Aller à la diapositive ${index + 1}`}
                   aria-pressed={index === safeActiveBackgroundIndex}
+                  aria-current={index === safeActiveBackgroundIndex}
                   className={`h-2.5 w-2.5 rounded-full transition ${index === safeActiveBackgroundIndex ? 'bg-white ring-2 ring-white/60' : 'bg-white/45 hover:bg-white/70'}`}
                   onClick={() => setActiveBackgroundIndex(index)}
                 />

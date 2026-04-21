@@ -237,4 +237,31 @@ describe('pageContentHeroActions', () => {
       ),
     ).not.toThrow();
   });
+
+  it('renders professionalized hero management summaries and action labels', () => {
+    const withSlide = appendHeroBackgroundItem(defaultHomePageContent);
+    const html = renderToStaticMarkup(
+      <PageContentSection
+        homeContentError=""
+        saveHomePageContent={async () => {}}
+        homeContentSaving={false}
+        hasUnsavedChanges
+        canEditContent
+        resetHomePageContent={() => {}}
+        openMediaLibrary={() => {}}
+        heroMediaUploadError=""
+        heroMediaUploadTarget={null}
+        uploadHeroBackgroundMedia={async () => {}}
+        homeContentForm={withSlide}
+        setHomeContentForm={() => {}}
+        mediaFiles={[]}
+      />,
+    );
+
+    expect(html).toContain('Slides configurées');
+    expect(html).toContain('Médias résolus');
+    expect(html).toContain('Contenu de slide');
+    expect(html).toContain('Médias &amp; responsive');
+    expect(html).toContain('Overlay, position et effets');
+  });
 });

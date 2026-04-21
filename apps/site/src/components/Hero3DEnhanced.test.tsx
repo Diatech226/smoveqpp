@@ -41,8 +41,10 @@ describe('Hero3DEnhanced', () => {
 
     expect(html).toContain('Diapositive précédente');
     expect(html).toContain('Diapositive suivante');
+    expect(html).toContain('1/2');
     expect(html).toContain('Aller à la diapositive 1');
     expect(html).toContain('Aller à la diapositive 2');
+    expect(html).toContain('aria-current="true"');
   });
 
   it('does not render carousel controls for a single slide', () => {
