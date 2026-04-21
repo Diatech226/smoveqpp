@@ -45,6 +45,11 @@ describe('pageContentHeroActions', () => {
     expect(updated.heroBackgroundItems).toHaveLength(1);
   });
 
+  it('still appends a new item when click event omits navigation methods', () => {
+    const updated = handleAddHeroMediaClick({ nativeEvent: {} }, defaultHomePageContent);
+    expect(updated.heroBackgroundItems).toHaveLength(1);
+  });
+
   it('assigns selected media to a specific hero background item field', () => {
     const withItem = appendHeroBackgroundItem(defaultHomePageContent);
     const targetItemId = withItem.heroBackgroundItems[0].id;
@@ -85,6 +90,14 @@ describe('pageContentHeroActions', () => {
     expect(updated.heroBackgroundItems).toHaveLength(1);
     expect(updated.heroBackgroundItems[0].media).toBe(mediaReference);
     expect(updated.heroBackgroundItems[0].desktopMedia).toBe(mediaReference);
+  });
+
+  it('normalizes uploaded media references when creating a pre-linked slide', () => {
+    const mediaReference = `  ${toMediaReferenceValue('asset-uploaded')}  `;
+    const updated = appendHeroBackgroundItemWithMedia(defaultHomePageContent, mediaReference);
+
+    expect(updated.heroBackgroundItems[0].media).toBe(toMediaReferenceValue('asset-uploaded'));
+    expect(updated.heroBackgroundItems[0].desktopMedia).toBe(toMediaReferenceValue('asset-uploaded'));
   });
 
   it('renders dedicated CMS slider actions without public navigation labels', () => {

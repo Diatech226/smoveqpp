@@ -73,7 +73,7 @@ export const resolveHeroBackgroundItems = (
         mediaState: desktop.mediaState,
       };
     })
-    .filter((item): item is RenderableHeroBackgroundItem => Boolean(item?.desktopSrc))
+    .filter((item): item is RenderableHeroBackgroundItem => Boolean(item?.desktopSrc || item?.videoSrc))
     .sort((a, b) => a.sortOrder - b.sortOrder);
 };
 

@@ -140,4 +140,48 @@ describe('hero background model', () => {
     expect(resolved).toHaveLength(1);
     expect(resolved[0].isValid).toBe(false);
   });
+
+  it('keeps video slides renderable when image sources are absent', () => {
+    mediaRepository.replaceAll([
+      {
+        id: 'hero-video-1',
+        name: 'hero-video.mp4',
+        type: 'video',
+        url: 'https://cdn.example.com/hero-video.mp4',
+        size: 1024,
+        uploadedDate: '2026-04-21T00:00:00.000Z',
+        uploadedBy: 'cms',
+        tags: [],
+      },
+    ]);
+
+    const resolved = resolveHeroBackgroundItems([
+      {
+        id: 'slide-video-only',
+        sortOrder: 0,
+        label: 'Video only',
+        title: '',
+        description: '',
+        ctaLabel: '',
+        ctaHref: '',
+        type: 'video',
+        media: '',
+        desktopMedia: '',
+        tabletMedia: '',
+        mobileMedia: '',
+        videoMedia: 'media:hero-video-1',
+        alt: 'Video hero',
+        overlayColor: '#04111f',
+        overlayOpacity: 0.4,
+        position: 'center',
+        size: 'cover',
+        enableParallax: true,
+        enable3DEffects: true,
+      },
+    ]);
+
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0].type).toBe('video');
+    expect(resolved[0].videoSrc).toContain('hero-video.mp4');
+  });
 });
