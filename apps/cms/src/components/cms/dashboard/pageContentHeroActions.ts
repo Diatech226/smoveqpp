@@ -1,6 +1,9 @@
 import type { HomePageContentSettings } from '../../../data/pageContentSeed';
 
 type HeroBackgroundItem = HomePageContentSettings['heroBackgroundItems'][number];
+function getHeroBackgroundItems(content: HomePageContentSettings): HeroBackgroundItem[] {
+  return Array.isArray(content.heroBackgroundItems) ? content.heroBackgroundItems : [];
+}
 
 export function createHeroBackgroundItem(itemIndex: number, overlayOpacity: number): HeroBackgroundItem {
   const randomSuffix =
@@ -32,10 +35,11 @@ export function createHeroBackgroundItem(itemIndex: number, overlayOpacity: numb
 }
 
 export function appendHeroBackgroundItem(content: HomePageContentSettings): HomePageContentSettings {
-  const nextItem = createHeroBackgroundItem(content.heroBackgroundItems.length, content.heroBackgroundOverlayOpacity);
+  const existingItems = getHeroBackgroundItems(content);
+  const nextItem = createHeroBackgroundItem(existingItems.length, content.heroBackgroundOverlayOpacity);
   return {
     ...content,
-    heroBackgroundItems: [...content.heroBackgroundItems, nextItem],
+    heroBackgroundItems: [...existingItems, nextItem],
   };
 }
 
@@ -57,6 +61,9 @@ export function updateHeroBackgroundItemMediaField(
     if (!nextItem.desktopMedia.trim()) {
       nextItem.desktopMedia = nextValue;
     }
+    if (!nextItem.tabletMedia.trim()) {
+      nextItem.tabletMedia = nextValue;
+    }
     return nextItem;
   }
 
@@ -77,9 +84,10 @@ export function assignHeroBackgroundMedia(
   field: HeroBackgroundMediaField,
   mediaReference: string,
 ): HomePageContentSettings {
+  const existingItems = getHeroBackgroundItems(content);
   return {
     ...content,
-    heroBackgroundItems: content.heroBackgroundItems.map((item) => (
+    heroBackgroundItems: existingItems.map((item) => (
       item.id === itemId
         ? updateHeroBackgroundItemMediaField(item, field, mediaReference)
         : item
@@ -91,13 +99,14 @@ export function appendHeroBackgroundItemWithMedia(
   content: HomePageContentSettings,
   mediaReference: string,
 ): HomePageContentSettings {
-  const nextItem = createHeroBackgroundItem(content.heroBackgroundItems.length, content.heroBackgroundOverlayOpacity);
+  const existingItems = getHeroBackgroundItems(content);
+  const nextItem = createHeroBackgroundItem(existingItems.length, content.heroBackgroundOverlayOpacity);
   const normalizedReference = mediaReference.trim();
   return {
     ...content,
     heroBackgroundItems: [
-      ...content.heroBackgroundItems,
-      updateHeroBackgroundItemMediaField(nextItem, 'desktopMedia', normalizedReference),
+      ...existingItems,
+      updateHeroBackgroundItemMediaField(nextItem, 'media', normalizedReference),
     ],
   };
 }
@@ -116,6 +125,7 @@ export function handleAddHeroMediaClick(
 ): HomePageContentSettings {
   event?.preventDefault?.();
   event?.stopPropagation?.();
+  (event as { stopImmediatePropagation?: () => void } | undefined)?.stopImmediatePropagation?.();
   event?.nativeEvent?.stopImmediatePropagation?.();
   return appendHeroBackgroundItem(content);
 }
