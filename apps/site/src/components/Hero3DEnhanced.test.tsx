@@ -1,0 +1,61 @@
+import { describe, expect, it } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import Hero3DEnhanced from './Hero3DEnhanced';
+
+describe('Hero3DEnhanced', () => {
+  const slide = (id: string, media: string, label: string) => ({
+    id,
+    sortOrder: Number(id.replace(/\D/g, '')) || 0,
+    label,
+    title: `${label} title`,
+    description: `${label} description`,
+    ctaLabel: 'Découvrir',
+    ctaHref: '#services',
+    type: 'image' as const,
+    media,
+    desktopMedia: media,
+    tabletMedia: media,
+    mobileMedia: media,
+    videoMedia: '',
+    alt: `${label} alt`,
+    overlayColor: '#04111f',
+    overlayOpacity: 0.4,
+    position: 'center',
+    size: 'cover' as const,
+    enableParallax: true,
+    enable3DEffects: true,
+  });
+
+  it('renders slider controls and dots when multiple slides are available', () => {
+    const html = renderToStaticMarkup(
+      <Hero3DEnhanced
+        backgroundItems={[
+          slide('slide-1', 'https://cdn.example.com/hero-1.jpg', 'Slide one'),
+          slide('slide-2', 'https://cdn.example.com/hero-2.jpg', 'Slide two'),
+        ]}
+        backgroundRotationEnabled
+        backgroundAutoplay
+        backgroundIntervalMs={4500}
+      />,
+    );
+
+    expect(html).toContain('Diapositive précédente');
+    expect(html).toContain('Diapositive suivante');
+    expect(html).toContain('Aller à la diapositive 1');
+    expect(html).toContain('Aller à la diapositive 2');
+  });
+
+  it('does not render carousel controls for a single slide', () => {
+    const html = renderToStaticMarkup(
+      <Hero3DEnhanced
+        backgroundItems={[slide('slide-1', 'https://cdn.example.com/hero-1.jpg', 'Slide one')]}
+        backgroundRotationEnabled
+        backgroundAutoplay
+      />,
+    );
+
+    expect(html).not.toContain('Diapositive précédente');
+    expect(html).not.toContain('Diapositive suivante');
+    expect(html).not.toContain('Aller à la diapositive 1');
+  });
+});

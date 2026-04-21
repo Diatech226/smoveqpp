@@ -18,6 +18,16 @@ describe('pageContentHeroActions', () => {
     });
   });
 
+
+  it('auto-enables rotation when a second slide is appended', () => {
+    const first = appendHeroBackgroundItem(defaultHomePageContent);
+    expect(first.heroBackgroundRotationEnabled).toBe(defaultHomePageContent.heroBackgroundRotationEnabled);
+
+    const second = appendHeroBackgroundItem(first);
+    expect(second.heroBackgroundItems).toHaveLength(2);
+    expect(second.heroBackgroundRotationEnabled).toBe(true);
+  });
+
   it('prevents default click navigation before adding media item', () => {
     const preventDefault = vi.fn();
     const stopPropagation = vi.fn();
