@@ -90,6 +90,7 @@ describe('pageContentHeroActions', () => {
     expect(updated.heroBackgroundItems).toHaveLength(1);
     expect(updated.heroBackgroundItems[0].media).toBe(mediaReference);
     expect(updated.heroBackgroundItems[0].desktopMedia).toBe(mediaReference);
+    expect(updated.heroBackgroundItems[0].tabletMedia).toBe(mediaReference);
   });
 
   it('normalizes uploaded media references when creating a pre-linked slide', () => {
@@ -98,6 +99,28 @@ describe('pageContentHeroActions', () => {
 
     expect(updated.heroBackgroundItems[0].media).toBe(toMediaReferenceValue('asset-uploaded'));
     expect(updated.heroBackgroundItems[0].desktopMedia).toBe(toMediaReferenceValue('asset-uploaded'));
+    expect(updated.heroBackgroundItems[0].tabletMedia).toBe(toMediaReferenceValue('asset-uploaded'));
+  });
+
+  it('supports appending a slide even when legacy payload has no heroBackgroundItems array', () => {
+    const legacyContent = { ...defaultHomePageContent, heroBackgroundItems: undefined } as unknown as typeof defaultHomePageContent;
+
+    const updated = appendHeroBackgroundItem(legacyContent);
+
+    expect(updated.heroBackgroundItems).toHaveLength(1);
+    expect(updated.heroBackgroundItems[0].label).toBe('Slide 1');
+  });
+
+  it('hydrates desktop/tablet when assigning the generic media field first', () => {
+    const withItem = appendHeroBackgroundItem(defaultHomePageContent);
+    const targetItemId = withItem.heroBackgroundItems[0].id;
+    const mediaReference = toMediaReferenceValue('asset-generic-media');
+
+    const updated = assignHeroBackgroundMedia(withItem, targetItemId, 'media', mediaReference);
+
+    expect(updated.heroBackgroundItems[0].media).toBe(mediaReference);
+    expect(updated.heroBackgroundItems[0].desktopMedia).toBe(mediaReference);
+    expect(updated.heroBackgroundItems[0].tabletMedia).toBe(mediaReference);
   });
 
   it('renders dedicated CMS slider actions without public navigation labels', () => {
@@ -153,5 +176,31 @@ describe('pageContentHeroActions', () => {
     );
 
     expect(html).toContain('Référence actuelle (introuvable): media:missing-asset');
+  });
+
+  it('keeps unresolved saved video references visible in select controls', () => {
+    const withSlide = appendHeroBackgroundItem(defaultHomePageContent);
+    const slideId = withSlide.heroBackgroundItems[0].id;
+    const withMissingVideoReference = assignHeroBackgroundMedia(withSlide, slideId, 'videoMedia', 'media:missing-video');
+
+    const html = renderToStaticMarkup(
+      <PageContentSection
+        homeContentError=""
+        saveHomePageContent={async () => {}}
+        homeContentSaving={false}
+        hasUnsavedChanges={false}
+        canEditContent
+        resetHomePageContent={() => {}}
+        openMediaLibrary={() => {}}
+        heroMediaUploadError=""
+        heroMediaUploadTarget={null}
+        uploadHeroBackgroundMedia={async () => {}}
+        homeContentForm={withMissingVideoReference}
+        setHomeContentForm={() => {}}
+        mediaFiles={[]}
+      />,
+    );
+
+    expect(html).toContain('Référence actuelle (introuvable): media:missing-video');
   });
 });

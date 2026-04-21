@@ -320,15 +320,17 @@ export function PageContentSection({
   const imageMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'image'), [mediaFiles]);
   const videoMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'video'), [mediaFiles]);
   const documentMediaOptions = useMemo(() => mediaFiles.filter((file) => file.type === 'document'), [mediaFiles]);
+  const heroBackgroundItems = useMemo(() => (Array.isArray(homeContentForm.heroBackgroundItems) ? homeContentForm.heroBackgroundItems : []), [homeContentForm.heroBackgroundItems]);
   const imageMediaReferenceSet = useMemo(() => new Set(imageMediaOptions.map((file) => toMediaReferenceValue(file.id))), [imageMediaOptions]);
+  const videoMediaReferenceSet = useMemo(() => new Set(videoMediaOptions.map((file) => toMediaReferenceValue(file.id))), [videoMediaOptions]);
   const documentMediaReferenceSet = useMemo(() => new Set(documentMediaOptions.map((file) => toMediaReferenceValue(file.id))), [documentMediaOptions]);
   const unresolvedHeroMediaCount = useMemo(
     () =>
-      homeContentForm.heroBackgroundItems.reduce((count, item) => {
+      heroBackgroundItems.reduce((count, item) => {
         const preview = resolveCmsPreviewReference(item.desktopMedia || item.media, item.alt || item.label || 'Hero background', item.label || 'Hero background');
         return preview.state === 'resolvable' ? count : count + 1;
       }, 0),
-    [homeContentForm.heroBackgroundItems],
+    [heroBackgroundItems],
   );
   const sections = [
     { id: 'hero', title: 'Hero', description: 'Contenu de première impression visible au chargement.' },
@@ -435,8 +437,8 @@ export function PageContentSection({
                 <div className="mt-3 space-y-3">
                   {heroMediaUploadError ? <AdminWarningState label={heroMediaUploadError} /> : null}
                   {unresolvedHeroMediaCount > 0 ? <AdminWarningState label={`${unresolvedHeroMediaCount} slide(s) utilisent un média non résolu. Corrigez avant publication.`} /> : null}
-                  {homeContentForm.heroBackgroundItems.length === 0 ? <p className={ADMIN_HELPER_TEXT_CLASS}>Aucun média configuré: le hero utilise son fond premium par défaut.</p> : null}
-                  {homeContentForm.heroBackgroundItems.map((item, index) => (
+                  {heroBackgroundItems.length === 0 ? <p className={ADMIN_HELPER_TEXT_CLASS}>Aucun média configuré: le hero utilise son fond premium par défaut.</p> : null}
+                  {heroBackgroundItems.map((item, index) => (
                     <div key={item.id} className="rounded-[12px] border border-[#dbe7ec] bg-white p-3">
                       {(() => {
                         const preview = resolveCmsPreviewReference(item.desktopMedia || item.media, item.alt || `Hero slide ${index + 1}`, `Hero slide ${index + 1}`);
@@ -465,7 +467,7 @@ export function PageContentSection({
                             [items[index - 1], items[index]] = [items[index], items[index - 1]];
                             return { ...prev, heroBackgroundItems: items.map((entry, position) => ({ ...entry, sortOrder: position })) };
                           })}>↑</AdminButton>
-                          <AdminButton type="button" size="sm" disabled={index === homeContentForm.heroBackgroundItems.length - 1} onClick={() => setHomeContentForm((prev) => {
+                          <AdminButton type="button" size="sm" disabled={index === heroBackgroundItems.length - 1} onClick={() => setHomeContentForm((prev) => {
                             const items = [...prev.heroBackgroundItems];
                             [items[index + 1], items[index]] = [items[index], items[index + 1]];
                             return { ...prev, heroBackgroundItems: items.map((entry, position) => ({ ...entry, sortOrder: position })) };
@@ -522,6 +524,9 @@ export function PageContentSection({
                         </select>
                         <select value={item.videoMedia} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'videoMedia', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Video source (optional)</option>
+                          {!item.videoMedia || videoMediaReferenceSet.has(item.videoMedia) ? null : (
+                            <option value={item.videoMedia}>Référence actuelle (introuvable): {item.videoMedia}</option>
+                          )}
                           {videoMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
                         <input value={item.alt} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, alt: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Alt (optionnel)" />
