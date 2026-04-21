@@ -28,6 +28,13 @@ const ROW_CONTAINER = 'rounded-[14px] border border-[#e4edf1] bg-[#fcfeff] px-4 
 const ROW_TITLE = "font-['Abhaya_Libre:Bold',sans-serif] text-[17px] text-[#273a41] leading-tight";
 const ROW_META = "font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-[#688088]";
 const ROW_ACTIONS = 'flex flex-wrap items-center justify-start gap-2 lg:justify-end';
+const previewToneClass = (tone?: 'success' | 'warning' | 'neutral' | null): string => (
+  tone === 'success'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : tone === 'warning'
+      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      : 'border-slate-200 bg-slate-100 text-slate-600'
+);
 
 function renderStatusChip(status: string) {
   const styles =
@@ -264,13 +271,6 @@ export function MediaSection({
   const selectedAssetPreview = selectedMedia
     ? resolveCmsPreviewReference(toMediaReferenceValue(selectedMedia.id), selectedMedia.alt || selectedMedia.name, selectedMedia.name)
     : null;
-  const previewToneClass = (tone: 'success' | 'warning' | 'neutral'): string => (
-    tone === 'success'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : tone === 'warning'
-        ? 'border-amber-200 bg-amber-50 text-amber-700'
-        : 'border-slate-200 bg-slate-100 text-slate-600'
-  );
 
   return (
     <div className="space-y-6">

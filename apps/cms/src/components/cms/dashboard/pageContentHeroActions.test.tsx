@@ -203,4 +203,28 @@ describe('pageContentHeroActions', () => {
 
     expect(html).toContain('Référence actuelle (introuvable): media:missing-video');
   });
+
+  it('renders hero preview safely when a slide exists and tone metadata is not explicitly set', () => {
+    const withSlide = appendHeroBackgroundItem(defaultHomePageContent);
+
+    expect(() =>
+      renderToStaticMarkup(
+        <PageContentSection
+          homeContentError=""
+          saveHomePageContent={async () => {}}
+          homeContentSaving={false}
+          hasUnsavedChanges={false}
+          canEditContent
+          resetHomePageContent={() => {}}
+          openMediaLibrary={() => {}}
+          heroMediaUploadError=""
+          heroMediaUploadTarget={null}
+          uploadHeroBackgroundMedia={async () => {}}
+          homeContentForm={withSlide}
+          setHomeContentForm={() => {}}
+          mediaFiles={[]}
+        />,
+      ),
+    ).not.toThrow();
+  });
 });
