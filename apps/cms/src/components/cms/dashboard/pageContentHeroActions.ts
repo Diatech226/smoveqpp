@@ -92,15 +92,19 @@ export function appendHeroBackgroundItemWithMedia(
   mediaReference: string,
 ): HomePageContentSettings {
   const nextItem = createHeroBackgroundItem(content.heroBackgroundItems.length, content.heroBackgroundOverlayOpacity);
+  const normalizedReference = mediaReference.trim();
   return {
     ...content,
-    heroBackgroundItems: [...content.heroBackgroundItems, { ...nextItem, media: mediaReference, desktopMedia: mediaReference }],
+    heroBackgroundItems: [
+      ...content.heroBackgroundItems,
+      updateHeroBackgroundItemMediaField(nextItem, 'desktopMedia', normalizedReference),
+    ],
   };
 }
 
 type AddHeroMediaClickEvent = {
-  preventDefault: () => void;
-  stopPropagation: () => void;
+  preventDefault?: () => void;
+  stopPropagation?: () => void;
   nativeEvent?: {
     stopImmediatePropagation?: () => void;
   };
@@ -110,8 +114,8 @@ export function handleAddHeroMediaClick(
   event: AddHeroMediaClickEvent | undefined,
   content: HomePageContentSettings,
 ): HomePageContentSettings {
-  event?.preventDefault();
-  event?.stopPropagation();
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
   event?.nativeEvent?.stopImmediatePropagation?.();
   return appendHeroBackgroundItem(content);
 }
