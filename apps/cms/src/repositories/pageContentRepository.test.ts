@@ -43,4 +43,39 @@ describe('pageContentRepository hero background persistence', () => {
     expect(reloaded.heroBackgroundItems[0].media).toBe('media:hero-library-1');
     expect(reloaded.heroBackgroundItems[0].desktopMedia).toBe('media:hero-library-1');
   });
+
+  it('preserves video-only hero slides and default autoplay flag on normalization', () => {
+    const saved = pageContentRepository.saveHomePageContent({
+      ...defaultHomePageContent,
+      heroBackgroundAutoplay: undefined as unknown as boolean,
+      heroBackgroundItems: [
+        {
+          id: 'hero-video',
+          sortOrder: 0,
+          label: 'Hero vidéo',
+          title: '',
+          description: '',
+          ctaLabel: '',
+          ctaHref: '',
+          type: 'video',
+          media: '',
+          desktopMedia: '',
+          tabletMedia: '',
+          mobileMedia: '',
+          videoMedia: 'media:hero-video',
+          alt: 'video slide',
+          overlayColor: '#04111f',
+          overlayOpacity: 0.4,
+          position: 'center',
+          size: 'cover',
+          enableParallax: true,
+          enable3DEffects: true,
+        },
+      ],
+    });
+
+    expect(saved.heroBackgroundAutoplay).toBe(true);
+    expect(saved.heroBackgroundItems).toHaveLength(1);
+    expect(saved.heroBackgroundItems[0].videoMedia).toBe('media:hero-video');
+  });
 });

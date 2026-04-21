@@ -23,7 +23,9 @@ const normalizeHeroBackgroundItems = (value: unknown): HomePageContentSettings['
       const desktopMedia = typeof entry.desktopMedia === 'string' ? entry.desktopMedia.trim() : '';
       const tabletMedia = typeof entry.tabletMedia === 'string' ? entry.tabletMedia.trim() : '';
       const mobileMedia = typeof entry.mobileMedia === 'string' ? entry.mobileMedia.trim() : '';
-      const primaryMedia = media || desktopMedia || tabletMedia || mobileMedia;
+      const videoMedia = typeof entry.videoMedia === 'string' ? entry.videoMedia.trim() : '';
+      const requestedType = isBackgroundType(entry.type) ? entry.type : 'image';
+      const primaryMedia = media || desktopMedia || tabletMedia || mobileMedia || (requestedType === 'video' ? videoMedia : '');
       if (!primaryMedia) return null;
       const overlayOpacityInput = typeof entry.overlayOpacity === 'number' ? entry.overlayOpacity : defaultHomePageContent.heroBackgroundOverlayOpacity;
       return {
@@ -34,12 +36,12 @@ const normalizeHeroBackgroundItems = (value: unknown): HomePageContentSettings['
         description: typeof entry.description === 'string' ? entry.description.trim() : '',
         ctaLabel: typeof entry.ctaLabel === 'string' ? entry.ctaLabel.trim() : '',
         ctaHref: typeof entry.ctaHref === 'string' ? entry.ctaHref.trim() : '',
-        type: isBackgroundType(entry.type) ? entry.type : 'image',
+        type: requestedType,
         media: primaryMedia,
         desktopMedia,
         tabletMedia,
         mobileMedia,
-        videoMedia: typeof entry.videoMedia === 'string' ? entry.videoMedia.trim() : '',
+        videoMedia,
         alt: typeof entry.alt === 'string' ? entry.alt.trim() : '',
         overlayColor: typeof entry.overlayColor === 'string' && entry.overlayColor.trim() ? entry.overlayColor.trim() : '#04111f',
         overlayOpacity: clamp(overlayOpacityInput, 0, 0.9),
@@ -113,8 +115,12 @@ const normalizeHomeContent = (value: HomePageContentSettings): HomePageContentSe
   heroSecondaryCtaLabel: value.heroSecondaryCtaLabel.trim() || defaultHomePageContent.heroSecondaryCtaLabel,
   heroSecondaryCtaHref: value.heroSecondaryCtaHref.trim() || defaultHomePageContent.heroSecondaryCtaHref,
   heroBackgroundItems: normalizeHeroBackgroundItems(value.heroBackgroundItems),
-  heroBackgroundRotationEnabled: Boolean(value.heroBackgroundRotationEnabled),
-  heroBackgroundAutoplay: Boolean(value.heroBackgroundAutoplay),
+  heroBackgroundRotationEnabled: typeof value.heroBackgroundRotationEnabled === 'boolean'
+    ? value.heroBackgroundRotationEnabled
+    : defaultHomePageContent.heroBackgroundRotationEnabled,
+  heroBackgroundAutoplay: typeof value.heroBackgroundAutoplay === 'boolean'
+    ? value.heroBackgroundAutoplay
+    : defaultHomePageContent.heroBackgroundAutoplay,
   heroBackgroundIntervalMs: clamp(Math.round(value.heroBackgroundIntervalMs || defaultHomePageContent.heroBackgroundIntervalMs), 2000, 30000),
   heroBackgroundTransitionStyle: isTransitionStyle(value.heroBackgroundTransitionStyle)
     ? value.heroBackgroundTransitionStyle

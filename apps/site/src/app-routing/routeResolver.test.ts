@@ -18,6 +18,7 @@ describe('routeResolver', () => {
 
     expect(resolution.page).toBe('home');
     expect(resolution.sectionToScroll).toBe('services');
+    expect(resolution.normalizedHash).toBe('/');
   });
 
   it('keeps deep project routes untouched', () => {

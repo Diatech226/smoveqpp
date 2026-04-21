@@ -30,27 +30,28 @@ function HomePageContent() {
   useEffect(() => {
     let active = true;
 
-    void fetchPublicMediaFiles()
-      .then((mediaFiles) => {
-        if (!active) return;
-        mediaRepository.replaceAll(mediaFiles);
-        setMediaRevision((current) => current + 1);
-      })
-      .catch((error) => {
-        if (!active) return;
-        console.warn('[public-content] media API unavailable, keeping repository snapshot.', error);
-      });
+    void (async () => {
+      const [mediaResult, pageContentResult] = await Promise.allSettled([
+        fetchPublicMediaFiles(),
+        fetchPublicPageContent(),
+      ]);
 
-    void fetchPublicPageContent()
-      .then((content) => {
-        if (!active) return;
-        const synced = pageContentRepository.saveHomePageContent(content);
+      if (!active) return;
+
+      if (mediaResult.status === 'fulfilled') {
+        mediaRepository.replaceAll(mediaResult.value);
+        setMediaRevision((current) => current + 1);
+      } else {
+        console.warn('[public-content] media API unavailable, keeping repository snapshot.', mediaResult.reason);
+      }
+
+      if (pageContentResult.status === 'fulfilled') {
+        const synced = pageContentRepository.saveHomePageContent(pageContentResult.value);
         setHomeContent(synced);
-      })
-      .catch((error) => {
-        if (!active) return;
-        console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', error);
-      });
+      } else {
+        console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', pageContentResult.reason);
+      }
+    })();
 
     void fetchPublicServices()
       .then((services) => {
