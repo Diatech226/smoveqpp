@@ -137,6 +137,7 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     return {
       page: 'home',
       sectionToScroll: route,
+      normalizedHash: '/',
     };
   }
 

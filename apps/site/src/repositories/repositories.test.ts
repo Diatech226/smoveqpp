@@ -565,4 +565,40 @@ describe('pageContentRepository', () => {
     expect(pageContentRepository.getHomePageContent().aboutImage).toBe('media:asset-home');
     expect(pageContentRepository.getHomePageContent().portfolioTitle).toBe('Nos projets récents');
   });
+
+  it('keeps autoplay enabled by default and preserves video-only hero slides', () => {
+    const current = pageContentRepository.getHomePageContent();
+    const saved = pageContentRepository.saveHomePageContent({
+      ...current,
+      heroBackgroundAutoplay: undefined as unknown as boolean,
+      heroBackgroundItems: [
+        {
+          id: 'hero-video',
+          sortOrder: 0,
+          label: 'Video hero',
+          title: '',
+          description: '',
+          ctaLabel: '',
+          ctaHref: '',
+          type: 'video',
+          media: '',
+          desktopMedia: '',
+          tabletMedia: '',
+          mobileMedia: '',
+          videoMedia: 'media:hero-video',
+          alt: 'video slide',
+          overlayColor: '#04111f',
+          overlayOpacity: 0.4,
+          position: 'center',
+          size: 'cover',
+          enableParallax: true,
+          enable3DEffects: true,
+        },
+      ],
+    });
+
+    expect(saved.heroBackgroundAutoplay).toBe(true);
+    expect(saved.heroBackgroundItems).toHaveLength(1);
+    expect(saved.heroBackgroundItems[0].videoMedia).toBe('media:hero-video');
+  });
 });

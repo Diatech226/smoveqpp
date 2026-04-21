@@ -103,4 +103,10 @@ describe('assetReference', () => {
     expect(resolved.isValid).toBe(false);
     expect(resolved.url.startsWith('data:image/svg+xml')).toBe(true);
   });
+
+  it('encodes fallback media data URI so CSS background-image can render it safely', () => {
+    const resolved = resolveCanonicalMedia('media:missing-asset', 'Fallback alt');
+    expect(resolved.url).toContain('%23');
+    expect(resolved.url).not.toContain('<svg');
+  });
 });

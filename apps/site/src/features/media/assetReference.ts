@@ -14,8 +14,8 @@ import { logWarn } from '../../utils/observability';
 export { MEDIA_REFERENCE_PREFIX };
 
 const HTTP_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
-const FALLBACK_MEDIA_DATA_URL =
-  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="%23eef2ff"/><text x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%234f46e5" font-family="Arial,sans-serif" font-size="40">Media unavailable</text></svg>';
+const FALLBACK_MEDIA_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#eef2ff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#4f46e5" font-family="Arial,sans-serif" font-size="40">Media unavailable</text></svg>`;
+const FALLBACK_MEDIA_DATA_URL = `data:image/svg+xml,${encodeURIComponent(FALLBACK_MEDIA_SVG)}`;
 
 const toApiOrigin = (apiBaseUrl: string): string => {
   if (!apiBaseUrl.startsWith('http://') && !apiBaseUrl.startsWith('https://')) {
