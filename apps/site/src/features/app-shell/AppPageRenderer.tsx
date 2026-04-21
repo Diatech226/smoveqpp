@@ -33,6 +33,17 @@ export default function AppPageRenderer({
   currentPage,
   cmsEnabled
 }: AppPageRendererProps) {
+  const renderHomePage = () => (
+    <PublicSiteShell>
+      <SectionErrorBoundary scope="home">
+        <>
+          <Navigation currentPath="/" />
+          <HomePageContent />
+        </>
+      </SectionErrorBoundary>
+    </PublicSiteShell>
+  );
+
   if (currentPage === 'auth-loading') {
     return (
       <AppLoadingState
@@ -155,16 +166,7 @@ export default function AppPageRenderer({
 
   switch (currentPage) {
     case 'home':
-      return (
-        <PublicSiteShell>
-          <SectionErrorBoundary scope="home">
-            <>
-              <Navigation currentPath="/" />
-              <HomePageContent />
-            </>
-          </SectionErrorBoundary>
-        </PublicSiteShell>
-      );
+      return renderHomePage();
     case 'projects':
       return (
         <PublicSiteShell>
@@ -236,15 +238,6 @@ export default function AppPageRenderer({
         </PublicSiteShell>
       );
     default:
-      return (
-        <PublicSiteShell>
-          <SectionErrorBoundary scope="home">
-            <>
-              <Navigation currentPath="/" />
-              <HomePageContent />
-            </>
-          </SectionErrorBoundary>
-        </PublicSiteShell>
-      );
+      return renderHomePage();
   }
 }

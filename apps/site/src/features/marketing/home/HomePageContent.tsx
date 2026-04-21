@@ -23,44 +23,54 @@ function HomePageContent() {
   const aboutMedia = resolveBlogMediaReference(homeContent.aboutImage, 'SMOVE Team');
   const [servicesData, setServicesData] = useState(() => selectHomepageServices(serviceRepository.getAll()));
   const [blogPosts, setBlogPosts] = useState<BlogListItem[]>([]);
+  const [mediaRevision, setMediaRevision] = useState(0);
   const [isSubmittingContact, setIsSubmittingContact] = useState(false);
   const [contactFeedback, setContactFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     let active = true;
-    void Promise.allSettled([fetchPublicPageContent(), fetchPublicServices(), fetchPublicMediaFiles(), getBlogContentContractFromSource()])
-      .then(([pageResult, servicesResult, mediaResult, blogResult]) => {
+
+    void fetchPublicMediaFiles()
+      .then((mediaFiles) => {
         if (!active) return;
+        mediaRepository.replaceAll(mediaFiles);
+        setMediaRevision((current) => current + 1);
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.warn('[public-content] media API unavailable, keeping repository snapshot.', error);
+      });
 
-        if (mediaResult.status === 'fulfilled') {
-          mediaRepository.replaceAll(mediaResult.value);
-        } else {
-          console.warn('[public-content] media API unavailable, keeping repository snapshot.', mediaResult.reason);
-        }
+    void fetchPublicPageContent()
+      .then((content) => {
+        if (!active) return;
+        const synced = pageContentRepository.saveHomePageContent(content);
+        setHomeContent(synced);
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', error);
+      });
 
-        if (pageResult.status === 'fulfilled') {
-          const synced = pageContentRepository.saveHomePageContent(pageResult.value);
-          setHomeContent(synced);
-          const unresolvedSlides = synced.heroBackgroundItems.filter((item) => item.media.trim().startsWith('media:')).length;
-          if (unresolvedSlides > 0 && mediaResult.status !== 'fulfilled') {
-            console.warn('[public-content] hero background uses media references but media catalog did not refresh.');
-          }
-        } else {
-          console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', pageResult.reason);
-        }
+    void fetchPublicServices()
+      .then((services) => {
+        if (!active) return;
+        const synced = serviceRepository.replaceAll(services);
+        setServicesData(selectHomepageServices(synced));
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);
+      });
 
-        if (servicesResult.status === 'fulfilled') {
-          const synced = serviceRepository.replaceAll(servicesResult.value);
-          setServicesData(selectHomepageServices(synced));
-        } else {
-          console.warn('[public-content] services API unavailable, keeping repository snapshot.', servicesResult.reason);
-        }
-
-        if (blogResult.status === 'fulfilled') {
-          setBlogPosts(selectHomepageBlogPosts(blogResult.value.posts));
-        } else {
-          console.warn('[public-content] blog API unavailable, keeping repository snapshot.', blogResult.reason);
-        }
+    void getBlogContentContractFromSource()
+      .then((blogContent) => {
+        if (!active) return;
+        setBlogPosts(selectHomepageBlogPosts(blogContent.posts));
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.warn('[public-content] blog API unavailable, keeping repository snapshot.', error);
       });
 
     return () => {
@@ -106,6 +116,7 @@ function HomePageContent() {
     <div className="relative" style={{ position: 'relative' }}>
       {/* Hero Section with 3D Effect */}
       <Hero3DEnhanced
+        key={`hero-media-revision-${mediaRevision}`}
         badgeLabel={homeContent.heroBadge}
         titleLine1={homeContent.heroTitleLine1}
         titleLine2={homeContent.heroTitleLine2}
