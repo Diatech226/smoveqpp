@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { resolveHeroBackgroundItems, nextHeroBackgroundIndex, shouldAutoplayHeroBackground } from './heroBackground';
+import {
+  nextHeroBackgroundIndex,
+  normalizeHeroBackgroundIntervalMs,
+  previousHeroBackgroundIndex,
+  resolveHeroBackgroundItems,
+  shouldAutoplayHeroBackground,
+} from './heroBackground';
 import { mediaRepository } from '../../../repositories/mediaRepository';
 
 describe('hero background model', () => {
@@ -31,6 +37,11 @@ describe('hero background model', () => {
     expect(shouldAutoplayHeroBackground(true, true, 1)).toBe(false);
     expect(nextHeroBackgroundIndex(0, 3)).toBe(1);
     expect(nextHeroBackgroundIndex(2, 3)).toBe(0);
+    expect(previousHeroBackgroundIndex(0, 3)).toBe(2);
+    expect(previousHeroBackgroundIndex(1, 3)).toBe(0);
+    expect(normalizeHeroBackgroundIntervalMs(1000)).toBe(2000);
+    expect(normalizeHeroBackgroundIntervalMs(4500)).toBe(4500);
+    expect(normalizeHeroBackgroundIntervalMs(45000)).toBe(30000);
   });
 
   it('resolves responsive sources with fallback chaining', () => {

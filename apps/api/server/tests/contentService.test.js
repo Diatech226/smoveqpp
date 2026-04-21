@@ -893,6 +893,38 @@ describe('ContentService production hardening', () => {
     expect(result.error.code).toBe('PAGE_CONTENT_VALIDATION_ERROR');
   });
 
+  it('persists video-only hero slides and reloads them as valid entries', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    service.saveMediaFile({
+      id: 'hero-bg-video',
+      name: 'hero-bg-video.mp4',
+      type: 'video',
+      url: 'https://example.com/hero-bg-video.mp4',
+      thumbnailUrl: 'https://example.com/hero-bg-video.jpg',
+      size: 120,
+      uploadedDate: new Date().toISOString(),
+      uploadedBy: 'admin',
+      alt: 'hero video',
+      tags: [],
+    });
+
+    const base = service.getPageContent().home;
+    const result = service.savePageContent({
+      home: {
+        ...base,
+        heroBackgroundItems: [
+          { id: 'slide-video', sortOrder: 0, label: 'Video slide', type: 'video', media: '', videoMedia: 'media:hero-bg-video', alt: 'Video alt' },
+        ],
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    const saved = service.getPageContent().home.heroBackgroundItems;
+    expect(saved).toHaveLength(1);
+    expect(saved[0].type).toBe('video');
+    expect(saved[0].videoMedia).toBe('media:hero-bg-video');
+  });
+
   it('returns media usage references to support safe delete guardrails', () => {
     const service = new ContentService({
       contentRepository: new MemoryContentRepository({

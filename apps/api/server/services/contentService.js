@@ -2231,7 +2231,9 @@ class ContentService {
             const desktopMedia = typeof item.desktopMedia === 'string' ? item.desktopMedia.trim() : '';
             const tabletMedia = typeof item.tabletMedia === 'string' ? item.tabletMedia.trim() : '';
             const mobileMedia = typeof item.mobileMedia === 'string' ? item.mobileMedia.trim() : '';
-            const primaryMedia = media || desktopMedia || tabletMedia || mobileMedia;
+            const videoMedia = typeof item.videoMedia === 'string' ? item.videoMedia.trim() : '';
+            const requestedType = item.type === 'video' ? 'video' : 'image';
+            const primaryMedia = media || desktopMedia || tabletMedia || mobileMedia || (requestedType === 'video' ? videoMedia : '');
             if (!primaryMedia) return null;
             const overlayOpacity = typeof item.overlayOpacity === 'number' ? item.overlayOpacity : defaultHomePageContent.heroBackgroundOverlayOpacity;
             return {
@@ -2242,12 +2244,12 @@ class ContentService {
               description: typeof item.description === 'string' ? item.description.trim() : '',
               ctaLabel: typeof item.ctaLabel === 'string' ? item.ctaLabel.trim() : '',
               ctaHref: typeof item.ctaHref === 'string' ? item.ctaHref.trim() : '',
-              type: item.type === 'video' ? 'video' : 'image',
+              type: requestedType,
               media: primaryMedia,
               desktopMedia,
               tabletMedia,
               mobileMedia,
-              videoMedia: typeof item.videoMedia === 'string' ? item.videoMedia.trim() : '',
+              videoMedia,
               alt: typeof item.alt === 'string' ? item.alt.trim() : '',
               overlayColor: typeof item.overlayColor === 'string' && item.overlayColor.trim() ? item.overlayColor.trim() : '#04111f',
               overlayOpacity: Math.max(0, Math.min(0.9, overlayOpacity)),
@@ -2301,7 +2303,7 @@ class ContentService {
         typeof item.ctaHref === 'string' &&
         (item.type === 'image' || item.type === 'video') &&
         typeof item.media === 'string' &&
-        item.media.trim().length > 0 &&
+        (item.media.trim().length > 0 || (item.type === 'video' && typeof item.videoMedia === 'string' && item.videoMedia.trim().length > 0)) &&
         (item.desktopMedia === undefined || typeof item.desktopMedia === 'string') &&
         (item.tabletMedia === undefined || typeof item.tabletMedia === 'string') &&
         (item.mobileMedia === undefined || typeof item.mobileMedia === 'string') &&

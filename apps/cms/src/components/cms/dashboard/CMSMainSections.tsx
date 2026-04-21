@@ -332,6 +332,10 @@ export function PageContentSection({
       }, 0),
     [heroBackgroundItems],
   );
+  const configuredHeroMediaCount = heroBackgroundItems.length - unresolvedHeroMediaCount;
+  const heroRotationSummary = homeContentForm.heroBackgroundRotationEnabled && heroBackgroundItems.length > 1
+    ? `Rotation active • ${homeContentForm.heroBackgroundAutoplay ? 'Autoplay on' : 'Autoplay off'}`
+    : 'Rotation inactive';
   const sections = [
     { id: 'hero', title: 'Hero', description: 'Contenu de première impression visible au chargement.' },
     { id: 'about', title: 'À propos & services', description: 'Storytelling, promesse et image de marque.' },
@@ -400,11 +404,23 @@ export function PageContentSection({
                 <p className={ADMIN_HELPER_TEXT_CLASS}>
                   Workflow recommandé : 1) ajouter une slide, 2) choisir un média depuis la médiathèque ou uploader, 3) régler responsive/overlay, 4) enregistrer.
                 </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-[#d8e7ee] bg-[#f5fbfe] px-2.5 py-1 text-[11px] font-medium text-[#225062]">{heroBackgroundItems.length} slide(s)</span>
-                  <span className="rounded-full border border-[#d8e7ee] bg-[#f5fbfe] px-2.5 py-1 text-[11px] font-medium text-[#225062]">Transition: {homeContentForm.heroBackgroundTransitionStyle}</span>
-                  <span className="rounded-full border border-[#d8e7ee] bg-[#f5fbfe] px-2.5 py-1 text-[11px] font-medium text-[#225062]">Intervalle: {homeContentForm.heroBackgroundIntervalMs} ms</span>
-                  <span className="rounded-full border border-[#d8e7ee] bg-[#f5fbfe] px-2.5 py-1 text-[11px] font-medium text-[#225062]">Rotation: {homeContentForm.heroBackgroundRotationEnabled ? 'active' : 'inactive'}</span>
+                <div className="mt-2 grid gap-2 md:grid-cols-4">
+                  <div className="rounded-[10px] border border-[#d8e7ee] bg-[#f5fbfe] px-3 py-2">
+                    <p className="text-[11px] text-[#5f7178]">Slides configurées</p>
+                    <p className="text-[13px] font-semibold text-[#225062]">{heroBackgroundItems.length}</p>
+                  </div>
+                  <div className="rounded-[10px] border border-[#d8e7ee] bg-[#f5fbfe] px-3 py-2">
+                    <p className="text-[11px] text-[#5f7178]">Médias résolus</p>
+                    <p className="text-[13px] font-semibold text-[#225062]">{configuredHeroMediaCount}</p>
+                  </div>
+                  <div className="rounded-[10px] border border-[#d8e7ee] bg-[#f5fbfe] px-3 py-2">
+                    <p className="text-[11px] text-[#5f7178]">Transition / intervalle</p>
+                    <p className="text-[13px] font-semibold text-[#225062]">{homeContentForm.heroBackgroundTransitionStyle} • {homeContentForm.heroBackgroundIntervalMs}ms</p>
+                  </div>
+                  <div className="rounded-[10px] border border-[#d8e7ee] bg-[#f5fbfe] px-3 py-2">
+                    <p className="text-[11px] text-[#5f7178]">Rotation</p>
+                    <p className="text-[13px] font-semibold text-[#225062]">{heroRotationSummary}</p>
+                  </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="inline-flex items-center gap-2 text-[13px] text-[#3c4f56]">
@@ -445,7 +461,7 @@ export function PageContentSection({
                   {unresolvedHeroMediaCount > 0 ? <AdminWarningState label={`${unresolvedHeroMediaCount} slide(s) utilisent un média non résolu. Corrigez avant publication.`} /> : null}
                   {heroBackgroundItems.length === 0 ? <p className={ADMIN_HELPER_TEXT_CLASS}>Aucun média configuré: le hero utilise son fond premium par défaut.</p> : null}
                   {heroBackgroundItems.map((item, index) => (
-                    <div key={item.id} className="rounded-[12px] border border-[#dbe7ec] bg-white p-3">
+                    <div key={item.id} className="rounded-[12px] border border-[#dbe7ec] bg-white p-3 shadow-[0_8px_22px_rgba(12,42,60,0.06)]">
                       {(() => {
                         const preview = resolveCmsPreviewReference(item.desktopMedia || item.media, item.alt || `Hero slide ${index + 1}`, `Hero slide ${index + 1}`);
                         return (
@@ -472,12 +488,12 @@ export function PageContentSection({
                             const items = [...prev.heroBackgroundItems];
                             [items[index - 1], items[index]] = [items[index], items[index - 1]];
                             return { ...prev, heroBackgroundItems: items.map((entry, position) => ({ ...entry, sortOrder: position })) };
-                          })}>↑</AdminButton>
+                          })}>Monter</AdminButton>
                           <AdminButton type="button" size="sm" disabled={index === heroBackgroundItems.length - 1} onClick={() => setHomeContentForm((prev) => {
                             const items = [...prev.heroBackgroundItems];
                             [items[index + 1], items[index]] = [items[index], items[index + 1]];
                             return { ...prev, heroBackgroundItems: items.map((entry, position) => ({ ...entry, sortOrder: position })) };
-                          })}>↓</AdminButton>
+                          })}>Descendre</AdminButton>
                           <AdminButton type="button" size="sm" onClick={() => setHomeContentForm((prev) => {
                             const duplicate = { ...item, id: `${item.id}-copy-${Date.now()}` };
                             const items = [...prev.heroBackgroundItems];
@@ -493,7 +509,9 @@ export function PageContentSection({
                         <span className="rounded-full border border-[#dce8ed] bg-[#f7fbfd] px-2 py-0.5 text-[#48606a]">Mobile: {item.mobileMedia || item.tabletMedia || item.desktopMedia || item.media || 'auto'}</span>
                         {item.videoMedia ? <span className="rounded-full border border-[#dce8ed] bg-[#f7fbfd] px-2 py-0.5 text-[#48606a]">Video: {item.videoMedia}</span> : null}
                       </div>
-                      <div className="grid gap-2 md:grid-cols-2">
+                      <div className="mb-2 rounded-[10px] border border-[#e4edf1] bg-[#f9fcfe] p-2.5">
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#55727d]">Contenu de slide</p>
+                        <div className="grid gap-2 md:grid-cols-2">
                         <input value={item.label} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, label: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Label interne (optionnel)" />
                         <input value={item.title} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, title: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Titre de la diapositive (optionnel)" />
                         <textarea value={item.description} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, description: event.target.value } : entry)) }))} className={`${ADMIN_TEXTAREA_CLASS} md:col-span-2`} placeholder="Description de la diapositive (optionnel)" />
@@ -503,6 +521,11 @@ export function PageContentSection({
                           <option value="image">Image</option>
                           <option value="video">Vidéo (optionnel)</option>
                         </select>
+                        </div>
+                      </div>
+                      <div className="rounded-[10px] border border-[#e4edf1] bg-[#f9fcfe] p-2.5">
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#55727d]">Médias & responsive</p>
+                        <div className="grid gap-2 md:grid-cols-2">
                         <select value={item.media} onChange={(event) => setHomeContentForm((prev) => assignHeroBackgroundMedia(prev, item.id, 'media', event.target.value))} className={ADMIN_INPUT_CLASS}>
                           <option value="">Image principale (required)</option>
                           {!item.media || imageMediaReferenceSet.has(item.media) ? null : (
@@ -547,6 +570,11 @@ export function PageContentSection({
                           )}
                           {videoMediaOptions.map((file) => (<option key={file.id} value={toMediaReferenceValue(file.id)}>{file.label || file.name}</option>))}
                         </select>
+                        </div>
+                      </div>
+                      <div className="mt-2 rounded-[10px] border border-[#e4edf1] bg-[#f9fcfe] p-2.5">
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#55727d]">Overlay, position et effets</p>
+                        <div className="grid gap-2 md:grid-cols-2">
                         <input value={item.alt} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, alt: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Alt (optionnel)" />
                         <input value={item.position} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, position: event.target.value } : entry)) }))} className={ADMIN_INPUT_CLASS} placeholder="Position (center, top, 65% 30%)" />
                         <select value={item.size} onChange={(event) => setHomeContentForm((prev) => ({ ...prev, heroBackgroundItems: prev.heroBackgroundItems.map((entry) => (entry.id === item.id ? { ...entry, size: event.target.value === 'contain' ? 'contain' : 'cover' } : entry)) }))} className={ADMIN_INPUT_CLASS}>
@@ -570,6 +598,7 @@ export function PageContentSection({
                           Recommandé: Desktop 2400×1400, Tablet 1600×1000, Mobile 1080×1600, format WebP.
                         </p>
                         {heroMediaUploadTarget === item.id ? <p className={ADMIN_HELPER_TEXT_CLASS}>Upload en cours… l’image sera ajoutée à la médiathèque puis liée automatiquement.</p> : null}
+                        </div>
                       </div>
                     </div>
                   ))}
