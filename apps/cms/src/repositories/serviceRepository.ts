@@ -62,22 +62,45 @@ interface ServiceRepository {
 }
 
 class LocalServiceRepository implements ServiceRepository {
-  private readonly defaults = this.validateServices(staticServices);
+  private readonly defaults = this.normalizeServices(staticServices);
 
-  private validateServices(input: unknown): Service[] {
-    if (!isServiceArray(input)) {
+  private normalizeServices(input: unknown): Service[] {
+    if (!Array.isArray(input)) {
       if (import.meta.env.DEV) {
-        console.warn('[serviceRepository] invalid service seed data, using empty array');
+        console.warn('[serviceRepository] invalid service collection shape, using empty array');
       }
       return [];
     }
 
-    return input.map((service) => normalizeService(service)).sort(compareServices);
+    const normalized = input
+      .flatMap((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return [];
+        }
+
+        const candidate = entry as Partial<Service> & { id?: string };
+        if (!candidate.id || typeof candidate.id !== 'string' || !candidate.id.trim()) {
+          return [];
+        }
+
+        try {
+          return [normalizeService(candidate as Partial<Service> & { id: string })];
+        } catch {
+          return [];
+        }
+      })
+      .sort(compareServices);
+
+    if (!isServiceArray(normalized) && import.meta.env.DEV) {
+      console.warn('[serviceRepository] service normalization produced invalid entries, dropping malformed data');
+    }
+
+    return normalized;
   }
 
   private read(): Service[] {
-    const services = readFromStorage(SERVICE_STORAGE_KEY, isServiceArray, this.defaults, { persistFallback: true });
-    return services.map((service) => normalizeService(service)).sort(compareServices);
+    const services = readFromStorage(SERVICE_STORAGE_KEY, Array.isArray, this.defaults, { persistFallback: true });
+    return this.normalizeServices(services);
   }
 
   getAll(): Service[] {
@@ -93,7 +116,7 @@ class LocalServiceRepository implements ServiceRepository {
   }
 
   replaceAll(services: Service[]): Service[] {
-    const normalized = this.validateServices(services);
+    const normalized = this.normalizeServices(services);
     writeToStorage(SERVICE_STORAGE_KEY, normalized);
     return normalized;
   }

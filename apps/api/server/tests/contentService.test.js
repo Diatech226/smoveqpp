@@ -634,6 +634,38 @@ describe('ContentService services synchronization', () => {
     expect(result.ok).toBe(false);
     expect(result.error.code).toBe('SERVICE_VALIDATION_ERROR');
   });
+
+  it('rejects duplicate service route slug to avoid public detail collisions', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const first = service.saveService({
+      id: 'svc-route-1',
+      title: 'Service Route One',
+      slug: 'service-route-one',
+      routeSlug: 'service-route',
+      description: 'Service description one.',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature one'],
+      status: 'draft',
+    });
+
+    const second = service.saveService({
+      id: 'svc-route-2',
+      title: 'Service Route Two',
+      slug: 'service-route-two',
+      routeSlug: 'service-route',
+      description: 'Service description two.',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature two'],
+      status: 'draft',
+    });
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(false);
+    expect(second.error.code).toBe('SERVICE_ROUTE_SLUG_CONFLICT');
+  });
 });
 
 describe('ContentService production hardening', () => {
