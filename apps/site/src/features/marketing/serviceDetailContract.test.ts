@@ -50,4 +50,14 @@ describe('serviceDetailContract', () => {
     );
     expect(found).toBeUndefined();
   });
+
+  it('uses icon-like media as detail hero media when provided by CMS', () => {
+    const detail = buildServiceDetailContract({
+      ...publishedService,
+      iconLikeAsset: 'https://cdn.example.com/service-hero.png',
+    });
+
+    expect(detail.heroMedia.src).toBe('https://cdn.example.com/service-hero.png');
+    expect(detail.heroMedia.isMediaAsset).toBe(false);
+  });
 });
