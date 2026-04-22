@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 
-const CMS_SECTIONS = new Set(['overview', 'projects', 'blog', 'media', 'content', 'users', 'contacts', 'newsletter', 'settings']);
+const CMS_SECTIONS = new Set(['overview', 'projects', 'services', 'blog', 'media', 'content', 'users', 'contacts', 'newsletter', 'settings']);
 
-function parseHashRoute(hash: string): string {
+export function parseHashRoute(hash: string): string {
   const rawRoute = (hash.startsWith('#') ? hash.slice(1) : hash) || 'home';
   return rawRoute.split('?')[0];
 }
 
-function resolveCmsSectionFromRoute(route: string): string {
+export function resolveCmsSectionFromRoute(route: string): string {
   if (route === 'cms' || route === 'cms-dashboard') {
     return 'overview';
   }
