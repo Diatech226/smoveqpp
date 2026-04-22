@@ -666,6 +666,98 @@ describe('ContentService services synchronization', () => {
     expect(second.ok).toBe(false);
     expect(second.error.code).toBe('SERVICE_ROUTE_SLUG_CONFLICT');
   });
+
+  it('allows media-only updates for legacy-like published services with incomplete optional data', () => {
+    const repo = new MemoryContentRepository({
+      services: [
+        {
+          id: 'svc-legacy-media',
+          title: 'Legacy Media Service',
+          slug: 'legacy-media-service',
+          routeSlug: 'legacy-media-service',
+          description: 'Legacy description',
+          icon: 'palette',
+          color: 'from-[#00b3e8] to-[#00c0e8]',
+          features: ['Legacy feature'],
+          status: 'published',
+          ctaTitle: '',
+          ctaDescription: '',
+          processSteps: [],
+        },
+      ],
+      mediaFiles: [
+        {
+          id: 'asset-service-icon',
+          name: 'service-icon.jpg',
+          type: 'image',
+          url: 'https://cdn.example.com/service-icon.jpg',
+          thumbnailUrl: 'https://cdn.example.com/service-icon.jpg',
+          size: 1500,
+          uploadedDate: '2026-01-01T00:00:00.000Z',
+          uploadedBy: 'tester',
+          alt: 'service icon',
+        },
+      ],
+    });
+    const service = new ContentService({ contentRepository: repo });
+
+    const result = service.saveService({
+      id: 'svc-legacy-media',
+      iconLikeAsset: 'media:asset-service-icon',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.service.iconLikeAsset).toBe('media:asset-service-icon');
+    expect(result.service.title).toBe('Legacy Media Service');
+    expect(result.service.features).toEqual(['Legacy feature']);
+  });
+
+  it('preserves existing values when update payload omits non-critical fields', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const created = service.saveService({
+      id: 'svc-preserve',
+      title: 'Service Preserve',
+      slug: 'service-preserve',
+      routeSlug: 'service-preserve',
+      description: 'Description to preserve',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature one'],
+      status: 'draft',
+      ctaTitle: 'CTA initial',
+    });
+    expect(created.ok).toBe(true);
+
+    const update = service.saveService({
+      id: 'svc-preserve',
+      title: 'Service Preserve Updated',
+    });
+
+    expect(update.ok).toBe(true);
+    expect(update.service.description).toBe('Description to preserve');
+    expect(update.service.features).toEqual(['Feature one']);
+    expect(update.service.ctaTitle).toBe('CTA initial');
+    expect(update.service.title).toBe('Service Preserve Updated');
+  });
+
+  it('still enforces required create fields and returns field-level validation details', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const result = service.saveService({
+      id: 'svc-invalid-create',
+      title: 'Invalid create',
+      slug: 'invalid-create',
+      routeSlug: 'invalid-create',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: [],
+      status: 'draft',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('SERVICE_VALIDATION_ERROR');
+    expect(result.error.details.field).toBe('description');
+    expect(result.error.message).toContain('description is required on create');
+  });
 });
 
 describe('ContentService production hardening', () => {

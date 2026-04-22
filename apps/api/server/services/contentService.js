@@ -889,12 +889,23 @@ class ContentService {
   saveService(service, actor = {}) {
     const actorContext = this.normalizeActorContext(actor);
     const state = this.readState();
-    const normalized = this.registerServiceMediaReferences(this.normalizeService(service, actorContext), { state, actor: actorContext });
-    if (!this.validateService(normalized)) {
-      return { ok: false, error: { code: 'SERVICE_VALIDATION_ERROR', message: 'Invalid service payload.' } };
+    const services = this.listServices({ organizationId: actorContext.organizationId });
+    const existing = services.find((entry) => entry.id === `${service?.id || ''}`.trim());
+    const mode = existing ? 'update' : 'create';
+    const mergedPayload = mode === 'update' ? this.mergeServiceForUpdate(existing, service) : service;
+    const normalized = this.registerServiceMediaReferences(this.normalizeService(mergedPayload, actorContext), { state, actor: actorContext });
+    const validation = this.validateServiceForMode(normalized, mode);
+    if (!validation.ok) {
+      return {
+        ok: false,
+        error: {
+          code: 'SERVICE_VALIDATION_ERROR',
+          message: `Service ${mode} rejected: ${validation.message}`,
+          details: validation,
+        },
+      };
     }
 
-    const services = this.listServices({ organizationId: actorContext.organizationId });
     const slugConflict = services.find((entry) => entry.slug === normalized.slug && entry.id !== normalized.id);
     if (slugConflict) {
       return { ok: false, error: { code: 'SERVICE_SLUG_CONFLICT', message: 'Service slug already exists.' } };
@@ -903,11 +914,13 @@ class ContentService {
     if (routeSlugConflict) {
       return { ok: false, error: { code: 'SERVICE_ROUTE_SLUG_CONFLICT', message: 'Service route slug already exists.' } };
     }
-    const existing = services.find((entry) => entry.id === normalized.id);
     if (existing && !this.canMutateEntity(actorContext, existing, 'write')) {
       return { ok: false, error: { code: 'FORBIDDEN_OWNERSHIP', message: 'Cannot modify service owned by another user.' } };
     }
-    if (normalized.status === 'published') {
+    const shouldValidatePublishability =
+      normalized.status === 'published' &&
+      (!existing || existing.status !== 'published');
+    if (shouldValidatePublishability) {
       const publishability = this.evaluateServicePublishability(normalized);
       if (!publishability.ok) {
         return { ok: false, error: { code: 'SERVICE_NOT_PUBLISHABLE', message: publishability.message } };
@@ -922,6 +935,45 @@ class ContentService {
     state.services = [...globalServices, ...services];
     this.writeState(state);
     return { ok: true, service: normalized };
+  }
+
+  mergeServiceForUpdate(existing, incoming) {
+    const source = incoming && typeof incoming === 'object' ? incoming : {};
+    const current = existing && typeof existing === 'object' ? existing : {};
+    const has = (key) => Object.prototype.hasOwnProperty.call(source, key);
+    const hasSeo = has('seo') && source.seo && typeof source.seo === 'object';
+
+    return {
+      ...current,
+      ...source,
+      id: has('id') ? source.id : current.id,
+      title: has('title') ? source.title : current.title,
+      slug: has('slug') ? source.slug : current.slug,
+      routeSlug: has('routeSlug') ? source.routeSlug : current.routeSlug,
+      description: has('description') ? source.description : current.description,
+      shortDescription: has('shortDescription') ? source.shortDescription : current.shortDescription,
+      icon: has('icon') ? source.icon : current.icon,
+      iconLikeAsset: has('iconLikeAsset') ? source.iconLikeAsset : current.iconLikeAsset,
+      color: has('color') ? source.color : current.color,
+      features: has('features') ? source.features : current.features,
+      status: has('status') ? source.status : current.status,
+      featured: has('featured') ? source.featured : current.featured,
+      overviewTitle: has('overviewTitle') ? source.overviewTitle : current.overviewTitle,
+      overviewDescription: has('overviewDescription') ? source.overviewDescription : current.overviewDescription,
+      ctaTitle: has('ctaTitle') ? source.ctaTitle : current.ctaTitle,
+      ctaDescription: has('ctaDescription') ? source.ctaDescription : current.ctaDescription,
+      ctaPrimaryLabel: has('ctaPrimaryLabel') ? source.ctaPrimaryLabel : current.ctaPrimaryLabel,
+      ctaPrimaryHref: has('ctaPrimaryHref') ? source.ctaPrimaryHref : current.ctaPrimaryHref,
+      processTitle: has('processTitle') ? source.processTitle : current.processTitle,
+      processSteps: has('processSteps') ? source.processSteps : current.processSteps,
+      seo: {
+        ...(current.seo || {}),
+        ...(hasSeo ? source.seo : {}),
+      },
+      createdAt: current.createdAt,
+      ownerUserId: current.ownerUserId,
+      organizationId: current.organizationId,
+    };
   }
 
   deleteService(id) {
@@ -1903,43 +1955,57 @@ class ContentService {
   }
 
   validateService(service) {
-    return Boolean(
-      service &&
-        typeof service.id === 'string' &&
-        service.id.length > 0 &&
-        typeof service.title === 'string' &&
-        service.title.length > 0 &&
-        typeof service.slug === 'string' &&
-        service.slug.length > 0 &&
-        isValidSlug(service.slug) &&
-        typeof service.routeSlug === 'string' &&
-        service.routeSlug.length > 0 &&
-        isValidSlug(service.routeSlug) &&
-        (service.iconLikeAsset === undefined || this.isValidMediaLink(service.iconLikeAsset)) &&
-        (service.seo === undefined ||
-          (typeof service.seo === 'object' &&
-            (service.seo.title === undefined || typeof service.seo.title === 'string') &&
-            (service.seo.description === undefined || typeof service.seo.description === 'string') &&
-            (service.seo.canonicalSlug === undefined || isValidSlug(service.seo.canonicalSlug)) &&
-            (service.seo.socialImage === undefined || this.isValidMediaLink(service.seo.socialImage)))) &&
-        typeof service.description === 'string' &&
-        service.description.length > 0 &&
-        typeof service.icon === 'string' &&
-        service.icon.length > 0 &&
-        SERVICE_ICONS.has(service.icon) &&
-        typeof service.color === 'string' &&
-        service.color.length > 0 &&
-        COLOR_GRADIENT_PATTERN.test(service.color) &&
-        Array.isArray(service.features) &&
-        service.features.length > 0 &&
-        typeof service.ownerUserId === 'string' &&
-        service.ownerUserId.trim().length > 0 &&
-        typeof service.organizationId === 'string' &&
-        service.organizationId.trim().length > 0 &&
-        SERVICE_STATUSES.has(service.status) &&
-        (service.processTitle === undefined || typeof service.processTitle === 'string') &&
-        (service.processSteps === undefined || (Array.isArray(service.processSteps) && service.processSteps.every((step) => typeof step === 'string' && step.trim().length > 0)))
-    );
+    return this.validateServiceForMode(service, 'create').ok;
+  }
+
+  validateServiceForMode(service, mode = 'create') {
+    const fail = (field, message) => ({ ok: false, field, message, mode });
+    const isUpdate = mode === 'update';
+
+    if (!service || typeof service !== 'object') return fail('service', 'payload must be an object');
+    if (typeof service.id !== 'string' || !service.id.length) return fail('id', 'id is required');
+    if (typeof service.title !== 'string' || !service.title.length) return fail('title', 'title is required');
+    if (typeof service.slug !== 'string' || !service.slug.length || !isValidSlug(service.slug)) {
+      return fail('slug', 'slug is required and must be a valid slug');
+    }
+    if (typeof service.routeSlug !== 'string' || !service.routeSlug.length || !isValidSlug(service.routeSlug)) {
+      return fail('routeSlug', 'routeSlug is required and must be a valid slug');
+    }
+    if (service.iconLikeAsset !== undefined && !this.isValidMediaLink(service.iconLikeAsset)) {
+      return fail('iconLikeAsset', 'iconLikeAsset must be a valid URL/text/media reference');
+    }
+    if (service.seo !== undefined) {
+      if (typeof service.seo !== 'object' || service.seo === null) return fail('seo', 'seo must be an object');
+      if (service.seo.title !== undefined && typeof service.seo.title !== 'string') return fail('seo.title', 'seo.title must be a string');
+      if (service.seo.description !== undefined && typeof service.seo.description !== 'string') return fail('seo.description', 'seo.description must be a string');
+      if (service.seo.canonicalSlug !== undefined && !isValidSlug(service.seo.canonicalSlug)) return fail('seo.canonicalSlug', 'seo.canonicalSlug must be a valid slug');
+      if (service.seo.socialImage !== undefined && !this.isValidMediaLink(service.seo.socialImage)) return fail('seo.socialImage', 'seo.socialImage must be a valid media link');
+    }
+
+    if (!isUpdate) {
+      if (typeof service.description !== 'string' || !service.description.length) return fail('description', 'description is required on create');
+      if (!Array.isArray(service.features) || service.features.length === 0) return fail('features', 'at least one feature is required on create');
+    } else {
+      if (service.description !== undefined && typeof service.description !== 'string') return fail('description', 'description must be a string');
+      if (service.features !== undefined && !Array.isArray(service.features)) return fail('features', 'features must be an array when provided');
+    }
+
+    if (typeof service.icon !== 'string' || !service.icon.length || !SERVICE_ICONS.has(service.icon)) {
+      return fail('icon', 'icon is required and must be a supported service icon');
+    }
+    if (typeof service.color !== 'string' || !service.color.length || !COLOR_GRADIENT_PATTERN.test(service.color)) {
+      return fail('color', 'color is required and must match the gradient format');
+    }
+    if (!Array.isArray(service.features)) return fail('features', 'features must be an array');
+    if (typeof service.ownerUserId !== 'string' || !service.ownerUserId.trim().length) return fail('ownerUserId', 'ownerUserId is required');
+    if (typeof service.organizationId !== 'string' || !service.organizationId.trim().length) return fail('organizationId', 'organizationId is required');
+    if (!SERVICE_STATUSES.has(service.status)) return fail('status', 'status must be draft, published, or archived');
+    if (service.processTitle !== undefined && typeof service.processTitle !== 'string') return fail('processTitle', 'processTitle must be a string');
+    if (service.processSteps !== undefined && (!Array.isArray(service.processSteps) || service.processSteps.some((step) => typeof step !== 'string' || step.trim().length === 0))) {
+      return fail('processSteps', 'processSteps must be a non-empty string array');
+    }
+
+    return { ok: true, mode };
   }
 
   normalizeSlug(input) {
