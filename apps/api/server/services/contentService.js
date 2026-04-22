@@ -899,6 +899,10 @@ class ContentService {
     if (slugConflict) {
       return { ok: false, error: { code: 'SERVICE_SLUG_CONFLICT', message: 'Service slug already exists.' } };
     }
+    const routeSlugConflict = services.find((entry) => entry.routeSlug === normalized.routeSlug && entry.id !== normalized.id);
+    if (routeSlugConflict) {
+      return { ok: false, error: { code: 'SERVICE_ROUTE_SLUG_CONFLICT', message: 'Service route slug already exists.' } };
+    }
     const existing = services.find((entry) => entry.id === normalized.id);
     if (existing && !this.canMutateEntity(actorContext, existing, 'write')) {
       return { ok: false, error: { code: 'FORBIDDEN_OWNERSHIP', message: 'Cannot modify service owned by another user.' } };

@@ -1530,6 +1530,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (error instanceof ContentApiError) {
       if (error.status === 403) return 'Création/mise à jour non autorisée pour votre rôle.';
       if (error.code === 'SERVICE_SLUG_CONFLICT') return 'Ce slug service existe déjà. Choisissez un slug unique.';
+      if (error.code === 'SERVICE_ROUTE_SLUG_CONFLICT') return 'Ce slug de route publique est déjà utilisé par un autre service.';
       if (error.code === 'SERVICE_VALIDATION_ERROR') return 'Le service ne respecte pas le format attendu par le backend.';
       if (error.code === 'SERVICE_NOT_PUBLISHABLE') return 'Ce service ne peut pas être publié: complétez les champs requis.';
       if (error.code === 'SERVICE_INVALID_MEDIA_REFERENCE') return 'Le visuel service sélectionné est introuvable.';
