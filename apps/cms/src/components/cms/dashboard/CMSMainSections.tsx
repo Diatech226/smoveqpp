@@ -142,7 +142,9 @@ export function ProjectsSection(props: ProjectsSectionProps) {
 }
 
 interface ServicesSectionProps {
+  canEditContent: boolean;
   canDeleteContent: boolean;
+  canPublishContent: boolean;
   servicesError: string;
   servicesLoading: boolean;
   services: Service[];
@@ -150,23 +152,46 @@ interface ServicesSectionProps {
   renderServiceForm: () => ReactNode;
   startCreateService: () => void;
   startEditService: (service: Service) => void;
+  transitionServiceStatus: (service: Service, targetStatus: Service['status']) => Promise<void>;
   deleteService: (serviceId: string, title: string) => Promise<void>;
+  loadServicesFromBackend: () => Promise<void>;
 }
 
-export function ServicesSection({ canDeleteContent, servicesError, servicesLoading, services, serviceEditorMode, renderServiceForm, startCreateService, startEditService, deleteService }: ServicesSectionProps) {
+export function ServicesSection({
+  canEditContent,
+  canDeleteContent,
+  canPublishContent,
+  servicesError,
+  servicesLoading,
+  services,
+  serviceEditorMode,
+  renderServiceForm,
+  startCreateService,
+  startEditService,
+  transitionServiceStatus,
+  deleteService,
+  loadServicesFromBackend,
+}: ServicesSectionProps) {
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="Gestion des services"
         subtitle="Liste, édition et publication de vos services."
-        actions={<AdminButton onClick={startCreateService} intent="primary">Nouveau service</AdminButton>}
+        actions={<AdminButton onClick={startCreateService} disabled={!canEditContent} intent="primary">Nouveau service</AdminButton>}
       />
 
       {servicesError ? <AdminErrorState label={servicesError} /> : null}
       {serviceEditorMode !== 'list' ? renderServiceForm() : null}
 
-      <AdminPanel title="Services">
+      <AdminPanel title={`Services (${services.length})`}>
         {servicesLoading ? <AdminLoadingState label="Chargement des services…" /> : null}
+        {!servicesLoading ? (
+          <div className="mb-2 flex justify-end">
+            <AdminButton type="button" onClick={() => void loadServicesFromBackend()} size="sm">
+              <RotateCcw size={15} /> Rafraîchir
+            </AdminButton>
+          </div>
+        ) : null}
         {!servicesLoading && services.length === 0 ? (
           <AdminEmptyState label="Aucun service trouvé. Créez votre premier service pour commencer." />
         ) : !servicesLoading ? (
@@ -180,6 +205,11 @@ export function ServicesSection({ canDeleteContent, servicesError, servicesLoadi
                 <div>{renderStatusChip(service.status)}</div>
                 <div className={ROW_ACTIONS}>
                   <AdminActionCluster>
+                    {service.status === 'draft' ? (<AdminButton onClick={() => void transitionServiceStatus(service, 'published')} disabled={!canPublishContent} intent="workflow" size="sm">Publier</AdminButton>) : null}
+                    {service.status === 'published' ? (<AdminButton onClick={() => void transitionServiceStatus(service, 'archived')} disabled={!canPublishContent} size="sm"><Archive size={14} /> Archiver</AdminButton>) : null}
+                    {service.status === 'archived' ? (<AdminButton onClick={() => void transitionServiceStatus(service, 'draft')} disabled={!canEditContent} intent="workflow" size="sm">Repasser brouillon</AdminButton>) : null}
+                  </AdminActionCluster>
+                  <AdminActionCluster>
                     <AdminButton onClick={() => startEditService(service)} size="sm"><Pencil size={15} /> Modifier</AdminButton>
                   </AdminActionCluster>
                   <AdminActionCluster danger>
@@ -191,6 +221,7 @@ export function ServicesSection({ canDeleteContent, servicesError, servicesLoadi
           </div>
         ) : null}
       </AdminPanel>
+      {(!canDeleteContent || !canPublishContent) ? <AdminWarningState label={`${!canPublishContent ? 'Publication/archivage réservés aux éditeurs/administrateurs. ' : ''}Les suppressions définitives sont réservées au rôle administrateur.`} /> : null}
     </div>
   );
 }
