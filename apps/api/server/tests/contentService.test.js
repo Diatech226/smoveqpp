@@ -582,6 +582,58 @@ describe('ContentService services synchronization', () => {
     expect(second).toHaveLength(first.length);
     expect(new Set(second.map((entry) => entry.slug)).size).toBe(second.length);
   });
+
+  it('supports service create, update status/archive, and delete lifecycle', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const created = service.saveService({
+      id: 'svc-lifecycle',
+      title: 'Lifecycle Service',
+      slug: 'lifecycle-service',
+      routeSlug: 'lifecycle-service',
+      description: 'Service description long enough for publication.',
+      shortDescription: 'Short copy',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature one'],
+      status: 'draft',
+    });
+
+    expect(created.ok).toBe(true);
+    expect(service.findServiceById('svc-lifecycle')).not.toBeNull();
+
+    const archived = service.saveService({
+      ...created.service,
+      status: 'archived',
+      features: ['Feature one', 'Feature two'],
+    });
+    expect(archived.ok).toBe(true);
+    expect(service.findServiceById('svc-lifecycle').status).toBe('archived');
+
+    const deleted = service.deleteService('svc-lifecycle');
+    expect(deleted.ok).toBe(true);
+    expect(service.findServiceById('svc-lifecycle')).toBeNull();
+  });
+
+  it('rejects service payload when icon-like media reference does not exist', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+
+    const result = service.saveService({
+      id: 'svc-invalid-media',
+      title: 'Service invalid media',
+      slug: 'service-invalid-media',
+      routeSlug: 'service-invalid-media',
+      description: 'Valid service description for media validation.',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature one'],
+      status: 'draft',
+      iconLikeAsset: 'media:missing-service-media',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error.code).toBe('SERVICE_VALIDATION_ERROR');
+  });
 });
 
 describe('ContentService production hardening', () => {

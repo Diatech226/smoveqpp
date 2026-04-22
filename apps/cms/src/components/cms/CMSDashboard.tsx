@@ -1511,7 +1511,31 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (form.ctaPrimaryHref.trim() && !isValidPublicHref(form.ctaPrimaryHref)) {
       errors.ctaPrimaryHref = 'Le CTA doit être une ancre (#contact), une route (/contact) ou une URL https://.';
     }
+    if (form.status === 'published') {
+      const resolvedRouteSlug = form.routeSlug.trim() || form.slug.trim() || normalizeSlug('', form.title);
+      if (!resolvedRouteSlug) {
+        errors.routeSlug = 'Un slug de route est requis pour publier.';
+      }
+      if (!form.description.trim()) {
+        errors.description = 'Une description détaillée est requise pour publier.';
+      }
+      if (!form.features.split('\n').map((entry) => entry.trim()).filter(Boolean).length) {
+        errors.features = 'Ajoutez au moins une fonctionnalité pour publier.';
+      }
+    }
     return errors;
+  };
+
+  const mapServiceSaveError = (error: unknown) => {
+    if (error instanceof ContentApiError) {
+      if (error.status === 403) return 'Création/mise à jour non autorisée pour votre rôle.';
+      if (error.code === 'SERVICE_SLUG_CONFLICT') return 'Ce slug service existe déjà. Choisissez un slug unique.';
+      if (error.code === 'SERVICE_VALIDATION_ERROR') return 'Le service ne respecte pas le format attendu par le backend.';
+      if (error.code === 'SERVICE_NOT_PUBLISHABLE') return 'Ce service ne peut pas être publié: complétez les champs requis.';
+      if (error.code === 'SERVICE_INVALID_MEDIA_REFERENCE') return 'Le visuel service sélectionné est introuvable.';
+      return `Sauvegarde impossible (${error.message}).`;
+    }
+    return 'Sauvegarde impossible. Vérifiez votre connexion puis réessayez.';
   };
 
   const resetServiceEditor = () => {
@@ -1520,7 +1544,25 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setServiceFormErrors({});
   };
 
+  const loadServicesFromBackend = async () => {
+    setServicesLoading(true);
+    setServicesError('');
+    try {
+      const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
+      setServices(serviceRepository.replaceAll(backendServices));
+    } catch {
+      setServicesError('Impossible de charger les services depuis le backend.');
+    } finally {
+      setServicesLoading(false);
+    }
+  };
+
   const saveService = async () => {
+    if (!canEditContent) {
+      setServicesError('Création/mise à jour non autorisée pour votre rôle.');
+      return;
+    }
+
     const errors = validateServiceForm(serviceForm);
     setServiceFormErrors(errors);
 
@@ -1560,10 +1602,31 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setServices(serviceRepository.replaceAll(backendServices));
       showSuccess(serviceEditorMode === 'create' ? 'Service créé avec succès.' : 'Service mis à jour avec succès.');
       resetServiceEditor();
-    } catch {
-      setServicesError('Enregistrement du service impossible: backend indisponible. Réessayez quand la synchronisation serveur est rétablie.');
+    } catch (error) {
+      setServicesError(mapServiceSaveError(error));
     } finally {
       setIsSavingService(false);
+    }
+  };
+
+  const transitionServiceStatus = async (service: Service, targetStatus: Service['status']) => {
+    if (targetStatus === 'published' && !canPublishContent) {
+      setServicesError('Publication non autorisée pour votre rôle.');
+      return;
+    }
+    if (targetStatus !== 'published' && !canEditContent) {
+      setServicesError('Modification de statut non autorisée pour votre rôle.');
+      return;
+    }
+
+    setServicesError('');
+    try {
+      await requestWithRetry(() => saveBackendService({ ...service, status: targetStatus }), { retries: 1, retryDelayMs: 250 });
+      const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
+      setServices(serviceRepository.replaceAll(backendServices));
+      showSuccess(targetStatus === 'published' ? 'Service publié.' : targetStatus === 'archived' ? 'Service archivé.' : 'Service repassé en brouillon.');
+    } catch (error) {
+      setServicesError(mapServiceSaveError(error));
     }
   };
 
@@ -1978,7 +2041,44 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
           <div className="rounded-[12px] border border-[#eef3f5] p-4 space-y-3">
             <h4 className="text-[16px] font-semibold text-[#273a41]">Media & CTA</h4>
-            <label className="block"><span className="text-[14px] text-[#6f7f85]">Visuel / icône de référence</span><input value={serviceForm.iconLikeAsset} onChange={(event) => setServiceForm((prev) => ({ ...prev, iconLikeAsset: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" />{serviceFormErrors.iconLikeAsset ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.iconLikeAsset}</p> : null}<p className="text-[12px] text-[#6f7f85] mt-1">Utilisé en fallback social si aucun média dédié.</p></label>
+            <label className="block">
+              <span className="text-[14px] text-[#6f7f85]">Visuel / icône de référence</span>
+              <input value={serviceForm.iconLikeAsset} onChange={(event) => setServiceForm((prev) => ({ ...prev, iconLikeAsset: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" placeholder="media:asset-id ou URL https://..." />
+              {serviceFormErrors.iconLikeAsset ? <p className="text-[12px] text-red-600 mt-1">{serviceFormErrors.iconLikeAsset}</p> : null}
+              <p className="text-[12px] text-[#6f7f85] mt-1">Utilisé en hero détail et fallback social.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <AdminButton
+                  type="button"
+                  size="sm"
+                  disabled={!selectedMedia}
+                  onClick={() => {
+                    if (!selectedMedia) return;
+                    setServiceForm((prev) => ({ ...prev, iconLikeAsset: toMediaReferenceValue(selectedMedia.id) }));
+                    setServiceFormErrors((prev) => ({ ...prev, iconLikeAsset: undefined }));
+                  }}
+                >
+                  Utiliser média sélectionné
+                </AdminButton>
+                <AdminButton
+                  type="button"
+                  size="sm"
+                  onClick={() => setServiceForm((prev) => ({ ...prev, iconLikeAsset: '' }))}
+                >
+                  Retirer le visuel
+                </AdminButton>
+              </div>
+            </label>
+            {serviceForm.iconLikeAsset.trim() ? (() => {
+              const preview = resolveCmsPreviewReference(serviceForm.iconLikeAsset.trim());
+              return (
+                <div className="rounded-[10px] border border-[#d8e4e8] bg-[#fbfdff] p-3">
+                  <p className="text-[12px] text-[#6f7f85] mb-2">Prévisualisation</p>
+                  {preview.kind === 'image' ? <img src={preview.src} alt={preview.alt || serviceForm.title || 'Service media'} className="h-24 w-24 rounded-[10px] object-cover border border-[#d8e4e8]" /> : null}
+                  {preview.kind === 'video' ? <video src={preview.src} className="h-24 w-40 rounded-[10px] border border-[#d8e4e8]" controls muted /> : null}
+                  {preview.kind === 'missing' ? <p className="text-[12px] text-amber-700">Média introuvable: vérifiez la référence.</p> : null}
+                </div>
+              );
+            })() : null}
             <label className="block"><span className="text-[14px] text-[#6f7f85]">Titre CTA</span><input value={serviceForm.ctaTitle} onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaTitle: event.target.value }))} className="mt-1 w-full rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
             <label className="block"><span className="text-[14px] text-[#6f7f85]">Description CTA</span><textarea value={serviceForm.ctaDescription} onChange={(event) => setServiceForm((prev) => ({ ...prev, ctaDescription: event.target.value }))} className="mt-1 w-full min-h-[80px] rounded-[10px] border border-[#d8e4e8] px-3 py-2" /></label>
             <div className="grid md:grid-cols-2 gap-3">
@@ -2003,7 +2103,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
             </AdminActionCluster>
             <AdminActionCluster>
               <AdminButton type="submit" disabled={isSavingService} intent="primary">
-                <Save size={16} /> {isSavingService ? 'Enregistrement...' : 'Enregistrer'}
+                <Save size={16} /> {isSavingService ? 'Enregistrement...' : serviceEditorMode === 'create' ? 'Créer le service' : 'Mettre à jour le service'}
               </AdminButton>
             </AdminActionCluster>
           </AdminStickyFormActions>
@@ -2459,7 +2559,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (currentSection === 'services') {
       return (
         <ServicesSection
+          canEditContent={canEditContent}
           canDeleteContent={canDeleteContent}
+          canPublishContent={canPublishContent}
           servicesError={servicesError}
           servicesLoading={servicesLoading}
           services={services}
@@ -2467,7 +2569,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           renderServiceForm={renderServiceForm}
           startCreateService={startCreateService}
           startEditService={startEditService}
+          transitionServiceStatus={transitionServiceStatus}
           deleteService={deleteService}
+          loadServicesFromBackend={loadServicesFromBackend}
         />
       );
     }
