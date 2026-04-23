@@ -5,7 +5,7 @@ import type { HomePageContentSettings } from '../data/pageContentSeed';
 interface ApiEnvelope<T> {
   success?: boolean;
   data?: T;
-  error?: { code?: string; message?: string };
+  error?: { code?: string; message?: string; details?: unknown };
 }
 
 export class ContentApiError extends Error {
@@ -13,6 +13,7 @@ export class ContentApiError extends Error {
     message: string,
     public readonly code: string,
     public readonly status: number,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ContentApiError';
@@ -257,7 +258,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnve
   if (!response.ok || !body?.success) {
     const code = body?.error?.code || `CONTENT_API_${response.status}`;
     const message = body?.error?.message || `CONTENT_API_${response.status}`;
-    throw new ContentApiError(message, code, response.status);
+    throw new ContentApiError(message, code, response.status, body?.error?.details);
   }
 
   return body;
@@ -298,7 +299,7 @@ export async function fetchPublicBlogPosts(): Promise<BlogPost[]> {
   if (!response.ok || !body?.success) {
     const code = body?.error?.code || `CONTENT_API_${response.status}`;
     const message = body?.error?.message || `CONTENT_API_${response.status}`;
-    throw new ContentApiError(message, code, response.status);
+    throw new ContentApiError(message, code, response.status, body?.error?.details);
   }
 
   return body.data?.posts || [];
@@ -317,7 +318,7 @@ export async function fetchPublicBlogPostBySlug(slug: string): Promise<BlogPost 
   if (!response.ok || !body?.success) {
     const code = body?.error?.code || `CONTENT_API_${response.status}`;
     const message = body?.error?.message || `CONTENT_API_${response.status}`;
-    throw new ContentApiError(message, code, response.status);
+    throw new ContentApiError(message, code, response.status, body?.error?.details);
   }
 
   return body.data?.post || null;
@@ -478,7 +479,7 @@ export async function fetchPublicSettings(): Promise<PublicSiteSettings> {
   if (!response.ok || !body?.success) {
     const code = body?.error?.code || `CONTENT_API_${response.status}`;
     const message = body?.error?.message || `CONTENT_API_${response.status}`;
-    throw new ContentApiError(message, code, response.status);
+    throw new ContentApiError(message, code, response.status, body?.error?.details);
   }
 
   return normalizePublicSettings(body.data!.settings);

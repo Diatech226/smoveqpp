@@ -712,6 +712,63 @@ describe('ContentService services synchronization', () => {
     expect(result.service.features).toEqual(['Legacy feature']);
   });
 
+  it('allows minor updates on legacy services that use deprecated icon/color values', () => {
+    const repo = new MemoryContentRepository({
+      services: [
+        {
+          id: 'svc-legacy-style',
+          title: 'Legacy Style Service',
+          slug: 'legacy-style-service',
+          routeSlug: 'legacy-style-service',
+          description: 'Legacy description still renderable.',
+          icon: 'rocket',
+          color: 'legacy-gradient-token',
+          features: ['Legacy feature'],
+          status: 'published',
+        },
+      ],
+    });
+    const service = new ContentService({ contentRepository: repo });
+
+    const result = service.saveService({
+      id: 'svc-legacy-style',
+      overviewDescription: 'Added one extra detail from CMS.',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.service.icon).toBe('rocket');
+    expect(result.service.color).toBe('legacy-gradient-token');
+    expect(result.service.overviewDescription).toBe('Added one extra detail from CMS.');
+  });
+
+  it('keeps existing optional values when update payload sends empty strings/arrays', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const created = service.saveService({
+      id: 'svc-empty-merge',
+      title: 'Service Empty Merge',
+      slug: 'service-empty-merge',
+      routeSlug: 'service-empty-merge',
+      description: 'Original description',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature one'],
+      status: 'draft',
+      ctaTitle: 'Initial CTA title',
+      processSteps: ['Step 1'],
+    });
+    expect(created.ok).toBe(true);
+
+    const update = service.saveService({
+      id: 'svc-empty-merge',
+      ctaTitle: '   ',
+      processSteps: [],
+    });
+
+    expect(update.ok).toBe(true);
+    expect(update.service.ctaTitle).toBe('Initial CTA title');
+    expect(update.service.processSteps).toEqual(['Step 1']);
+  });
+
   it('preserves existing values when update payload omits non-critical fields', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
     const created = service.saveService({
