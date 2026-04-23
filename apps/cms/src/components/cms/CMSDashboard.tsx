@@ -79,6 +79,7 @@ import { isValidSlug } from '../../shared/contentContracts';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
 import { appendHeroBackgroundItemWithMedia, assignHeroBackgroundMedia } from './dashboard/pageContentHeroActions';
+import { buildServicePayload, mapServiceSaveError, validateServiceForm, type ServiceFormState } from './dashboard/serviceEditorPayload';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
 import { fetchNewsletterSubscribers, updateNewsletterSubscriberStatus, type NewsletterSubscriber } from '../../utils/newsletterApi';
 import { fetchContactLeads, type ContactLead } from '../../utils/contactLeadsApi';
@@ -150,30 +151,6 @@ interface ProjectFormState {
 
 
 type RuntimeMode = 'authoritative_remote' | 'degraded_local';
-interface ServiceFormState {
-  id?: string;
-  title: string;
-  slug: string;
-  description: string;
-  shortDescription: string;
-  icon: string;
-  iconLikeAsset: string;
-  color: string;
-  features: string;
-  status: 'draft' | 'published' | 'archived';
-  featured: boolean;
-  routeSlug: string;
-  overviewDescription: string;
-  ctaTitle: string;
-  ctaDescription: string;
-  ctaPrimaryLabel: string;
-  ctaPrimaryHref: string;
-  processTitle: string;
-  processSteps: string;
-}
-
-const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
-const SERVICE_COLOR_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
 const BLOG_MANAGED_CATEGORIES = ['Développement Web', 'Communication', 'Branding', 'Marketing Digital', 'Innovation', 'Études de cas', 'Non classé'];
 const BLOG_MANAGED_TAGS = ['React', 'Web Design', 'Performance', 'Innovation', 'Vidéo', 'Branding', 'Corporate', 'BTP', 'Logo Design', 'Identité Visuelle', 'Food', 'SEO', 'Social Media', 'CMS'];
 const USER_ROLE_OPTIONS: AppUser['role'][] = ['admin', 'editor', 'author', 'viewer', 'client'];
@@ -1473,72 +1450,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setServicesError('');
   };
 
-  const isValidPublicHref = (value: string): boolean => {
-    const href = value.trim();
-    if (!href) return false;
-    if (href.startsWith('#')) return href.length > 1;
-    if (href.startsWith('/')) return true;
-    try {
-      const parsed = new URL(href);
-      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  };
-
-  const validateServiceForm = (form: ServiceFormState) => {
-    const errors: Partial<Record<keyof ServiceFormState, string>> = {};
-    if (!form.title.trim()) errors.title = 'Le titre est requis.';
-    if (!form.description.trim()) errors.description = 'La description est requise.';
-    if (!form.icon.trim()) errors.icon = 'L’icône est requise.';
-    if (!form.color.trim()) errors.color = 'La couleur est requise.';
-    if (!form.features.trim()) errors.features = 'Ajoutez au moins une fonctionnalité.';
-    if (form.icon.trim() && !SERVICE_ICONS.has(form.icon.trim())) {
-      errors.icon = 'Icône invalide. Valeurs supportées: palette, code, megaphone, video, box.';
-    }
-    if (form.color.trim() && !SERVICE_COLOR_PATTERN.test(form.color.trim())) {
-      errors.color = 'Couleur invalide. Format attendu: from-[#hex] to-[#hex].';
-    }
-    if (form.slug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
-      errors.slug = 'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
-    }
-    if (form.routeSlug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.routeSlug.trim())) {
-      errors.routeSlug = 'Le routeSlug doit contenir uniquement des lettres minuscules, chiffres et tirets.';
-    }
-    if (form.iconLikeAsset.trim() && !isValidMediaField(form.iconLikeAsset)) {
-      errors.iconLikeAsset = 'Icon asset invalide. Utilisez une URL valide ou media:asset-id existant.';
-    }
-    if (form.ctaPrimaryHref.trim() && !isValidPublicHref(form.ctaPrimaryHref)) {
-      errors.ctaPrimaryHref = 'Le CTA doit être une ancre (#contact), une route (/contact) ou une URL https://.';
-    }
-    if (form.status === 'published') {
-      const resolvedRouteSlug = form.routeSlug.trim() || form.slug.trim() || normalizeSlug('', form.title);
-      if (!resolvedRouteSlug) {
-        errors.routeSlug = 'Un slug de route est requis pour publier.';
-      }
-      if (!form.description.trim()) {
-        errors.description = 'Une description détaillée est requise pour publier.';
-      }
-      if (!form.features.split('\n').map((entry) => entry.trim()).filter(Boolean).length) {
-        errors.features = 'Ajoutez au moins une fonctionnalité pour publier.';
-      }
-    }
-    return errors;
-  };
-
-  const mapServiceSaveError = (error: unknown) => {
-    if (error instanceof ContentApiError) {
-      if (error.status === 403) return 'Création/mise à jour non autorisée pour votre rôle.';
-      if (error.code === 'SERVICE_SLUG_CONFLICT') return 'Ce slug service existe déjà. Choisissez un slug unique.';
-      if (error.code === 'SERVICE_ROUTE_SLUG_CONFLICT') return 'Ce slug de route publique est déjà utilisé par un autre service.';
-      if (error.code === 'SERVICE_VALIDATION_ERROR') return 'Le service ne respecte pas le format attendu par le backend.';
-      if (error.code === 'SERVICE_NOT_PUBLISHABLE') return 'Ce service ne peut pas être publié: complétez les champs requis.';
-      if (error.code === 'SERVICE_INVALID_MEDIA_REFERENCE') return 'Le visuel service sélectionné est introuvable.';
-      return `Sauvegarde impossible (${error.message}).`;
-    }
-    return 'Sauvegarde impossible. Vérifiez votre connexion puis réessayez.';
-  };
-
   const resetServiceEditor = () => {
     setServiceEditorMode('list');
     setServiceForm(EMPTY_SERVICE_FORM);
@@ -1564,7 +1475,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       return;
     }
 
-    const errors = validateServiceForm(serviceForm);
+    const errors = validateServiceForm(serviceForm, serviceEditorMode);
     setServiceFormErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -1575,27 +1486,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setIsSavingService(true);
     setServicesError('');
 
-    const payload: Service = {
-      id: serviceForm.id || `service-${Date.now()}`,
-      title: serviceForm.title.trim(),
-      slug: serviceForm.slug.trim() || serviceForm.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-      description: serviceForm.description.trim(),
-      shortDescription: serviceForm.shortDescription.trim() || undefined,
-      icon: serviceForm.icon.trim(),
-      iconLikeAsset: serviceForm.iconLikeAsset.trim() || undefined,
-      color: serviceForm.color.trim(),
-      features: serviceForm.features.split('\n').map((entry) => entry.trim()).filter(Boolean),
-      status: serviceForm.status,
-      featured: serviceForm.featured,
-      routeSlug: serviceForm.routeSlug.trim() || serviceForm.slug.trim() || serviceForm.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-      overviewDescription: serviceForm.overviewDescription.trim() || undefined,
-      ctaTitle: serviceForm.ctaTitle.trim() || undefined,
-      ctaDescription: serviceForm.ctaDescription.trim() || undefined,
-      ctaPrimaryLabel: serviceForm.ctaPrimaryLabel.trim() || undefined,
-      ctaPrimaryHref: serviceForm.ctaPrimaryHref.trim() || undefined,
-      processTitle: serviceForm.processTitle.trim() || undefined,
-      processSteps: serviceForm.processSteps.split('\n').map((entry) => entry.trim()).filter(Boolean),
-    };
+    const payload = buildServicePayload(serviceForm, serviceEditorMode);
 
     try {
       await requestWithRetry(() => saveBackendService(payload), { retries: 1, retryDelayMs: 250 });

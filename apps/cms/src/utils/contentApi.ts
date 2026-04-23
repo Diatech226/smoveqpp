@@ -380,7 +380,7 @@ export async function fetchBackendServices(): Promise<Service[]> {
   return body.data?.services || [];
 }
 
-export async function saveBackendService(service: Service): Promise<Service> {
+export async function saveBackendService(service: Partial<Service> & { id: string }): Promise<Service> {
   const body = await request<{ service: Service }>('/services', {
     method: 'POST',
     body: JSON.stringify(service),
