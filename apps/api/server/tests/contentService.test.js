@@ -802,6 +802,55 @@ describe('ContentService services synchronization', () => {
     expect(invalid.error.details.field).toBe('iconLikeAsset');
   });
 
+  it('accepts unchanged legacy optional media fields even when CMS resends them on update', () => {
+    const repo = new MemoryContentRepository({
+      services: [
+        {
+          id: 'svc-legacy-unchanged-media',
+          title: 'Legacy Unchanged Media Service',
+          slug: 'legacy-unchanged-media-service',
+          routeSlug: 'legacy-unchanged-media-service',
+          description: 'Legacy service still renders.',
+          icon: 'palette',
+          color: 'from-[#00b3e8] to-[#00c0e8]',
+          features: ['Legacy feature'],
+          status: 'published',
+          iconLikeAsset: 'media:missing-legacy-icon',
+        },
+      ],
+    });
+    const service = new ContentService({ contentRepository: repo });
+
+    const result = service.saveService({
+      id: 'svc-legacy-unchanged-media',
+      iconLikeAsset: 'media:missing-legacy-icon',
+      overviewDescription: 'Updated another field only.',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.service.iconLikeAsset).toBe('media:missing-legacy-icon');
+    expect(result.service.overviewDescription).toBe('Updated another field only.');
+  });
+
+  it('normalizes legacy iconLikeAsset aliases into canonical media references', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const created = service.saveService({
+      id: 'svc-legacy-alias-icon',
+      title: 'Service Legacy Alias Icon',
+      slug: 'service-legacy-alias-icon',
+      routeSlug: 'service-legacy-alias-icon',
+      description: 'Description',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature one'],
+      status: 'draft',
+      iconLikeAsset: 'asset:legacy-icon-id',
+    });
+
+    expect(created.ok).toBe(true);
+    expect(created.service.iconLikeAsset).toBe('media:legacy-icon-id');
+  });
+
   it('keeps existing optional values when update payload sends empty strings/arrays', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
     const created = service.saveService({

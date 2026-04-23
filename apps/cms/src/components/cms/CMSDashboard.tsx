@@ -1564,6 +1564,14 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setServicesError('');
 
     const payload: Service = buildServicePayload(serviceForm, serviceEditorMode === 'create' ? 'create' : 'edit');
+    if (serviceEditorMode === 'edit') {
+      const existingService = services.find((entry) => entry.id === payload.id);
+      const submittedIconAsset = `${payload.iconLikeAsset || ''}`.trim();
+      const existingIconAsset = `${existingService?.iconLikeAsset || ''}`.trim();
+      if (submittedIconAsset && submittedIconAsset === existingIconAsset) {
+        delete payload.iconLikeAsset;
+      }
+    }
 
     try {
       await requestWithRetry(() => saveBackendService(payload), { retries: 1, retryDelayMs: 250 });
