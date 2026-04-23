@@ -4,8 +4,6 @@ import PortfolioPage from '../../components/PortfolioPage';
 import BlogPageEnhanced from '../../components/BlogPageEnhanced';
 import BlogDetailPage from '../../components/BlogDetailPage';
 import ServicesHubPage from '../../components/ServicesHubPage';
-import DesignBrandingPage from '../../components/services/DesignBrandingPage';
-import WebDevelopmentPage from '../../components/services/WebDevelopmentPage';
 import ServiceDetailPage from '../../components/services/ServiceDetailPage';
 import ProjectsPage from '../../components/ProjectsPage';
 import ProjectDetailPage from '../../components/ProjectDetailPage';
@@ -195,7 +193,7 @@ export default function AppPageRenderer({
       return (
         <PublicSiteShell>
           <SectionErrorBoundary scope="service-design">
-            <DesignBrandingPage />
+            <ServiceDetailPage slug="design-branding" />
           </SectionErrorBoundary>
         </PublicSiteShell>
       );
@@ -203,7 +201,7 @@ export default function AppPageRenderer({
       return (
         <PublicSiteShell>
           <SectionErrorBoundary scope="service-web">
-            <WebDevelopmentPage />
+            <ServiceDetailPage slug="web-development" />
           </SectionErrorBoundary>
         </PublicSiteShell>
       );

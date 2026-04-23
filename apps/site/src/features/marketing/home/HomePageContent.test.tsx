@@ -75,6 +75,49 @@ vi.mock('../../blog/blogContentService', () => ({
 }));
 
 describe('HomePageContent', () => {
+  it('hydrates hero from page-content even while media catalog sync is still pending', async () => {
+    const blockedMedia = deferred<unknown[]>();
+
+    fetchPublicPageContentMock.mockResolvedValue({
+      ...defaultHomePageContent,
+      heroBadge: 'Remote Before Media',
+      heroBackgroundItems: [
+        {
+          id: 'slide-early',
+          sortOrder: 0,
+          label: 'Slide Early',
+          title: 'Slide Early',
+          description: '',
+          ctaLabel: '',
+          ctaHref: '',
+          type: 'image',
+          media: 'media:hero-asset-1',
+          desktopMedia: '',
+          tabletMedia: '',
+          mobileMedia: '',
+          videoMedia: '',
+          alt: 'slide',
+          overlayColor: '#04111f',
+          overlayOpacity: 0.4,
+          position: 'center',
+          size: 'cover',
+          enableParallax: true,
+          enable3DEffects: true,
+        },
+      ],
+    });
+    fetchPublicServicesMock.mockResolvedValue([]);
+    fetchPublicMediaFilesMock.mockReturnValue(blockedMedia.promise);
+    getBlogContentContractFromSourceMock.mockResolvedValue({ categories: [], posts: [] });
+
+    render(<HomePageContent />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('hero-badge').textContent).toBe('Remote Before Media');
+    });
+    expect(screen.getByTestId('hero-slide-count').textContent).toBe('1');
+  });
+
   it('hydrates hero from public page-content without waiting for blog endpoint', async () => {
     const blockedBlog = deferred<{ categories: string[]; posts: unknown[] }>();
 
