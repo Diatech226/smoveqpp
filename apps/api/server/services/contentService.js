@@ -942,30 +942,37 @@ class ContentService {
     const current = existing && typeof existing === 'object' ? existing : {};
     const has = (key) => Object.prototype.hasOwnProperty.call(source, key);
     const hasSeo = has('seo') && source.seo && typeof source.seo === 'object';
+    const preferExistingWhenBlank = (key) => {
+      if (!has(key)) return current[key];
+      const nextValue = source[key];
+      if (typeof nextValue === 'string' && !nextValue.trim()) return current[key];
+      if (Array.isArray(nextValue) && nextValue.length === 0) return current[key];
+      return nextValue;
+    };
 
     return {
       ...current,
       ...source,
       id: has('id') ? source.id : current.id,
-      title: has('title') ? source.title : current.title,
-      slug: has('slug') ? source.slug : current.slug,
-      routeSlug: has('routeSlug') ? source.routeSlug : current.routeSlug,
-      description: has('description') ? source.description : current.description,
-      shortDescription: has('shortDescription') ? source.shortDescription : current.shortDescription,
-      icon: has('icon') ? source.icon : current.icon,
-      iconLikeAsset: has('iconLikeAsset') ? source.iconLikeAsset : current.iconLikeAsset,
-      color: has('color') ? source.color : current.color,
-      features: has('features') ? source.features : current.features,
+      title: preferExistingWhenBlank('title'),
+      slug: preferExistingWhenBlank('slug'),
+      routeSlug: preferExistingWhenBlank('routeSlug'),
+      description: preferExistingWhenBlank('description'),
+      shortDescription: preferExistingWhenBlank('shortDescription'),
+      icon: preferExistingWhenBlank('icon'),
+      iconLikeAsset: preferExistingWhenBlank('iconLikeAsset'),
+      color: preferExistingWhenBlank('color'),
+      features: preferExistingWhenBlank('features'),
       status: has('status') ? source.status : current.status,
       featured: has('featured') ? source.featured : current.featured,
-      overviewTitle: has('overviewTitle') ? source.overviewTitle : current.overviewTitle,
-      overviewDescription: has('overviewDescription') ? source.overviewDescription : current.overviewDescription,
-      ctaTitle: has('ctaTitle') ? source.ctaTitle : current.ctaTitle,
-      ctaDescription: has('ctaDescription') ? source.ctaDescription : current.ctaDescription,
-      ctaPrimaryLabel: has('ctaPrimaryLabel') ? source.ctaPrimaryLabel : current.ctaPrimaryLabel,
-      ctaPrimaryHref: has('ctaPrimaryHref') ? source.ctaPrimaryHref : current.ctaPrimaryHref,
-      processTitle: has('processTitle') ? source.processTitle : current.processTitle,
-      processSteps: has('processSteps') ? source.processSteps : current.processSteps,
+      overviewTitle: preferExistingWhenBlank('overviewTitle'),
+      overviewDescription: preferExistingWhenBlank('overviewDescription'),
+      ctaTitle: preferExistingWhenBlank('ctaTitle'),
+      ctaDescription: preferExistingWhenBlank('ctaDescription'),
+      ctaPrimaryLabel: preferExistingWhenBlank('ctaPrimaryLabel'),
+      ctaPrimaryHref: preferExistingWhenBlank('ctaPrimaryHref'),
+      processTitle: preferExistingWhenBlank('processTitle'),
+      processSteps: preferExistingWhenBlank('processSteps'),
       seo: {
         ...(current.seo || {}),
         ...(hasSeo ? source.seo : {}),
@@ -1990,10 +1997,10 @@ class ContentService {
       if (service.features !== undefined && !Array.isArray(service.features)) return fail('features', 'features must be an array when provided');
     }
 
-    if (typeof service.icon !== 'string' || !service.icon.length || !SERVICE_ICONS.has(service.icon)) {
+    if (!isUpdate && (typeof service.icon !== 'string' || !service.icon.length || !SERVICE_ICONS.has(service.icon))) {
       return fail('icon', 'icon is required and must be a supported service icon');
     }
-    if (typeof service.color !== 'string' || !service.color.length || !COLOR_GRADIENT_PATTERN.test(service.color)) {
+    if (!isUpdate && (typeof service.color !== 'string' || !service.color.length || !COLOR_GRADIENT_PATTERN.test(service.color))) {
       return fail('color', 'color is required and must match the gradient format');
     }
     if (!Array.isArray(service.features)) return fail('features', 'features must be an array');

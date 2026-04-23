@@ -78,6 +78,7 @@ import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSumma
 import { isValidSlug } from '../../shared/contentContracts';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
+import { buildServicePayload, type ServiceFormPayloadState } from './dashboard/servicePayload';
 import { appendHeroBackgroundItemWithMedia, assignHeroBackgroundMedia } from './dashboard/pageContentHeroActions';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
 import { fetchNewsletterSubscribers, updateNewsletterSubscriberStatus, type NewsletterSubscriber } from '../../utils/newsletterApi';
@@ -150,27 +151,7 @@ interface ProjectFormState {
 
 
 type RuntimeMode = 'authoritative_remote' | 'degraded_local';
-interface ServiceFormState {
-  id?: string;
-  title: string;
-  slug: string;
-  description: string;
-  shortDescription: string;
-  icon: string;
-  iconLikeAsset: string;
-  color: string;
-  features: string;
-  status: 'draft' | 'published' | 'archived';
-  featured: boolean;
-  routeSlug: string;
-  overviewDescription: string;
-  ctaTitle: string;
-  ctaDescription: string;
-  ctaPrimaryLabel: string;
-  ctaPrimaryHref: string;
-  processTitle: string;
-  processSteps: string;
-}
+type ServiceFormState = ServiceFormPayloadState;
 
 const SERVICE_ICONS = new Set(['palette', 'code', 'megaphone', 'video', 'box']);
 const SERVICE_COLOR_PATTERN = /^from-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]\s+to-\[#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\]$/;
@@ -839,7 +820,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     if (form.seoDescription && form.seoDescription.trim().length > 320) {
       errors.seoDescription = 'La description SEO doit rester concise (320 caractères max).';
     }
-    if (form.status === 'published') {
+    if (form.status === 'published' && mode === 'create') {
       Object.assign(errors, getBlogPublishabilityErrors(form));
     }
     return errors;
@@ -1486,17 +1467,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     }
   };
 
-  const validateServiceForm = (form: ServiceFormState) => {
+  const validateServiceForm = (form: ServiceFormState, mode: 'create' | 'edit') => {
     const errors: Partial<Record<keyof ServiceFormState, string>> = {};
     if (!form.title.trim()) errors.title = 'Le titre est requis.';
-    if (!form.description.trim()) errors.description = 'La description est requise.';
-    if (!form.icon.trim()) errors.icon = 'L’icône est requise.';
-    if (!form.color.trim()) errors.color = 'La couleur est requise.';
-    if (!form.features.trim()) errors.features = 'Ajoutez au moins une fonctionnalité.';
-    if (form.icon.trim() && !SERVICE_ICONS.has(form.icon.trim())) {
+    if (mode === 'create' && !form.description.trim()) errors.description = 'La description est requise à la création.';
+    if (mode === 'create' && !form.features.trim()) errors.features = 'Ajoutez au moins une fonctionnalité à la création.';
+    if (mode === 'create' && form.icon.trim() && !SERVICE_ICONS.has(form.icon.trim())) {
       errors.icon = 'Icône invalide. Valeurs supportées: palette, code, megaphone, video, box.';
     }
-    if (form.color.trim() && !SERVICE_COLOR_PATTERN.test(form.color.trim())) {
+    if (mode === 'create' && form.color.trim() && !SERVICE_COLOR_PATTERN.test(form.color.trim())) {
       errors.color = 'Couleur invalide. Format attendu: from-[#hex] to-[#hex].';
     }
     if (form.slug.trim() && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
@@ -1531,7 +1510,16 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       if (error.status === 403) return 'Création/mise à jour non autorisée pour votre rôle.';
       if (error.code === 'SERVICE_SLUG_CONFLICT') return 'Ce slug service existe déjà. Choisissez un slug unique.';
       if (error.code === 'SERVICE_ROUTE_SLUG_CONFLICT') return 'Ce slug de route publique est déjà utilisé par un autre service.';
-      if (error.code === 'SERVICE_VALIDATION_ERROR') return 'Le service ne respecte pas le format attendu par le backend.';
+      if (error.code === 'SERVICE_VALIDATION_ERROR') {
+        const details = error.details && typeof error.details === 'object' ? (error.details as Record<string, unknown>) : {};
+        const field = typeof details.field === 'string' ? details.field : '';
+        const reason = typeof details.message === 'string' ? details.message : '';
+        if (field || reason) {
+          const detail = [field ? `champ: ${field}` : '', reason || 'format invalide'].filter(Boolean).join(' — ');
+          return `Validation backend du service échouée (${detail}).`;
+        }
+        return 'Le service ne respecte pas le format attendu par le backend.';
+      }
       if (error.code === 'SERVICE_NOT_PUBLISHABLE') return 'Ce service ne peut pas être publié: complétez les champs requis.';
       if (error.code === 'SERVICE_INVALID_MEDIA_REFERENCE') return 'Le visuel service sélectionné est introuvable.';
       return `Sauvegarde impossible (${error.message}).`;
@@ -1564,7 +1552,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       return;
     }
 
-    const errors = validateServiceForm(serviceForm);
+    const errors = validateServiceForm(serviceForm, serviceEditorMode === 'create' ? 'create' : 'edit');
     setServiceFormErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -1575,27 +1563,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setIsSavingService(true);
     setServicesError('');
 
-    const payload: Service = {
-      id: serviceForm.id || `service-${Date.now()}`,
-      title: serviceForm.title.trim(),
-      slug: serviceForm.slug.trim() || serviceForm.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-      description: serviceForm.description.trim(),
-      shortDescription: serviceForm.shortDescription.trim() || undefined,
-      icon: serviceForm.icon.trim(),
-      iconLikeAsset: serviceForm.iconLikeAsset.trim() || undefined,
-      color: serviceForm.color.trim(),
-      features: serviceForm.features.split('\n').map((entry) => entry.trim()).filter(Boolean),
-      status: serviceForm.status,
-      featured: serviceForm.featured,
-      routeSlug: serviceForm.routeSlug.trim() || serviceForm.slug.trim() || serviceForm.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-      overviewDescription: serviceForm.overviewDescription.trim() || undefined,
-      ctaTitle: serviceForm.ctaTitle.trim() || undefined,
-      ctaDescription: serviceForm.ctaDescription.trim() || undefined,
-      ctaPrimaryLabel: serviceForm.ctaPrimaryLabel.trim() || undefined,
-      ctaPrimaryHref: serviceForm.ctaPrimaryHref.trim() || undefined,
-      processTitle: serviceForm.processTitle.trim() || undefined,
-      processSteps: serviceForm.processSteps.split('\n').map((entry) => entry.trim()).filter(Boolean),
-    };
+    const payload: Service = buildServicePayload(serviceForm, serviceEditorMode === 'create' ? 'create' : 'edit');
 
     try {
       await requestWithRetry(() => saveBackendService(payload), { retries: 1, retryDelayMs: 250 });
