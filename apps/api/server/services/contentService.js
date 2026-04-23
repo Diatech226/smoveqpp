@@ -899,6 +899,8 @@ class ContentService {
     const normalized = this.registerServiceMediaReferences(this.normalizeService(mergedPayload, actorContext), { state, actor: actorContext });
     const validation = this.validateServiceForMode(normalized, mode, {
       providedFields: this.extractProvidedServiceFields(service),
+      previousService: existing,
+      allowLegacyOptionals: Boolean(existing),
     });
     if (!validation.ok) {
       return {
@@ -1935,7 +1937,7 @@ class ContentService {
       description: asTrimmedString(service?.description),
       shortDescription: asTrimmedString(service?.shortDescription) || undefined,
       icon: asTrimmedString(service?.icon) || 'palette',
-      iconLikeAsset: asTrimmedString(service?.iconLikeAsset) || undefined,
+      iconLikeAsset: this.normalizeIconLikeAssetValue(service?.iconLikeAsset),
       routeSlug,
       overviewTitle: asTrimmedString(service?.overviewTitle) || undefined,
       overviewDescription: asTrimmedString(service?.overviewDescription) || undefined,
@@ -1966,6 +1968,18 @@ class ContentService {
     };
   }
 
+  normalizeIconLikeAssetValue(value) {
+    const trimmed = requiredTrimmed(value);
+    if (!trimmed) return undefined;
+    const normalizedRelative = trimmed.replace(/^\.\/+/, '');
+    const legacyAliasMatch = normalizedRelative.match(/^(?:asset:|media\/|media:\/\/)(.+)$/i);
+    if (legacyAliasMatch) {
+      const mediaId = requiredTrimmed(legacyAliasMatch[1]);
+      return mediaId ? `${MEDIA_REFERENCE_PREFIX}${mediaId}` : undefined;
+    }
+    return normalizedRelative;
+  }
+
   validateService(service) {
     return this.validateServiceForMode(service, 'update', { allowLegacyOptionals: true }).ok;
   }
@@ -1984,8 +1998,24 @@ class ContentService {
     const isUpdate = mode === 'update';
     const providedFields = options.providedFields instanceof Set ? options.providedFields : null;
     const allowLegacyOptionals = Boolean(options.allowLegacyOptionals);
+    const previousService = options.previousService && typeof options.previousService === 'object' ? options.previousService : null;
     const wasProvided = (field) => !providedFields || providedFields.has(field);
-    const shouldValidateOptional = (field) => !isUpdate || !allowLegacyOptionals || wasProvided(field);
+    const readPath = (obj, field) => field.split('.').reduce((acc, part) => (acc && typeof acc === 'object' ? acc[part] : undefined), obj);
+    const isLegacyUnchanged = (field) => {
+      if (!isUpdate || !allowLegacyOptionals || !previousService || !wasProvided(field)) return false;
+      const currentValue = requiredTrimmed(readPath(service, field));
+      const previousValue = requiredTrimmed(readPath(previousService, field));
+      return currentValue.length > 0 && previousValue.length > 0 && currentValue === previousValue;
+    };
+    const shouldValidateOptional = (field) => !isUpdate || !allowLegacyOptionals || (wasProvided(field) && !isLegacyUnchanged(field));
+    const describeMediaShape = (value) => {
+      const trimmed = requiredTrimmed(value);
+      if (!trimmed) return 'empty';
+      if (this.isMediaReference(trimmed)) return 'media-reference';
+      if (this.isValidHttpUrl(trimmed)) return 'url';
+      if (!trimmed.includes('://')) return 'text-or-relative-path';
+      return 'unknown-scheme';
+    };
 
     if (!service || typeof service !== 'object') return fail('service', 'payload must be an object');
     if (typeof service.id !== 'string' || !service.id.length) return fail('id', 'id is required');
@@ -1997,7 +2027,7 @@ class ContentService {
       return fail('routeSlug', 'routeSlug is required and must be a valid slug');
     }
     if (service.iconLikeAsset !== undefined && shouldValidateOptional('iconLikeAsset') && !this.isValidMediaLink(service.iconLikeAsset)) {
-      return fail('iconLikeAsset', 'iconLikeAsset must be a valid URL/text/media reference');
+      return fail('iconLikeAsset', `iconLikeAsset must be a valid URL/text/media reference (received ${describeMediaShape(service.iconLikeAsset)})`);
     }
     if (service.seo !== undefined) {
       if (typeof service.seo !== 'object' || service.seo === null) return fail('seo', 'seo must be an object');
