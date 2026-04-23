@@ -889,12 +889,17 @@ class ContentService {
   saveService(service, actor = {}) {
     const actorContext = this.normalizeActorContext(actor);
     const state = this.readState();
-    const services = this.listServices({ organizationId: actorContext.organizationId });
+    const services = this.scopeByOrganization(
+      (Array.isArray(state.services) ? state.services : []).map((entry) => this.normalizeService(entry, actorContext)),
+      actorContext.organizationId,
+    );
     const existing = services.find((entry) => entry.id === `${service?.id || ''}`.trim());
     const mode = existing ? 'update' : 'create';
     const mergedPayload = mode === 'update' ? this.mergeServiceForUpdate(existing, service) : service;
     const normalized = this.registerServiceMediaReferences(this.normalizeService(mergedPayload, actorContext), { state, actor: actorContext });
-    const validation = this.validateServiceForMode(normalized, mode);
+    const validation = this.validateServiceForMode(normalized, mode, {
+      providedFields: this.extractProvidedServiceFields(service),
+    });
     if (!validation.ok) {
       return {
         ok: false,
@@ -1962,12 +1967,25 @@ class ContentService {
   }
 
   validateService(service) {
-    return this.validateServiceForMode(service, 'create').ok;
+    return this.validateServiceForMode(service, 'update', { allowLegacyOptionals: true }).ok;
   }
 
-  validateServiceForMode(service, mode = 'create') {
+  extractProvidedServiceFields(service) {
+    if (!service || typeof service !== 'object') return new Set();
+    const fields = new Set(Object.keys(service));
+    if (service.seo && typeof service.seo === 'object') {
+      Object.keys(service.seo).forEach((key) => fields.add(`seo.${key}`));
+    }
+    return fields;
+  }
+
+  validateServiceForMode(service, mode = 'create', options = {}) {
     const fail = (field, message) => ({ ok: false, field, message, mode });
     const isUpdate = mode === 'update';
+    const providedFields = options.providedFields instanceof Set ? options.providedFields : null;
+    const allowLegacyOptionals = Boolean(options.allowLegacyOptionals);
+    const wasProvided = (field) => !providedFields || providedFields.has(field);
+    const shouldValidateOptional = (field) => !isUpdate || !allowLegacyOptionals || wasProvided(field);
 
     if (!service || typeof service !== 'object') return fail('service', 'payload must be an object');
     if (typeof service.id !== 'string' || !service.id.length) return fail('id', 'id is required');
@@ -1978,7 +1996,7 @@ class ContentService {
     if (typeof service.routeSlug !== 'string' || !service.routeSlug.length || !isValidSlug(service.routeSlug)) {
       return fail('routeSlug', 'routeSlug is required and must be a valid slug');
     }
-    if (service.iconLikeAsset !== undefined && !this.isValidMediaLink(service.iconLikeAsset)) {
+    if (service.iconLikeAsset !== undefined && shouldValidateOptional('iconLikeAsset') && !this.isValidMediaLink(service.iconLikeAsset)) {
       return fail('iconLikeAsset', 'iconLikeAsset must be a valid URL/text/media reference');
     }
     if (service.seo !== undefined) {
@@ -1986,7 +2004,7 @@ class ContentService {
       if (service.seo.title !== undefined && typeof service.seo.title !== 'string') return fail('seo.title', 'seo.title must be a string');
       if (service.seo.description !== undefined && typeof service.seo.description !== 'string') return fail('seo.description', 'seo.description must be a string');
       if (service.seo.canonicalSlug !== undefined && !isValidSlug(service.seo.canonicalSlug)) return fail('seo.canonicalSlug', 'seo.canonicalSlug must be a valid slug');
-      if (service.seo.socialImage !== undefined && !this.isValidMediaLink(service.seo.socialImage)) return fail('seo.socialImage', 'seo.socialImage must be a valid media link');
+      if (service.seo.socialImage !== undefined && shouldValidateOptional('seo.socialImage') && !this.isValidMediaLink(service.seo.socialImage)) return fail('seo.socialImage', 'seo.socialImage must be a valid media link');
     }
 
     if (!isUpdate) {
@@ -2008,7 +2026,7 @@ class ContentService {
     if (typeof service.organizationId !== 'string' || !service.organizationId.trim().length) return fail('organizationId', 'organizationId is required');
     if (!SERVICE_STATUSES.has(service.status)) return fail('status', 'status must be draft, published, or archived');
     if (service.processTitle !== undefined && typeof service.processTitle !== 'string') return fail('processTitle', 'processTitle must be a string');
-    if (service.processSteps !== undefined && (!Array.isArray(service.processSteps) || service.processSteps.some((step) => typeof step !== 'string' || step.trim().length === 0))) {
+    if (service.processSteps !== undefined && shouldValidateOptional('processSteps') && (!Array.isArray(service.processSteps) || service.processSteps.some((step) => typeof step !== 'string' || step.trim().length === 0))) {
       return fail('processSteps', 'processSteps must be a non-empty string array');
     }
 

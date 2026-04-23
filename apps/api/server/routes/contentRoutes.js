@@ -308,9 +308,16 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   router.post('/services', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const result = contentService.saveService(req.body, actorFromRequest(req));
     if (!result.ok) {
-      logContentFailure(req, 'cms_service_save_failed', result.error.code);
-      auditService?.record(toAuditContext(req, 'cms_service_save', 'failure', { entityType: 'service', metadata: { code: result.error.code } }));
-      return sendError(res, 400, result.error.code, result.error.message);
+      const details = result.error.details ?? null;
+      logContentFailure(req, 'cms_service_save_failed', result.error.code, details ? { details } : {});
+      auditService?.record(toAuditContext(req, 'cms_service_save', 'failure', {
+        entityType: 'service',
+        metadata: {
+          code: result.error.code,
+          details,
+        },
+      }));
+      return sendError(res, 400, result.error.code, result.error.message, details);
     }
     auditService?.record(toAuditContext(req, 'cms_service_save', 'success', { entityType: 'service', entityId: result.service.id }));
     return sendSuccess(res, 200, { service: result.service });

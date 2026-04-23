@@ -741,6 +741,67 @@ describe('ContentService services synchronization', () => {
     expect(result.service.overviewDescription).toBe('Added one extra detail from CMS.');
   });
 
+  it('accepts minor updates for legacy services with invalid optional media/href fields when those fields are not modified', () => {
+    const repo = new MemoryContentRepository({
+      services: [
+        {
+          id: 'svc-legacy-invalid-optionals',
+          title: 'Legacy Optional Fields Service',
+          slug: 'legacy-optional-fields-service',
+          routeSlug: 'legacy-optional-fields-service',
+          description: 'Legacy service still rendered on public surfaces.',
+          icon: 'palette',
+          color: 'from-[#00b3e8] to-[#00c0e8]',
+          features: ['Legacy feature'],
+          status: 'published',
+          iconLikeAsset: 'media:missing-legacy-icon',
+          seo: {
+            title: 'Legacy optional fields service',
+            description: 'Legacy service metadata',
+            canonicalSlug: 'legacy-optional-fields-service',
+            socialImage: 'media:missing-legacy-social',
+          },
+        },
+      ],
+    });
+    const service = new ContentService({ contentRepository: repo });
+
+    const result = service.saveService({
+      id: 'svc-legacy-invalid-optionals',
+      overviewDescription: 'Safe minor copy edit from CMS.',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.service.overviewDescription).toBe('Safe minor copy edit from CMS.');
+    expect(result.service.iconLikeAsset).toBe('media:missing-legacy-icon');
+    expect(result.service.seo.socialImage).toBe('media:missing-legacy-social');
+  });
+
+  it('still rejects invalid optional media fields when explicitly provided on update', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const created = service.saveService({
+      id: 'svc-update-optional-validation',
+      title: 'Service Update Optional Validation',
+      slug: 'service-update-optional-validation',
+      routeSlug: 'service-update-optional-validation',
+      description: 'Description',
+      icon: 'palette',
+      color: 'from-[#00b3e8] to-[#00c0e8]',
+      features: ['Feature one'],
+      status: 'draft',
+    });
+    expect(created.ok).toBe(true);
+
+    const invalid = service.saveService({
+      id: 'svc-update-optional-validation',
+      iconLikeAsset: 'media:missing-update-icon',
+    });
+
+    expect(invalid.ok).toBe(false);
+    expect(invalid.error.code).toBe('SERVICE_VALIDATION_ERROR');
+    expect(invalid.error.details.field).toBe('iconLikeAsset');
+  });
+
   it('keeps existing optional values when update payload sends empty strings/arrays', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
     const created = service.saveService({
