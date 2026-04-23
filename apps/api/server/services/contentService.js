@@ -896,11 +896,12 @@ class ContentService {
     const normalized = this.registerServiceMediaReferences(this.normalizeService(mergedPayload, actorContext), { state, actor: actorContext });
     const validation = this.validateServiceForMode(normalized, mode);
     if (!validation.ok) {
+      const validationReason = validation.field ? `${validation.field}: ${validation.message}` : validation.message;
       return {
         ok: false,
         error: {
           code: 'SERVICE_VALIDATION_ERROR',
-          message: `Service ${mode} rejected: ${validation.message}`,
+          message: `Service ${mode} rejected (${validationReason})`,
           details: validation,
         },
       };
@@ -1955,7 +1956,7 @@ class ContentService {
   }
 
   validateService(service) {
-    return this.validateServiceForMode(service, 'create').ok;
+    return this.validateServiceForMode(service, 'update').ok;
   }
 
   validateServiceForMode(service, mode = 'create') {
@@ -1990,11 +1991,20 @@ class ContentService {
       if (service.features !== undefined && !Array.isArray(service.features)) return fail('features', 'features must be an array when provided');
     }
 
-    if (typeof service.icon !== 'string' || !service.icon.length || !SERVICE_ICONS.has(service.icon)) {
-      return fail('icon', 'icon is required and must be a supported service icon');
-    }
-    if (typeof service.color !== 'string' || !service.color.length || !COLOR_GRADIENT_PATTERN.test(service.color)) {
-      return fail('color', 'color is required and must match the gradient format');
+    if (!isUpdate) {
+      if (typeof service.icon !== 'string' || !service.icon.length || !SERVICE_ICONS.has(service.icon)) {
+        return fail('icon', 'icon is required and must be a supported service icon');
+      }
+      if (typeof service.color !== 'string' || !service.color.length || !COLOR_GRADIENT_PATTERN.test(service.color)) {
+        return fail('color', 'color is required and must match the gradient format');
+      }
+    } else {
+      if (service.icon !== undefined && typeof service.icon !== 'string') {
+        return fail('icon', 'icon must be a string when provided');
+      }
+      if (service.color !== undefined && typeof service.color !== 'string') {
+        return fail('color', 'color must be a string when provided');
+      }
     }
     if (!Array.isArray(service.features)) return fail('features', 'features must be an array');
     if (typeof service.ownerUserId !== 'string' || !service.ownerUserId.trim().length) return fail('ownerUserId', 'ownerUserId is required');

@@ -740,6 +740,63 @@ describe('ContentService services synchronization', () => {
     expect(update.service.title).toBe('Service Preserve Updated');
   });
 
+  it('allows saving unchanged legacy service records that use deprecated icon/color values', () => {
+    const repo = new MemoryContentRepository({
+      services: [
+        {
+          id: 'svc-legacy-unchanged',
+          title: 'Legacy unchanged',
+          slug: 'legacy-unchanged',
+          routeSlug: 'legacy-unchanged',
+          description: '',
+          icon: 'legacy-custom-icon',
+          color: 'legacy-gradient',
+          features: [],
+          status: 'published',
+        },
+      ],
+    });
+    const service = new ContentService({ contentRepository: repo });
+
+    const result = service.saveService({
+      id: 'svc-legacy-unchanged',
+      title: 'Legacy unchanged',
+      routeSlug: 'legacy-unchanged',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.service.icon).toBe('legacy-custom-icon');
+    expect(result.service.color).toBe('legacy-gradient');
+  });
+
+  it('supports partial legacy detail updates without forcing strict create-only fields on update', () => {
+    const repo = new MemoryContentRepository({
+      services: [
+        {
+          id: 'svc-legacy-detail',
+          title: 'Legacy detail',
+          slug: 'legacy-detail',
+          routeSlug: 'legacy-detail',
+          description: '',
+          icon: 'legacy-custom-icon',
+          color: 'legacy-gradient',
+          features: [],
+          status: 'published',
+        },
+      ],
+    });
+    const service = new ContentService({ contentRepository: repo });
+
+    const result = service.saveService({
+      id: 'svc-legacy-detail',
+      overviewDescription: 'Nouveau détail CMS',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.service.overviewDescription).toBe('Nouveau détail CMS');
+    expect(result.service.slug).toBe('legacy-detail');
+  });
+
   it('still enforces required create fields and returns field-level validation details', () => {
     const service = new ContentService({ contentRepository: new MemoryContentRepository() });
     const result = service.saveService({
