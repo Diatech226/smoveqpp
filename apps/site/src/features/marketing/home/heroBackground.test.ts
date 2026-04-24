@@ -152,6 +152,39 @@ describe('hero background model', () => {
     expect(resolved[0].isValid).toBe(false);
   });
 
+
+  it('does not keep fallback media once the referenced public media is available', () => {
+    mediaRepository.replaceAll([]);
+
+    const coldSession = resolveHeroBackgroundItems([
+      { id: 'slide-cold', sortOrder: 0, label: 'Cold', title: '', description: '', ctaLabel: '', ctaHref: '', type: 'image', media: 'media:hero-public-1', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: '', overlayColor: '#04111f', overlayOpacity: 0.4, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
+    ]);
+
+    expect(coldSession[0].desktopSrc.startsWith('data:image/svg+xml')).toBe(true);
+
+    mediaRepository.replaceAll([
+      {
+        id: 'hero-public-1',
+        name: 'hero-public-1.jpg',
+        type: 'image',
+        url: 'https://cdn.example.com/hero-public-1.jpg',
+        size: 100,
+        uploadedDate: '2026-04-24T00:00:00.000Z',
+        uploadedBy: 'cms',
+        tags: [],
+      },
+    ]);
+
+    const hydratedSession = resolveHeroBackgroundItems([
+      { id: 'slide-cold', sortOrder: 0, label: 'Cold', title: '', description: '', ctaLabel: '', ctaHref: '', type: 'image', media: 'media:hero-public-1', desktopMedia: '', tabletMedia: '', mobileMedia: '', videoMedia: '', alt: '', overlayColor: '#04111f', overlayOpacity: 0.4, position: 'center', size: 'cover', enableParallax: true, enable3DEffects: true },
+    ]);
+
+    expect(hydratedSession[0].isValid).toBe(true);
+    expect(hydratedSession[0].desktopSrc).toContain('hero-public-1.jpg');
+    expect(hydratedSession[0].desktopSrc.startsWith('data:image/svg+xml')).toBe(false);
+  });
+
+
   it('keeps video slides renderable when image sources are absent', () => {
     mediaRepository.replaceAll([
       {

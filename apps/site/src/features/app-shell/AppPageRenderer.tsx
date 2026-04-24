@@ -226,7 +226,7 @@ export default function AppPageRenderer({
         <PublicSiteShell>
           <SectionErrorBoundary scope="apropos">
             <>
-              <Navigation currentPath="/apropos" />
+              <Navigation currentPath="/about" />
               <div className="pt-20">
                 <APropos />
               </div>

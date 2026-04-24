@@ -19,6 +19,7 @@ async function request<T>(path: string): Promise<T> {
 
   const pending = fetch(`${CONTENT_BASE_URL}${path}`, {
     cache: 'no-store',
+    credentials: 'omit',
     headers: {
       'Cache-Control': 'no-cache',
       Pragma: 'no-cache',

@@ -1,497 +1,144 @@
-import svgPaths from "./svg-yu5ortpz79";
+import { motion } from 'motion/react';
+import { ArrowRight, Award, BriefcaseBusiness, Sparkles, Users } from 'lucide-react';
+import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 
-function Frame11() {
-  return (
-    <div className="absolute content-stretch flex flex-col gap-[24px] items-start left-[133px] not-italic top-[553px] whitespace-pre-wrap">
-      <p className="font-['Medula_One:Regular',sans-serif] leading-[1.1] relative shrink-0 text-[#00b3e8] text-[20px] tracking-[2px] uppercase w-[307px]" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-        Vision
-      </p>
-      <p className="font-['Abhaya_Libre:Regular',sans-serif] leading-[1.3] relative shrink-0 text-[#38484e] text-[24px] w-[280px]" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-        Mettre en mouvement les marques africaines avec des idées qui voyagent et performent.
-      </p>
-    </div>
-  );
-}
+const values = [
+  {
+    title: 'Exigence',
+    description: 'Chaque livrable est pensé pour être utile, mesurable et aligné avec vos objectifs business.',
+  },
+  {
+    title: 'Clarté',
+    description: 'Nous simplifions les sujets complexes pour créer des messages compréhensibles et crédibles.',
+  },
+  {
+    title: 'Impact',
+    description: 'Design, contenu et diffusion travaillent ensemble pour générer des résultats concrets.',
+  },
+];
 
-function Group() {
-  return (
-    <div className="absolute contents left-[93px] top-[513px]">
-      <div className="absolute bg-white h-[315px] left-[93px] rounded-[4px] shadow-[7px_7px_0px_0px_rgba(234,241,246,0.5)] top-[513px] w-[440px]" />
-      <Frame11 />
-    </div>
-  );
-}
-
-function Frame12() {
-  return (
-    <div className="absolute content-stretch flex flex-col gap-[24px] items-start left-[635px] not-italic top-[553px] whitespace-pre-wrap">
-      <p className="font-['Medula_One:Regular',sans-serif] leading-[1.1] relative shrink-0 text-[#00b3e8] text-[20px] tracking-[2px] uppercase w-[331px]" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-        Mission
-      </p>
-      <p className="font-['Abhaya_Libre:Regular',sans-serif] leading-[1.3] relative shrink-0 text-[#38484e] text-[24px] w-[288px]" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>{`Allier créativité, technologie et data pour délivrer des campagnes qui génèrent de l'impact mesurable.`}</p>
-    </div>
-  );
-}
-
-function Group1() {
-  return (
-    <div className="absolute contents left-[595px] top-[513px]">
-      <div className="absolute bg-white h-[315px] left-[595px] rounded-[4px] shadow-[7px_7px_0px_0px_rgba(234,241,246,0.5)] top-[513px] w-[440px]" />
-      <Frame12 />
-    </div>
-  );
-}
-
-function Frame13() {
-  return (
-    <div className="absolute content-stretch flex flex-col gap-[24px] items-start left-[1138px] not-italic top-[553px] whitespace-pre-wrap">
-      <div className="font-['Medula_One:Regular',sans-serif] leading-[1.1] relative shrink-0 text-[#00b3e8] text-[20px] tracking-[2px] uppercase w-[331px]" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-        <p className="mb-0">Valeurs</p>
-        <p>&nbsp;</p>
-      </div>
-      <p className="font-['Abhaya_Libre:Regular',sans-serif] leading-[1.3] relative shrink-0 text-[#38484e] text-[24px] w-[317px]" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>{`Curiosité, exigence, esprit d'équipe et transparence guident chaque collaboration avec nos clients.`}</p>
-    </div>
-  );
-}
-
-function Group2() {
-  return (
-    <div className="absolute contents left-[1098px] top-[513px]">
-      <div className="absolute bg-white h-[315px] left-[1098px] rounded-[4px] shadow-[7px_7px_0px_0px_rgba(234,241,246,0.5)] top-[513px] w-[440px]" />
-      <Frame13 />
-    </div>
-  );
-}
-
-function Frame1() {
-  return (
-    <div className="absolute bg-white content-stretch flex items-center justify-center left-[940px] opacity-0 pb-[8px] pt-[12px] px-[16px] top-[812px]">
-      <div aria-hidden="true" className="absolute border border-[#273a41] border-solid inset-0 pointer-events-none" />
-      <div className="flex flex-col font-['Medula_One:Regular',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#273a41] text-[14px] tracking-[1.4px] uppercase whitespace-nowrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        <p className="leading-[1.1]">Founders</p>
-      </div>
-    </div>
-  );
-}
-
-function Frame2() {
-  return (
-    <div className="absolute bg-white content-stretch flex items-center justify-center left-[972px] opacity-0 pb-[8px] pt-[12px] px-[16px] top-[874px]">
-      <div aria-hidden="true" className="absolute border border-[#273a41] border-solid inset-0 pointer-events-none" />
-      <div className="flex flex-col font-['Medula_One:Regular',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#273a41] text-[14px] tracking-[1.4px] uppercase whitespace-nowrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        <p className="leading-[1.1]">Advisors</p>
-      </div>
-    </div>
-  );
-}
-
-function Frame3() {
-  return (
-    <div className="absolute bg-white content-stretch flex items-center justify-center left-[1056px] opacity-0 pb-[8px] pt-[12px] px-[16px] top-[796px]">
-      <div aria-hidden="true" className="absolute border border-[#273a41] border-solid inset-0 pointer-events-none" />
-      <div className="flex flex-col font-['Medula_One:Regular',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#273a41] text-[14px] tracking-[1.4px] uppercase whitespace-nowrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        <p className="leading-[1.1]">Investors</p>
-      </div>
-    </div>
-  );
-}
-
-function Frame4() {
-  return (
-    <div className="absolute bg-white content-stretch flex items-center justify-center left-[1038px] opacity-0 pb-[8px] pt-[12px] px-[16px] top-[876px]">
-      <div aria-hidden="true" className="absolute border border-black border-solid inset-0 pointer-events-none" />
-      <div className="flex flex-col font-['Medula_One:Regular',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#273a41] text-[14px] tracking-[1.4px] uppercase whitespace-nowrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        <p className="leading-[1.1]">Treasure</p>
-      </div>
-    </div>
-  );
-}
-
-function Frame5() {
-  return (
-    <div className="absolute bg-white content-stretch flex items-center justify-center left-[1068px] opacity-0 pb-[8px] pt-[12px] px-[16px] top-[857px]">
-      <div aria-hidden="true" className="absolute border border-[#273a41] border-solid inset-0 pointer-events-none" />
-      <div className="flex flex-col font-['Medula_One:Regular',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#273a41] text-[14px] tracking-[1.4px] uppercase whitespace-nowrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        <p className="leading-[1.1]">Community</p>
-      </div>
-    </div>
-  );
-}
-
-function SystemsSettings3Fill() {
-  return (
-    <div className="absolute left-[16px] overflow-clip size-[24px] top-[16px]" data-name="Systems / settings-3-fill">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-        <g id="Group">
-          <g id="Vector" />
-          <path d={svgPaths.pb46300} fill="var(--fill-0, #00B3E8)" id="Vector_2" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function Frame18() {
-  return (
-    <div className="absolute left-0 size-[56px] top-0">
-      <div className="absolute bg-[#ebf9ff] left-0 rounded-[8px] size-[56px] top-0" />
-      <SystemsSettings3Fill />
-    </div>
-  );
-}
-
-function Frame16() {
-  return (
-    <div className="relative shrink-0 size-[56px]">
-      <Frame18 />
-    </div>
-  );
-}
-
-function Frame6() {
-  return (
-    <div className="absolute content-stretch flex gap-[27px] items-center left-[233px] top-[1807px]">
-      <Frame16 />
-      <p className="font-['Abhaya_Libre:Regular',sans-serif] leading-[1.2] not-italic relative shrink-0 text-[#273a41] text-[20px]" style={{ fontFeatureSettings: "'dlig'" }}>
-        Technology
-      </p>
-    </div>
-  );
-}
-
-function OthersGameFill() {
-  return (
-    <div className="absolute left-[16px] overflow-clip size-[24px] top-[16px]" data-name="Others / game-fill">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-        <g id="Group">
-          <g id="Vector" />
-          <path d={svgPaths.pa0ef080} fill="var(--fill-0, #00B3E8)" id="Vector_2" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function Frame19() {
-  return (
-    <div className="absolute left-0 size-[56px] top-0">
-      <div className="absolute bg-[#ebf9ff] left-0 rounded-[8px] size-[56px] top-0" />
-      <OthersGameFill />
-    </div>
-  );
-}
-
-function Frame17() {
-  return (
-    <div className="relative shrink-0 size-[56px]">
-      <Frame19 />
-    </div>
-  );
-}
-
-function Frame7() {
-  return (
-    <div className="absolute content-stretch flex gap-[27px] items-center left-[233px] top-[1883px]">
-      <Frame17 />
-      <p className="font-['Abhaya_Libre:Regular',sans-serif] leading-[1.2] not-italic relative shrink-0 text-[#273a41] text-[20px]" style={{ fontFeatureSettings: "'dlig'" }}>
-        Products and projects
-      </p>
-    </div>
-  );
-}
-
-function FinanceCoinFill() {
-  return (
-    <div className="absolute left-[16px] overflow-clip size-[24px] top-[16px]" data-name="Finance / coin-fill">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-        <g id="Group">
-          <g id="Vector" />
-          <path d={svgPaths.p10f66b80} fill="var(--fill-0, #00B3E8)" id="Vector_2" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function Frame21() {
-  return (
-    <div className="absolute left-0 size-[56px] top-0">
-      <div className="absolute bg-[#ebf9ff] left-0 rounded-[8px] size-[56px] top-0" />
-      <FinanceCoinFill />
-    </div>
-  );
-}
-
-function Frame15() {
-  return (
-    <div className="relative shrink-0 size-[56px]">
-      <Frame21 />
-    </div>
-  );
-}
-
-function Frame8() {
-  return (
-    <div className="absolute content-stretch flex gap-[27px] items-center left-[617px] top-[1807px]">
-      <Frame15 />
-      <p className="font-['Abhaya_Libre:Regular',sans-serif] leading-[1.2] not-italic relative shrink-0 text-[#273a41] text-[20px]" style={{ fontFeatureSettings: "'dlig'" }}>
-        Token distribution
-      </p>
-    </div>
-  );
-}
-
-function CommunicationChatSmileFill() {
-  return (
-    <div className="absolute left-[16px] overflow-clip size-[24px] top-[16px]" data-name="Communication / chat-smile-fill">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-        <g id="Group">
-          <g id="Vector" />
-          <path d={svgPaths.p5c53c00} fill="var(--fill-0, #00B3E8)" id="Vector_2" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function Frame20() {
-  return (
-    <div className="absolute left-0 size-[56px] top-0">
-      <div className="absolute bg-[#ebf9ff] left-0 rounded-[8px] size-[56px] top-0" />
-      <CommunicationChatSmileFill />
-    </div>
-  );
-}
-
-function Frame14() {
-  return (
-    <div className="relative shrink-0 size-[56px]">
-      <Frame20 />
-    </div>
-  );
-}
-
-function Frame9() {
-  return (
-    <div className="absolute content-stretch flex gap-[27px] items-center left-[617px] top-[1883px]">
-      <Frame14 />
-      <p className="font-['Abhaya_Libre:Regular',sans-serif] leading-[1.2] not-italic relative shrink-0 text-[#273a41] text-[20px]" style={{ fontFeatureSettings: "'dlig'" }}>
-        Governance structure
-      </p>
-    </div>
-  );
-}
-
-function SystemsArrowRightFill() {
-  return (
-    <div className="opacity-10 overflow-clip relative size-[40px]" data-name="Systems / arrow-right-fill">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 40 40">
-        <g id="Group">
-          <g id="Vector" />
-          <path d={svgPaths.p1d0e93c0} fill="var(--fill-0, #00B3E8)" id="Vector_2" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function SystemsArrowRightFill1() {
-  return (
-    <div className="overflow-clip relative shrink-0 size-[40px]" data-name="Systems / arrow-right-fill">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 40 40">
-        <g id="Group">
-          <g id="Vector" />
-          <path d={svgPaths.p1d0e93c0} fill="var(--fill-0, #00B3E8)" id="Vector_2" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function Frame10() {
-  return (
-    <div className="absolute content-stretch flex gap-[24px] items-center justify-center left-[1095px] top-[876px]">
-      <div className="flex items-center justify-center relative shrink-0">
-        <div className="-scale-y-100 flex-none rotate-180">
-          <SystemsArrowRightFill />
-        </div>
-      </div>
-      <div className="relative shrink-0 size-[12px]">
-        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 12">
-          <circle cx="6" cy="6" fill="var(--fill-0, #00B3E8)" id="Ellipse 12" r="6" />
-        </svg>
-      </div>
-      <div className="relative shrink-0 size-[12px]">
-        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 12">
-          <circle cx="6" cy="6" fill="var(--fill-0, #38484E)" id="Ellipse 12" opacity="0.1" r="6" />
-        </svg>
-      </div>
-      <div className="relative shrink-0 size-[12px]">
-        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 12">
-          <circle cx="6" cy="6" fill="var(--fill-0, #38484E)" id="Ellipse 12" opacity="0.1" r="6" />
-        </svg>
-      </div>
-      <SystemsArrowRightFill1 />
-    </div>
-  );
-}
-
-function Frame() {
-  return (
-    <div className="bg-white content-stretch flex items-center justify-center opacity-0 pb-[8px] pt-[12px] px-[16px] relative">
-      <div aria-hidden="true" className="absolute border border-[#273a41] border-solid inset-0 pointer-events-none" />
-      <div className="flex flex-col font-['Medula_One:Regular',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#273a41] text-[36px] tracking-[3.6px] uppercase whitespace-nowrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        <p className="leading-[1.1]">DAO</p>
-      </div>
-    </div>
-  );
-}
+const trustHighlights = [
+  {
+    icon: BriefcaseBusiness,
+    title: 'Accompagnement end-to-end',
+    description: 'De la stratégie éditoriale à la production, nous pilotons les projets de bout en bout.',
+  },
+  {
+    icon: Users,
+    title: 'Équipe pluridisciplinaire',
+    description: 'Consultants, designers et spécialistes digitaux coordonnés autour de votre marque.',
+  },
+  {
+    icon: Award,
+    title: 'Méthode orientée performance',
+    description: 'Des choix créatifs guidés par la data, les retours terrain et les objectifs de conversion.',
+  },
+];
 
 export default function APropos() {
   return (
-    <div className="bg-white relative size-full" data-name="A propos">
-      <div className="absolute flex h-[155px] items-center justify-center left-0 top-[10px] w-[1440px]">
-        <div className="-scale-y-100 flex-none">
-          <div className="h-[155px] relative w-[1440px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1440 155">
-              <path d="M0 155L1440 0V155H0Z" fill="var(--fill-0, white)" id="Rectangle 47" />
-            </svg>
+    <main className="relative overflow-hidden bg-gradient-to-b from-[#f3f9fb] via-white to-white text-[#273a41]">
+      <div className="pointer-events-none absolute left-1/2 top-8 h-80 w-80 -translate-x-1/2 rounded-full bg-[#00b3e8]/15 blur-3xl" />
+
+      <section className="relative mx-auto max-w-7xl px-4 pb-14 pt-14 sm:px-6 lg:px-8 lg:pb-20">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: 'easeOut' }}
+          className="rounded-[30px] border border-[#d9ecf2] bg-white/80 p-8 backdrop-blur md:p-12"
+        >
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#00b3e8]/10 px-4 py-2 font-['Medula_One:Regular',sans-serif] text-[14px] uppercase tracking-[1.4px] text-[#00a0cf]">
+            <Sparkles size={15} />
+            À propos de SMOVE
+          </span>
+          <div className="mt-6 grid gap-10 lg:grid-cols-[1.2fr,0.8fr] lg:items-end">
+            <div>
+              <h1 className="font-['ABeeZee:Regular',sans-serif] text-[40px] leading-[1.08] md:text-[58px] lg:text-[72px]">
+                Une communication
+                <br />
+                qui inspire confiance
+              </h1>
+              <p className="mt-6 max-w-2xl font-['Abhaya_Libre:Regular',sans-serif] text-[20px] leading-relaxed text-[#3b4f56]">
+                Nous aidons les entreprises et institutions à clarifier leur message, structurer leur présence digitale
+                et accélérer leur croissance grâce à des dispositifs modernes, cohérents et durables.
+              </p>
+            </div>
+            <div className="rounded-[24px] border border-[#dbebf0] bg-gradient-to-br from-[#0f2531] to-[#1c3a49] p-6 text-white shadow-[0_20px_70px_rgba(12,32,45,0.25)]">
+              <p className="font-['Medula_One:Regular',sans-serif] text-[14px] uppercase tracking-[1.4px] text-white/80">Notre mission</p>
+              <p className="mt-3 font-['Abhaya_Libre:Regular',sans-serif] text-[22px] leading-snug">
+                Concevoir des expériences de marque qui alignent stratégie, création et performance.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-12">
+        <div className="grid gap-6 md:grid-cols-3">
+          {values.map((value, index) => (
+            <motion.article
+              key={value.title}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.45, delay: index * 0.08 }}
+              className="rounded-[22px] border border-[#e1eef2] bg-white p-6 shadow-[0_8px_30px_rgba(20,47,59,0.08)]"
+            >
+              <h2 className="font-['Medula_One:Regular',sans-serif] text-[24px] uppercase tracking-[1.7px] text-[#273a41]">{value.title}</h2>
+              <p className="mt-3 font-['Abhaya_Libre:Regular',sans-serif] text-[18px] leading-relaxed text-[#445a62]">{value.description}</p>
+            </motion.article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid gap-8 lg:grid-cols-[0.95fr,1.05fr] lg:items-center">
+          <div className="rounded-[28px] border border-[#d8e9ef] bg-[#f7fcfe] p-8 md:p-10">
+            <p className="font-['Medula_One:Regular',sans-serif] text-[14px] uppercase tracking-[1.4px] text-[#00a0cf]">Notre histoire</p>
+            <h2 className="mt-3 font-['ABeeZee:Regular',sans-serif] text-[34px] leading-tight md:text-[44px]">Du conseil local à l’impact régional.</h2>
+            <p className="mt-4 font-['Abhaya_Libre:Regular',sans-serif] text-[19px] leading-relaxed text-[#3f545b]">
+              Née de la volonté de professionnaliser la communication institutionnelle et corporate, SMOVE accompagne
+              des organisations qui veulent mieux raconter ce qu’elles font, pourquoi elles le font, et comment elles
+              créent de la valeur.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {trustHighlights.map((item) => (
+              <article key={item.title} className="rounded-[22px] border border-[#e2eef2] bg-white p-5">
+                <div className="inline-flex rounded-xl bg-[#00b3e8]/10 p-3 text-[#00a4d5]">
+                  <item.icon size={20} />
+                </div>
+                <h3 className="mt-4 font-['Abhaya_Libre:Bold',sans-serif] text-[20px] leading-tight text-[#273a41]">{item.title}</h3>
+                <p className="mt-2 font-['Abhaya_Libre:Regular',sans-serif] text-[17px] leading-relaxed text-[#4a6068]">{item.description}</p>
+              </article>
+            ))}
           </div>
         </div>
-      </div>
-      <div className="absolute flex h-[8554.702px] items-center justify-center left-[-7453.21px] top-[-2861.28px] w-[10315.53px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="flex-none rotate-[32.58deg]">
-          <p className="font-['Salsa:Regular',sans-serif] h-[3936.497px] leading-none not-italic opacity-0 relative text-[#f4f6f7] text-[3936.497px] tracking-[393.6497px] uppercase w-[9726.427px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-            DAO
-          </p>
-        </div>
-      </div>
-      <div className="absolute bg-gradient-to-b from-[#f5f9fa] h-[1508px] left-px to-[rgba(245,249,250,0)] top-[10px] w-[1439px]" />
-      <div className="absolute flex h-[2273.271px] items-center justify-center left-[-920.2px] top-[1318.8px] w-[3414.199px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="flex-none rotate-[-17.33deg]">
-          <p className="font-['Salsa:Regular',sans-serif] h-[1401.669px] leading-none not-italic opacity-0 relative text-[#273a41] text-[1401.669px] tracking-[140.1669px] uppercase w-[3139.155px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'dlig'" }}>
-            DAO
-          </p>
-        </div>
-      </div>
-      <p className="absolute font-['ABeeZee:Regular',sans-serif] leading-[1.2] left-[181px] not-italic text-[#273a41] text-[96px] top-[87px]" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>{`A `}</p>
-      <p className="absolute font-['ABeeZee:Regular',sans-serif] leading-[1.2] left-[230px] not-italic text-[#273a41] text-[96px] top-[177px]" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-        Propos
-      </p>
-      <div className="absolute flex h-[405.733px] items-center justify-center left-[-1477.39px] top-[1187.77px] w-[587.898px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="flex-none rotate-[-17.33deg]">
-          <p className="font-['Medula_One:Regular',sans-serif] h-[257.946px] leading-[1.1] not-italic opacity-0 relative text-[#273a41] text-[233.612px] tracking-[23.3612px] uppercase w-[535.36px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-            The
-          </p>
-        </div>
-      </div>
-      <div className="absolute font-['Abhaya_Libre:Regular',sans-serif] leading-[1.3] left-[194px] not-italic text-[#38484e] text-[20px] top-[378px] w-[1131px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-        <p className="mb-0">
-          La communication d’entreprise ne se limite pas à être visible.
-          <br aria-hidden="true" />
-          {` Elle doit informer, rassurer, structurer et représenter fidèlement l’organisation.`}
-        </p>
-        <p>
-          Nous accompagnons les entreprises, institutions et organisations
-          <br aria-hidden="true" />
-          {` dans la mise en place de supports de communication fiables, modernes et durable`}
-        </p>
-      </div>
-      <Group />
-      <p className="absolute font-['Abhaya_Libre:Regular',sans-serif] leading-[1.3] left-[233px] not-italic text-[#38484e] text-[16px] top-[1958px] w-[455px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>
-        This will enable us to create a DAO which will make key decisions, operate the treasury, and direct the Guild in a fair and equitable manner.
-      </p>
-      <p className="absolute font-['Abhaya_Libre:Regular',sans-serif] leading-[1.3] left-[233px] not-italic text-[#38484e] text-[16px] top-[1970px] w-[622px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'ss01', 'salt', 'dlig'" }}>{`Whilst the community is maturing, and until the launch of The DAO, we will run financials in a centralised manner, reporting asset acquisitions, gaming profits & yields via a weekly report that will be distributed on the blockchain.`}</p>
-      <Group1 />
-      <Group2 />
-      <p className="absolute font-['Abhaya_Libre:Regular',sans-serif] leading-[1.2] left-[326px] not-italic text-[#273a41] text-[36px] top-[305px] w-[764px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        Une équipe qui fait bouger les marques.
-      </p>
-      <div className="absolute font-['Abhaya_Libre:Regular',sans-serif] leading-[0] left-[133px] not-italic text-[#273a41] text-[24px] top-[1782px] w-[598px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        <p className="mb-0">
-          <span className="leading-[1.2]">{`We are currently closing the allocations in the seed round before starting our private rounds allocations, and are looking to raise `}</span>
-          <span className="font-['Abhaya_Libre:Bold',sans-serif] leading-[1.2] not-italic text-[#0ec742]">$8,000,000 USD</span>
-          <span className="leading-[1.2]">{` to assist `}</span>
-        </p>
-        <p className="leading-[1.2]">{`in building a world class asset base and efficient smart contract system. `}</p>
-      </div>
-      <p className="-translate-x-full absolute font-['Medula_One:Regular',sans-serif] leading-[1.1] left-[704px] not-italic text-[#273a41] text-[24px] text-right top-[1732px] tracking-[2.4px] uppercase w-[576px] whitespace-pre-wrap" style={{ fontFeatureSettings: "'dlig'" }}>
-        Proposals and voting will include, but not be limited to:
-      </p>
-      <Frame1 />
-      <Frame2 />
-      <Frame3 />
-      <Frame4 />
-      <Frame5 />
-      <Frame6 />
-      <Frame7 />
-      <Frame8 />
-      <Frame9 />
-      <Frame10 />
-      <div className="absolute flex h-[37.526px] items-center justify-center left-[-165px] top-[-179px] w-[357.033px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="-rotate-6 flex-none">
-          <div className="h-0 relative w-[359px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32 32">
-              <line id="Line 17" opacity="0" stroke="var(--stroke-0, #273A41)" x2="359" y1="-0.5" y2="-0.5" />
-            </svg>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-20 pt-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          className="rounded-[28px] bg-gradient-to-r from-[#00b3e8] to-[#01c8ef] p-8 text-white md:p-10"
+        >
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-['Medula_One:Regular',sans-serif] text-[14px] uppercase tracking-[1.4px] text-white/90">Construisons ensemble</p>
+              <h2 className="mt-3 font-['ABeeZee:Regular',sans-serif] text-[32px] leading-tight md:text-[44px]">Parlons de votre prochain projet.</h2>
+            </div>
+            <a
+              href={PUBLIC_ROUTE_HASH.contact}
+              className="inline-flex items-center gap-2 self-start rounded-full bg-white px-7 py-4 font-['Abhaya_Libre:Bold',sans-serif] text-[17px] text-[#0c718f] transition hover:-translate-y-0.5 hover:shadow-xl"
+            >
+              Contacter SMOVE
+              <ArrowRight size={18} />
+            </a>
           </div>
-        </div>
-      </div>
-      <div className="absolute flex h-[13px] items-center justify-center left-[1038px] top-[872px] w-[36px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="-rotate-90 -scale-y-100 flex-none">
-          <div className="h-[36px] relative w-[13px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32 32">
-              <path d={svgPaths.p7c6f180} fill="var(--stroke-0, black)" id="Line 19" opacity="0" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div className="absolute flex h-[16px] items-center justify-center left-[1050px] top-[869px] w-[24px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="-rotate-90 -scale-y-100 flex-none">
-          <div className="h-[24px] relative w-[16px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32 32">
-              <path d={svgPaths.p31ebdb80} fill="var(--stroke-0, black)" id="Line 19" opacity="0" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div className="absolute flex h-[27px] items-center justify-center left-[1074px] top-[858px] w-[19px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="-rotate-90 flex-none">
-          <div className="h-[19px] relative w-[27px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32 32">
-              <path d={svgPaths.p28de0480} fill="var(--stroke-0, black)" id="Line 19" opacity="0" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div className="absolute flex h-[13px] items-center justify-center left-[1050px] top-[872px] w-[24px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="-rotate-90 -scale-y-100 flex-none">
-          <div className="h-[24px] relative w-[13px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32 32">
-              <path d={svgPaths.p14f80900} fill="var(--stroke-0, black)" id="Line 19" opacity="0" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div className="absolute flex h-[13px] items-center justify-center left-[1074px] top-[872px] w-[35px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="-rotate-90 flex-none">
-          <div className="h-[35px] relative w-[13px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32 32">
-              <path d={svgPaths.pe446ac0} fill="var(--stroke-0, black)" id="Line 19" opacity="0" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div className="absolute h-[324px] left-[1142px] top-[169px] w-[294px]">
-        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32 32">
-          <g id="Rectangle 51" />
-        </svg>
-      </div>
-      <div className="absolute flex h-[67.511px] items-center justify-center left-[1008.19px] top-[811px] w-[80.861px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "21.328125" } as React.CSSProperties}>
-        <div className="-rotate-6 flex-none">
-          <Frame />
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </section>
+    </main>
   );
 }
