@@ -1,11 +1,13 @@
 # SMOVE CMS App (`apps/cms`)
 
-Standalone CMS/admin frontend (Vite + React), detached from site internals.
+Standalone CMS/admin frontend (Vite + React) served at `/cms` in production.
 
 ## Local run
 
+Use the root scripts (single package.json):
+
 ```bash
-npm run dev -w @smove/cms
+npm run dev:cms
 ```
 
 Default URL: `http://127.0.0.1:5174/#cms`
@@ -13,17 +15,17 @@ Default URL: `http://127.0.0.1:5174/#cms`
 ## Build
 
 ```bash
-npm run build -w @smove/cms
+npm run build:cms
 ```
 
-Output directory: `apps/cms/dist`
+Output directory: `build/cms` (shared root output).
 
 ## Environment variables
 
-Copy template:
+Use the root env file only:
 
 ```bash
-cp apps/cms/.env.example apps/cms/.env.local
+cp .env.example .env
 ```
 
 Main vars:
@@ -33,16 +35,3 @@ Main vars:
 - `VITE_PUBLIC_SITE_URL`: public site URL for all "Retour au site" links.
 - `VITE_PUBLIC_APP_URL`: legacy fallback retained for backward compatibility.
 - `VITE_CMS_PORT`: local CMS dev port.
-
-## "Retour au site" resolution order
-
-1. `VITE_PUBLIC_SITE_URL`
-2. `VITE_PUBLIC_APP_URL` (legacy fallback)
-3. inferred URL from CMS hostname (e.g. `cms.example.com` -> `example.com/#home`)
-4. dev fallback `http://127.0.0.1:5173/#home`
-
-## Vercel
-
-- Root Directory: `apps/cms`
-- Build Command: `npm run build`
-- Output Directory: `dist`

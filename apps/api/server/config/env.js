@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
-const API_APP_ROOT = path.resolve(__dirname, '../..');
 const API_SERVER_ROOT = path.resolve(__dirname, '..');
 
 function loadEnvFile(filePath) {
@@ -24,13 +23,9 @@ function loadEnvFile(filePath) {
   }
 }
 
-// Single-app deployment model: root env is the source of truth.
+// Unified runtime model: the repository root .env is the source of truth
+// for the public site, CMS, and API.
 loadEnvFile(path.resolve(REPO_ROOT, '.env'));
-loadEnvFile(path.resolve(REPO_ROOT, '.env.local'));
-
-// Backward-compatible fallback: app-local env can still override locally.
-loadEnvFile(path.resolve(API_APP_ROOT, '.env'));
-loadEnvFile(path.resolve(API_APP_ROOT, '.env.local'));
 
 const isProduction = process.env.NODE_ENV === 'production';
 

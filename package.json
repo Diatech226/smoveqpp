@@ -11,7 +11,7 @@
     "build": "npm run build:site && npm run build:cms && npm run build:api",
     "build:site": "vite build --config apps/site/vite.config.ts",
     "build:cms": "vite build --config apps/cms/vite.config.ts",
-    "build:api": "node -e \"console.log('API build step not required for Node runtime');\"",
+    "build:api": "node -e \"console.log('API build not required')\"",
     "preview:site": "vite preview --config apps/site/vite.config.ts",
     "preview:cms": "vite preview --config apps/cms/vite.config.ts",
     "start:api": "node apps/api/server/index.js",
