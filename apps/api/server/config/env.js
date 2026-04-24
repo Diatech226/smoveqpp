@@ -61,6 +61,9 @@ const PUBLIC_REGISTRATION_ENABLED = parseBoolean(
   process.env.PUBLIC_REGISTRATION_ENABLED ?? process.env.VITE_ENABLE_REGISTRATION,
   true,
 );
+const ENABLE_EMAIL_PASSWORD_AUTH = parseBoolean(process.env.ENABLE_EMAIL_PASSWORD_AUTH, true);
+const ENABLE_GOOGLE_LOGIN = parseBoolean(process.env.ENABLE_GOOGLE_LOGIN, false);
+const ENABLE_FACEBOOK_LOGIN = parseBoolean(process.env.ENABLE_FACEBOOK_LOGIN, false);
 
 const CONTENT_SCHEMA_VERSION = parseIntOrDefault(process.env.CONTENT_SCHEMA_VERSION, 3);
 const MEDIA_UPLOAD_DIR = process.env.MEDIA_UPLOAD_DIR ?? path.resolve(API_SERVER_ROOT, 'data/uploads');
@@ -109,12 +112,12 @@ function validateCriticalEnv() {
     throw new Error('CONTACT_TO_EMAIL must be set in production for contact form delivery.');
   }
 
-  if ((process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_SECRET) && !(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)) {
-    throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be set when enabling Google OAuth.');
+  if (ENABLE_GOOGLE_LOGIN && !(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)) {
+    throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be set when ENABLE_GOOGLE_LOGIN=true.');
   }
 
-  if ((process.env.FACEBOOK_APP_ID || process.env.FACEBOOK_APP_SECRET) && !(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET)) {
-    throw new Error('FACEBOOK_APP_ID and FACEBOOK_APP_SECRET must both be set when enabling Facebook OAuth.');
+  if (ENABLE_FACEBOOK_LOGIN && !(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET)) {
+    throw new Error('FACEBOOK_APP_ID and FACEBOOK_APP_SECRET must both be set when ENABLE_FACEBOOK_LOGIN=true.');
   }
 }
 
@@ -181,6 +184,9 @@ module.exports = {
   ADMIN_NAME: process.env.ADMIN_NAME ?? 'Administrator',
   OAUTH_DEFAULT_ROLE: process.env.OAUTH_DEFAULT_ROLE ?? 'client',
   PUBLIC_REGISTRATION_ENABLED,
+  ENABLE_EMAIL_PASSWORD_AUTH,
+  ENABLE_GOOGLE_LOGIN,
+  ENABLE_FACEBOOK_LOGIN,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? '',
   GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL ?? `${DEFAULT_API_ORIGIN}${GOOGLE_CALLBACK_PATH}`,

@@ -45,6 +45,9 @@ function parseBooleanFlag(value: string | undefined, defaultValue: boolean): boo
 export const SECURITY_FLAGS = {
   cmsEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_CMS, true),
   registrationEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_REGISTRATION, import.meta.env.DEV),
+  emailPasswordAuthEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_EMAIL_PASSWORD_AUTH, true),
+  googleLoginEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_GOOGLE_LOGIN, false),
+  facebookLoginEnabled: parseBooleanFlag(import.meta.env.VITE_ENABLE_FACEBOOK_LOGIN, false),
   devAdminFallbackEnabled: false,
 } as const;
 

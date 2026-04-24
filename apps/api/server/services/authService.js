@@ -4,6 +4,7 @@ const {
   PASSWORD_HASH_ROUNDS,
   OAUTH_DEFAULT_ROLE,
   PUBLIC_REGISTRATION_ENABLED,
+  ENABLE_EMAIL_PASSWORD_AUTH,
   isProduction,
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
@@ -112,10 +113,18 @@ function sanitizeUser(user) {
 }
 
 class AuthService {
-  constructor({ userRepository, oauthProviders = {}, publicRegistrationEnabled = PUBLIC_REGISTRATION_ENABLED, emailService = null, auditLogger = null }) {
+  constructor({
+    userRepository,
+    oauthProviders = {},
+    publicRegistrationEnabled = PUBLIC_REGISTRATION_ENABLED,
+    emailPasswordAuthEnabled = ENABLE_EMAIL_PASSWORD_AUTH,
+    emailService = null,
+    auditLogger = null,
+  }) {
     this.userRepository = userRepository;
     this.oauthProviders = oauthProviders;
     this.publicRegistrationEnabled = Boolean(publicRegistrationEnabled);
+    this.emailPasswordAuthEnabled = Boolean(emailPasswordAuthEnabled);
     this.emailService = emailService;
     this.auditLogger = auditLogger;
   }
@@ -241,6 +250,15 @@ class AuthService {
   }
 
   async loginWithOAuthCode({ provider, code }) {
+    if (!['google', 'facebook'].includes(provider)) {
+      return { ok: false, status: 400, code: 'OAUTH_PROVIDER_UNSUPPORTED', message: 'Unsupported OAuth provider' };
+    }
+
+    const providerConfig = this.oauthProviders?.[provider] ?? {};
+    if (!providerConfig.enabled) {
+      return { ok: false, status: 403, code: 'OAUTH_PROVIDER_DISABLED', message: `${provider} OAuth login is disabled` };
+    }
+
     if (!code || typeof code !== 'string') {
       return { ok: false, status: 400, code: 'OAUTH_CODE_MISSING', message: 'Missing OAuth authorization code' };
     }
@@ -410,6 +428,10 @@ class AuthService {
   }
 
   async register(payload) {
+    if (!this.emailPasswordAuthEnabled) {
+      return { ok: false, status: 403, code: 'EMAIL_PASSWORD_AUTH_DISABLED', message: 'Email/password authentication is disabled' };
+    }
+
     if (!this.publicRegistrationEnabled) {
       return { ok: false, status: 403, code: 'REGISTRATION_DISABLED', message: 'Public registration is disabled' };
     }
@@ -479,6 +501,10 @@ class AuthService {
   }
 
   async login(payload) {
+    if (!this.emailPasswordAuthEnabled) {
+      return { ok: false, status: 403, code: 'EMAIL_PASSWORD_AUTH_DISABLED', message: 'Email/password authentication is disabled' };
+    }
+
     const email = normalizeEmail(payload.email);
     const password = String(payload.password ?? '');
 

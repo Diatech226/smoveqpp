@@ -119,6 +119,9 @@ function buildAuthController({ authService }) {
       const result = authService.buildOAuthAuthorizationUrl({ provider, state });
       if (!result.ok) {
         logAuthEvent(req, `oauth_start_${provider}`, 'failure', { code: result.code });
+        if (result.code === 'OAUTH_PROVIDER_DISABLED' || result.code === 'OAUTH_PROVIDER_UNSUPPORTED') {
+          return sendError(res, result.status, result.code, result.message);
+        }
         return res.redirect(`${redirectTo}?oauthError=${encodeURIComponent(result.code)}`);
       }
 
@@ -147,6 +150,9 @@ function buildAuthController({ authService }) {
       const result = await authService.loginWithOAuthCode({ provider, code: req.query?.code });
       if (!result.ok) {
         logAuthEvent(req, `oauth_${provider}`, 'failure', { code: result.code });
+        if (result.code === 'OAUTH_PROVIDER_DISABLED' || result.code === 'OAUTH_PROVIDER_UNSUPPORTED') {
+          return sendError(res, result.status, result.code, result.message);
+        }
         return res.redirect(`${fallbackRedirect}?oauthError=${encodeURIComponent(result.code)}`);
       }
 
