@@ -73,8 +73,9 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
 
   const hasRenderableMedia = (...values) =>
     values.some((value) => typeof value === 'string' && value.trim().length > 0);
+  const isPublishedOrLegacy = (status) => status === undefined || status === null || status === '' || status === 'published';
   const isPublicBlogEligible = (post) =>
-    post.status === 'published' &&
+    isPublishedOrLegacy(post.status) &&
     post.title?.trim() &&
     post.slug?.trim() &&
     hasRenderableMedia(
@@ -84,7 +85,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       post.featuredImage,
     );
   const isPublicProjectEligible = (project) =>
-    project.status === 'published' &&
+    isPublishedOrLegacy(project.status) &&
     project.title?.trim() &&
     project.slug?.trim() &&
     hasRenderableMedia(
@@ -96,15 +97,26 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       project.mainImage,
     );
 
-  router.get('/public/projects', (_req, res) =>
-    sendSuccess(res, 200, { projects: contentService.listProjects().filter(isPublicProjectEligible) }));
-  router.get('/public/services', (_req, res) => sendSuccess(res, 200, { services: contentService.listServices().filter((s) => s.status === 'published') }));
-  router.get('/public/blog', (_req, res) =>
-    sendSuccess(res, 200, {
+  router.get('/public/projects', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, { projects: contentService.listProjects().filter(isPublicProjectEligible) });
+  });
+  router.get('/public/services', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, { services: contentService.listServices().filter((s) => isPublishedOrLegacy(s.status)) });
+  });
+  router.get('/public/blog', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, {
       posts: contentService
         .listBlogPosts()
         .filter(isPublicBlogEligible),
-    }));
+    });
+  });
+  router.get('/public/blog/taxonomy', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, { taxonomy: contentService.getBlogTaxonomy() });
+  });
   router.get('/public/blog/:slug', (req, res) => {
     const slug = normalizePublicBlogSlug(req.params.slug);
     if (!slug) {
@@ -121,15 +133,21 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 404, 'BLOG_NOT_FOUND', 'Blog post not found.');
     }
 
+    res.setHeader('Cache-Control', 'no-store');
     return sendSuccess(res, 200, { post });
   });
-  router.get('/public/blog/taxonomy', (_req, res) => sendSuccess(res, 200, { taxonomy: contentService.getBlogTaxonomy() }));
-  router.get('/public/settings', (_req, res) =>
-    sendSuccess(res, 200, { settings: contentService.getPublicSettings() }));
-  router.get('/public/page-content', (_req, res) =>
-    sendSuccess(res, 200, { pageContent: contentService.getPageContent() }));
-  router.get('/public/media', (_req, res) =>
-    sendSuccess(res, 200, { mediaFiles: contentService.listMediaFiles() }));
+  router.get('/public/settings', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, { settings: contentService.getPublicSettings() });
+  });
+  router.get('/public/page-content', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, { pageContent: contentService.getPageContent() });
+  });
+  router.get('/public/media', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, { mediaFiles: contentService.listMediaFiles() });
+  });
   router.get('/public/diagnostics', (_req, res) =>
     sendSuccess(res, 200, {
       diagnostics: contentService.getSyncDiagnostics(),

@@ -197,6 +197,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnve
   const response = await fetch(`${CONTENT_BASE_URL}${path}`, {
     ...init,
     headers,
+    cache: 'no-store',
     credentials: 'include',
   });
 
@@ -238,6 +239,7 @@ export async function fetchBackendBlogPosts(): Promise<BlogPost[]> {
 
 export async function fetchPublicBlogPosts(): Promise<BlogPost[]> {
   const response = await fetch(`${CONTENT_BASE_URL}/public/blog`, {
+    cache: 'no-store',
     credentials: 'include',
   });
 
@@ -253,6 +255,7 @@ export async function fetchPublicBlogPosts(): Promise<BlogPost[]> {
 
 export async function fetchPublicBlogPostBySlug(slug: string): Promise<BlogPost | null> {
   const response = await fetch(`${CONTENT_BASE_URL}/public/blog/${encodeURIComponent(slug)}`, {
+    cache: 'no-store',
     credentials: 'include',
   });
 
@@ -406,6 +409,7 @@ export async function saveBackendSettings(settings: CmsSettings): Promise<CmsSet
 
 export async function fetchPublicSettings(): Promise<PublicSiteSettings> {
   const response = await fetch(`${CONTENT_BASE_URL}/public/settings`, {
+    cache: 'no-store',
     credentials: 'include',
   });
 
