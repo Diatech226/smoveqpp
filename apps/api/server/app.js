@@ -238,10 +238,6 @@ function createApp(deps = {}) {
   app.use('/api/v1/content', createContentRoutes({ contentService, auditService, mediaStorage }));
   app.use('/api/v1/contact', createContactRoutes({ contactService }));
   app.use('/api/v1/newsletter', createNewsletterRoutes({ newsletterService }));
-  app.use('/api/auth', createAuthRoutes({ authController }));
-  app.use('/api/content', createContentRoutes({ contentService, auditService, mediaStorage }));
-  app.use('/api/contact', createContactRoutes({ contactService }));
-  app.use('/api/newsletter', createNewsletterRoutes({ newsletterService }));
 
   app.use((err, req, res, _next) => {
     logError('api_unhandled_error', {
