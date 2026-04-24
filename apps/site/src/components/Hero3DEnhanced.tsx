@@ -10,6 +10,9 @@ import {
   shouldAutoplayHeroBackground,
 } from '../features/marketing/home/heroBackground';
 import { CONTACT_CTA_HREF } from '../features/marketing/navigationCta';
+import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
+import { isMediaReferenceValue, mediaIdFromReference } from '../features/media/assetReference';
+import { mediaRepository } from '../repositories/mediaRepository';
 
 interface Hero3DEnhancedProps {
   badgeLabel?: string;
@@ -69,13 +72,47 @@ export default function Hero3DEnhanced({
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
   const [isInteractionPaused, setIsInteractionPaused] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(() => (typeof document === 'undefined' ? true : document.visibilityState === 'visible'));
+  const [mediaCatalogRevision, setMediaCatalogRevision] = useState(0);
 
-  const resolvedBackgrounds = useMemo(() => resolveHeroBackgroundItems(backgroundItems), [backgroundItems]);
+  const hasPendingMediaReferences = useMemo(() => {
+    const items = Array.isArray(backgroundItems) ? backgroundItems : [];
+    return items.some((item) => {
+      const references = [item?.media, item?.desktopMedia, item?.tabletMedia, item?.mobileMedia, item?.videoMedia];
+      return references.some((value) => {
+        const trimmed = `${value || ''}`.trim();
+        if (!isMediaReferenceValue(trimmed)) return false;
+        const mediaId = mediaIdFromReference(trimmed);
+        return Boolean(mediaId) && !mediaRepository.getById(mediaId);
+      });
+    });
+  }, [backgroundItems, mediaCatalogRevision]);
+
+  const resolvedBackgrounds = useMemo(() => resolveHeroBackgroundItems(backgroundItems), [backgroundItems, mediaCatalogRevision]);
   const hasCmsMediaBackground = resolvedBackgrounds.length > 0;
   const safeActiveBackgroundIndex = resolvedBackgrounds.length > 0 ? activeBackgroundIndex % resolvedBackgrounds.length : 0;
   const canAutoplay = shouldAutoplayHeroBackground(backgroundRotationEnabled || resolvedBackgrounds.length > 1, backgroundAutoplay, resolvedBackgrounds.length) && !isInteractionPaused && isPageVisible;
   const rotationIntervalMs = normalizeHeroBackgroundIntervalMs(backgroundIntervalMs);
   const activeBackground = hasCmsMediaBackground ? resolvedBackgrounds[safeActiveBackgroundIndex] : null;
+
+
+  useEffect(() => {
+    if (!hasPendingMediaReferences) return;
+
+    let active = true;
+    void hydratePublicMediaLibrary()
+      .then(() => {
+        if (!active) return;
+        setMediaCatalogRevision((current) => current + 1);
+      })
+      .catch(() => {
+        if (!active) return;
+        setMediaCatalogRevision((current) => current + 1);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [hasPendingMediaReferences]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);

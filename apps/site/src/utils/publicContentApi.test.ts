@@ -15,7 +15,7 @@ describe('publicContentApi', () => {
     expect(projects).toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/content/public/projects'),
-      expect.objectContaining({ cache: 'no-store' }),
+      expect.objectContaining({ cache: 'no-store', credentials: 'omit' }),
     );
   });
 

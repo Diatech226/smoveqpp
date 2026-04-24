@@ -81,4 +81,29 @@ describe('content public routes hardening', () => {
     expect(resServices.headers['Cache-Control']).toBe('no-store');
     expect(resBlog.headers['Cache-Control']).toBe('no-store');
   });
+
+  it('serves public page-content and media without authentication guards', () => {
+    const router = createContentRoutes({
+      contentService: createContentService({
+        getPageContent: () => ({ home: { heroBadge: 'Public hero' } }),
+        listMediaFiles: () => [{ id: 'hero-1', url: 'https://cdn.example.com/hero-1.jpg' }],
+      }),
+    });
+
+    const pageContentHandler = router.stack.find((layer) => layer.route?.path === '/public/page-content')?.route.stack[0].handle;
+    const mediaHandler = router.stack.find((layer) => layer.route?.path === '/public/media')?.route.stack[0].handle;
+
+    const pageRes = createRes();
+    const mediaRes = createRes();
+
+    pageContentHandler({}, pageRes);
+    mediaHandler({}, mediaRes);
+
+    expect(pageRes.statusCode).toBe(200);
+    expect(mediaRes.statusCode).toBe(200);
+    expect(pageRes.body?.data?.pageContent?.home?.heroBadge).toBe('Public hero');
+    expect(mediaRes.body?.data?.mediaFiles).toHaveLength(1);
+    expect(pageRes.headers['Cache-Control']).toBe('no-store');
+    expect(mediaRes.headers['Cache-Control']).toBe('no-store');
+  });
 });
