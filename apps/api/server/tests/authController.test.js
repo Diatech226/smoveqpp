@@ -151,4 +151,48 @@ describe('oauth controller flow', () => {
     expect(res.redirectUrl).toBe('https://accounts.example/auth');
     expect(typeof req.session.oauth.state).toBe('string');
   });
+
+  it('oauth start returns 403 when provider is disabled', async () => {
+    const authController = buildAuthController({
+      authService: {
+        buildOAuthAuthorizationUrl: () => ({
+          ok: false,
+          status: 403,
+          code: 'OAUTH_PROVIDER_DISABLED',
+          message: 'google OAuth login is disabled',
+        }),
+      },
+    });
+    const req = { params: { provider: 'google' }, query: {}, session: {}, method: 'GET', originalUrl: '/oauth/google/start' };
+    const res = createRes();
+
+    await authController.startOAuth(req, res);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error.code).toBe('OAUTH_PROVIDER_DISABLED');
+  });
+
+  it('oauth callback returns 403 when provider is disabled', async () => {
+    const authController = buildAuthController({
+      authService: {
+        loginWithOAuthCode: async () => ({
+          ok: false,
+          status: 403,
+          code: 'OAUTH_PROVIDER_DISABLED',
+          message: 'facebook OAuth login is disabled',
+        }),
+      },
+    });
+    const req = {
+      params: { provider: 'facebook' },
+      query: { state: 'abc', code: 'oauth-code' },
+      session: { oauth: { provider: 'facebook', state: 'abc', redirectTo: 'http://localhost:5174/#login' } },
+      method: 'GET',
+      originalUrl: '/oauth/facebook/callback',
+    };
+    const res = createRes();
+
+    await authController.handleOAuthCallback(req, res);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.error.code).toBe('OAUTH_PROVIDER_DISABLED');
+  });
 });

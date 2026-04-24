@@ -83,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const cmsEnabled = SECURITY_FLAGS.cmsEnabled;
   const registrationEnabled = SECURITY_FLAGS.registrationEnabled;
+  const emailPasswordAuthEnabled = SECURITY_FLAGS.emailPasswordAuthEnabled;
+  const googleLoginEnabled = SECURITY_FLAGS.googleLoginEnabled;
+  const facebookLoginEnabled = SECURITY_FLAGS.facebookLoginEnabled;
   const isAuthenticated = Boolean(user);
   const canAccessCMS = evaluateCmsAccess({ cmsEnabled, isAuthenticated, user }) === 'allow';
   const postLoginRoute = resolvePostLoginRoute(cmsEnabled, user);
@@ -99,8 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthNotice(initialized.authNotice);
     }
     setOauthProviders({
-      google: Boolean(providersResult.providers?.google?.enabled),
-      facebook: Boolean(providersResult.providers?.facebook?.enabled),
+      google: googleLoginEnabled && Boolean(providersResult.providers?.google?.enabled),
+      facebook: facebookLoginEnabled && Boolean(providersResult.providers?.facebook?.enabled),
     });
     return initialized.user;
   };
@@ -134,6 +137,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string): Promise<AuthActionResult> => {
+    if (!emailPasswordAuthEnabled) {
+      return { success: false, error: 'La connexion email/mot de passe est désactivée.', destination: null };
+    }
+
     setAuthError(null);
     const localResult = await loginWithPasswordApi(email, password);
     if (!localResult.success) {
@@ -155,6 +162,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, name: string): Promise<AuthActionResult> => {
+    if (!emailPasswordAuthEnabled) {
+      return { success: false, error: "La création de compte email/mot de passe est désactivée.", destination: null };
+    }
+
     const localResult = await registerWithPasswordApi(email, password, name);
     if (!localResult.success) {
       const message = localResult.errorMessage ?? authError ?? 'Inscription impossible.';
@@ -176,6 +187,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const beginOAuthLogin = (provider: 'google' | 'facebook') => {
+    const isProviderEnabled = provider === 'google' ? oauthProviders.google : oauthProviders.facebook;
+    if (!isProviderEnabled) {
+      return;
+    }
     const redirectTo = resolveSafeOAuthRedirectTo();
     window.location.assign(`/api/v1/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(redirectTo)}`);
   };
@@ -222,7 +237,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     oauthProviders,
     postLoginRoute,
     sessionState,
-  }), [authError, authNotice, canAccessCMS, cmsEnabled, isAuthReady, isAuthenticated, oauthProviders, postLoginRoute, registrationEnabled, sessionState, user]);
+  }), [
+    authError,
+    authNotice,
+    canAccessCMS,
+    cmsEnabled,
+    isAuthReady,
+    isAuthenticated,
+    oauthProviders,
+    postLoginRoute,
+    registrationEnabled,
+    sessionState,
+    user,
+    emailPasswordAuthEnabled,
+    googleLoginEnabled,
+    facebookLoginEnabled,
+  ]);
 
   return <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>;
 }

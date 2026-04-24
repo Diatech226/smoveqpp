@@ -47,4 +47,31 @@ describe('env frontend origins', () => {
     expect(env.FRONTEND_ORIGINS).toContain('https://cms.example.com');
     expect(env.FRONTEND_ORIGINS).toContain('https://legacy.example.com');
   });
+
+  it('keeps Google/Facebook disabled by default and does not require provider secrets', () => {
+    const env = loadEnvWith({
+      NODE_ENV: 'development',
+      ENABLE_GOOGLE_LOGIN: undefined,
+      ENABLE_FACEBOOK_LOGIN: undefined,
+      GOOGLE_CLIENT_ID: undefined,
+      GOOGLE_CLIENT_SECRET: undefined,
+      FACEBOOK_APP_ID: undefined,
+      FACEBOOK_APP_SECRET: undefined,
+    });
+
+    expect(env.ENABLE_GOOGLE_LOGIN).toBe(false);
+    expect(env.ENABLE_FACEBOOK_LOGIN).toBe(false);
+    expect(() => env.validateCriticalEnv()).not.toThrow();
+  });
+
+  it('requires full Google credentials only when Google login is enabled', () => {
+    const env = loadEnvWith({
+      NODE_ENV: 'development',
+      ENABLE_GOOGLE_LOGIN: 'true',
+      GOOGLE_CLIENT_ID: 'google-client',
+      GOOGLE_CLIENT_SECRET: undefined,
+    });
+
+    expect(() => env.validateCriticalEnv()).toThrow(/ENABLE_GOOGLE_LOGIN=true/);
+  });
 });
