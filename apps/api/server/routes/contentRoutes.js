@@ -64,6 +64,10 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     role: req.session?.role ?? req.appUser?.role ?? 'viewer',
     organizationId: req.appUser?.organizationId ?? req.session?.organizationId ?? 'org_default',
   });
+  const mergePatch = (current, patch) => ({
+    ...current,
+    ...(patch && typeof patch === 'object' ? patch : {}),
+  });
   const normalizePublicBlogSlug = (value) =>
     `${value || ''}`
       .trim()
@@ -212,6 +216,23 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { post: result.post });
   });
 
+  router.patch('/blog/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const actor = actorFromRequest(req);
+    const existing = contentService.findBlogPostById(req.params.id, { organizationId: actor.organizationId });
+    if (!existing) {
+      return sendError(res, 404, 'BLOG_NOT_FOUND', 'Blog post not found.');
+    }
+
+    const result = contentService.saveBlogPost(mergePatch(existing, { ...req.body, id: req.params.id }), actor);
+    if (!result.ok) {
+      logContentFailure(req, 'cms_blog_patch_failed', result.error.code, { postId: req.params.id });
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+
+    auditService?.record(toAuditContext(req, 'cms_blog_patch', 'success', { entityType: 'blog_post', entityId: result.post.id }));
+    return sendSuccess(res, 200, { post: result.post });
+  });
+
   router.delete('/blog/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const actor = actorFromRequest(req);
     const post = contentService.findBlogPostById(req.params.id, { organizationId: actor.organizationId });
@@ -273,6 +294,22 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { project: result.project });
   });
 
+  router.patch('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const actor = actorFromRequest(req);
+    const existing = contentService.findProjectById(req.params.id, { organizationId: actor.organizationId });
+    if (!existing) {
+      return sendError(res, 404, 'PROJECT_NOT_FOUND', 'Project not found.');
+    }
+
+    const result = contentService.saveProject(mergePatch(existing, { ...req.body, id: req.params.id }), actor);
+    if (!result.ok) {
+      logContentFailure(req, 'cms_project_patch_failed', result.error.code, { projectId: req.params.id });
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+
+    auditService?.record(toAuditContext(req, 'cms_project_patch', 'success', { entityType: 'project', entityId: result.project.id }));
+    return sendSuccess(res, 200, { project: result.project });
+  });
 
   router.post('/projects/:id/transition', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
     const { status } = req.body || {};
@@ -338,6 +375,24 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 400, result.error.code, result.error.message, details);
     }
     auditService?.record(toAuditContext(req, 'cms_service_save', 'success', { entityType: 'service', entityId: result.service.id }));
+    return sendSuccess(res, 200, { service: result.service });
+  });
+
+  router.patch('/services/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const actor = actorFromRequest(req);
+    const existing = contentService.findServiceById(req.params.id, { organizationId: actor.organizationId });
+    if (!existing) {
+      return sendError(res, 404, 'SERVICE_NOT_FOUND', 'Service not found.');
+    }
+
+    const result = contentService.saveService(mergePatch(existing, { ...req.body, id: req.params.id }), actor);
+    if (!result.ok) {
+      const details = result.error.details ?? null;
+      logContentFailure(req, 'cms_service_patch_failed', result.error.code, { serviceId: req.params.id, ...(details ? { details } : {}) });
+      return sendError(res, 400, result.error.code, result.error.message, details);
+    }
+
+    auditService?.record(toAuditContext(req, 'cms_service_patch', 'success', { entityType: 'service', entityId: result.service.id }));
     return sendSuccess(res, 200, { service: result.service });
   });
 
@@ -481,6 +536,15 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { pageContent: result.pageContent });
   });
 
+  router.patch('/page-content', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.savePageContent(req.body);
+    if (!result.ok) {
+      logContentFailure(req, 'cms_page_content_patch_failed', result.error.code);
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
+    return sendSuccess(res, 200, { pageContent: result.pageContent });
+  });
+
   router.get('/settings', requirePermission(Permissions.CONTENT_READ), (req, res) =>
     sendSuccess(res, 200, { settings: contentService.getSettings() }));
 
@@ -512,6 +576,15 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       entityId: 'global',
       metadata: { changedFields: result.audit?.changedFields || [] },
     }));
+    return sendSuccess(res, 200, { settings: result.settings });
+  });
+
+  router.patch('/settings', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+    const result = contentService.saveSettings(req.body, { changedBy: req.session?.userId ?? 'unknown' });
+    if (!result.ok) {
+      logContentFailure(req, 'cms_settings_patch_failed', result.error.code);
+      return sendError(res, 400, result.error.code, result.error.message);
+    }
     return sendSuccess(res, 200, { settings: result.settings });
   });
 
