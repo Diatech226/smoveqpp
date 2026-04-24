@@ -53,10 +53,10 @@ npm run start:api
 Use only the root env template:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-The root `.env.local` is now the primary source for site, CMS, and API runtime values.
+The root `.env` is the primary source for site, CMS, and API runtime values.
 
 ## Single-project Vercel deployment
 

@@ -49,9 +49,7 @@ function normalizeApiOrigin(rawValue: string | undefined, fallbackPort: number):
 
 export default defineConfig(({ mode }) => {
   const workspaceRoot = path.resolve(__dirname, '../..');
-  const workspaceEnv = loadEnv(mode, workspaceRoot, '');
-  const cmsEnv = loadEnv(mode, __dirname, '');
-  const env = { ...workspaceEnv, ...cmsEnv };
+  const env = loadEnv(mode, workspaceRoot, '');
 
   const cmsPort = parsePort(env.VITE_CMS_PORT, 5174);
   const apiPort = parsePort(env.API_PORT, 3001);

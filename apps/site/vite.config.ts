@@ -80,9 +80,7 @@ function createSecurityHeaders(
 
 export default defineConfig(({ mode }) => {
   const workspaceRoot = path.resolve(__dirname, "../..");
-  const workspaceEnv = loadEnv(mode, workspaceRoot, "");
-  const siteEnv = loadEnv(mode, __dirname, "");
-  const env = { ...workspaceEnv, ...siteEnv };
+  const env = loadEnv(mode, workspaceRoot, "");
   const clientPort = parsePort(env.VITE_PORT ?? env.CLIENT_PORT, 5173);
   const apiOrigin = normalizeLocalOrigin(
     env.VITE_API_ORIGIN ?? env.API_ORIGIN,
