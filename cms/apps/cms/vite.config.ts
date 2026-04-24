@@ -67,7 +67,7 @@ export default defineConfig(({ mode }) => {
     root: __dirname,
     envDir: workspaceRoot,
     cacheDir: path.resolve(workspaceRoot, 'node_modules/.vite-cms'),
-    base: '/cms/',
+    base: '/',
     plugins: [react()],
     resolve: {
       alias: {
@@ -79,8 +79,8 @@ export default defineConfig(({ mode }) => {
       include: ['react', 'react-dom'],
     },
     build: {
-      outDir: '../../build/cms',
-      emptyOutDir: false,
+      outDir: '../../build',
+      emptyOutDir: true,
     },
     server: {
       host: 'localhost',
