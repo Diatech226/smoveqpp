@@ -5,12 +5,17 @@ import { useAuth } from '../../contexts/AuthContext';
 import { resolveOAuthFailureMessage } from './loginPageState';
 
 export default function LoginPage() {
+  const enableGoogle = import.meta.env.VITE_ENABLE_GOOGLE_LOGIN === 'true';
+  const enableFacebook = import.meta.env.VITE_ENABLE_FACEBOOK_LOGIN === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoadingProvider, setOauthLoadingProvider] = useState<'google' | 'facebook' | null>(null);
   const { login, beginOAuthLogin, oauthProviders, cmsEnabled, registrationEnabled, authError, authNotice } = useAuth();
+  const showGoogleLogin = enableGoogle && oauthProviders.google;
+  const showFacebookLogin = enableFacebook && oauthProviders.facebook;
+  const hasSocialLogin = showGoogleLogin || showFacebookLogin;
   const particles = useMemo(
     () =>
       Array.from({ length: 20 }, () => ({
@@ -23,6 +28,8 @@ export default function LoginPage() {
   );
 
   useEffect(() => {
+    if (!hasSocialLogin) return;
+
     const rawHash = window.location.hash ?? '';
     const [, hashQuery = ''] = rawHash.split('?');
     if (!hashQuery) return;
@@ -44,7 +51,7 @@ export default function LoginPage() {
 
     setError(knownErrors[oauthErrorCode] ?? `Connexion sociale impossible (${oauthErrorCode}).`);
     setOauthLoadingProvider(null);
-  }, []);
+  }, [hasSocialLogin]);
 
   const handleOAuth = async (provider: 'google' | 'facebook') => {
     setError('');
@@ -327,30 +334,30 @@ export default function LoginPage() {
             </motion.div>
           </form>
 
-          {(!oauthProviders.google || !oauthProviders.facebook) && (
-            <p className="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-[10px] px-3 py-2">
-              Certains providers sociaux sont désactivés. Vérifiez la configuration OAuth (ID client, secret, URL de callback).
-            </p>
+          {hasSocialLogin && (
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {showGoogleLogin && (
+                <button
+                  type="button"
+                  disabled={loading || oauthLoadingProvider !== null}
+                  onClick={() => void handleOAuth('google')}
+                  className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
+                >
+                  {oauthLoadingProvider === 'google' ? 'Redirection vers Google...' : 'Continuer avec Google'}
+                </button>
+              )}
+              {showFacebookLogin && (
+                <button
+                  type="button"
+                  disabled={loading || oauthLoadingProvider !== null}
+                  onClick={() => void handleOAuth('facebook')}
+                  className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
+                >
+                  {oauthLoadingProvider === 'facebook' ? 'Redirection vers Facebook...' : 'Continuer avec Facebook'}
+                </button>
+              )}
+            </div>
           )}
-
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              disabled={!oauthProviders.google || loading || oauthLoadingProvider !== null}
-              onClick={() => void handleOAuth('google')}
-              className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
-            >
-              {oauthLoadingProvider === 'google' ? 'Redirection vers Google...' : 'Continuer avec Google'}
-            </button>
-            <button
-              type="button"
-              disabled={!oauthProviders.facebook || loading || oauthLoadingProvider !== null}
-              onClick={() => void handleOAuth('facebook')}
-              className="px-4 py-3 rounded-[12px] border border-[#eef3f5] disabled:opacity-50"
-            >
-              {oauthLoadingProvider === 'facebook' ? 'Redirection vers Facebook...' : 'Continuer avec Facebook'}
-            </button>
-          </div>
 
           {/* Footer Links */}
           <motion.div
