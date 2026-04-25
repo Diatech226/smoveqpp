@@ -11,21 +11,32 @@ interface ApiEnvelope<T> {
 
 const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content/public`;
 const inFlightRequests = new Map<string, Promise<unknown>>();
+const TRANSIENT_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
-async function request<T>(path: string): Promise<T> {
-  const cacheKey = `GET:${path}`;
-  const existing = inFlightRequests.get(cacheKey) as Promise<T> | undefined;
-  if (existing) return existing;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const pending = fetch(`${CONTENT_BASE_URL}${path}`, {
-    cache: 'no-store',
-    credentials: 'omit',
-    headers: {
-      'Cache-Control': 'no-cache',
-      Pragma: 'no-cache',
-    },
-  })
-    .then(async (response) => {
+function isTransientError(error: unknown): boolean {
+  if (error instanceof ContentApiError) {
+    return error.status === 0 || TRANSIENT_STATUS_CODES.has(error.status);
+  }
+
+  return error instanceof TypeError;
+}
+
+async function requestWithRetry<T>(path: string, retries = 3): Promise<T> {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      const response = await fetch(`${CONTENT_BASE_URL}${path}`, {
+        cache: 'no-store',
+        credentials: 'omit',
+        headers: {
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
+      });
+
       const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
 
       if (!response.ok || !body?.success || !body.data) {
@@ -35,10 +46,24 @@ async function request<T>(path: string): Promise<T> {
       }
 
       return body.data;
-    })
-    .finally(() => {
-      inFlightRequests.delete(cacheKey);
-    });
+    } catch (error) {
+      if (attempt >= retries || !isTransientError(error)) {
+        throw error;
+      }
+      attempt += 1;
+      await wait(300 * attempt);
+    }
+  }
+}
+
+async function request<T>(path: string): Promise<T> {
+  const cacheKey = `GET:${path}`;
+  const existing = inFlightRequests.get(cacheKey) as Promise<T> | undefined;
+  if (existing) return existing;
+
+  const pending = requestWithRetry<T>(path).finally(() => {
+    inFlightRequests.delete(cacheKey);
+  });
 
   inFlightRequests.set(cacheKey, pending);
   return pending;

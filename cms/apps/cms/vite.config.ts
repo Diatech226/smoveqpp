@@ -33,17 +33,13 @@ function createCsp(hosts: { cmsHost: string; cmsWsHost: string; apiOrigin: strin
 
 function normalizeApiOrigin(rawValue: string | undefined, fallbackPort: number): string {
   const trimmed = rawValue?.trim();
-  const candidate = trimmed && trimmed.length > 0 ? trimmed : `http://localhost:${fallbackPort}`;
+  const candidate = trimmed && trimmed.length > 0 ? trimmed : `http://127.0.0.1:${fallbackPort}`;
 
   try {
     const parsed = new URL(candidate);
-    if (parsed.hostname === '127.0.0.1') {
-      parsed.hostname = 'localhost';
-    }
-
     return parsed.toString().replace(/\/$/, '');
   } catch {
-    return `http://localhost:${fallbackPort}`;
+    return `http://127.0.0.1:${fallbackPort}`;
   }
 }
 

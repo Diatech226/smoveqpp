@@ -96,7 +96,6 @@ function createUserModel(mongoose) {
         unique: true,
         lowercase: true,
         trim: true,
-        index: true,
       },
       passwordHash: {
         type: String,
@@ -144,13 +143,11 @@ function createUserModel(mongoose) {
         type: String,
         default: null,
         sparse: true,
-        index: true,
       },
       facebookId: {
         type: String,
         default: null,
         sparse: true,
-        index: true,
       },
 
       avatarUrl: {

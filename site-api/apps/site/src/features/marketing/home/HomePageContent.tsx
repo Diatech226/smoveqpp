@@ -26,52 +26,51 @@ function HomePageContent() {
   const [mediaRevision, setMediaRevision] = useState(0);
   const [isSubmittingContact, setIsSubmittingContact] = useState(false);
   const [contactFeedback, setContactFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isSyncingRemoteContent, setIsSyncingRemoteContent] = useState(true);
+  const [remoteContentError, setRemoteContentError] = useState('');
+
+  const syncRemoteContent = async () => {
+    setIsSyncingRemoteContent(true);
+    setRemoteContentError('');
+
+    const syncResults = await Promise.allSettled([
+      fetchPublicPageContent().then((remoteHomeContent) => {
+        const synced = pageContentRepository.saveHomePageContent(remoteHomeContent);
+        setHomeContent(synced);
+      }),
+      fetchPublicMediaFiles().then((mediaFiles) => {
+        mediaRepository.replaceAll(mediaFiles);
+        setMediaRevision((current) => current + 1);
+      }),
+      fetchPublicServices().then((services) => {
+        const synced = serviceRepository.replaceAll(services);
+        setServicesData(selectHomepageServices(synced));
+      }),
+      getBlogContentContractFromSource().then((blogContent) => {
+        setBlogPosts(selectHomepageBlogPosts(blogContent.posts));
+      }),
+    ]);
+
+    const failedSyncs = syncResults.filter((result) => result.status === 'rejected');
+    if (failedSyncs.length > 0) {
+      setRemoteContentError("Le contenu live est temporairement indisponible. Affichage d'une version locale en attendant. Réessayez.");
+      failedSyncs.forEach((result) => {
+        if (result.status === 'rejected') {
+          console.warn('[public-content] remote sync failed, keeping repository snapshot.', result.reason);
+        }
+      });
+    }
+
+    setIsSyncingRemoteContent(false);
+  };
 
   useEffect(() => {
     let active = true;
 
-    void fetchPublicPageContent()
-      .then((remoteHomeContent) => {
-        if (!active) return;
-        const synced = pageContentRepository.saveHomePageContent(remoteHomeContent);
-        setHomeContent(synced);
-      })
-      .catch((error) => {
-        if (!active) return;
-        console.warn('[public-content] page-content API unavailable, keeping repository snapshot.', error);
-      });
-
-    void fetchPublicMediaFiles()
-      .then((mediaFiles) => {
-        if (!active) return;
-        mediaRepository.replaceAll(mediaFiles);
-        setMediaRevision((current) => current + 1);
-      })
-      .catch((error) => {
-        if (!active) return;
-        console.warn('[public-content] media API unavailable, keeping repository snapshot.', error);
-      });
-
-    void fetchPublicServices()
-      .then((services) => {
-        if (!active) return;
-        const synced = serviceRepository.replaceAll(services);
-        setServicesData(selectHomepageServices(synced));
-      })
-      .catch((error) => {
-        if (!active) return;
-        console.warn('[public-content] services API unavailable, keeping repository snapshot.', error);
-      });
-
-    void getBlogContentContractFromSource()
-      .then((blogContent) => {
-        if (!active) return;
-        setBlogPosts(selectHomepageBlogPosts(blogContent.posts));
-      })
-      .catch((error) => {
-        if (!active) return;
-        console.warn('[public-content] blog API unavailable, keeping repository snapshot.', error);
-      });
+    void syncRemoteContent().catch((error) => {
+      if (!active) return;
+      console.warn('[public-content] initial sync failed.', error);
+    });
 
     return () => {
       active = false;
@@ -114,6 +113,29 @@ function HomePageContent() {
 
   return (
     <div className="relative" style={{ position: 'relative' }}>
+      {isSyncingRemoteContent && (
+        <div className="mx-auto max-w-7xl px-4 pt-6">
+          <div className="rounded-xl border border-[#cceefa] bg-[#f2fbff] px-4 py-3 text-sm text-[#1a5b76]">
+            Synchronisation du contenu avec l'API en cours…
+          </div>
+        </div>
+      )}
+      {!!remoteContentError && (
+        <div className="mx-auto max-w-7xl px-4 pt-6">
+          <div className="flex flex-col gap-3 rounded-xl border border-[#ffd8b2] bg-[#fff8f1] px-4 py-3 text-sm text-[#8c4a16] md:flex-row md:items-center md:justify-between">
+            <span>{remoteContentError}</span>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-md border border-[#f5b779] bg-white px-3 py-1.5 font-semibold text-[#8c4a16] transition hover:bg-[#fff2e6]"
+              onClick={() => {
+                void syncRemoteContent();
+              }}
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      )}
       {/* Hero Section with 3D Effect */}
       <Hero3DEnhanced
         key={`hero-media-revision-${mediaRevision}`}
