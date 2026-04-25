@@ -218,12 +218,16 @@ function createApp(deps = {}) {
 
   app.get('/api/v1/ready', (_req, res) => {
     const mongoState = getMongoConnectionState();
-    const ready = Boolean(mongoState.connected) && sessionInit.storeMeta.mode === 'mongo';
+    const sessionStoreReady = Boolean(sessionInit.storeMeta?.mode);
+    const ready = Boolean(mongoState.connected) && sessionStoreReady;
     const payload = {
       ready,
       dependencies: {
         mongo: mongoState,
-        sessionStore: sessionInit.storeMeta,
+        sessionStore: {
+          ...sessionInit.storeMeta,
+          ready: sessionStoreReady,
+        },
       },
     };
 

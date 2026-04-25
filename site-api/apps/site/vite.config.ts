@@ -15,9 +15,6 @@ function normalizeLocalOrigin(
 
   try {
     const parsed = new URL(candidate);
-    if (parsed.hostname === "127.0.0.1") {
-      parsed.hostname = "localhost";
-    }
     return parsed.toString().replace(/\/$/, "");
   } catch {
     return fallback;
@@ -84,7 +81,7 @@ export default defineConfig(({ mode }) => {
   const clientPort = parsePort(env.VITE_PORT ?? env.CLIENT_PORT, 5173);
   const apiOrigin = normalizeLocalOrigin(
     env.VITE_API_ORIGIN ?? env.API_ORIGIN,
-    "http://localhost:3001",
+    "http://127.0.0.1:3001",
   );
   const clientHost = `http://localhost:${clientPort}`;
   const clientWsHost = `ws://localhost:${clientPort}`;
