@@ -3,14 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "npm-run-all --parallel dev:site dev:api",
+    "dev": "node scripts/dev.js",
     "dev:site": "vite --config apps/site/vite.config.ts",
     "dev:api": "node apps/api/server/index.js",
-    "build": "npm run build:site && npm run build:api",
-    "build:site": "vite build --config apps/site/vite.config.ts",
-    "build:api": "node -e \"console.log('API build not required')\"",
-    "preview:site": "vite preview --config apps/site/vite.config.ts",
+    "build": "vite build --config apps/site/vite.config.ts",
     "start:api": "node apps/api/server/index.js",
+    "preview:site": "vite preview --config apps/site/vite.config.ts",
     "test": "npm run test:site && npm run test:api",
     "test:site": "vitest run apps/site/src/**/*.test.ts",
     "test:api": "vitest run apps/api/server/tests/*.test.js"
@@ -74,7 +72,6 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react-swc": "^4.2.3",
-    "npm-run-all": "^4.1.5",
     "typescript": "^5.4.5",
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
