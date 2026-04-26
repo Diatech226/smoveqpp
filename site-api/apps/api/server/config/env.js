@@ -126,9 +126,6 @@ function normalizeOrigin(origin) {
   if (!origin || typeof origin !== 'string') return null;
   try {
     const parsed = new URL(origin.trim());
-    if (parsed.hostname === '127.0.0.1') {
-      parsed.hostname = 'localhost';
-    }
     return parsed.origin;
   } catch {
     return null;
@@ -151,6 +148,8 @@ function buildFrontendOrigins() {
     configuredList.push(
       `http://localhost:${FRONTEND_PORT}`,
       `http://localhost:${CMS_PORT}`,
+      `http://127.0.0.1:${FRONTEND_PORT}`,
+      `http://127.0.0.1:${CMS_PORT}`,
     );
   }
 

@@ -161,6 +161,12 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     sendSuccess(res, 200, {
       metrics: contentService.getPublicAnalyticsSummary(),
     }));
+  router.get('/public/events', (req, res) => {
+    const parsedLimit = Number.parseInt(`${req.query?.limit ?? ''}`, 10);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : 100;
+    res.setHeader('Cache-Control', 'no-store');
+    return sendSuccess(res, 200, { events: contentService.listAnalyticsEvents(limit) });
+  });
 
   router.post('/public/events', (req, res) => {
     const result = contentService.recordAnalyticsEvent(req.body || {}, { source: 'public', requestId: req.requestId });

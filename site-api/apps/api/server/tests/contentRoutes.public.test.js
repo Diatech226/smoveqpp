@@ -36,6 +36,7 @@ function createContentService(overrides = {}) {
     getSyncDiagnostics: () => ({}),
     getContentHealthSummary: () => ({}),
     getPublicAnalyticsSummary: () => ({}),
+    listAnalyticsEvents: () => [],
     recordAnalyticsEvent: () => ({ ok: true }),
     ...overrides,
   };
@@ -105,5 +106,22 @@ describe('content public routes hardening', () => {
     expect(mediaRes.body?.data?.mediaFiles).toHaveLength(1);
     expect(pageRes.headers['Cache-Control']).toBe('no-store');
     expect(mediaRes.headers['Cache-Control']).toBe('no-store');
+  });
+
+  it('serves public analytics events over GET to avoid method mismatch failures', () => {
+    const router = createContentRoutes({
+      contentService: createContentService({
+        listAnalyticsEvents: () => [{ id: 'evt_1', name: 'cta_clicked' }],
+      }),
+    });
+
+    const eventsGetHandler = router.stack.find((layer) => layer.route?.path === '/public/events' && layer.route.methods?.get)?.route.stack[0].handle;
+    const res = createRes();
+
+    eventsGetHandler({ query: { limit: '10' } }, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body?.data?.events).toHaveLength(1);
+    expect(res.headers['Cache-Control']).toBe('no-store');
   });
 });
