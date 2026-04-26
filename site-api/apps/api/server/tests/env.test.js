@@ -31,6 +31,18 @@ function loadEnvWith(overrides) {
 }
 
 describe('env frontend origins', () => {
+  it('prefers VITE_PUBLIC_SITE_URL as frontend origin when FRONTEND_ORIGIN is not explicitly set', () => {
+    const env = loadEnvWith({
+      NODE_ENV: 'production',
+      FRONTEND_ORIGIN: undefined,
+      VITE_PUBLIC_SITE_URL: 'https://smove-three.vercel.app/#home',
+      FRONTEND_ORIGINS: 'https://smove-three.vercel.app,https://smoovecms.vercel.app',
+    });
+
+    expect(env.FRONTEND_ORIGIN).toBe('https://smove-three.vercel.app');
+    expect(env.APP_BASE_URL).toBe('https://smove-three.vercel.app');
+  });
+
   it('includes Vite CMS/public URLs as safe frontend origins for OAuth redirects', () => {
     const env = loadEnvWith({
       NODE_ENV: 'production',
