@@ -19,7 +19,9 @@ function loadEnvFile(filePath) {
     const rawValue = trimmed.slice(separatorIndex + 1).trim();
     const value = rawValue.replace(/^['\"]|['\"]$/g, '');
 
-    process.env[key] = value;
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+    }
   }
 }
 
@@ -134,7 +136,7 @@ function normalizeOrigin(origin) {
 }
 
 function buildFrontendOrigins() {
-  const configuredPrimary = process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`;
+  const configuredPrimary = process.env.FRONTEND_ORIGIN ?? process.env.VITE_PUBLIC_SITE_URL ?? `http://localhost:${FRONTEND_PORT}`;
   const configuredList = [
     configuredPrimary,
     process.env.CMS_ORIGIN,
@@ -156,6 +158,11 @@ function buildFrontendOrigins() {
 }
 
 const FRONTEND_ORIGINS = buildFrontendOrigins();
+const DEFAULT_FRONTEND_ORIGIN =
+  normalizeOrigin(process.env.FRONTEND_ORIGIN) ??
+  normalizeOrigin(process.env.VITE_PUBLIC_SITE_URL) ??
+  FRONTEND_ORIGINS[0] ??
+  `http://localhost:${FRONTEND_PORT}`;
 const DEFAULT_API_ORIGIN = normalizeOrigin(process.env.API_ORIGIN) ?? `http://localhost:${API_PORT}`;
 
 module.exports = {
@@ -163,7 +170,7 @@ module.exports = {
   API_PORT,
   AUTH_STORAGE_MODE,
   SESSION_STORE_MODE,
-  FRONTEND_ORIGIN: FRONTEND_ORIGINS[0] ?? `http://localhost:${FRONTEND_PORT}`,
+  FRONTEND_ORIGIN: DEFAULT_FRONTEND_ORIGIN,
   FRONTEND_ORIGINS,
   API_ORIGIN: DEFAULT_API_ORIGIN,
   SESSION_SECRET,
@@ -196,7 +203,7 @@ module.exports = {
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
   EMAIL_FROM: process.env.EMAIL_FROM ?? 'noreply@localhost',
   CONTACT_TO_EMAIL: process.env.CONTACT_TO_EMAIL ?? '',
-  APP_BASE_URL: process.env.APP_BASE_URL ?? process.env.FRONTEND_ORIGIN ?? `http://localhost:${FRONTEND_PORT}`,
+  APP_BASE_URL: process.env.APP_BASE_URL ?? DEFAULT_FRONTEND_ORIGIN,
   CONTENT_SCHEMA_VERSION,
   MEDIA_UPLOAD_DIR,
   MEDIA_PUBLIC_BASE_PATH,
