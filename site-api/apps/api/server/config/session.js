@@ -75,12 +75,16 @@ function createSessionMiddleware() {
 }
 
 function createCorsOptions() {
-  const allowedOrigins = new Set(FRONTEND_ORIGINS ?? [FRONTEND_ORIGIN]);
+  const allowedOrigins = new Set((Array.isArray(FRONTEND_ORIGINS) && FRONTEND_ORIGINS.length > 0 ? FRONTEND_ORIGINS : [FRONTEND_ORIGIN]).filter(Boolean));
 
   return {
     origin(origin, callback) {
-      if (!origin || allowedOrigins.has(origin)) {
+      if (!origin) {
         return callback(null, true);
+      }
+
+      if (allowedOrigins.has(origin)) {
+        return callback(null, origin);
       }
 
       return callback(new Error(`Origin ${origin} not allowed by CORS`));

@@ -175,7 +175,9 @@ function createApp(deps = {}) {
     next();
   });
 
-  app.use(cors(createCorsOptions()));
+  const corsOptions = createCorsOptions();
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
   app.use(cookieParser());
   app.use(express.json({ limit: '10mb' }));
   app.use(sessionInit.middleware);
