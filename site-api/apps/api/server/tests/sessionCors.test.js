@@ -60,38 +60,28 @@ describe('session cors options', () => {
     expect(outcome.allowedOrigin).toBe('https://smoovecms.vercel.app');
   });
 
-  it('includes localhost and 127.0.0.1 origins in development', () => {
-    const outcome = withEnv(
+  it('allows only origins explicitly listed in FRONTEND_ORIGINS', async () => {
+    const outcome = await withEnv(
       {
-        NODE_ENV: 'development',
-        FRONTEND_ORIGINS: '',
-        FRONTEND_ORIGIN: 'http://localhost:5173',
-        VITE_CMS_PORT: '5174',
+        NODE_ENV: 'production',
+        FRONTEND_ORIGINS: 'https://smove-three.vercel.app,https://smoovecms.vercel.app',
       },
-      ({ createCorsOptions }) => {
+      async ({ createCorsOptions }) => {
         const options = createCorsOptions();
-        return Promise.all([
-          new Promise((resolve, reject) => {
-            options.origin('http://localhost:5173', (error, value) => (error ? reject(error) : resolve(value)));
-          }),
-          new Promise((resolve, reject) => {
-            options.origin('http://localhost:5174', (error, value) => (error ? reject(error) : resolve(value)));
-          }),
-          new Promise((resolve, reject) => {
-            options.origin('http://127.0.0.1:5173', (error, value) => (error ? reject(error) : resolve(value)));
-          }),
-          new Promise((resolve, reject) => {
-            options.origin('http://127.0.0.1:5174', (error, value) => (error ? reject(error) : resolve(value)));
-          }),
-        ]);
+        const siteOrigin = await new Promise((resolve, reject) => {
+          options.origin('https://smove-three.vercel.app', (error, value) => (error ? reject(error) : resolve(value)));
+        });
+        const cmsOrigin = await new Promise((resolve, reject) => {
+          options.origin('https://smoovecms.vercel.app', (error, value) => (error ? reject(error) : resolve(value)));
+        });
+
+        return { siteOrigin, cmsOrigin };
       },
     );
 
-    return expect(outcome).resolves.toEqual([
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:5174',
-    ]);
+    expect(outcome).toEqual({
+      siteOrigin: 'https://smove-three.vercel.app',
+      cmsOrigin: 'https://smoovecms.vercel.app',
+    });
   });
 });
