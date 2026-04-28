@@ -60,38 +60,56 @@ describe('session cors options', () => {
     expect(outcome.allowedOrigin).toBe('https://smoovecms.vercel.app');
   });
 
-  it('includes localhost and 127.0.0.1 origins in development', () => {
-    const outcome = withEnv(
+
+  it('falls back to normalized config origins when FRONTEND_ORIGINS env is empty', async () => {
+    const outcome = await withEnv(
       {
         NODE_ENV: 'development',
         FRONTEND_ORIGINS: '',
-        FRONTEND_ORIGIN: 'http://localhost:5173',
+        FRONTEND_ORIGIN: 'http://localhost:5173/',
         VITE_CMS_PORT: '5174',
       },
-      ({ createCorsOptions }) => {
+      async ({ createCorsOptions }) => {
         const options = createCorsOptions();
-        return Promise.all([
-          new Promise((resolve, reject) => {
-            options.origin('http://localhost:5173', (error, value) => (error ? reject(error) : resolve(value)));
-          }),
-          new Promise((resolve, reject) => {
-            options.origin('http://localhost:5174', (error, value) => (error ? reject(error) : resolve(value)));
-          }),
-          new Promise((resolve, reject) => {
-            options.origin('http://127.0.0.1:5173', (error, value) => (error ? reject(error) : resolve(value)));
-          }),
-          new Promise((resolve, reject) => {
-            options.origin('http://127.0.0.1:5174', (error, value) => (error ? reject(error) : resolve(value)));
-          }),
-        ]);
+        const local = await new Promise((resolve, reject) => {
+          options.origin('http://localhost:5173', (error, value) => (error ? reject(error) : resolve(value)));
+        });
+        const cms = await new Promise((resolve, reject) => {
+          options.origin('http://localhost:5174', (error, value) => (error ? reject(error) : resolve(value)));
+        });
+
+        return { local, cms };
       },
     );
 
-    return expect(outcome).resolves.toEqual([
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:5174',
-    ]);
+    expect(outcome).toEqual({
+      local: 'http://localhost:5173',
+      cms: 'http://localhost:5174',
+    });
+  });
+
+  it('allows only origins explicitly listed in FRONTEND_ORIGINS', async () => {
+    const outcome = await withEnv(
+      {
+        NODE_ENV: 'production',
+        FRONTEND_ORIGINS: 'https://smove-three.vercel.app,https://smoovecms.vercel.app',
+      },
+      async ({ createCorsOptions }) => {
+        const options = createCorsOptions();
+        const siteOrigin = await new Promise((resolve, reject) => {
+          options.origin('https://smove-three.vercel.app', (error, value) => (error ? reject(error) : resolve(value)));
+        });
+        const cmsOrigin = await new Promise((resolve, reject) => {
+          options.origin('https://smoovecms.vercel.app', (error, value) => (error ? reject(error) : resolve(value)));
+        });
+
+        return { siteOrigin, cmsOrigin };
+      },
+    );
+
+    expect(outcome).toEqual({
+      siteOrigin: 'https://smove-three.vercel.app',
+      cmsOrigin: 'https://smoovecms.vercel.app',
+    });
   });
 });

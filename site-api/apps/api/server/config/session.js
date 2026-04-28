@@ -1,5 +1,13 @@
 const session = require('express-session');
-const { FRONTEND_ORIGIN, FRONTEND_ORIGINS, SESSION_SECRET, isProduction, SESSION_TTL_SECONDS, MONGO_URI, SESSION_STORE_MODE } = require('./env');
+const {
+  FRONTEND_ORIGIN,
+  FRONTEND_ORIGINS,
+  SESSION_SECRET,
+  isProduction,
+  SESSION_TTL_SECONDS,
+  MONGO_URI,
+  SESSION_STORE_MODE,
+} = require('./env');
 const { getMongoose } = require('./mongo');
 const { logInfo, logWarn } = require('../utils/logger');
 
@@ -74,8 +82,32 @@ function createSessionMiddleware() {
   };
 }
 
+function normalizeOrigin(origin) {
+  if (!origin || typeof origin !== 'string') {
+    return null;
+  }
+
+  try {
+    return new URL(origin.trim()).origin;
+  } catch {
+    return null;
+  }
+}
+
 function createCorsOptions() {
-  const allowedOrigins = new Set((Array.isArray(FRONTEND_ORIGINS) && FRONTEND_ORIGINS.length > 0 ? FRONTEND_ORIGINS : [FRONTEND_ORIGIN]).filter(Boolean));
+  const explicitOrigins = (process.env.FRONTEND_ORIGINS || '')
+    .split(',')
+    .map((origin) => normalizeOrigin(origin))
+    .filter(Boolean);
+
+  const fallbackOrigins = (Array.isArray(FRONTEND_ORIGINS) && FRONTEND_ORIGINS.length > 0
+    ? FRONTEND_ORIGINS
+    : [FRONTEND_ORIGIN]
+  )
+    .map((origin) => normalizeOrigin(origin))
+    .filter(Boolean);
+
+  const allowedOrigins = new Set(explicitOrigins.length > 0 ? explicitOrigins : fallbackOrigins);
 
   return {
     origin(origin, callback) {
@@ -87,7 +119,7 @@ function createCorsOptions() {
         return callback(null, origin);
       }
 
-      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'X-Requested-With'],
