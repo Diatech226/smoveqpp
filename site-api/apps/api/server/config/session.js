@@ -1,13 +1,5 @@
 const session = require('express-session');
-const {
-  FRONTEND_ORIGIN,
-  FRONTEND_ORIGINS,
-  SESSION_SECRET,
-  isProduction,
-  SESSION_TTL_SECONDS,
-  MONGO_URI,
-  SESSION_STORE_MODE,
-} = require('./env');
+const { SESSION_SECRET, isProduction, SESSION_TTL_SECONDS, MONGO_URI, SESSION_STORE_MODE } = require('./env');
 const { getMongoose } = require('./mongo');
 const { logInfo, logWarn } = require('../utils/logger');
 
@@ -95,19 +87,12 @@ function normalizeOrigin(origin) {
 }
 
 function createCorsOptions() {
-  const explicitOrigins = (process.env.FRONTEND_ORIGINS || '')
-    .split(',')
-    .map((origin) => normalizeOrigin(origin))
-    .filter(Boolean);
-
-  const fallbackOrigins = (Array.isArray(FRONTEND_ORIGINS) && FRONTEND_ORIGINS.length > 0
-    ? FRONTEND_ORIGINS
-    : [FRONTEND_ORIGIN]
-  )
-    .map((origin) => normalizeOrigin(origin))
-    .filter(Boolean);
-
-  const allowedOrigins = new Set(explicitOrigins.length > 0 ? explicitOrigins : fallbackOrigins);
+  const allowedOrigins = new Set(
+    (process.env.FRONTEND_ORIGINS || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
 
   return {
     origin(origin, callback) {

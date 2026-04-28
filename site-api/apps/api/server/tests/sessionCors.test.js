@@ -60,34 +60,6 @@ describe('session cors options', () => {
     expect(outcome.allowedOrigin).toBe('https://smoovecms.vercel.app');
   });
 
-
-  it('falls back to normalized config origins when FRONTEND_ORIGINS env is empty', async () => {
-    const outcome = await withEnv(
-      {
-        NODE_ENV: 'development',
-        FRONTEND_ORIGINS: '',
-        FRONTEND_ORIGIN: 'http://localhost:5173/',
-        VITE_CMS_PORT: '5174',
-      },
-      async ({ createCorsOptions }) => {
-        const options = createCorsOptions();
-        const local = await new Promise((resolve, reject) => {
-          options.origin('http://localhost:5173', (error, value) => (error ? reject(error) : resolve(value)));
-        });
-        const cms = await new Promise((resolve, reject) => {
-          options.origin('http://localhost:5174', (error, value) => (error ? reject(error) : resolve(value)));
-        });
-
-        return { local, cms };
-      },
-    );
-
-    expect(outcome).toEqual({
-      local: 'http://localhost:5173',
-      cms: 'http://localhost:5174',
-    });
-  });
-
   it('allows only origins explicitly listed in FRONTEND_ORIGINS', async () => {
     const outcome = await withEnv(
       {
