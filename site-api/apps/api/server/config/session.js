@@ -74,6 +74,18 @@ function createSessionMiddleware() {
   };
 }
 
+function normalizeOrigin(origin) {
+  if (!origin || typeof origin !== 'string') {
+    return null;
+  }
+
+  try {
+    return new URL(origin.trim()).origin;
+  } catch {
+    return null;
+  }
+}
+
 function createCorsOptions() {
   const allowedOrigins = new Set(
     (process.env.FRONTEND_ORIGINS || '')
