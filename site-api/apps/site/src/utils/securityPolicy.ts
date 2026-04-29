@@ -117,7 +117,7 @@ export function resolvePostLoginRoute(cmsEnabled: boolean, user: AppUser | null,
     if (isCmsIntentRoute(intendedRoute)) {
       return 'cms-dashboard';
     }
-    return 'cms-dashboard';
+    return 'account';
   }
 
   if (isCmsIntentRoute(intendedRoute)) {

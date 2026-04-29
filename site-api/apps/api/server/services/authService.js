@@ -675,31 +675,49 @@ class AuthService {
 
 
   async requestPasswordReset({ email }) {
+    const emailDeliveryReady = Boolean(this.emailService?.isDeliveryReady?.());
+    if (!emailDeliveryReady) {
+      return {
+        ok: false,
+        status: 503,
+        code: 'EMAIL_DELIVERY_NOT_CONFIGURED',
+        message: 'Password reset email delivery is not configured.',
+      };
+    }
+
     const normalizedEmail = normalizeEmail(email);
     if (!normalizedEmail) {
-      return { ok: true, emailDeliveryReady: Boolean(this.emailService?.isDeliveryReady?.()) };
+      return { ok: true, emailDeliveryReady };
     }
 
     const user = await this.userRepository.findByEmailWithPassword(normalizedEmail);
     if (!user || !user.providers?.includes('local')) {
-      return { ok: true, emailDeliveryReady: Boolean(this.emailService?.isDeliveryReady?.()) };
+      return { ok: true, emailDeliveryReady };
     }
 
     const reset = createPasswordResetToken();
     await this.userRepository.setPasswordResetToken(user.id, { tokenHash: reset.tokenHash, expiresAt: reset.expiresAt });
 
-    const delivery = await this.emailService?.sendPasswordResetEmail?.({
+    const delivery = await this.emailService.sendPasswordResetEmail({
       to: user.email,
       name: user.name,
       token: reset.token,
       expiresAt: reset.expiresAt,
     });
 
+    if (!delivery?.delivered) {
+      return {
+        ok: false,
+        status: 502,
+        code: 'EMAIL_DELIVERY_FAILED',
+        message: 'Password reset email could not be sent.',
+      };
+    }
+
     return {
       ok: true,
-      emailDeliveryReady: Boolean(delivery?.delivered),
+      emailDeliveryReady: true,
       expiresAt: reset.expiresAt,
-      ...(delivery?.delivered ? {} : { devToken: reset.token, devPreviewUrl: delivery?.previewUrl ?? null }),
     };
   }
 

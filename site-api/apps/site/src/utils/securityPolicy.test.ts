@@ -95,8 +95,12 @@ describe('resolveTrustedSessionUser', () => {
 });
 
 describe('resolvePostLoginRoute', () => {
-  it('routes admins to cms dashboard', () => {
-    expect(resolvePostLoginRoute(true, { id: '1', email: 'admin@test.com', name: 'Admin', role: 'admin' })).toBe('cms-dashboard');
+  it('routes admins to account by default', () => {
+    expect(resolvePostLoginRoute(true, { id: '1', email: 'admin@test.com', name: 'Admin', role: 'admin' })).toBe('account');
+  });
+
+  it('routes admins to cms dashboard only when they explicitly requested cms', () => {
+    expect(resolvePostLoginRoute(true, { id: '1', email: 'admin@test.com', name: 'Admin', role: 'admin' }, 'cms-dashboard')).toBe('cms-dashboard');
   });
 
   it('routes clients to account', () => {

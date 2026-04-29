@@ -241,6 +241,47 @@ describe('AuthService', () => {
     expect(result.user?.providers).toContain('local');
   });
 
+  it('returns explicit error when forgot-password email delivery is not configured', async () => {
+    const noEmailService = new AuthService({
+      userRepository: repository,
+      emailService: { isDeliveryReady: () => false },
+    });
+
+    const result = await noEmailService.requestPasswordReset({ email: 'x@test.com' });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('EMAIL_DELIVERY_NOT_CONFIGURED');
+  });
+
+  it('stores reset token and clears it after successful password reset', async () => {
+    users.push({
+      id: 'u-reset',
+      email: 'reset@test.com',
+      name: 'Reset User',
+      passwordHash: 'salt:hash',
+      providers: ['local'],
+      authProvider: 'local',
+      role: 'client',
+      status: 'client',
+      accountStatus: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const emailService = {
+      isDeliveryReady: () => true,
+      sendPasswordResetEmail: async () => ({ delivered: true, mode: 'smtp' }),
+    };
+    const svc = new AuthService({ userRepository: repository, emailService });
+
+    const request = await svc.requestPasswordReset({ email: 'reset@test.com' });
+    expect(request.ok).toBe(true);
+    expect(users[0].passwordResetTokenHash).toBeTruthy();
+
+    const expired = await svc.resetPasswordWithToken({ token: 'invalid-token', password: 'new-password-123' });
+    expect(expired.ok).toBe(false);
+    expect(expired.code).toBe('INVALID_RESET_TOKEN');
+  });
+
   it('facebook oauth reuses existing linked account', async () => {
     users.push({
       id: '1',
