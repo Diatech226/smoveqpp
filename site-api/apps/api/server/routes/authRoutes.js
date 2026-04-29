@@ -22,7 +22,9 @@ function createAuthRoutes({ authController }) {
   router.post('/verify-email', limiter, requireCsrf, authController.verifyEmail);
   router.post('/verify-email/resend', requireAuthenticated, requireCsrf, authController.resendVerification);
   router.post('/password-reset/request', limiter, requireCsrf, authController.requestPasswordReset);
+  router.post('/forgot-password', limiter, requireCsrf, authController.requestPasswordReset);
   router.post('/password-reset/confirm', limiter, requireCsrf, authController.confirmPasswordReset);
+  router.post('/reset-password', limiter, requireCsrf, authController.confirmPasswordReset);
   router.get('/admin/users', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), authController.listUsers);
   router.patch('/admin/users/:userId', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), authController.updateUserByAdmin);
   router.get('/admin/audit-events', requireAuthenticated, requirePermission(Permissions.USER_MANAGE), authController.listAuditEvents);
