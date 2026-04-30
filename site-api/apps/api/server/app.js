@@ -85,6 +85,7 @@ function createApp(deps = {}) {
   const authService = deps.authService ?? new AuthService({
     userRepository,
     oauthProviders: {
+      emailPassword: { enabled: true },
       google: { enabled: oauthConfig.googleEnabled },
       facebook: { enabled: oauthConfig.facebookEnabled },
     },

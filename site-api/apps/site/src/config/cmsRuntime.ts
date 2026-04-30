@@ -1,6 +1,6 @@
 const LOCAL_CMS_ORIGIN = 'http://localhost:5174';
 const DEFAULT_LOCAL_CMS_APP_URL = `${LOCAL_CMS_ORIGIN}/#cms`;
-const DEFAULT_PRODUCTION_CMS_APP_URL = '/cms/#cms';
+const DEFAULT_PRODUCTION_CMS_APP_URL = 'https://smoovecms.vercel.app/#cms';
 
 function normalizeLoopbackHost(url: URL): URL {
   if (url.hostname === '127.0.0.1') {
