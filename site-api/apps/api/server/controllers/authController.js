@@ -272,7 +272,15 @@ function buildAuthController({ authService }) {
       return sendSuccess(res, 200, { events });
     },
 
-    getOAuthProviders: async (_req, res) => sendSuccess(res, 200, { providers: authService.getOAuthProviders?.() ?? {} }),
+    getOAuthProviders: async (_req, res) => {
+      const providers = authService.getOAuthProviders?.() ?? {};
+      return sendSuccess(res, 200, {
+        emailPassword: Boolean(providers.emailPassword?.enabled ?? true),
+        google: Boolean(providers.google?.enabled),
+        facebook: Boolean(providers.facebook?.enabled),
+        providers,
+      });
+    },
 
     logout: async (req, res) => {
       req.session.destroy((error) => {
