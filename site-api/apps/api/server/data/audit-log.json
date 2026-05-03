@@ -3987,6 +3987,2149 @@
         "requestId": "04698e96-9445-4e94-9eaf-88b0aa4ac396",
         "authenticated": true
       }
+    },
+    {
+      "id": "audit_1777244258108_8c1719fe0b2ec",
+      "timestamp": "2026-04-26T22:57:38.108Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "7d82440d-8e7e-4160-96ae-d4aec8975164",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-26T22:57:38.107Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "7d82440d-8e7e-4160-96ae-d4aec8975164",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777244258614_7ed347b6523ff",
+      "timestamp": "2026-04-26T22:57:38.614Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "fc93c7dc-6304-4ef9-a480-8d9a86a8a417",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-26T22:57:38.614Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "fc93c7dc-6304-4ef9-a480-8d9a86a8a417",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777244337463_dfc29aca64865",
+      "timestamp": "2026-04-26T22:58:57.463Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "89d6f271-8fe6-43ec-9447-c78a9dbff58a",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-26T22:58:57.463Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "89d6f271-8fe6-43ec-9447-c78a9dbff58a",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777244337702_a12308958d8e5",
+      "timestamp": "2026-04-26T22:58:57.702Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "c216cf86-fa1a-420a-9048-9cdeed85cf4c",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-26T22:58:57.702Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "c216cf86-fa1a-420a-9048-9cdeed85cf4c",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777244350003_bc6a110944c2",
+      "timestamp": "2026-04-26T22:59:10.003Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "85b55892-9435-4d16-bedf-975d77397fc9",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-26T22:59:10.003Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "85b55892-9435-4d16-bedf-975d77397fc9",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777244351217_a1c72d30a9ff3",
+      "timestamp": "2026-04-26T22:59:11.217Z",
+      "eventType": "login",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "857668fb-cc67-40e1-aadb-0b14c313dfe4",
+        "method": "POST",
+        "path": "/api/v1/auth/login"
+      },
+      "metadata": {
+        "at": "2026-04-26T22:59:11.217Z",
+        "event": "login",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "857668fb-cc67-40e1-aadb-0b14c313dfe4",
+        "email": "[redacted-email]"
+      }
+    },
+    {
+      "id": "audit_1777466434132_8319e8218f245",
+      "timestamp": "2026-04-29T12:40:34.132Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "1fe162de-6e17-4699-822f-f641246bc226",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:40:34.131Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "1fe162de-6e17-4699-822f-f641246bc226",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777466434883_935db4fe4255e",
+      "timestamp": "2026-04-29T12:40:34.883Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "295ba848-e2e2-43c1-80a9-038507519770",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:40:34.883Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "295ba848-e2e2-43c1-80a9-038507519770",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777466485271_79c0e35f3e856",
+      "timestamp": "2026-04-29T12:41:25.271Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "fe049140-e742-4394-9bf9-e2837cd81033",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:41:25.271Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "fe049140-e742-4394-9bf9-e2837cd81033",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777466486391_1cc365143288c",
+      "timestamp": "2026-04-29T12:41:26.391Z",
+      "eventType": "register",
+      "outcome": "failure",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "e8e2883f-bf3d-4f99-96fe-80ee79ed3e0d",
+        "method": "POST",
+        "path": "/api/v1/auth/register"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:41:26.391Z",
+        "event": "register",
+        "outcome": "failure",
+        "ip": "::ffff:127.0.0.1",
+        "method": "POST",
+        "path": "/api/v1/auth/register",
+        "userId": null,
+        "requestId": "e8e2883f-bf3d-4f99-96fe-80ee79ed3e0d",
+        "code": "EMAIL_ALREADY_EXISTS",
+        "reason": null,
+        "email": "[redacted-email]"
+      }
+    },
+    {
+      "id": "audit_1777466499712_f840fcc254f1",
+      "timestamp": "2026-04-29T12:41:39.712Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "04e6f7d8-2295-4780-a4a2-e7b679f3ca25",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:41:39.712Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "04e6f7d8-2295-4780-a4a2-e7b679f3ca25",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777466500237_a628e3b78318f",
+      "timestamp": "2026-04-29T12:41:40.237Z",
+      "eventType": "login",
+      "outcome": "failure",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "43b44fbd-97ac-44af-9333-e583e5cfda19",
+        "method": "POST",
+        "path": "/api/v1/auth/login"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:41:40.237Z",
+        "event": "login",
+        "outcome": "failure",
+        "ip": "::ffff:127.0.0.1",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "userId": null,
+        "requestId": "43b44fbd-97ac-44af-9333-e583e5cfda19",
+        "code": "INVALID_CREDENTIALS",
+        "reason": "email_not_found",
+        "email": "[redacted-email]"
+      }
+    },
+    {
+      "id": "audit_1777466510164_3cd5437bd9455",
+      "timestamp": "2026-04-29T12:41:50.164Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "0e059708-faae-4e03-8785-c40ef73cb8cf",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:41:50.164Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "0e059708-faae-4e03-8785-c40ef73cb8cf",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777466510641_85f82d3c7842b",
+      "timestamp": "2026-04-29T12:41:50.641Z",
+      "eventType": "password_reset_request",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "e5c5f183-be4b-4cc3-88df-4e7dfd4d1d40",
+        "method": "POST",
+        "path": "/api/v1/auth/password-reset/request"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:41:50.641Z",
+        "event": "password_reset_request",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "POST",
+        "path": "/api/v1/auth/password-reset/request",
+        "userId": null,
+        "requestId": "e5c5f183-be4b-4cc3-88df-4e7dfd4d1d40",
+        "requested": true
+      }
+    },
+    {
+      "id": "audit_1777466624831_136d9d87760ac",
+      "timestamp": "2026-04-29T12:43:44.831Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "7620df3c-62d8-40a6-83ae-40835d7e3849",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:43:44.831Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "7620df3c-62d8-40a6-83ae-40835d7e3849",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777466625965_d2c008352513f",
+      "timestamp": "2026-04-29T12:43:45.965Z",
+      "eventType": "login",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "42f8c3f6-963b-4f48-bcbf-f61ab4bfdac2",
+        "method": "POST",
+        "path": "/api/v1/auth/login"
+      },
+      "metadata": {
+        "at": "2026-04-29T12:43:45.965Z",
+        "event": "login",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "42f8c3f6-963b-4f48-bcbf-f61ab4bfdac2",
+        "email": "[redacted-email]"
+      }
+    },
+    {
+      "id": "audit_1777479930463_9cb338d997906",
+      "timestamp": "2026-04-29T16:25:30.463Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "a67b260f-cb41-4480-a742-b2f18973142c",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T16:25:30.462Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "a67b260f-cb41-4480-a742-b2f18973142c",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777479931518_c65a139cda869",
+      "timestamp": "2026-04-29T16:25:31.518Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "887343b7-6c43-451b-84f8-a2fcb44fc6ee",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T16:25:31.517Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "887343b7-6c43-451b-84f8-a2fcb44fc6ee",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777479998307_56d3c31849ee8",
+      "timestamp": "2026-04-29T16:26:38.307Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "30cb55c2-968b-4eb8-bd9d-c87f4b535d86",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T16:26:38.307Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "30cb55c2-968b-4eb8-bd9d-c87f4b535d86",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777479998822_769a525f99d78",
+      "timestamp": "2026-04-29T16:26:38.822Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "d13f02c2-725b-44d6-bd8d-7b6a0c2332fb",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T16:26:38.822Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "d13f02c2-725b-44d6-bd8d-7b6a0c2332fb",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777480014066_f35e9e92ec615",
+      "timestamp": "2026-04-29T16:26:54.066Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "193b2fee-01bc-45e5-8add-9d02459214b0",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T16:26:54.065Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "193b2fee-01bc-45e5-8add-9d02459214b0",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777480015220_ee6759c60ec1e",
+      "timestamp": "2026-04-29T16:26:55.220Z",
+      "eventType": "login",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::ffff:127.0.0.1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "2c4108f6-eda5-40ff-a27d-dfc7ae8b2f58",
+        "method": "POST",
+        "path": "/api/v1/auth/login"
+      },
+      "metadata": {
+        "at": "2026-04-29T16:26:55.220Z",
+        "event": "login",
+        "outcome": "success",
+        "ip": "::ffff:127.0.0.1",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "2c4108f6-eda5-40ff-a27d-dfc7ae8b2f58",
+        "email": "[redacted-email]"
+      }
+    },
+    {
+      "id": "audit_1777506400457_aec18090d4766",
+      "timestamp": "2026-04-29T23:46:40.457Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "35ff55f5-1303-4e95-99af-90e622049f92",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T23:46:40.456Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "35ff55f5-1303-4e95-99af-90e622049f92",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777506401654_32730826c9d81",
+      "timestamp": "2026-04-29T23:46:41.654Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "3b95d423-45e8-4ef8-9ab3-6f3059fd6543",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T23:46:41.654Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "3b95d423-45e8-4ef8-9ab3-6f3059fd6543",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777506413952_eea4f65980557",
+      "timestamp": "2026-04-29T23:46:53.952Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "2aef7796-4ca1-40eb-8f02-ca804448f3ae",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T23:46:53.952Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "2aef7796-4ca1-40eb-8f02-ca804448f3ae",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777506414753_66c61b8eea11a",
+      "timestamp": "2026-04-29T23:46:54.753Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "773ff762-491d-46ee-92ef-ea215cf39f3a",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-29T23:46:54.753Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "773ff762-491d-46ee-92ef-ea215cf39f3a",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562413790_730b2b2c72df9",
+      "timestamp": "2026-04-30T15:20:13.790Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "734f04d4-4066-4be8-88a3-b75c0851d271",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:20:13.789Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "734f04d4-4066-4be8-88a3-b75c0851d271",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562414584_2d179482397c1",
+      "timestamp": "2026-04-30T15:20:14.584Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "ac126854-2a41-400a-94b9-c96c021a8c99",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:20:14.584Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "ac126854-2a41-400a-94b9-c96c021a8c99",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562497019_e0a615f1b2a44",
+      "timestamp": "2026-04-30T15:21:37.019Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "327bff44-ea88-4264-8e4c-10144e5af9c5",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:21:37.018Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "327bff44-ea88-4264-8e4c-10144e5af9c5",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562633413_096578c4a6ad",
+      "timestamp": "2026-04-30T15:23:53.413Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "13a5cee0-c4a3-40ac-9ad2-b053582e8bed",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:23:53.413Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "13a5cee0-c4a3-40ac-9ad2-b053582e8bed",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562633897_416f45dad4281",
+      "timestamp": "2026-04-30T15:23:53.897Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "0dd81022-3488-4cc2-b0b0-6ab9c23b70ef",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:23:53.897Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "0dd81022-3488-4cc2-b0b0-6ab9c23b70ef",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562663070_bbc9fb764fdcb",
+      "timestamp": "2026-04-30T15:24:23.070Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "67296bd2-d6db-4428-8af0-8e6b33ce4086",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:24:23.069Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "67296bd2-d6db-4428-8af0-8e6b33ce4086",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562663550_f4d46ffe0d6b9",
+      "timestamp": "2026-04-30T15:24:23.550Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "a05e7d4e-dd23-4d89-a436-52316eb3845f",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:24:23.550Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "a05e7d4e-dd23-4d89-a436-52316eb3845f",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562667533_915c6bbc83b1",
+      "timestamp": "2026-04-30T15:24:27.533Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "65383a50-6702-49ff-bc79-88fe39ce98d5",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:24:27.533Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "65383a50-6702-49ff-bc79-88fe39ce98d5",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562668001_728a7e2e04911",
+      "timestamp": "2026-04-30T15:24:28.001Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "72ef596f-2024-4f06-bf86-60fb3cf6b992",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:24:28.001Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "72ef596f-2024-4f06-bf86-60fb3cf6b992",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562672541_a9eadb1894034",
+      "timestamp": "2026-04-30T15:24:32.541Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "ab79df61-4c31-4d6f-be87-4b1431a209be",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:24:32.541Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "ab79df61-4c31-4d6f-be87-4b1431a209be",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562673049_8c509b29464d9",
+      "timestamp": "2026-04-30T15:24:33.049Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "b505c8d2-668b-4034-a501-fb1d9a39fd2d",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:24:33.049Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "b505c8d2-668b-4034-a501-fb1d9a39fd2d",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562675552_b9331539128fe",
+      "timestamp": "2026-04-30T15:24:35.552Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "15119c29-41f9-4f7a-83d4-e1bb7b34ec42",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:24:35.552Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "15119c29-41f9-4f7a-83d4-e1bb7b34ec42",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777562676034_463cb4e6be40d",
+      "timestamp": "2026-04-30T15:24:36.034Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "ee10f1ed-6a05-45c2-ac33-aa9a1b5f722e",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:24:36.034Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "ee10f1ed-6a05-45c2-ac33-aa9a1b5f722e",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777564356947_e0f16668c1c1e",
+      "timestamp": "2026-04-30T15:52:36.947Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "7a47ba51-c9c4-41e0-b092-05ff99ebf063",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:52:36.947Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "7a47ba51-c9c4-41e0-b092-05ff99ebf063",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777564357962_de8ef97b05bfa",
+      "timestamp": "2026-04-30T15:52:37.962Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "d45ddf65-04f7-4384-92c7-2e5cba52edd4",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:52:37.962Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "d45ddf65-04f7-4384-92c7-2e5cba52edd4",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777564360754_caff848eed544",
+      "timestamp": "2026-04-30T15:52:40.754Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "e85e260a-072d-4e19-bdc6-bb5787d7c352",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:52:40.754Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "e85e260a-072d-4e19-bdc6-bb5787d7c352",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777564361228_58b822bbe4d4",
+      "timestamp": "2026-04-30T15:52:41.228Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "313eab07-34c0-47ae-bd1d-c6145b31ab3e",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T15:52:41.228Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "313eab07-34c0-47ae-bd1d-c6145b31ab3e",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592328022_69a0673844106",
+      "timestamp": "2026-04-30T23:38:48.022Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "5a14a891-e8f4-4d2d-826e-fd4922a02fe6",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:38:48.021Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "5a14a891-e8f4-4d2d-826e-fd4922a02fe6",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592329227_eb9a067b12e17",
+      "timestamp": "2026-04-30T23:38:49.227Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "b563b936-a87b-4263-9b84-6b759b7e3c03",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:38:49.227Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "b563b936-a87b-4263-9b84-6b759b7e3c03",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592336130_28df7ae1b307b",
+      "timestamp": "2026-04-30T23:38:56.130Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "22639d4b-f5cd-48c9-abfa-c04ade2ff759",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:38:56.130Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "22639d4b-f5cd-48c9-abfa-c04ade2ff759",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592336512_046b8d8e5d217",
+      "timestamp": "2026-04-30T23:38:56.512Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "b7e21984-1887-42fc-8d21-69cdf1b09e7e",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:38:56.512Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "b7e21984-1887-42fc-8d21-69cdf1b09e7e",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592339459_4e948ec440dfe",
+      "timestamp": "2026-04-30T23:38:59.459Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "a3a8eb02-c352-4c13-afed-c1d2941e4740",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:38:59.459Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "a3a8eb02-c352-4c13-afed-c1d2941e4740",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592339883_d6978138d14e3",
+      "timestamp": "2026-04-30T23:38:59.883Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "50fff998-9f4c-457f-befd-5342b536f309",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:38:59.883Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "50fff998-9f4c-457f-befd-5342b536f309",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592343591_f2eab6841daa6",
+      "timestamp": "2026-04-30T23:39:03.591Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "b80436db-6420-4bad-9dc0-f7ff7c4f437f",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:39:03.590Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "b80436db-6420-4bad-9dc0-f7ff7c4f437f",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592343996_3f2426ee870d5",
+      "timestamp": "2026-04-30T23:39:03.996Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "baf22908-e3b1-4813-9c92-557c6ac0106f",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:39:03.996Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "baf22908-e3b1-4813-9c92-557c6ac0106f",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592346685_6bfac14c686f9",
+      "timestamp": "2026-04-30T23:39:06.685Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "f022a6f6-a1cd-409d-9b1c-4a19365aace8",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:39:06.685Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "f022a6f6-a1cd-409d-9b1c-4a19365aace8",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592347195_f6ef514463392",
+      "timestamp": "2026-04-30T23:39:07.195Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "08ea5a4a-d33c-4697-b8a4-a830cfcb5588",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:39:07.195Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "08ea5a4a-d33c-4697-b8a4-a830cfcb5588",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592371418_a11d846dbcaea",
+      "timestamp": "2026-04-30T23:39:31.418Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "d2bb337e-51d4-45f1-92e7-f303997b14db",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:39:31.418Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "d2bb337e-51d4-45f1-92e7-f303997b14db",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592373622_1575ad600c26b",
+      "timestamp": "2026-04-30T23:39:33.622Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "unknown"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "1b0a42f6-bbbe-43dc-86b1-bcdb62f2af6b",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:39:33.622Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "unknown",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "1b0a42f6-bbbe-43dc-86b1-bcdb62f2af6b",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592383328_60860da9dcfd2",
+      "timestamp": "2026-04-30T23:39:43.328Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "9f62a13e-020c-4fd5-adbb-801ab7f93485",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:39:43.328Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "9f62a13e-020c-4fd5-adbb-801ab7f93485",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592386693_59453c596d4ce",
+      "timestamp": "2026-04-30T23:39:46.693Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "unknown"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "b18f0f15-f025-448e-9b64-cee7949ca753",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:39:46.693Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "unknown",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "b18f0f15-f025-448e-9b64-cee7949ca753",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777592412963_e30d93b59d7d6",
+      "timestamp": "2026-04-30T23:40:12.963Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "5b9215cd-0b58-4704-afd1-2ea1f349b5cc",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-04-30T23:40:12.963Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "5b9215cd-0b58-4704-afd1-2ea1f349b5cc",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777729123669_57ed3b203ef78",
+      "timestamp": "2026-05-02T13:38:43.669Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "e0b9dfac-be1a-4893-8aac-842297d9ba36",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-02T13:38:43.669Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "e0b9dfac-be1a-4893-8aac-842297d9ba36",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777729124278_f3dcca45837a6",
+      "timestamp": "2026-05-02T13:38:44.278Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "370edc73-9e99-4f09-80a5-12584f583fee",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-02T13:38:44.278Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "370edc73-9e99-4f09-80a5-12584f583fee",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777729183401_c2d557640c919",
+      "timestamp": "2026-05-02T13:39:43.401Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "unknown"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "39b7b269-9895-4dc6-8598-fd65945244af",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-02T13:39:43.401Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "unknown",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "39b7b269-9895-4dc6-8598-fd65945244af",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777729188029_c5e5f4006ae56",
+      "timestamp": "2026-05-02T13:39:48.029Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "2c1610fe-af4a-4314-b654-e400fa48a0cc",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-02T13:39:48.029Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "2c1610fe-af4a-4314-b654-e400fa48a0cc",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777729188535_b629d76232ef5",
+      "timestamp": "2026-05-02T13:39:48.535Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "8edd972a-6487-40d8-b812-47066c66e996",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-02T13:39:48.535Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "8edd972a-6487-40d8-b812-47066c66e996",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777766544573_fa00cfbd79892",
+      "timestamp": "2026-05-03T00:02:24.573Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "7334da6b-3e39-479a-b242-cae2e4ead96d",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-03T00:02:24.572Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "7334da6b-3e39-479a-b242-cae2e4ead96d",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777766545785_4edb1057e41e1",
+      "timestamp": "2026-05-03T00:02:25.785Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "665d731f-9c97-4088-b222-d2d4d5c1496a",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-03T00:02:25.785Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "665d731f-9c97-4088-b222-d2d4d5c1496a",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777766572993_b78683c854319",
+      "timestamp": "2026-05-03T00:02:52.993Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": null,
+        "role": null,
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "a3ff134d-02b7-4120-b813-ab33cf669b1f",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-03T00:02:52.993Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": null,
+        "requestId": "a3ff134d-02b7-4120-b813-ab33cf669b1f",
+        "authenticated": false
+      }
+    },
+    {
+      "id": "audit_1777766574495_3f7faf8c44812",
+      "timestamp": "2026-05-03T00:02:54.495Z",
+      "eventType": "login",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "55427ecb-5a6c-457c-bec8-fb2971a922a3",
+        "method": "POST",
+        "path": "/api/v1/auth/login"
+      },
+      "metadata": {
+        "at": "2026-05-03T00:02:54.495Z",
+        "event": "login",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "POST",
+        "path": "/api/v1/auth/login",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "55427ecb-5a6c-457c-bec8-fb2971a922a3",
+        "email": "[redacted-email]"
+      }
+    },
+    {
+      "id": "audit_1777766585240_57b95b820eee7",
+      "timestamp": "2026-05-03T00:03:05.240Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "119edd36-f6af-44b4-b41e-1d0882c1790e",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-03T00:03:05.240Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "119edd36-f6af-44b4-b41e-1d0882c1790e",
+        "authenticated": true
+      }
+    },
+    {
+      "id": "audit_1777766585644_a871eaac120c8",
+      "timestamp": "2026-05-03T00:03:05.644Z",
+      "eventType": "session",
+      "outcome": "success",
+      "actor": {
+        "userId": "69eb90afaca0590c1315c041",
+        "role": "admin",
+        "ip": "::1"
+      },
+      "target": {
+        "entityType": null,
+        "entityId": null
+      },
+      "request": {
+        "requestId": "b231576b-8d33-441a-aed2-b74e9f760780",
+        "method": "GET",
+        "path": "/api/v1/auth/session"
+      },
+      "metadata": {
+        "at": "2026-05-03T00:03:05.643Z",
+        "event": "session",
+        "outcome": "success",
+        "ip": "::1",
+        "method": "GET",
+        "path": "/api/v1/auth/session",
+        "userId": "69eb90afaca0590c1315c041",
+        "requestId": "b231576b-8d33-441a-aed2-b74e9f760780",
+        "authenticated": true
+      }
     }
   ]
 }
