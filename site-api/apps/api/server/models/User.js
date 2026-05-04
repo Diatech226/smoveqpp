@@ -142,11 +142,13 @@ function createUserModel(mongoose) {
       googleId: {
         type: String,
         default: null,
+        unique: true,
         sparse: true,
       },
       facebookId: {
         type: String,
         default: null,
+        unique: true,
         sparse: true,
       },
 
@@ -205,10 +207,7 @@ function createUserModel(mongoose) {
     },
   );
 
-  schema.index({ email: 1 }, { unique: true });
   schema.index({ authProvider: 1, providerId: 1 }, { unique: true, sparse: true });
-  schema.index({ googleId: 1 }, { unique: true, sparse: true });
-  schema.index({ facebookId: 1 }, { unique: true, sparse: true });
 
   schema.pre('validate', function normalizeBeforeValidate(next) {
     if (this.email) {
