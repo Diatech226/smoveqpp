@@ -87,14 +87,12 @@ function normalizeOrigin(origin) {
 }
 
 function createCorsOptions() {
-  const allowedOrigins = new Set([
-    process.env.FRONTEND_ORIGIN,
-    ...(process.env.FRONTEND_ORIGINS || '').split(',').map((origin) => origin.trim()),
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
-  ].map(normalizeOrigin).filter(Boolean));
+  const allowedOrigins = new Set(
+    (process.env.FRONTEND_ORIGINS || '')
+      .split(',')
+      .map((origin) => normalizeOrigin(origin))
+      .filter(Boolean),
+  );
 
   return {
     origin(origin, callback) {
