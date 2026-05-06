@@ -1,5 +1,5 @@
 const session = require('express-session');
-const { SESSION_SECRET, isProduction, SESSION_TTL_SECONDS, MONGO_URI, SESSION_STORE_MODE } = require('./env');
+const { SESSION_SECRET, isProduction, SESSION_TTL_SECONDS, MONGO_URI, SESSION_STORE_MODE, FRONTEND_ORIGINS } = require('./env');
 const { getMongoose } = require('./mongo');
 const { logInfo, logWarn } = require('../utils/logger');
 
@@ -86,13 +86,32 @@ function normalizeOrigin(origin) {
   }
 }
 
+function isAllowedCmsPreviewOrigin(origin) {
+  if (!origin) return false;
+
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== 'https:') return false;
+    if (parsed.hostname === 'smoovecms.vercel.app') return true;
+    if (parsed.hostname.endsWith('.vercel.app') && parsed.hostname.startsWith('smoovecms-')) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function createCorsOptions() {
-  const allowedOrigins = new Set(
-    (process.env.FRONTEND_ORIGINS || '')
-      .split(',')
-      .map((origin) => normalizeOrigin(origin))
-      .filter(Boolean),
-  );
+  const allowedOrigins = new Set([
+    ...FRONTEND_ORIGINS,
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+  ]
+    .map((origin) => normalizeOrigin(origin))
+    .filter(Boolean));
 
   return {
     origin(origin, callback) {
@@ -101,7 +120,7 @@ function createCorsOptions() {
       }
 
       const normalizedOrigin = normalizeOrigin(origin);
-      if (normalizedOrigin && allowedOrigins.has(normalizedOrigin)) {
+      if (normalizedOrigin && (allowedOrigins.has(normalizedOrigin) || isAllowedCmsPreviewOrigin(normalizedOrigin))) {
         return callback(null, normalizedOrigin);
       }
 

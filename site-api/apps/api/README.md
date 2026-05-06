@@ -31,6 +31,12 @@ Core variables:
 - `API_ORIGIN`
 - `FRONTEND_ORIGIN`
 - `FRONTEND_ORIGINS` (must include site + cms domains in production)
+
+Production example:
+
+```env
+FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app,https://smoovecms-76judmdc0-smove-communication.vercel.app
+```
 - `SESSION_SECRET`
 - `MONGO_URI`, `MONGO_DB_NAME`
 - OAuth provider/client vars and callback URLs
