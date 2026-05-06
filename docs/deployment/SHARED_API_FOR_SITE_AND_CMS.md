@@ -73,19 +73,19 @@ Use the same backend target for both frontends.
 ### Site
 ```env
 VITE_API_BASE_URL=/api/v1
-VITE_API_ORIGIN=https://api-or-same-domain.com
+VITE_API_ORIGIN=https://smove-three.vercel.app
 ```
 
 ### CMS
 ```env
 VITE_API_BASE_URL=/api/v1
-VITE_API_ORIGIN=https://api-or-same-domain.com
+VITE_API_ORIGIN=https://smove-three.vercel.app
 ```
 
 ### API
 ```env
-API_ORIGIN=https://api-or-same-domain.com
-FRONTEND_ORIGINS=https://site-domain.com,https://cms-domain.com
+API_ORIGIN=https://smove-three.vercel.app
+FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app
 MONGO_URI=...
 SESSION_SECRET=...
 ```
@@ -102,18 +102,18 @@ SESSION_SECRET=...
 ## Deployment options
 
 ### 1) Same domain (recommended simplicity)
-- Site and CMS served from same domain (e.g. `https://example.com` and `https://example.com/cms`).
+- Site and CMS served from same domain (e.g. `https://smove-three.vercel.app` and `https://smove-three.vercel.app/cms`).
 - API served on same domain under `/api/v1`.
 - Minimal CORS complexity; shared cookies naturally align.
 
 ### 2) Separate frontend domains + one API domain
-- Site on `https://site.example.com`
-- CMS on `https://cms.example.com`
-- API on `https://api.example.com`
+- Site on `https://smove-three.vercel.app`
+- CMS on `https://smoovecms.vercel.app`
+- API on `https://smove-three.vercel.app`
 - Configure:
   - both frontends with `VITE_API_BASE_URL=/api/v1`
-  - both frontends with `VITE_API_ORIGIN=https://api.example.com`
-  - API with `FRONTEND_ORIGINS=https://site.example.com,https://cms.example.com`
+  - both frontends with `VITE_API_ORIGIN=https://smove-three.vercel.app`
+  - API with `FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app`
 
 ## Validation checklist
 

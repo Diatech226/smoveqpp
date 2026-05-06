@@ -50,6 +50,13 @@ npm run start:api
 
 ## Environment setup
 
+
+Current production domains:
+- Site + API: `https://smove-three.vercel.app`
+- CMS: `https://smoovecms.vercel.app`
+
+Use `FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app` so CORS allows both frontends.
+
 Use only the root env template:
 
 ```bash
@@ -87,7 +94,7 @@ OAuth login flow:
 2. Backend exchanges provider code, verifies identity server-side, and links/creates user in MongoDB.
 3. Backend creates the same session cookie model used by local login.
 
-Set these env vars in `.env.local` for production-like local development:
+Set these env vars in `.env` (copy from `.env.example`) for this production architecture:
 
 - `MONGO_URI`, `MONGO_DB_NAME`
 - `AUTH_STORAGE_MODE=mongo`, `SESSION_STORE_MODE=mongo`
