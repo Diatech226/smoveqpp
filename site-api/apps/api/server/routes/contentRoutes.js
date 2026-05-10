@@ -164,8 +164,10 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   router.get('/public/events', (req, res) => {
     const parsedLimit = Number.parseInt(`${req.query?.limit ?? ''}`, 10);
     const limit = Number.isFinite(parsedLimit) ? parsedLimit : 100;
+    const events = typeof contentService.listAnalyticsEvents === 'function' ? contentService.listAnalyticsEvents(limit) : [];
+
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, 200, { events: contentService.listAnalyticsEvents(limit) });
+    return sendSuccess(res, 200, { events: Array.isArray(events) ? events : [] });
   });
 
   router.post('/public/events', (req, res) => {
@@ -177,6 +179,11 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 202, { accepted: true });
   });
 
+
+  router.all('/public/events', (req, res) => {
+    res.setHeader('Allow', 'GET, POST');
+    return sendError(res, 405, 'METHOD_NOT_ALLOWED', 'Method not allowed.');
+  });
 
   router.use(requireAuthenticated);
 
