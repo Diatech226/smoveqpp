@@ -124,4 +124,32 @@ describe('content public routes hardening', () => {
     expect(res.body?.data?.events).toHaveLength(1);
     expect(res.headers['Cache-Control']).toBe('no-store');
   });
+
+  it('returns safe empty events list when analytics service is unavailable', () => {
+    const router = createContentRoutes({
+      contentService: createContentService({
+        listAnalyticsEvents: undefined,
+      }),
+    });
+
+    const eventsGetHandler = router.stack.find((layer) => layer.route?.path === '/public/events' && layer.route.methods?.get)?.route.stack[0].handle;
+    const res = createRes();
+
+    eventsGetHandler({ query: {} }, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body?.data?.events).toEqual([]);
+  });
+
+  it('returns 405 for unsupported methods on public analytics events endpoint', () => {
+    const router = createContentRoutes({ contentService: createContentService() });
+
+    const methodNotAllowedHandler = router.stack.find((layer) => layer.route?.path === '/public/events' && layer.route.methods?._all)?.route.stack[0].handle;
+    const res = createRes();
+
+    methodNotAllowedHandler({ method: 'PUT' }, res);
+
+    expect(res.statusCode).toBe(405);
+    expect(res.headers.Allow).toBe('GET, POST');
+  });
 });
