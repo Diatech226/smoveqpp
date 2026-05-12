@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 import { fetchPublicSettings } from '../utils/contentApi';
-import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { submitNewsletterSubscription } from '../utils/newsletterApi';
 
@@ -9,7 +8,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [siteTitle, setSiteTitle] = useState('SMOVE');
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
-  const [logoSrc, setLogoSrc] = useState(imgTelegramCloudDocument);
+  const [logoSrc, setLogoSrc] = useState('/favicon.svg');
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
   const [newsletterFeedback, setNewsletterFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);

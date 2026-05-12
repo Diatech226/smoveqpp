@@ -167,7 +167,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     const events = typeof contentService.listAnalyticsEvents === 'function' ? contentService.listAnalyticsEvents(limit) : [];
 
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, 200, { events: Array.isArray(events) ? events : [] });
+    return res.status(200).json({ events: Array.isArray(events) ? events : [] });
   });
 
   router.post('/public/events', (req, res) => {

@@ -38,7 +38,7 @@ function parseTimeout(rawValue: string | undefined, defaultValue: number): numbe
 
 function normalizeApiOrigin(rawValue: string | undefined): string {
   const candidate = (rawValue ?? '').trim();
-  const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5174';
+  const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : '';
   if (!candidate) return fallbackOrigin;
   try {
     return new URL(candidate).origin;
