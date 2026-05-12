@@ -121,7 +121,7 @@ describe('content public routes hardening', () => {
     eventsGetHandler({ query: { limit: '10' } }, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body?.data?.events).toHaveLength(1);
+    expect(res.body?.events).toHaveLength(1);
     expect(res.headers['Cache-Control']).toBe('no-store');
   });
 
@@ -138,7 +138,7 @@ describe('content public routes hardening', () => {
     eventsGetHandler({ query: {} }, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body?.data?.events).toEqual([]);
+    expect(res.body?.events).toEqual([]);
   });
 
   it('returns 405 for unsupported methods on public analytics events endpoint', () => {
