@@ -52,7 +52,7 @@ npm run start:api
 
 
 Current production domains:
-- Site + API: `https://smove-three.vercel.app`
+- Site: `https://smove-three.vercel.app`
 - CMS: `https://smoovecms.vercel.app`
 
 Use `FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app` so CORS allows both frontends.

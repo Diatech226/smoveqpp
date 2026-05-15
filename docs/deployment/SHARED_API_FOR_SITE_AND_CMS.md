@@ -73,18 +73,18 @@ Use the same backend target for both frontends.
 ### Site
 ```env
 VITE_API_BASE_URL=/api/v1
-VITE_API_ORIGIN=https://smove-three.vercel.app
+VITE_API_ORIGIN=https://smoveapi-1.onrender.com
 ```
 
 ### CMS
 ```env
 VITE_API_BASE_URL=/api/v1
-VITE_API_ORIGIN=https://smove-three.vercel.app
+VITE_API_ORIGIN=https://smoveapi-1.onrender.com
 ```
 
 ### API
 ```env
-API_ORIGIN=https://smove-three.vercel.app
+API_ORIGIN=https://smoveapi-1.onrender.com
 FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app
 MONGO_URI=...
 SESSION_SECRET=...
@@ -109,10 +109,10 @@ SESSION_SECRET=...
 ### 2) Separate frontend domains + one API domain
 - Site on `https://smove-three.vercel.app`
 - CMS on `https://smoovecms.vercel.app`
-- API on `https://smove-three.vercel.app`
+- API on `https://smoveapi-1.onrender.com`
 - Configure:
   - both frontends with `VITE_API_BASE_URL=/api/v1`
-  - both frontends with `VITE_API_ORIGIN=https://smove-three.vercel.app`
+  - both frontends with `VITE_API_ORIGIN=https://smoveapi-1.onrender.com`
   - API with `FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app`
 
 ## Validation checklist

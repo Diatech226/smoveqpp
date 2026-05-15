@@ -9,7 +9,7 @@
 - `site/`: independent Vite public frontend
 - `cms/`: independent Vite CMS frontend
 - `api/`: independent Express API backend
-- `site-api/`: legacy monolith, now obsolete/deprecated
+- ``: legacy monolith, now obsolete/deprecated
 
 ## Environment variables
 Use `.env.example` in each folder:
@@ -18,9 +18,9 @@ Use `.env.example` in each folder:
 - `api/.env.example`
 
 Domains:
-- SITE_DOMAIN=https://your-site.vercel.app
-- API_DOMAIN=https://your-api.vercel.app
-- CMS_DOMAIN=https://your-cms.vercel.app
+- SITE_DOMAIN=https://smove-three.vercel.app
+- API_DOMAIN=https://smoveapi-1.onrender.com
+- CMS_DOMAIN=https://smoovecms.vercel.app
 
 Known current domains:
 - site: https://smove-three.vercel.app

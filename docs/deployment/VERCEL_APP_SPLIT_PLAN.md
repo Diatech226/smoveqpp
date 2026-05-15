@@ -64,7 +64,7 @@
 ## Redirect and URL assumptions after split
 
 - CMS “Retour au site” resolves from `VITE_PUBLIC_SITE_URL` first.
-- OAuth callback URLs should target API domain (`smove-three.vercel.app`).
+- OAuth callback URLs should target API domain (`smoveapi-1.onrender.com`).
 - API CORS allow-list must include both site and CMS domains.
 - Site and CMS should both target the same API base path (`/api/v1` or full API domain URL).
 
