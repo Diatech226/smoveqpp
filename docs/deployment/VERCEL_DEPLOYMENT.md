@@ -16,7 +16,7 @@ Deploy this repository as **two Vercel projects**:
 ## Environment variable mapping
 
 ### Site (`api/.env.example`)
-- `VITE_API_BASE_URL=/api/v1`
+- `VITE_API_BASE_URL=https://smoveapi-1.onrender.com/api/v1`
 - `VITE_API_ORIGIN=https://smoveapi-1.onrender.com`
 - `VITE_PUBLIC_SITE_URL=https://smove-three.vercel.app`
 - `VITE_CMS_APP_URL=https://smoovecms.vercel.app/#cms`
