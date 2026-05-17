@@ -72,13 +72,13 @@ Use the same backend target for both frontends.
 
 ### Site
 ```env
-VITE_API_BASE_URL=/api/v1
+VITE_API_BASE_URL=https://smoveapi-1.onrender.com/api/v1
 VITE_API_ORIGIN=https://smoveapi-1.onrender.com
 ```
 
 ### CMS
 ```env
-VITE_API_BASE_URL=/api/v1
+VITE_API_BASE_URL=https://smoveapi-1.onrender.com/api/v1
 VITE_API_ORIGIN=https://smoveapi-1.onrender.com
 ```
 
@@ -111,7 +111,7 @@ SESSION_SECRET=...
 - CMS on `https://smoovecms.vercel.app`
 - API on `https://smoveapi-1.onrender.com`
 - Configure:
-  - both frontends with `VITE_API_BASE_URL=/api/v1`
+  - both frontends with `VITE_API_BASE_URL=https://smoveapi-1.onrender.com/api/v1`
   - both frontends with `VITE_API_ORIGIN=https://smoveapi-1.onrender.com`
   - API with `FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app`
 
