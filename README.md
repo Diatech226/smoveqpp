@@ -55,7 +55,11 @@ Current production domains:
 - Site: `https://smove-three.vercel.app`
 - CMS: `https://smoovecms.vercel.app`
 
+Current production API endpoint:
+- API base URL for both frontends: `https://smoveapi-1.onrender.com/api/v1`
+
 Use `FRONTEND_ORIGINS=https://smove-three.vercel.app,https://smoovecms.vercel.app` so CORS allows both frontends.
+For credentialed requests, the API returns the exact request origin (never `*`) and includes `Access-Control-Allow-Credentials: true`.
 
 Use only the root env template:
 
