@@ -7,11 +7,11 @@ interface AdminPageHeaderProps {
   actions?: ReactNode;
 }
 
-const ADMIN_CARD_SURFACE = 'bg-white border border-[#e4edf1] rounded-[16px] shadow-[0_8px_24px_rgba(20,51,63,0.05)]';
+const ADMIN_CARD_SURFACE = 'min-w-0 bg-white border border-[#e4edf1] rounded-[16px] shadow-[0_8px_24px_rgba(20,51,63,0.05)]';
 const ADMIN_TEXT_TITLE = 'text-[#223740]';
 const ADMIN_TEXT_BODY = 'text-[#5f727a]';
 const ADMIN_TEXT_META = 'text-[#839198]';
-const ADMIN_FIELD_SURFACE = 'rounded-[12px] border border-[#d8e4e8] bg-white px-3 py-2 text-[14px] text-[#273a41] shadow-[0_1px_2px_rgba(20,51,63,0.04)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00b3e8]/30 focus-visible:border-[#00b3e8]';
+const ADMIN_FIELD_SURFACE = 'w-full min-w-0 rounded-[12px] border border-[#d8e4e8] bg-white px-3 py-2 text-[14px] text-[#273a41] shadow-[0_1px_2px_rgba(20,51,63,0.04)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00b3e8]/30 focus-visible:border-[#00b3e8]';
 
 export const ADMIN_INPUT_CLASS = ADMIN_FIELD_SURFACE;
 export const ADMIN_TEXTAREA_CLASS = `${ADMIN_FIELD_SURFACE} min-h-[88px]`;
@@ -26,7 +26,7 @@ export function AdminPageHeader({ title, subtitle, actions }: AdminPageHeaderPro
         <h2 className={`font-['ABeeZee:Regular',sans-serif] text-[29px] leading-tight ${ADMIN_TEXT_TITLE}`}>{title}</h2>
         {subtitle ? <p className={`max-w-3xl font-['Abhaya_Libre:Regular',sans-serif] text-[15px] leading-relaxed ${ADMIN_TEXT_BODY}`}>{subtitle}</p> : null}
       </div>
-      {actions ? <div className="flex items-center gap-3">{actions}</div> : null}
+      {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
     </div>
   );
 }
@@ -53,7 +53,7 @@ export function AdminButton({ intent = 'secondary', size = 'md', className = '',
           ? 'border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100'
           : 'border border-[#d1dfe5] text-[#273a41] bg-white hover:bg-[#f4f8fa]';
   const sizeClass = size === 'sm' ? 'px-3 py-2 text-[13px]' : 'px-4 py-2 text-[14px]';
-  const baseClass = `inline-flex items-center justify-center gap-2 rounded-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00b3e8]/40 disabled:opacity-60 disabled:cursor-not-allowed ${intentClass} ${sizeClass}`;
+  const baseClass = `inline-flex min-w-0 items-center justify-center gap-2 rounded-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00b3e8]/40 disabled:opacity-60 disabled:cursor-not-allowed ${intentClass} ${sizeClass}`;
 
   return <button type={type} className={`${baseClass} ${className}`.trim()} {...props} />;
 }

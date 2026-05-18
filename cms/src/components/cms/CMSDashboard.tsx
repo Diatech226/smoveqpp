@@ -2741,9 +2741,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f9fa] flex">
+    <div data-app-boundary="cms-dashboard" className="cms-dashboard-shell min-h-screen bg-[#f5f9fa] flex">
       <aside
-        className={`fixed left-0 top-0 h-full bg-white shadow-xl z-50 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300`}
+        id="cms-dashboard-sidebar"
+        aria-label="Navigation CMS"
+        className={`cms-sidebar ${sidebarOpen ? 'is-open w-64' : 'w-20'} fixed left-0 top-0 h-full bg-white shadow-xl z-50 flex flex-col transition-all duration-300`}
       >
         <div className="p-6 border-b border-[#eef3f5] flex items-center justify-between">
           {sidebarOpen && (
@@ -2782,6 +2784,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
               key={item.id}
               onClick={() => {
                 void handleSectionChange(item.id);
+                if (window.matchMedia('(max-width: 767px)').matches) {
+                  setSidebarOpen(false);
+                }
               }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all ${
                 currentSection === item.id ? 'bg-[#00b3e8] text-white' : 'text-[#273a41] hover:bg-[#f5f9fa]'
@@ -2804,9 +2809,27 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         </div>
       </aside>
 
-      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
-        <header className="bg-white border-b border-[#eef3f5] px-8 py-6 sticky top-0 z-40">
-          <div className="flex items-center justify-between">
+      {sidebarOpen ? (
+        <button
+          type="button"
+          className="cms-sidebar-scrim"
+          aria-label="Fermer le menu CMS"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
+      <main className={`cms-dashboard-main flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
+        <header className="cms-dashboard-topbar bg-white border-b border-[#eef3f5] px-8 py-6 sticky top-0 z-40">
+          <div className="flex items-center justify-between gap-4">
+            <button
+              type="button"
+              className="cms-mobile-menu-button p-2 hover:bg-[#f5f9fa] rounded-[8px] transition-colors"
+              aria-controls="cms-dashboard-sidebar"
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
             <div>
               <h1 className="font-['Medula_One:Regular',sans-serif] text-[28px] tracking-[2.8px] uppercase text-[#273a41]">
                 {menuItems.find((m) => m.id === currentSection)?.label || 'Dashboard'}
@@ -2824,7 +2847,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           </div>
         </header>
 
-        <div className="p-8 space-y-6">
+        <div className="cms-dashboard-content p-8 space-y-6">
           {runtimeMode === 'degraded_local' ? (
             <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-4 text-amber-800 flex items-start gap-2">
               <AlertTriangle size={18} className="mt-0.5" />
