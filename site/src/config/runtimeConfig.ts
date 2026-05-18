@@ -6,12 +6,15 @@ function normalizeApiBaseUrl(rawValue: string | undefined, apiOrigin: string): s
     return '/api/v1';
   }
 
-  if (candidate.startsWith('http://') || candidate.startsWith('https://') || candidate.startsWith('/')) {
+  if (candidate.startsWith('http://') || candidate.startsWith('https://')) {
     return candidate.replace(/\/$/, '');
   }
 
   if (candidate.startsWith('/')) {
-    return `${apiOrigin}${candidate}`.replace(/\/$/, '');
+    if (apiOrigin) {
+      return `${apiOrigin}${candidate}`.replace(/\/$/, '');
+    }
+    return candidate.replace(/\/$/, '');
   }
 
   logWarn({
