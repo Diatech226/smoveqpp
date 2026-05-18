@@ -113,7 +113,18 @@ describe('publicContentApi', () => {
     expect(home.heroBackgroundIntervalMs).toBe(5000);
   });
 
-  it('throws when public services endpoint is unavailable', async () => {
+  
+  it('supports raw project arrays and non-enveloped object payloads', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [{ id: 'p-raw', title: 'Raw' }] } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ projects: [{ id: 'p-obj', title: 'Obj' }] }) } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchPublicProjects()).resolves.toEqual([{ id: 'p-raw', title: 'Raw' }]);
+    await expect(fetchPublicProjects()).resolves.toEqual([{ id: 'p-obj', title: 'Obj' }]);
+  });
+it('throws when public services endpoint is unavailable', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
