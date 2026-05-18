@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { AlertCircle, Lock, LogIn, Mail } from 'lucide-react';
+import { AlertCircle, Lock, LogIn, Mail } from './components/cmsIcons';
 import { useAuth } from './contexts/AuthContext';
 
 export default function CMSLoginPage() {

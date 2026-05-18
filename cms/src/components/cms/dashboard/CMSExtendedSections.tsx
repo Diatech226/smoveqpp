@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Plus } from '../../cmsIcons';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { AppUser } from '../../../utils/securityPolicy';
 import type { CmsSettings, ContentHealthSummary, ConversionMetrics, SettingsHistoryEntry } from '../../../utils/contentApi';

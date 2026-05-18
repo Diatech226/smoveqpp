@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, Inbox, Loader2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Inbox, Loader2 } from '../cmsIcons';
 
 interface AdminPageHeaderProps {
   title: string;
