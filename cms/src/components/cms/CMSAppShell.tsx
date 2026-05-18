@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '../cmsIcons';
 import { getPublicSiteUrl } from '../../utils/publicSiteUrl';
 
 interface CMSAppShellProps {

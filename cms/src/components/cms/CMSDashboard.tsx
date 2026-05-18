@@ -18,7 +18,7 @@ import {
   Users,
   Upload,
   Mail,
-} from 'lucide-react';
+} from '../cmsIcons';
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useAuth, type AuthAuditEvent } from '../../contexts/AuthContext';
 import type { AppUser } from '../../utils/securityPolicy';

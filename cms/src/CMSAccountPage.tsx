@@ -1,4 +1,4 @@
-import { ShieldCheck, UserCircle2 } from 'lucide-react';
+import { ShieldCheck, UserCircle2 } from './components/cmsIcons';
 import { useAuth } from './contexts/AuthContext';
 import { getPublicSiteUrl } from './utils/publicSiteUrl';
 
