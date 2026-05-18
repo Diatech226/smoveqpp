@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { AlertCircle, Lock, LogIn, Mail } from './components/cmsIcons';
+import { AlertCircle, Lock, LogIn, Mail, ShieldCheck } from './components/cmsIcons';
 import { useAuth } from './contexts/AuthContext';
 
 export default function CMSLoginPage() {
@@ -42,11 +42,31 @@ export default function CMSLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#00b3e8]">SMOVE</p>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Connexion CMS</h1>
-        <p className="mt-1 text-sm text-slate-500">Connectez-vous avec un compte admin ou editor.</p>
+    <main className="cms-login-page min-h-screen bg-slate-100">
+      <section className="cms-login-shell" aria-label="Connexion CMS SMOVE">
+        <div className="cms-login-brand-panel">
+          <div className="cms-login-logo">
+            <span>S</span>
+          </div>
+          <div className="cms-login-brand-copy">
+            <p>SMOVE CMS</p>
+            <h1>Pilotez vos contenus avec clarté.</h1>
+            <span>Interface sécurisée pour les équipes marketing, projets et éditoriales.</span>
+          </div>
+          <div className="cms-login-feature-grid" aria-hidden="true">
+            <span>Contenus</span>
+            <span>Médias</span>
+            <span>Analytics</span>
+          </div>
+        </div>
+
+        <div className="cms-login-card w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#00b3e8]">
+            <ShieldCheck size={14} />
+            SMOVE
+          </div>
+          <h2 className="mt-4 text-2xl font-semibold text-slate-900">Connexion CMS</h2>
+          <p className="mt-1 text-sm text-slate-500">Connectez-vous avec un compte admin ou editor.</p>
 
         {authNotice ? <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{authNotice}</p> : null}
         {error ? (
@@ -121,7 +141,8 @@ export default function CMSLoginPage() {
             ) : null}
           </div>
         ) : null}
-      </div>
-    </div>
+        </div>
+      </section>
+    </main>
   );
 }
