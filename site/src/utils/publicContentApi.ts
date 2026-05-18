@@ -23,6 +23,20 @@ function isTransientError(error: unknown): boolean {
   return error instanceof TypeError;
 }
 
+function normalizeBodyData<T>(body: unknown): T {
+  if (Array.isArray(body)) {
+    return body as T;
+  }
+
+  if (body && typeof body === 'object') {
+    const envelope = body as ApiEnvelope<T>;
+    if (envelope.success && envelope.data) return envelope.data;
+    return body as T;
+  }
+
+  throw new ContentApiError('Public content source unavailable.', 'CONTENT_API_INVALID_PAYLOAD', 500);
+}
+
 async function requestWithRetry<T>(path: string, retries = 3): Promise<T> {
   let attempt = 0;
 
@@ -37,15 +51,16 @@ async function requestWithRetry<T>(path: string, retries = 3): Promise<T> {
         },
       });
 
-      const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
+      const body = await response.json().catch(() => null);
 
-      if (!response.ok || !body?.success || !body.data) {
-        const code = body?.error?.code || `CONTENT_API_${response.status || 0}`;
-        const message = body?.error?.message || 'Public content source unavailable.';
+      if (!response.ok || !body) {
+        const envelope = (body || {}) as ApiEnvelope<T>;
+        const code = envelope?.error?.code || `CONTENT_API_${response.status || 0}`;
+        const message = envelope?.error?.message || 'Public content source unavailable.';
         throw new ContentApiError(message, code, response.status || 0);
       }
 
-      return body.data;
+      return normalizeBodyData<T>(body);
     } catch (error) {
       if (attempt >= retries || !isTransientError(error)) {
         throw error;
@@ -70,8 +85,8 @@ async function request<T>(path: string): Promise<T> {
 }
 
 export async function fetchPublicProjects(): Promise<Project[]> {
-  const data = await request<{ projects: Project[] }>('/projects');
-  return data.projects;
+  const data = await request<{ projects?: Project[] } | Project[]>('/projects');
+  return Array.isArray(data) ? data : data.projects || [];
 }
 
 export async function fetchPublicServices(): Promise<Service[]> {
