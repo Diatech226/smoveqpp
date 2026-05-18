@@ -9,8 +9,7 @@
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "motion": "^12.23.24"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
