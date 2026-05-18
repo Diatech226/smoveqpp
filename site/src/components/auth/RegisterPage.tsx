@@ -2,8 +2,36 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useAuth } from '../../contexts/AuthContext';
 
-import { Mail, Lock, User, UserPlus, AlertCircle, Sparkles, Check } from 'lucide-react';
 
+type IconProps = { className?: string; size?: number };
+
+function IconBase({ className, size = 20, children }: React.PropsWithChildren<IconProps>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+const Mail = (props: IconProps) => <IconBase {...props}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></IconBase>;
+const Lock = (props: IconProps) => <IconBase {...props}><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 1 1 8 0v4"/></IconBase>;
+const User = (props: IconProps) => <IconBase {...props}><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></IconBase>;
+const UserPlus = (props: IconProps) => <IconBase {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></IconBase>;
+const AlertCircle = (props: IconProps) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></IconBase>;
+const Sparkles = (props: IconProps) => <IconBase {...props}><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3Z"/><path d="m5 16 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z"/><path d="m4 14 .6 1.4L6 16l-1.4.6L4 18l-.6-1.4L2 16l1.4-.6L4 14Z"/></IconBase>;
+const Check = (props: IconProps) => <IconBase {...props}><polyline points="20 6 9 17 4 12"/></IconBase>;
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
