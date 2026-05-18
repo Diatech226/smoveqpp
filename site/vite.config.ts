@@ -110,7 +110,8 @@ export default defineConfig(({ mode }) => {
         "react-hook-form@7.55.0": "react-hook-form",
         "react-day-picker@8.10.1": "react-day-picker",
         "next-themes@0.4.6": "next-themes",
-        "lucide-react@0.487.0": "lucide-react",
+        "lucide-react": path.resolve(__dirname, "./src/shims/lucide-react.tsx"),
+        "lucide-react@0.487.0": path.resolve(__dirname, "./src/shims/lucide-react.tsx"),
         "input-otp@1.4.2": "input-otp",
         "figma:asset/fe4b2ed6fe6ac72131e60d65a784ad8a4665a864.png":
           path.resolve(

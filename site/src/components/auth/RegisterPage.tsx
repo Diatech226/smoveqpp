@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, User, UserPlus, AlertCircle, Sparkles, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+
+import { Mail, Lock, User, UserPlus, AlertCircle, Sparkles, Check } from 'lucide-react';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
