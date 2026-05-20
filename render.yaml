@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: smove-api
+    runtime: node
+    rootDir: api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/v1/ready
+    envVars:
+      - key: NODE_VERSION
+        value: 22
