@@ -1,7 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { AlertCircle, Lock, LogIn, Mail, ShieldCheck } from './components/cmsIcons';
 import { useAuth } from './contexts/AuthContext';
-import { getPublicSiteUrl } from './utils/publicSiteUrl';
 
 export default function CMSLoginPage() {
   const [email, setEmail] = useState('');
@@ -45,7 +44,7 @@ export default function CMSLoginPage() {
   return (
     <main className="cms-login-page min-h-screen bg-slate-100">
       <section className="cms-login-shell" aria-label="Connexion CMS SMOVE">
-        <div className="cms-login-brand-panel" aria-hidden="true">
+        <div className="cms-login-brand-panel">
           <div className="cms-login-logo">
             <span>S</span>
           </div>
@@ -62,7 +61,6 @@ export default function CMSLoginPage() {
         </div>
 
         <div className="cms-login-card w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <a href={getPublicSiteUrl()} className="cms-login-return-link">← Retour au site</a>
           <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#00b3e8]">
             <ShieldCheck size={14} />
             SMOVE
@@ -118,11 +116,6 @@ export default function CMSLoginPage() {
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
-
-        <div className="cms-login-meta-links">
-          <a href={`${getPublicSiteUrl()}#forgot-password`} className="cms-login-inline-link">Mot de passe oublié ?</a>
-          <a href={getPublicSiteUrl()} className="cms-login-inline-link">Retour au site public</a>
-        </div>
 
         {(oauthProviders.google || oauthProviders.facebook) ? (
           <div className="mt-4 space-y-2">
