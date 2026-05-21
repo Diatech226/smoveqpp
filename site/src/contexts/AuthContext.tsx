@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { RUNTIME_CONFIG } from '../config/runtimeConfig';
 import {
   fetchAdminUsers as fetchAdminUsersApi,
   fetchAuthAuditEvents,
@@ -138,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const beginOAuthLogin = async (provider: 'google' | 'facebook'): Promise<AuthActionResult> => {
     const redirectTo = resolveSafeOAuthRedirectTo();
-    window.location.assign(`/api/v1/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(redirectTo)}`);
+    window.location.assign(`${RUNTIME_CONFIG.apiBaseUrl}/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(redirectTo)}`);
     return { success: true, error: null, destination: null };
   };
 
