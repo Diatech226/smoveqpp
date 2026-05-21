@@ -44,8 +44,8 @@ function normalizeApiOrigin(rawValue: string | undefined, fallbackPort: number):
 }
 
 export default defineConfig(({ mode }) => {
-  const projectRoot = __dirname;
-  const env = loadEnv(mode, projectRoot, '');
+  const workspaceRoot = path.resolve(__dirname, '../..');
+  const env = loadEnv(mode, workspaceRoot, '');
 
   const cmsPort = parsePort(env.VITE_CMS_PORT, 5174);
   const apiPort = parsePort(env.API_PORT, 3001);
@@ -61,8 +61,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: __dirname,
-    envDir: projectRoot,
-    cacheDir: path.resolve(projectRoot, 'node_modules/.vite-cms'),
+    envDir: workspaceRoot,
+    cacheDir: path.resolve(workspaceRoot, 'node_modules/.vite-cms'),
     base: '/',
     plugins: [react()],
     resolve: {
@@ -75,7 +75,7 @@ export default defineConfig(({ mode }) => {
       include: ['react', 'react-dom'],
     },
     build: {
-      outDir: 'dist',
+      outDir: '../../build',
       emptyOutDir: true,
     },
     server: {

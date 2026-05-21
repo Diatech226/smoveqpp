@@ -1,4 +1,4 @@
-import { Archive, Pencil, RotateCcw, Trash2, Upload } from '../../cmsIcons';
+import { Archive, Pencil, RotateCcw, Trash2, Upload } from 'lucide-react';
 import { useMemo, type ChangeEvent, type ReactNode } from 'react';
 import type { BlogPost, MediaFile, Project, Service } from '../../../domain/contentSchemas';
 import {

@@ -42,7 +42,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
     () =>
       projectRepository
         .getPublished()
-        .find((entry) => (entry.slug || '').trim().toLowerCase() === projectId.trim().toLowerCase() || entry.id === projectId),
+        .find((entry) => (entry.slug || '').trim() === projectId || entry.id === projectId),
     [projectId, projectVersion],
   );
   const projectMedia = useMemo(() => (project ? resolveProjectHeroMedia(project) : null), [project]);

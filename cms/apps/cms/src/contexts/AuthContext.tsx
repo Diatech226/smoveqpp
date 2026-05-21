@@ -10,7 +10,6 @@ import {
 } from '../utils/authApi';
 import { evaluateCmsAccess, resolvePostLoginRoute, resolveTrustedSessionUser, SECURITY_FLAGS, type AppUser, type PostLoginRoute } from '../utils/securityPolicy';
 import { initializeCmsAuth, type AuthSessionState } from './authInitialization';
-import { RUNTIME_CONFIG } from '../config/runtimeConfig';
 
 interface OAuthProviderState { google: boolean; facebook: boolean }
 
@@ -193,8 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const redirectTo = resolveSafeOAuthRedirectTo();
-    const oauthStartUrl = `${RUNTIME_CONFIG.apiBaseUrl}/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(redirectTo)}`;
-    window.location.assign(oauthStartUrl);
+    window.location.assign(`/api/v1/auth/oauth/${provider}/start?redirectTo=${encodeURIComponent(redirectTo)}`);
   };
 
   const logout = async () => {
