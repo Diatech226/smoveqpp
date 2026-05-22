@@ -39,13 +39,18 @@ export type MediaType = 'image' | 'video' | 'document';
 export interface MediaAsset {
   id: string;
   type: MediaType;
+  name: string;
+  label?: string;
+  filename?: string;
+  mimeType?: string;
+  size: number;
   url: string;
+  publicPath?: string;
   alt?: string;
   title?: string;
-  label?: string;
   width?: number;
   height?: number;
-  metadata?: Record<string, string>;
+  metadata?: Record<string, unknown>;
   source?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -58,11 +63,9 @@ export interface MediaAsset {
   }>>;
 
   // Legacy compatibility fields
-  name: string;
   thumbnailUrl?: string;
-  size: number;
-  uploadedDate: string;
-  uploadedBy: string;
+  uploadedDate?: string;
+  uploadedBy?: string;
   caption?: string;
   tags: string[];
   ownerUserId?: string;
@@ -208,22 +211,22 @@ export const isMediaFile = (value: unknown): value is MediaFile => {
   return (
     isString(v.id) &&
     isString(v.name) &&
+    (v.label === undefined || isString(v.label)) &&
+    (v.filename === undefined || isString(v.filename)) &&
+    (v.mimeType === undefined || isString(v.mimeType)) &&
     (v.type === 'image' || v.type === 'video' || v.type === 'document') &&
     isString(v.url) &&
     (v.thumbnailUrl === undefined || isString(v.thumbnailUrl)) &&
     typeof v.size === 'number' &&
     v.size >= 0 &&
-    isString(v.uploadedDate) &&
-    isString(v.uploadedBy) &&
+    (v.uploadedDate === undefined || isString(v.uploadedDate)) &&
+    (v.uploadedBy === undefined || isString(v.uploadedBy)) &&
     (v.alt === undefined || isString(v.alt)) &&
     (v.title === undefined || isString(v.title)) &&
     (v.label === undefined || isString(v.label)) &&
     (v.width === undefined || (typeof v.width === 'number' && v.width >= 0)) &&
     (v.height === undefined || (typeof v.height === 'number' && v.height >= 0)) &&
-    (v.metadata === undefined ||
-      (typeof v.metadata === 'object' &&
-        v.metadata !== null &&
-        Object.values(v.metadata as Record<string, unknown>).every((item) => typeof item === 'string'))) &&
+    (v.metadata === undefined || (typeof v.metadata === 'object' && v.metadata !== null)) &&
     (v.source === undefined || isString(v.source)) &&
     (v.createdAt === undefined || isString(v.createdAt)) &&
     (v.updatedAt === undefined || isString(v.updatedAt)) &&
