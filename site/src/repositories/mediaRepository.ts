@@ -28,7 +28,7 @@ export interface MediaUploadInput {
 }
 
 const normalizeMedia = (file: MediaFile): MediaFile => {
-  const normalizedName = file.name.trim();
+  const normalizedName = (file.name || file.filename || 'media-file').trim();
   const normalizedAlt = file.alt?.trim() || normalizedName;
   const nowIso = new Date().toISOString();
 
@@ -43,7 +43,10 @@ const normalizeMedia = (file: MediaFile): MediaFile => {
     caption: file.caption?.trim() || normalizedAlt || normalizedName,
     tags: file.tags.map((tag) => tag.trim()).filter(Boolean),
     source: file.source?.trim() || 'local-storage',
-    metadata: file.metadata || {},
+    filename: file.filename?.trim() || normalizedName,
+    mimeType: file.mimeType?.trim() || (typeof file.metadata?.mimeType === 'string' ? file.metadata.mimeType.trim() : ''),
+    publicPath: file.publicPath?.trim() || '',
+    metadata: (file.metadata && typeof file.metadata === 'object' ? file.metadata : {}) as Record<string, unknown>,
     createdAt: file.createdAt || file.uploadedDate || nowIso,
     updatedAt: file.updatedAt || nowIso,
     archivedAt: typeof file.archivedAt === 'string' ? file.archivedAt : null,
