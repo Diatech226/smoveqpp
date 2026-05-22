@@ -1,7 +1,21 @@
 import { isMediaFile, isMediaFileArray, type MediaFile, type MediaType } from '../domain/contentSchemas';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
+import { RUNTIME_CONFIG } from '../config/runtimeConfig';
 
 const MEDIA_STORAGE_KEY = 'smove_media_files';
+
+
+const HTTP_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+
+const resolveRenderableMediaUrl = (url: string): string => {
+  const normalized = `${url || ''}`.trim();
+  if (!normalized) return '';
+  if (HTTP_SCHEME_PATTERN.test(normalized) || normalized.startsWith('data:') || normalized.startsWith('//')) return normalized;
+  const apiOrigin = (() => { try { return new URL(RUNTIME_CONFIG.apiBaseUrl).origin; } catch { return ''; } })();
+  if (normalized.startsWith('/')) return apiOrigin ? `${apiOrigin}${normalized}` : normalized;
+  if (normalized.startsWith('uploads/') || normalized.startsWith('media/')) return apiOrigin ? `${apiOrigin}/${normalized}` : normalized;
+  return normalized;
+};
 
 export interface MediaUploadInput {
   name: string;
@@ -20,6 +34,8 @@ const normalizeMedia = (file: MediaFile): MediaFile => {
 
   return {
     ...file,
+    url: resolveRenderableMediaUrl(file.url),
+    thumbnailUrl: resolveRenderableMediaUrl(file.thumbnailUrl || file.url),
     name: normalizedName,
     title: file.title?.trim() || normalizedName,
     label: file.label?.trim() || normalizedName,
