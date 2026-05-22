@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'editor' | 'author' | 'viewer' | 'client';
+export type UserRole = 'admin' | 'editor' | 'author' | 'viewer' | 'client' | 'user';
 
 export interface AppUser {
   id: string;
@@ -21,7 +21,7 @@ export interface AppUser {
   updatedAt?: string | null;
 }
 
-const USER_ROLES: UserRole[] = ['admin', 'editor', 'author', 'viewer', 'client'];
+const USER_ROLES: UserRole[] = ['admin', 'editor', 'author', 'viewer', 'client', 'user'];
 const USER_STATUSES: NonNullable<AppUser['status']>[] = ['client', 'staff'];
 const ACCOUNT_STATUSES: NonNullable<AppUser['accountStatus']>[] = ['active', 'invited', 'suspended'];
 const AUTH_PROVIDERS: NonNullable<AppUser['authProvider']>[] = ['local', 'google', 'facebook'];

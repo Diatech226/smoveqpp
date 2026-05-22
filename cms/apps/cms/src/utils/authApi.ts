@@ -48,13 +48,13 @@ const AUTH_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/auth`;
 
 function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'UNAUTHENTICATED') return 'Session invalide. Merci de vous reconnecter.';
-  if (code === 'FORBIDDEN') return 'Accès refusé.';
+  if (code === 'FORBIDDEN') return 'Compte non autorisé pour le CMS.';
   if (code === 'INVALID_CREDENTIALS') return 'Email ou mot de passe invalide.';
   if (code === 'ACCOUNT_SUSPENDED') return 'Ce compte est suspendu. Contactez un administrateur.';
   if (code === 'INVALID_CSRF') return 'Session expirée. Rechargez la page puis réessayez.';
   if (code === 'REQUEST_TIMEOUT') return "L'initialisation du serveur a expiré. Veuillez réessayer.";
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
-  return 'Erreur d’authentification.';
+  return 'Erreur technique d’authentification.';
 }
 
 function normalize(body: AuthApiResponse | null, status: number): AuthResult {
