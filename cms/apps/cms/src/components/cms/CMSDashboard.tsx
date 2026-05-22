@@ -1636,25 +1636,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setIsUploadingMedia(true);
 
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result !== 'string') {
-            reject(new Error('Invalid media payload'));
-            return;
-          }
-          resolve(reader.result);
-        };
-        reader.onerror = () => reject(new Error('Failed to read media file'));
-        reader.readAsDataURL(file);
-      });
-
       const uploaded = await requestWithRetry(
         () =>
           uploadBackendMediaFile({
             filename: file.name,
+            file,
             title: file.name,
-            dataUrl,
             alt: file.name,
           }),
         { retries: 1, retryDelayMs: 250 },
@@ -1684,25 +1671,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setHeroMediaUploadTarget(itemId);
 
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result !== 'string') {
-            reject(new Error('Invalid media payload'));
-            return;
-          }
-          resolve(reader.result);
-        };
-        reader.onerror = () => reject(new Error('Failed to read media file'));
-        reader.readAsDataURL(file);
-      });
-
       const uploaded = await requestWithRetry(
         () =>
           uploadBackendMediaFile({
             filename: file.name,
+            file,
             title: file.name,
-            dataUrl,
             alt: file.name,
           }),
         { retries: 1, retryDelayMs: 250 },

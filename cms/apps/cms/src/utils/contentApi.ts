@@ -31,8 +31,9 @@ export interface EditorialAnalytics {
 
 export interface MediaUploadPayload {
   filename: string;
+  file?: File;
   title?: string;
-  dataUrl: string;
+  dataUrl?: string;
   alt?: string;
   caption?: string;
   tags?: string[];
@@ -243,7 +244,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
   const headers = new Headers(init.headers);
-  if (!headers.has('Content-Type')) {
+  if (!(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -400,6 +401,21 @@ export async function fetchBackendMediaFiles(): Promise<MediaFile[]> {
 
 
 export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promise<MediaFile> {
+  if (payload.file) {
+    const formData = new FormData();
+    formData.append('file', payload.file, payload.filename);
+    formData.append('title', payload.title || payload.filename);
+    formData.append('alt', payload.alt || payload.filename);
+    if (payload.caption) formData.append('caption', payload.caption);
+    if (payload.tags?.length) formData.append('tags', payload.tags.join(','));
+    const body = await request<{ mediaFile: MediaFile }>('/media/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {},
+    });
+    return body.data!.mediaFile;
+  }
+
   const body = await request<{ mediaFile: MediaFile }>('/media/upload', {
     method: 'POST',
     body: JSON.stringify(payload),
