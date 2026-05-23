@@ -539,20 +539,23 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   useEffect(() => {
     let active = true;
 
+    const coreEndpointSuccess = { blog: false, projects: false, services: false, media: false };
+
     const load = async () => {
       setPostsLoading(true);
       try {
         const backendPosts = await requestWithRetry(() => fetchBackendBlogPosts(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
+        coreEndpointSuccess.blog = true;
         setPosts(backendPosts);
         backendPosts.forEach((post) => blogRepository.save(post));
         setPostsError('');
-      } catch {
+      } catch (error) {
         try {
           if (!active) return;
           setPosts(blogRepository.getAll());
-          setPostsError('Backend indisponible, données locales affichées.');
-          markDegradedMode('Blog: backend indisponible, lecture locale temporaire.');
+          setPostsError(toEndpointErrorMessage('Blog indisponible (cache local)', '/api/v1/content/blog', error));
+          setRuntimeWarnings((prev) => (prev.includes(toEndpointErrorMessage('Blog', '/api/v1/content/blog', error)) ? prev : [...prev, toEndpointErrorMessage('Blog', '/api/v1/content/blog', error)]));
         } catch {
           if (!active) return;
           setPostsError('Impossible de charger les articles. Réessayez.');
@@ -580,12 +583,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
 
+        coreEndpointSuccess.projects = true;
         syncProjectsFromBackend(backendProjects);
-      } catch {
+      } catch (error) {
         if (active) {
           setProjects(projectRepository.getAll());
-          setProjectsError('Backend indisponible, données locales affichées temporairement.');
-          markDegradedMode('Projets: backend indisponible, lecture locale temporaire.');
+          setProjectsError(toEndpointErrorMessage('Projets indisponibles (cache local)', '/api/v1/content/projects', error));
+          setRuntimeWarnings((prev) => (prev.includes(toEndpointErrorMessage('Projets', '/api/v1/content/projects', error)) ? prev : [...prev, toEndpointErrorMessage('Projets', '/api/v1/content/projects', error)]));
         }
       } finally {
         if (active) setProjectsLoading(false);
@@ -595,13 +599,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         setServicesLoading(true);
         const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
-
+        coreEndpointSuccess.services = true;
         setServices(serviceRepository.replaceAll(backendServices));
-      } catch {
+      } catch (error) {
         if (active) {
           setServices(serviceRepository.getAll());
-          setServicesError('Backend indisponible, données locales affichées temporairement.');
-          markDegradedMode('Services: backend indisponible, lecture locale temporaire.');
+          setServicesError(toEndpointErrorMessage('Services indisponibles (cache local)', '/api/v1/content/services', error));
+          setRuntimeWarnings((prev) => (prev.includes(toEndpointErrorMessage('Services', '/api/v1/content/services', error)) ? prev : [...prev, toEndpointErrorMessage('Services', '/api/v1/content/services', error)]));
         }
       } finally {
         if (active) setServicesLoading(false);
@@ -610,9 +614,10 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       try {
         const backendMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
+        coreEndpointSuccess.media = true;
         syncMediaFromBackend(backendMedia);
-      } catch {
-        markDegradedMode('Médiathèque: backend indisponible, cache local affiché.');
+      } catch (error) {
+        setRuntimeWarnings((prev) => (prev.includes(toEndpointErrorMessage('Médiathèque', '/api/v1/content/media', error)) ? prev : [...prev, toEndpointErrorMessage('Médiathèque', '/api/v1/content/media', error)]));
       }
 
       try {
@@ -672,7 +677,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     };
 
     void load().then(() => {
-      setRuntimeMode((prev) => (prev === 'degraded_local' ? prev : 'authoritative_remote'));
+      const hasCoreBackend = Object.values(coreEndpointSuccess).some(Boolean);
+      setRuntimeMode(hasCoreBackend ? 'authoritative_remote' : 'degraded_local');
     });
 
     return () => {
@@ -765,6 +771,19 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const markAuthoritativeMode = () => {
     setRuntimeMode('authoritative_remote');
     setRuntimeWarnings([]);
+  };
+
+
+  const toEndpointErrorMessage = (label: string, endpoint: string, error: unknown): string => {
+    if (error instanceof ContentApiError) {
+      const code = error.code || 'UNKNOWN';
+      const status = Number.isFinite(error.status) ? `HTTP ${error.status}` : 'HTTP ?';
+      return `${label}: ${endpoint} -> ${status} ${code}: ${error.message}`;
+    }
+    if (error instanceof Error) {
+      return `${label}: ${endpoint} -> ${error.message}`;
+    }
+    return `${label}: ${endpoint} -> erreur inconnue`;
   };
 
   const mapBlogError = (error: unknown) => {
