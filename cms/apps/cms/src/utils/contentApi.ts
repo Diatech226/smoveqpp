@@ -8,6 +8,8 @@ interface ApiEnvelope<T> {
   error?: { code?: string; message?: string; details?: unknown };
 }
 
+type ContentCollectionEnvelope = Record<string, unknown> | unknown[] | null | undefined;
+
 export class ContentApiError extends Error {
   constructor(
     message: string,
@@ -265,6 +267,35 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnve
   return body;
 }
 
+function extractCollection<T>(payload: ContentCollectionEnvelope): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  if (!payload || typeof payload !== 'object') return [];
+
+  const scoped = payload as Record<string, unknown>;
+  const collection =
+    (Array.isArray(scoped.items) && scoped.items) ||
+    (Array.isArray(scoped.data) && scoped.data) ||
+    (Array.isArray(scoped.projects) && scoped.projects) ||
+    (Array.isArray(scoped.media) && scoped.media) ||
+    (Array.isArray(scoped.mediaFiles) && scoped.mediaFiles) ||
+    (Array.isArray(scoped.services) && scoped.services) ||
+    (Array.isArray(scoped.blog) && scoped.blog) ||
+    (Array.isArray(scoped.articles) && scoped.articles) ||
+    (Array.isArray(scoped.posts) && scoped.posts);
+
+  return Array.isArray(collection) ? (collection as T[]) : [];
+}
+
+function extractSingle<T>(payload: Record<string, unknown> | null | undefined, keys: string[]): T | null {
+  if (!payload || typeof payload !== 'object') return null;
+  for (const key of keys) {
+    if (payload[key] && typeof payload[key] === 'object') {
+      return payload[key] as T;
+    }
+  }
+  return null;
+}
+
 export async function requestWithRetry<T>(
   operation: () => Promise<T>,
   options: { retries?: number; retryDelayMs?: number } = {},
@@ -287,8 +318,8 @@ export async function requestWithRetry<T>(
 }
 
 export async function fetchBackendBlogPosts(): Promise<BlogPost[]> {
-  const body = await request<{ posts: BlogPost[] }>('/blog');
-  return body.data?.posts || [];
+  const body = await request<{ posts?: BlogPost[]; blog?: BlogPost[]; articles?: BlogPost[] } | BlogPost[]>('/blog');
+  return extractCollection<BlogPost>(body.data);
 }
 
 export async function fetchPublicBlogPosts(): Promise<BlogPost[]> {
@@ -351,8 +382,8 @@ export async function fetchEditorialAnalytics(): Promise<EditorialAnalytics> {
 }
 
 export async function fetchBackendProjects(): Promise<Project[]> {
-  const body = await request<{ projects: Project[] }>('/projects');
-  return body.data?.projects || [];
+  const body = await request<{ projects?: Project[]; items?: Project[]; data?: Project[] } | Project[]>('/projects');
+  return extractCollection<Project>(body.data);
 }
 
 export async function saveBackendProject(project: Project): Promise<Project> {
@@ -378,8 +409,8 @@ export async function deleteBackendProject(id: string): Promise<void> {
 
 
 export async function fetchBackendServices(): Promise<Service[]> {
-  const body = await request<{ services: Service[] }>('/services');
-  return body.data?.services || [];
+  const body = await request<{ services?: Service[]; items?: Service[]; data?: Service[] } | Service[]>('/services');
+  return extractCollection<Service>(body.data);
 }
 
 export async function saveBackendService(service: Service): Promise<Service> {
@@ -395,10 +426,8 @@ export async function deleteBackendService(id: string): Promise<void> {
 }
 
 export async function fetchBackendMediaFiles(): Promise<MediaFile[]> {
-  const body = await request<{ mediaFiles?: MediaFile[] } | MediaFile[]>('/media');
-  const payload = body.data;
-  if (Array.isArray(payload)) return payload;
-  return Array.isArray(payload?.mediaFiles) ? payload.mediaFiles : [];
+  const body = await request<{ mediaFiles?: MediaFile[]; media?: MediaFile[]; items?: MediaFile[]; data?: MediaFile[] } | MediaFile[]>('/media');
+  return extractCollection<MediaFile>(body.data);
 }
 
 
@@ -415,14 +444,18 @@ export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promi
       body: formData,
       headers: {},
     });
-    return body.data!.mediaFile;
+    const mediaFile = extractSingle<MediaFile>(body.data as Record<string, unknown> | undefined, ['mediaFile', 'file', 'media']);
+    if (!mediaFile) throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'MEDIA_UPLOAD_INVALID_RESPONSE', 500);
+    return mediaFile;
   }
 
   const body = await request<{ mediaFile: MediaFile }>('/media/upload', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
-  return body.data!.mediaFile;
+  const mediaFile = extractSingle<MediaFile>(body.data as Record<string, unknown> | undefined, ['mediaFile', 'file', 'media']);
+  if (!mediaFile) throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'MEDIA_UPLOAD_INVALID_RESPONSE', 500);
+  return mediaFile;
 }
 
 export async function saveBackendMediaFile(mediaFile: MediaFile): Promise<MediaFile> {
