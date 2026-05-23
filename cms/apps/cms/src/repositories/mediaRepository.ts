@@ -1,6 +1,7 @@
 import { isMediaFile, isMediaFileArray, type MediaFile, type MediaType } from '../domain/contentSchemas';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
 import { absolutizeMediaPath } from '../utils/mediaResolver';
+import { uploadMedia } from '../api/mediaApi';
 
 const MEDIA_STORAGE_KEY = 'smove_media_files';
 
@@ -92,50 +93,14 @@ class LocalMediaRepository implements MediaRepository {
   }
 
   upload(data: MediaUploadInput): Promise<MediaFile> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
-        const encodedResult = event.target?.result;
-        if (typeof encodedResult !== 'string') {
-          reject(new Error('Encoded media payload is missing'));
-          return;
-        }
-
-        const mediaFile: MediaFile = {
-          id: Date.now().toString(),
-          name: data.name,
-          type: data.type,
-          url: encodedResult,
-          thumbnailUrl: encodedResult,
-          size: data.file.size,
-          uploadedDate: new Date().toISOString(),
-          uploadedBy: data.uploadedBy,
-          alt: data.alt || data.name,
-          title: data.name,
-          label: data.name,
-          caption: data.caption || data.alt || data.name,
-          tags: data.tags || [],
-          source: 'local-upload',
-          metadata: {},
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        if (!isMediaFile(mediaFile)) {
-          reject(new Error('Invalid uploaded media payload'));
-          return;
-        }
-
-        this.save(mediaFile);
-        resolve(mediaFile);
-      };
-
-      reader.onerror = () => {
-        reject(new Error('Unable to read media file'));
-      };
-
-      reader.readAsDataURL(data.file);
+    return uploadMedia(data.file, {
+      title: data.name,
+      alt: data.alt || data.name,
+      caption: data.caption || '',
+      tags: data.tags || [],
+    }).then((mediaFile) => {
+      this.save(mediaFile);
+      return mediaFile;
     });
   }
 
