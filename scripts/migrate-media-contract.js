@@ -3,9 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const { normalizeMediaReference } = require('../api/server/utils/mediaResolver');
 
-const target = path.resolve(__dirname, '../api/server/data/content.json');
+const target = path.resolve(__dirname, '../server/data/content.json');
 const raw = JSON.parse(fs.readFileSync(target, 'utf8'));
-const mediaIds = new Set((raw.mediaFiles || raw.mediaLibrary || []).map((m) => m.id));
+const mediaIds = new Set((raw.mediaLibrary || []).map((m) => m.id));
 const report = { migrated: [], unresolved: [], inactive: [] };
 
 function maybe(fieldPath, value) {
