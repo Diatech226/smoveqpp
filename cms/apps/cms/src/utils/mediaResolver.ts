@@ -53,7 +53,12 @@ export const resolveMediaUrl = (value: unknown, mediaList: MediaFile[] = []): st
     const candidate = value as Partial<MediaFile> & { publicPath?: string; filename?: string; thumbnailUrl?: string };
     return absolutizeMediaPath((candidate.url || candidate.thumbnailUrl || candidate.publicPath || (candidate.filename ? `/uploads/${candidate.filename}` : '') || '').trim());
   }
-  if (!HTTP_SCHEME_PATTERN.test(normalized)) return absolutizeMediaPath(normalized);
+  if (!HTTP_SCHEME_PATTERN.test(normalized)) {
+    if (!normalized.includes('/') && !normalized.startsWith('/')) return '';
+    const resolved = absolutizeMediaPath(normalized);
+    if (isDev()) console.debug('[cms-media-resolver] resolved thumbnail URL', { input: value, resolved });
+    return resolved;
+  }
   logUnresolved('unsupported value', normalized);
   return '';
 };
