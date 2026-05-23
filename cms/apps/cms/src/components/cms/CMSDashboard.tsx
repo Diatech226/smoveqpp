@@ -1683,6 +1683,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       );
 
       const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+      const listedMedia = refreshedMedia.find((entry) => entry.id === uploaded.id);
+      const hasDisplayableLocator = Boolean(
+        `${listedMedia?.url || ''}`.trim() ||
+        `${listedMedia?.publicPath || ''}`.trim() ||
+        `${listedMedia?.filename || ''}`.trim(),
+      );
+      if (!listedMedia || !hasDisplayableLocator) {
+        throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'Upload terminé mais média introuvable dans la médiathèque.', 500);
+      }
       syncMediaFromBackend(refreshedMedia);
       if (import.meta.env.DEV) console.debug('[cms-media-upload] media list count after upload', refreshedMedia.length);
       setSelectedMediaId(uploaded.id);
@@ -1730,6 +1739,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         return assignHeroBackgroundMedia(prev, itemId, field, mediaReference);
       });
       const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+      const listedMedia = refreshedMedia.find((entry) => entry.id === uploaded.id);
+      const hasDisplayableLocator = Boolean(
+        `${listedMedia?.url || ''}`.trim() ||
+        `${listedMedia?.publicPath || ''}`.trim() ||
+        `${listedMedia?.filename || ''}`.trim(),
+      );
+      if (!listedMedia || !hasDisplayableLocator) {
+        throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'Upload terminé mais média introuvable dans la médiathèque.', 500);
+      }
       syncMediaFromBackend(refreshedMedia);
       if (import.meta.env.DEV) console.debug('[cms-media-upload] media list count after upload', refreshedMedia.length);
       showSuccess('Image uploadée dans la médiathèque et liée au background hero.');
