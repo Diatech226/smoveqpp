@@ -445,6 +445,18 @@ export async function fetchBackendMediaFiles(): Promise<MediaFile[]> {
 
 
 export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promise<MediaFile> {
+  const normalizeUploadResponse = (data: unknown): MediaFile => {
+    const mediaFile = extractSingle<MediaFile>((data || undefined) as Record<string, unknown> | undefined, ['media', 'data', 'item', 'file', 'mediaFile']);
+    if (!mediaFile) throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', "Upload terminé mais média invalide retourné par l’API", 500);
+    const hasId = typeof mediaFile.id === 'string' && mediaFile.id.trim().length > 0;
+    const hasUrl = typeof mediaFile.url === 'string' && mediaFile.url.trim().length > 0;
+    const hasPublicPath = typeof mediaFile.publicPath === 'string' && mediaFile.publicPath.trim().length > 0;
+    if (!hasId || (!hasUrl && !hasPublicPath)) {
+      throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', "Upload terminé mais média invalide retourné par l’API", 500);
+    }
+    return mediaFile;
+  };
+
   if (payload.file) {
     const formData = new FormData();
     formData.append('file', payload.file, payload.filename);
@@ -458,8 +470,7 @@ export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promi
       headers: {},
     });
     if (import.meta.env.DEV) console.debug('[cms-media-upload] raw upload response', body.data);
-    const mediaFile = extractSingle<MediaFile>(body.data as Record<string, unknown> | undefined, ['mediaFile', 'file', 'media', 'item', 'data']);
-    if (!mediaFile) throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'MEDIA_UPLOAD_INVALID_RESPONSE', 500);
+    const mediaFile = normalizeUploadResponse(body.data);
     if (import.meta.env.DEV) console.debug('[cms-media-upload] normalized media object', mediaFile);
     return mediaFile;
   }
@@ -469,8 +480,7 @@ export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promi
     body: JSON.stringify(payload),
   });
   if (import.meta.env.DEV) console.debug('[cms-media-upload] raw upload response', body.data);
-  const mediaFile = extractSingle<MediaFile>(body.data as Record<string, unknown> | undefined, ['mediaFile', 'file', 'media', 'item', 'data']);
-  if (!mediaFile) throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'MEDIA_UPLOAD_INVALID_RESPONSE', 500);
+  const mediaFile = normalizeUploadResponse(body.data);
   if (import.meta.env.DEV) console.debug('[cms-media-upload] normalized media object', mediaFile);
   return mediaFile;
 }
