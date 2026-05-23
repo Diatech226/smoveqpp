@@ -78,6 +78,7 @@ import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSumma
 import { isValidSlug } from '../../shared/contentContracts';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
+import { CMSMediaPicker } from './dashboard/CMSMediaPicker';
 import { buildServicePayload, type ServiceFormPayloadState } from './dashboard/servicePayload';
 import { appendHeroBackgroundItemWithMedia, assignHeroBackgroundMedia } from './dashboard/pageContentHeroActions';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
