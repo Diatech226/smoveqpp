@@ -129,43 +129,24 @@ function parseMultipartFormData(req) {
 
 function createContentRoutes({ contentService, auditService, mediaStorage }) {
   const router = express.Router();
-  const inferMediaType = (mediaFile) => {
-    const raw = `${mediaFile?.type || mediaFile?.mediaType || ''}`.trim().toLowerCase();
-    if (raw === 'image' || raw === 'video' || raw === 'document') return raw;
-    const mime = `${mediaFile?.mimeType || mediaFile?.metadata?.mimeType || ''}`.trim().toLowerCase();
-    if (mime.startsWith('image/')) return 'image';
-    if (mime.startsWith('video/')) return 'video';
-    return 'document';
-  };
-
   const toCanonicalMedia = (mediaFile) => {
     if (!mediaFile || typeof mediaFile !== 'object') return null;
     const filename = `${mediaFile.filename || mediaFile.name || ''}`.trim();
     const publicPath = `${mediaFile.publicPath || mediaFile.path || ''}`.trim() || (filename ? `/uploads/${filename}` : '');
-    const now = new Date().toISOString();
-    const createdAt = mediaFile.createdAt || mediaFile.uploadedDate || now;
-    const updatedAt = mediaFile.updatedAt || mediaFile.createdAt || createdAt;
-    const canonicalUrl = mediaFile.url || mediaFile.publicUrl || publicPath;
     return {
       id: mediaFile.id,
-      type: inferMediaType(mediaFile),
+      type: mediaFile.type || mediaFile.mediaType || 'file',
       name: mediaFile.name || mediaFile.label || filename,
       label: mediaFile.label || mediaFile.title || mediaFile.name || filename,
       filename,
       mimeType: mediaFile.mimeType || mediaFile.metadata?.mimeType || '',
       size: Number(mediaFile.size || 0),
-      url: canonicalUrl,
-      thumbnailUrl: mediaFile.thumbnailUrl || canonicalUrl,
+      url: mediaFile.url || mediaFile.publicUrl || publicPath,
       publicPath,
       alt: mediaFile.alt || '',
       caption: mediaFile.caption || '',
-      uploadedDate: mediaFile.uploadedDate || createdAt,
-      uploadedBy: mediaFile.uploadedBy || 'unknown',
-      tags: Array.isArray(mediaFile.tags) ? mediaFile.tags : [],
-      source: mediaFile.source || 'local-disk',
-      metadata: mediaFile.metadata || {},
-      createdAt,
-      updatedAt,
+      createdAt: mediaFile.createdAt || mediaFile.uploadedDate || new Date().toISOString(),
+      updatedAt: mediaFile.updatedAt || mediaFile.createdAt || new Date().toISOString(),
       archivedAt: mediaFile.archivedAt ?? null,
     };
   };
