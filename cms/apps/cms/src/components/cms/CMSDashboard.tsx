@@ -1684,6 +1684,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
 
       const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
       syncMediaFromBackend(refreshedMedia);
+      if (import.meta.env.DEV) console.debug('[cms-media-upload] media list count after upload', refreshedMedia.length);
       setSelectedMediaId(uploaded.id);
       showSuccess('Média uploadé et persisté sur le serveur.');
     } catch (error) {
@@ -1726,6 +1727,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       });
       const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
       syncMediaFromBackend(refreshedMedia);
+      if (import.meta.env.DEV) console.debug('[cms-media-upload] media list count after upload', refreshedMedia.length);
       showSuccess('Image uploadée dans la médiathèque et liée au background hero.');
     } catch {
       setHeroMediaUploadError("Upload impossible pour cette slide. Vérifiez le format/taille puis réessayez.");

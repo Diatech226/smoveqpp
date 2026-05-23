@@ -288,6 +288,10 @@ function extractCollection<T>(payload: ContentCollectionEnvelope): T[] {
 
 function extractSingle<T>(payload: Record<string, unknown> | null | undefined, keys: string[]): T | null {
   if (!payload || typeof payload !== 'object') return null;
+  if (!Array.isArray(payload)) {
+    const looksLikeEntity = typeof payload.id === 'string' && (typeof payload.url === 'string' || typeof payload.filename === 'string');
+    if (looksLikeEntity) return payload as T;
+  }
   for (const key of keys) {
     if (payload[key] && typeof payload[key] === 'object') {
       return payload[key] as T;
@@ -439,22 +443,26 @@ export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promi
     formData.append('alt', payload.alt || payload.filename);
     if (payload.caption) formData.append('caption', payload.caption);
     if (payload.tags?.length) formData.append('tags', payload.tags.join(','));
-    const body = await request<{ mediaFile: MediaFile }>('/media/upload', {
+    const body = await request<{ mediaFile?: MediaFile; media?: MediaFile; file?: MediaFile; item?: MediaFile; data?: MediaFile } | MediaFile>('/media/upload', {
       method: 'POST',
       body: formData,
       headers: {},
     });
-    const mediaFile = extractSingle<MediaFile>(body.data as Record<string, unknown> | undefined, ['mediaFile', 'file', 'media']);
+    if (import.meta.env.DEV) console.debug('[cms-media-upload] raw upload response', body.data);
+    const mediaFile = extractSingle<MediaFile>(body.data as Record<string, unknown> | undefined, ['mediaFile', 'file', 'media', 'item', 'data']);
     if (!mediaFile) throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'MEDIA_UPLOAD_INVALID_RESPONSE', 500);
+    if (import.meta.env.DEV) console.debug('[cms-media-upload] normalized media object', mediaFile);
     return mediaFile;
   }
 
-  const body = await request<{ mediaFile: MediaFile }>('/media/upload', {
+  const body = await request<{ mediaFile?: MediaFile; media?: MediaFile; file?: MediaFile; item?: MediaFile; data?: MediaFile } | MediaFile>('/media/upload', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
-  const mediaFile = extractSingle<MediaFile>(body.data as Record<string, unknown> | undefined, ['mediaFile', 'file', 'media']);
+  if (import.meta.env.DEV) console.debug('[cms-media-upload] raw upload response', body.data);
+  const mediaFile = extractSingle<MediaFile>(body.data as Record<string, unknown> | undefined, ['mediaFile', 'file', 'media', 'item', 'data']);
   if (!mediaFile) throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'MEDIA_UPLOAD_INVALID_RESPONSE', 500);
+  if (import.meta.env.DEV) console.debug('[cms-media-upload] normalized media object', mediaFile);
   return mediaFile;
 }
 
