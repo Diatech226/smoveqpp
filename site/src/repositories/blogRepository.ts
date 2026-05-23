@@ -103,7 +103,7 @@ const coerceBlogPost = (value: unknown): BlogPost | null => {
 
 const isValidMediaField = (value: string): boolean =>
   isValidMediaFieldContract(value, {
-    allowInlineText: true,
+    allowInlineText: false,
     hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)),
   });
 

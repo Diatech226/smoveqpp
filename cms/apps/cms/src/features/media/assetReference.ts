@@ -73,7 +73,7 @@ export const mediaReferenceExistsInRepository = (reference: string): boolean =>
 
 export const isValidMediaFieldValue = (value: string): boolean =>
   isValidMediaFieldContract(value, {
-    allowInlineText: true,
+    allowInlineText: false,
     hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)),
   });
 

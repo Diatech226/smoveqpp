@@ -198,7 +198,7 @@ class LocalProjectRepository implements ProjectRepository {
       }
     }
 
-    if (!isValidMediaFieldValue(trustedProject.featuredImage, { allowInlineText: true, hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)) }) || trustedProject.images.some((image) => !isValidMediaFieldValue(image, { allowInlineText: true, hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)) }))) {
+    if (!isValidMediaFieldValue(trustedProject.featuredImage, { allowInlineText: false, hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)) }) || trustedProject.images.some((image) => !isValidMediaFieldValue(image, { allowInlineText: false, hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)) }))) {
       throw new Error('Invalid project media payload');
     }
 
