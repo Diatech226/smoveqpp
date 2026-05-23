@@ -1,21 +1,11 @@
 import { isMediaFile, isMediaFileArray, type MediaFile, type MediaType } from '../domain/contentSchemas';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
-import { RUNTIME_CONFIG } from '../config/runtimeConfig';
+import { absolutizeMediaPath } from '../utils/mediaResolver';
 
 const MEDIA_STORAGE_KEY = 'smove_media_files';
 
 
-const HTTP_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
-
-const resolveRenderableMediaUrl = (url: string): string => {
-  const normalized = `${url || ''}`.trim();
-  if (!normalized) return '';
-  if (HTTP_SCHEME_PATTERN.test(normalized) || normalized.startsWith('data:') || normalized.startsWith('//')) return normalized;
-  const apiOrigin = (() => { try { return new URL(RUNTIME_CONFIG.apiBaseUrl).origin; } catch { return ''; } })();
-  if (normalized.startsWith('/')) return apiOrigin ? `${apiOrigin}${normalized}` : normalized;
-  if (normalized.startsWith('uploads/') || normalized.startsWith('media/')) return apiOrigin ? `${apiOrigin}/${normalized}` : normalized;
-  return normalized;
-};
+const resolveRenderableMediaUrl = (url: string): string => absolutizeMediaPath(`${url || ''}`);
 
 export interface MediaUploadInput {
   name: string;
