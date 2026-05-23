@@ -34,7 +34,7 @@ export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = ''): string 
     }
   }
 
-  return resolveMediaUrl(normalizedUrl);
+  return resolveMediaUrl(normalizedUrl) || normalizedUrl;
 };
 
 
