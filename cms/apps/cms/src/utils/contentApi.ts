@@ -239,7 +239,6 @@ export interface MediaUsageImpact {
 const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content`;
 const DEFAULT_MANAGED_CATEGORIES = ['Communication digitale', 'Branding', 'Web'];
 const DEFAULT_MANAGED_TAGS = ['Conseil', 'Production', 'Growth'];
-const CANONICAL_MEDIA_ENDPOINT = 'https://smoveapi-1.onrender.com/api/v1/content/media';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -396,18 +395,7 @@ export async function deleteBackendService(id: string): Promise<void> {
 }
 
 export async function fetchBackendMediaFiles(): Promise<MediaFile[]> {
-  const response = await fetch(CANONICAL_MEDIA_ENDPOINT, {
-    credentials: 'include',
-    cache: 'no-store',
-  });
-
-  const body = (await response.json().catch(() => null)) as ApiEnvelope<{ mediaFiles?: MediaFile[] } | MediaFile[]> | null;
-  if (!response.ok || !body?.success) {
-    const code = body?.error?.code || `CONTENT_API_${response.status}`;
-    const message = body?.error?.message || `CONTENT_API_${response.status}`;
-    throw new ContentApiError(message, code, response.status, body?.error?.details);
-  }
-
+  const body = await request<{ mediaFiles?: MediaFile[] } | MediaFile[]>('/media');
   const payload = body.data;
   if (Array.isArray(payload)) return payload;
   return Array.isArray(payload?.mediaFiles) ? payload.mediaFiles : [];
