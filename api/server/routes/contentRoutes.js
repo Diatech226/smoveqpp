@@ -129,6 +129,46 @@ function parseMultipartFormData(req) {
 
 function createContentRoutes({ contentService, auditService, mediaStorage }) {
   const router = express.Router();
+  const inferMediaType = (mediaFile) => {
+    const raw = `${mediaFile?.type || mediaFile?.mediaType || ''}`.trim().toLowerCase();
+    if (raw === 'image' || raw === 'video' || raw === 'document') return raw;
+    const mime = `${mediaFile?.mimeType || mediaFile?.metadata?.mimeType || ''}`.trim().toLowerCase();
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    return 'document';
+  };
+
+  const toCanonicalMedia = (mediaFile) => {
+    if (!mediaFile || typeof mediaFile !== 'object') return null;
+    const filename = `${mediaFile.filename || mediaFile.name || ''}`.trim();
+    const publicPath = `${mediaFile.publicPath || mediaFile.path || ''}`.trim() || (filename ? `/uploads/${filename}` : '');
+    const now = new Date().toISOString();
+    const createdAt = mediaFile.createdAt || mediaFile.uploadedDate || now;
+    const updatedAt = mediaFile.updatedAt || mediaFile.createdAt || createdAt;
+    const canonicalUrl = mediaFile.url || mediaFile.publicUrl || publicPath;
+    return {
+      id: mediaFile.id,
+      type: inferMediaType(mediaFile),
+      name: mediaFile.name || mediaFile.label || filename,
+      label: mediaFile.label || mediaFile.title || mediaFile.name || filename,
+      filename,
+      mimeType: mediaFile.mimeType || mediaFile.metadata?.mimeType || '',
+      size: Number(mediaFile.size || 0),
+      url: canonicalUrl,
+      thumbnailUrl: mediaFile.thumbnailUrl || canonicalUrl,
+      publicPath,
+      alt: mediaFile.alt || '',
+      caption: mediaFile.caption || '',
+      uploadedDate: mediaFile.uploadedDate || createdAt,
+      uploadedBy: mediaFile.uploadedBy || 'unknown',
+      tags: Array.isArray(mediaFile.tags) ? mediaFile.tags : [],
+      source: mediaFile.source || 'local-disk',
+      metadata: mediaFile.metadata || {},
+      createdAt,
+      updatedAt,
+      archivedAt: mediaFile.archivedAt ?? null,
+    };
+  };
   const actorFromRequest = (req) => ({
     userId: req.session?.userId ?? req.appUser?.id ?? 'system',
     role: req.session?.role ?? req.appUser?.role ?? 'viewer',
@@ -201,7 +241,8 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
   router.get('/public/media', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, 200, { mediaFiles: normalizeMediaPayload(contentService.listMediaFiles(), contentService.listMediaFiles()) });
+    const mediaFiles = contentService.listMediaFiles().map(toCanonicalMedia).filter((entry) => entry && !entry.archivedAt);
+    return sendSuccess(res, 200, { mediaFiles });
   });
   router.get('/public/diagnostics', (_req, res) =>
     sendSuccess(res, 200, {
@@ -473,7 +514,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   });
 
   router.get('/media', requirePermission(Permissions.CONTENT_READ), (req, res) =>
-    sendSuccess(res, 200, { mediaFiles: contentService.listMediaFiles() }));
+    sendSuccess(res, 200, { mediaFiles: contentService.listMediaFiles().map(toCanonicalMedia).filter(Boolean) }));
 
   router.get('/media/:id/references', requirePermission(Permissions.CONTENT_READ), (req, res) =>
     sendSuccess(res, 200, { references: contentService.findMediaReferences(req.params.id) }));
@@ -557,7 +598,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       entityId: stored.file.id,
       metadata: { mimeType: stored.file.mimeType, size: stored.file.size },
     }));
-    return sendSuccess(res, 200, { mediaFile: saved.mediaFile });
+    return sendSuccess(res, 200, { mediaFile: toCanonicalMedia(saved.mediaFile) });
   });
 
   router.post('/media', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
@@ -568,7 +609,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 400, result.error.code, result.error.message);
     }
     auditService?.record(toAuditContext(req, 'cms_media_save', 'success', { entityType: 'media_asset', entityId: result.mediaFile.id }));
-    return sendSuccess(res, 200, { mediaFile: result.mediaFile });
+    return sendSuccess(res, 200, { mediaFile: toCanonicalMedia(result.mediaFile) });
   });
 
   router.patch('/media/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
@@ -577,7 +618,7 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       const statusCode = result.error.code === 'MEDIA_NOT_FOUND' ? 404 : 400;
       return sendError(res, statusCode, result.error.code, result.error.message);
     }
-    return sendSuccess(res, 200, { mediaFile: result.mediaFile });
+    return sendSuccess(res, 200, { mediaFile: toCanonicalMedia(result.mediaFile) });
   });
 
   router.post('/media/:id/replace', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
