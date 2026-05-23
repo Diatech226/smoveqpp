@@ -250,7 +250,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnve
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${CONTENT_BASE_URL}${path}`, {
+  const requestUrl = `${CONTENT_BASE_URL}${path}`;
+  const response = await fetch(requestUrl, {
     ...init,
     headers,
     cache: 'no-store',
@@ -258,9 +259,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnve
   });
 
   const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
+  if (path === '/media/upload' && import.meta.env.DEV) {
+    console.debug('[cms-media-upload] upload URL used', requestUrl);
+    console.debug('[cms-media-upload] HTTP status', response.status);
+    console.debug('[cms-media-upload] API response body', body);
+  }
   if (!response.ok || !body?.success) {
     const code = body?.error?.code || `CONTENT_API_${response.status}`;
     const message = body?.error?.message || `CONTENT_API_${response.status}`;
+    if (path === '/media/upload' && import.meta.env.DEV) {
+      console.error('[cms-media-upload] upload error message', message, { code, status: response.status });
+    }
     throw new ContentApiError(message, code, response.status, body?.error?.details);
   }
 
@@ -439,7 +448,7 @@ export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promi
   if (payload.file) {
     const formData = new FormData();
     formData.append('file', payload.file, payload.filename);
-    formData.append('title', payload.title || payload.filename);
+    formData.append('label', payload.title || payload.filename);
     formData.append('alt', payload.alt || payload.filename);
     if (payload.caption) formData.append('caption', payload.caption);
     if (payload.tags?.length) formData.append('tags', payload.tags.join(','));
