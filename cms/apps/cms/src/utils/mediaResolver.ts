@@ -4,7 +4,7 @@ import { RUNTIME_CONFIG } from '../config/runtimeConfig';
 const HTTP_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 const DEFAULT_API_ORIGIN = 'https://smoveapi-1.onrender.com';
 
-const toApiOrigin = (): string => {
+export const getCmsApiOrigin = (): string => {
   const configured = (import.meta.env.VITE_API_ORIGIN as string | undefined)?.trim() || RUNTIME_CONFIG.apiBaseUrl;
   if (!configured) return DEFAULT_API_ORIGIN;
   try { return new URL(configured).origin; } catch { return DEFAULT_API_ORIGIN; }
@@ -17,9 +17,12 @@ export const absolutizeMediaPath = (value: string): string => {
   const normalized = value.trim();
   if (!normalized) return '';
   if (HTTP_SCHEME_PATTERN.test(normalized) || normalized.startsWith('//') || normalized.startsWith('data:') || normalized.startsWith('blob:')) return normalized;
-  const apiOrigin = toApiOrigin();
+  const apiOrigin = getCmsApiOrigin();
   if (normalized.startsWith('/')) return `${apiOrigin}${normalized}`;
-  if (normalized.startsWith('uploads/')) return `${apiOrigin}/${normalized}`;
+  if (normalized.startsWith('uploads/') || normalized.startsWith('media/')) return `${apiOrigin}/${normalized}`;
+  if (normalized.startsWith('./')) return `${apiOrigin}/${normalized.slice(2)}`;
+  if (normalized.startsWith('/')) return `${apiOrigin}${normalized}`;
+  if (normalized.includes('/') && !/\s/.test(normalized)) return `${apiOrigin}/${normalized}`;
   return normalized;
 };
 
@@ -47,10 +50,10 @@ export const resolveMediaUrl = (value: unknown, mediaList: MediaFile[] = []): st
   const byId = matchById(normalized, mediaList);
   if (byId) return resolveMediaUrl(byId, mediaList);
   if (typeof value === 'object') {
-    const candidate = value as Partial<MediaFile> & { publicPath?: string; filename?: string };
-    return absolutizeMediaPath((candidate.url || candidate.publicPath || (candidate.filename ? `/uploads/${candidate.filename}` : '') || '').trim());
+    const candidate = value as Partial<MediaFile> & { publicPath?: string; filename?: string; thumbnailUrl?: string };
+    return absolutizeMediaPath((candidate.url || candidate.thumbnailUrl || candidate.publicPath || (candidate.filename ? `/uploads/${candidate.filename}` : '') || '').trim());
   }
-  if (HTTP_SCHEME_PATTERN.test(normalized) || normalized.startsWith('/uploads/') || normalized.startsWith('uploads/')) return absolutizeMediaPath(normalized);
+  if (!HTTP_SCHEME_PATTERN.test(normalized)) return absolutizeMediaPath(normalized);
   logUnresolved('unsupported value', normalized);
   return '';
 };

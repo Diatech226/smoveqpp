@@ -78,6 +78,8 @@ import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSumma
 import { isValidSlug } from '../../shared/contentContracts';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
+import { getCmsApiOrigin } from '../../utils/mediaResolver';
+import { resolveRenderableMediaUrl } from '../../features/media/assetReference';
 import { CMSMediaPicker } from './dashboard/CMSMediaPicker';
 import { buildServicePayload, type ServiceFormPayloadState } from './dashboard/servicePayload';
 import { appendHeroBackgroundItemWithMedia, assignHeroBackgroundMedia } from './dashboard/pageContentHeroActions';
@@ -390,6 +392,19 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     return mediaRepository.search(mediaQuery.trim());
   }, [mediaFiles, mediaQuery]);
   const selectedMedia = useMemo(() => mediaRepository.getById(selectedMediaId), [selectedMediaId, mediaFiles]);
+
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || mediaFiles.length === 0) return;
+    const firstMedia = mediaFiles[0];
+    const apiOrigin = getCmsApiOrigin();
+    console.debug('[media-debug]', {
+      apiOrigin,
+      firstMedia,
+      thumbnailValue: firstMedia.thumbnailUrl || firstMedia.url,
+      resolvedUrl: resolveRenderableMediaUrl(firstMedia.thumbnailUrl || firstMedia.url || ''),
+    });
+  }, [mediaFiles]);
 
   const mediaUsageIndex = useMemo(() => {
     const index = new Map<string, string[]>();
