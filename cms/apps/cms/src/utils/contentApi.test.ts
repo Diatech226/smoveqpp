@@ -28,7 +28,7 @@ describe('contentApi collection normalization', () => {
   });
 
   it('accepts media upload response with data.file shape', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ success: true, data: { file: { id: 'm2', name: 'Media 2' } } }) })));
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ success: true, data: { file: { id: 'm2', name: 'Media 2', publicPath: '/uploads/media-2.png' } } }) })));
     const media = await uploadBackendMediaFile({ filename: 'asset.png', dataUrl: 'data:image/png;base64,AAAA' });
     expect(media.id).toBe('m2');
   });
