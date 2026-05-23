@@ -1,6 +1,6 @@
 import type { MediaFile } from '../../domain/contentSchemas';
 import { mediaRepository } from '../../repositories/mediaRepository';
-import { RUNTIME_CONFIG } from '../../config/runtimeConfig';
+import { absolutizeMediaPath } from '../../utils/mediaResolver';
 import {
   MEDIA_REFERENCE_PREFIX,
   isMediaReference,
@@ -13,21 +13,8 @@ import { logWarn } from '../../utils/observability';
 
 export { MEDIA_REFERENCE_PREFIX };
 
-const HTTP_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 const FALLBACK_MEDIA_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#eef2ff"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#4f46e5" font-family="Arial,sans-serif" font-size="40">Media unavailable</text></svg>`;
 const FALLBACK_MEDIA_DATA_URL = `data:image/svg+xml,${encodeURIComponent(FALLBACK_MEDIA_SVG)}`;
-
-const toApiOrigin = (apiBaseUrl: string): string => {
-  if (!apiBaseUrl.startsWith('http://') && !apiBaseUrl.startsWith('https://')) {
-    return '';
-  }
-
-  try {
-    return new URL(apiBaseUrl).origin;
-  } catch {
-    return '';
-  }
-};
 
 const toDeterministicFallbackUrl = (): string => FALLBACK_MEDIA_DATA_URL;
 const reportedFallbacks = new Set<string>();
@@ -43,29 +30,26 @@ const reportFallback = (reference: string, reason: string) => {
   });
 };
 
-export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = RUNTIME_CONFIG.apiBaseUrl): string => {
+export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = ''): string => {
   const normalizedUrl = url.trim();
   if (!normalizedUrl) return normalizedUrl;
-
-  if (HTTP_SCHEME_PATTERN.test(normalizedUrl) || normalizedUrl.startsWith('//')) {
+  if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(normalizedUrl) || normalizedUrl.startsWith('//') || normalizedUrl.startsWith('data:') || normalizedUrl.startsWith('blob:')) {
     return normalizedUrl;
   }
 
-  if (!normalizedUrl.startsWith('/')) {
-    const apiOrigin = toApiOrigin(apiBaseUrl);
-    const looksLikeRelativeAssetPath =
-      !normalizedUrl.includes(' ') &&
-      /^[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(normalizedUrl) &&
-      (normalizedUrl.includes('/') || normalizedUrl.startsWith('uploads') || normalizedUrl.startsWith('media'));
-    if (looksLikeRelativeAssetPath && apiOrigin) {
-      return `${apiOrigin}/${normalizedUrl.replace(/^\.?\//, '')}`;
+  if (apiBaseUrl) {
+    try {
+      const origin = new URL(apiBaseUrl).origin;
+      if (normalizedUrl.startsWith('/')) return `${origin}${normalizedUrl}`;
+      if (normalizedUrl.startsWith('uploads/')) return `${origin}/${normalizedUrl}`;
+    } catch {
+      // fallback to runtime resolver
     }
-    return normalizedUrl;
   }
 
-  const apiOrigin = toApiOrigin(apiBaseUrl);
-  return apiOrigin ? `${apiOrigin}${normalizedUrl}` : normalizedUrl;
+  return absolutizeMediaPath(normalizedUrl);
 };
+
 
 export interface ResolvedAssetReference {
   reference: string;

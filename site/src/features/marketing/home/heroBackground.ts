@@ -33,7 +33,8 @@ export const resolveHeroBackgroundItems = (
   const list = Array.isArray(items) ? items : [];
   return list
     .map((item, index) => {
-      const media = item?.media?.trim() || item?.desktopMedia?.trim() || item?.tabletMedia?.trim() || item?.mobileMedia?.trim();
+      const imageCandidate = (item as unknown as Record<string, string | undefined>);
+      const media = item?.media?.trim() || item?.backgroundMedia?.trim() || item?.desktopMedia?.trim() || item?.tabletMedia?.trim() || item?.mobileMedia?.trim() || imageCandidate.image?.trim() || imageCandidate.imageUrl?.trim() || imageCandidate.backgroundImage?.trim();
       const videoMedia = item?.videoMedia?.trim() || '';
       const requestedType = item.type === 'video' ? 'video' : 'image';
       const allowVideoOnlyFallback = requestedType === 'video' && Boolean(videoMedia);
@@ -41,7 +42,7 @@ export const resolveHeroBackgroundItems = (
       if (!baseMedia) return null;
 
       const fallbackAlt = item.alt?.trim() || `Hero background ${index + 1}`;
-      const desktop = resolveCanonicalMedia(item.desktopMedia || baseMedia, fallbackAlt, 'hero');
+      const desktop = resolveCanonicalMedia(item.desktopMedia || item.backgroundMedia || imageCandidate.backgroundImage || imageCandidate.imageUrl || imageCandidate.image || baseMedia, fallbackAlt, 'hero');
       const tablet = resolveCanonicalMedia(item.tabletMedia || item.desktopMedia || baseMedia, fallbackAlt, 'card');
       const mobile = resolveCanonicalMedia(item.mobileMedia || item.tabletMedia || item.desktopMedia || baseMedia, fallbackAlt, 'thumbnail');
       const hasVideoMedia = Boolean(videoMedia);
