@@ -1688,7 +1688,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setSelectedMediaId(uploaded.id);
       showSuccess('Média uploadé et persisté sur le serveur.');
     } catch (error) {
-      setMediaUploadError('Upload média impossible (format/taille ou backend indisponible).');
+      if (error instanceof ContentApiError && (error.status === 401 || error.status === 403)) {
+        setMediaUploadError("Vous n’avez pas l’autorisation d’uploader des médias");
+      } else {
+        setMediaUploadError('Upload média impossible (format/taille ou backend indisponible).');
+      }
     } finally {
       setIsUploadingMedia(false);
       event.currentTarget.value = '';
