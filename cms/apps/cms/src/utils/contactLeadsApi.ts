@@ -1,4 +1,4 @@
-import { RUNTIME_CONFIG } from '../config/runtimeConfig';
+import { apiRequest } from '../services/apiClient';
 
 interface ApiEnvelope<T> {
   success?: boolean;
@@ -23,27 +23,9 @@ export interface ContactLead {
   createdAt: string;
 }
 
-const CONTACT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/contact`;
-
 async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
-  const headers = new Headers(init.headers);
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  const response = await fetch(`${CONTACT_BASE_URL}${path}`, {
-    ...init,
-    headers,
-    credentials: 'include',
-    cache: 'no-store',
-  });
-
-  const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok || !body?.success) {
-    throw new Error(body?.error?.message || `CONTACT_API_${response.status}`);
-  }
-
-  return body;
+  const data = await apiRequest<T>(`/contact${path}`, init);
+  return { success: true, data };
 }
 
 export async function fetchContactLeads(query: { q?: string; source?: string; deliveryStatus?: string } = {}): Promise<{

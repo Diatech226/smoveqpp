@@ -105,3 +105,32 @@ Set these env vars in `.env` (copy from `.env.example`) for this production arch
 - `SESSION_SECRET`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`
 - optional: Facebook OAuth vars if needed.
+
+## CMS ↔ API authentication configuration
+
+### CMS (frontend)
+Required variables:
+- `VITE_API_URL=https://smoveapi-1.onrender.com/api/v1`
+- `VITE_APP_NAME=Smove CMS`
+- `VITE_PUBLIC_SITE_URL=https://smove-three.vercel.app`
+
+The CMS API client centralizes every request and automatically adds `Authorization: Bearer <token>` when a token is available, while keeping session cookies enabled for compatibility.
+
+### API (backend)
+Required variables:
+- `NODE_ENV=development`
+- `PORT=5000`
+- `MONGODB_URI=`
+- `JWT_SECRET=`
+- `JWT_EXPIRES_IN=7d`
+- `CORS_ORIGINS=http://localhost:5173,http://localhost:3000,https://smoovecms.vercel.app,https://smove-three.vercel.app`
+
+### Local and production checks
+1. Start API + CMS.
+2. Login from CMS admin page.
+3. Call `/api/v1/auth/session` (or `/api/v1/auth/me` if enabled) and verify authenticated user.
+4. Open a protected CMS route (`/#cms` dashboard); verify access is granted.
+5. Logout and verify protected route redirects to login.
+6. Remove token/session and verify 401 message: "Session expirée ou token manquant".
+7. Verify Vercel CMS env includes `VITE_API_URL=https://smoveapi-1.onrender.com/api/v1`.
+8. Verify Render API env includes full `CORS_ORIGINS` list above.

@@ -1,4 +1,5 @@
 import { RUNTIME_CONFIG } from '../config/runtimeConfig';
+import { apiRequest, ApiClientError, setAuthToken } from '../services/apiClient';
 import type { AppUser } from './securityPolicy';
 
 interface SessionMeta {
@@ -44,7 +45,6 @@ export interface AuthResult {
   status: number;
 }
 
-const AUTH_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/auth`;
 
 function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'UNAUTHENTICATED') return 'Session invalide. Merci de vous reconnecter.';
@@ -87,32 +87,18 @@ function timeoutResult(status = 408): AuthResult {
 }
 
 async function request(path: string, init: RequestInit = {}, timeoutMs = RUNTIME_CONFIG.requestTimeoutMs): Promise<AuthResult> {
-  const headers = new Headers(init.headers);
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
   const controller = new AbortController();
   const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
-
   try {
-    const response = await fetch(`${AUTH_BASE_URL}${path}`, {
-      ...init,
-      headers,
-      credentials: 'include',
-      signal: controller.signal,
-    });
-
-    const json = (await response.json().catch(() => null)) as AuthApiResponse | null;
-    return normalizeAuthPayload(json, response.status);
+    const data = await apiRequest<AuthApiPayload>(`/auth${path}`, { ...init, signal: controller.signal });
+    return normalizeAuthPayload({ success: true, data }, 200);
   } catch (error: unknown) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      return timeoutResult();
+    if (error instanceof DOMException && error.name === 'AbortError') return timeoutResult();
+    if (error instanceof ApiClientError) {
+      return normalizeAuthPayload({ success: false, error: { code: error.code, message: error.message } }, error.status || 500);
     }
     return normalizeAuthPayload({ success: false, error: { code: 'NETWORK_ERROR', message: 'Service d’authentification indisponible.' } }, 503);
-  } finally {
-    globalThis.clearTimeout(timeoutId);
-  }
+  } finally { globalThis.clearTimeout(timeoutId); }
 }
 
 export function fetchSession(options?: { timeoutMs?: number }): Promise<AuthResult> {
@@ -139,13 +125,17 @@ async function buildCsrfHeaders(): Promise<AuthResult | Headers> {
 export async function loginWithPassword(email: string, password: string): Promise<AuthResult> {
   const headers = await buildCsrfHeaders();
   if ('success' in headers) return headers;
-  return request('/login', { method: 'POST', headers, body: JSON.stringify({ email, password }) });
+  const result = await request('/login', { method: 'POST', headers, body: JSON.stringify({ email, password }) });
+  setAuthToken(result.success ? result.session?.sessionId ?? null : null);
+  return result;
 }
 
 export async function registerWithPassword(email: string, password: string, name: string): Promise<AuthResult> {
   const headers = await buildCsrfHeaders();
   if ('success' in headers) return headers;
-  return request('/register', { method: 'POST', headers, body: JSON.stringify({ email, password, name }) });
+  const result = await request('/register', { method: 'POST', headers, body: JSON.stringify({ email, password, name }) });
+  setAuthToken(result.success ? result.session?.sessionId ?? null : null);
+  return result;
 }
 
 export async function requestPasswordReset(email: string): Promise<AuthResult> {
@@ -163,7 +153,9 @@ export async function confirmPasswordReset(token: string, password: string): Pro
 export async function logoutWithSession(): Promise<AuthResult> {
   const headers = await buildCsrfHeaders();
   if ('success' in headers) return headers;
-  return request('/logout', { method: 'POST', headers });
+  const result = await request('/logout', { method: 'POST', headers });
+  setAuthToken(null);
+  return result;
 }
 
 export function fetchAdminUsers(): Promise<AuthResult> {
