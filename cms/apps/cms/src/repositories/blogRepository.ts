@@ -103,7 +103,7 @@ const coerceBlogPost = (value: unknown): BlogPost | null => {
 
 const isValidMediaField = (value: string): boolean =>
   isValidMediaFieldContract(value, {
-    allowInlineText: false,
+    allowInlineText: true,
     hasMediaById: (mediaId) => Boolean(mediaRepository.getById(mediaId)),
   });
 
@@ -111,33 +111,6 @@ const isMigratableBlogPostArray = (value: unknown): value is BlogPost[] =>
   Array.isArray(value) && value.every((entry) => coerceBlogPost(entry) !== null);
 
 class LocalBlogRepository implements BlogRepository {
-  private sanitizeMediaFields(post: BlogPost): BlogPost {
-    const invalidRefs: string[] = [];
-    const sanitize = (value: string, field: string): string => {
-      if (!value?.trim()) return '';
-      if (isValidMediaField(value)) return value;
-      if (import.meta.env.DEV && value.startsWith('media:')) {
-        console.warn('[cms-blog] invalid media reference id', { field, value, mediaId: value.slice(6).trim() });
-      }
-      invalidRefs.push(field);
-      return '';
-    };
-    const featured = sanitize(post.featuredImage, 'featuredImage') || 'blog article image';
-    const seoSocial = sanitize(post.seo?.socialImage || '', 'socialImage') || featured;
-    const images = post.images.map((entry, index) => sanitize(entry, `images[${index}]`)).filter(Boolean);
-    return {
-      ...post,
-      featuredImage: featured,
-      images,
-      seo: { ...post.seo, socialImage: seoSocial },
-      mediaRoles: {
-        ...(post.mediaRoles || {}),
-        featuredImage: sanitize(post.mediaRoles?.featuredImage || featured, 'mediaRoles.featuredImage') || featured,
-        socialImage: sanitize(post.mediaRoles?.socialImage || seoSocial, 'mediaRoles.socialImage') || seoSocial,
-      },
-    };
-  }
-
   getAll(): BlogPost[] {
     const posts = readFromStorage(BLOG_STORAGE_KEY, isMigratableBlogPostArray, defaultBlogPosts, { persistFallback: true });
     const normalizedPosts = posts
@@ -152,11 +125,7 @@ class LocalBlogRepository implements BlogRepository {
       writeToStorage(BLOG_STORAGE_KEY, normalizedPosts);
     }
 
-    const sanitizedPosts = normalizedPosts.map((post) => this.sanitizeMediaFields(post));
-    if (JSON.stringify(sanitizedPosts) !== JSON.stringify(normalizedPosts)) {
-      writeToStorage(BLOG_STORAGE_KEY, sanitizedPosts);
-    }
-    return sanitizedPosts;
+    return normalizedPosts;
   }
 
   getById(id: string): BlogPost | undefined {
@@ -174,7 +143,17 @@ class LocalBlogRepository implements BlogRepository {
 
     const trustedPost = post;
 
-    const sanitizedPost = this.sanitizeMediaFields(trustedPost);
+    if (!isValidMediaField(trustedPost.featuredImage)) {
+      throw new BlogRepositoryError('Le média sélectionné est invalide ou supprimé.', 'BLOG_INVALID_MEDIA_REFERENCE');
+    }
+
+    if (trustedPost.seo?.socialImage && !isValidMediaField(trustedPost.seo.socialImage)) {
+      throw new BlogRepositoryError('L’image sociale SEO est invalide ou supprimée.', 'BLOG_INVALID_MEDIA_REFERENCE');
+    }
+
+    if (trustedPost.images.some((image) => !isValidMediaField(image))) {
+      throw new BlogRepositoryError('Une image secondaire référence un média invalide.', 'BLOG_INVALID_MEDIA_REFERENCE');
+    }
 
     const posts = this.getAll();
 
@@ -189,9 +168,9 @@ class LocalBlogRepository implements BlogRepository {
     const index = posts.findIndex((candidate) => candidate.id === trustedPost.id);
 
     if (index >= 0) {
-      posts[index] = { ...sanitizedPost, seo: normalizeSeo(sanitizedPost), mediaRoles: { featuredImage: sanitizedPost.featuredImage, socialImage: sanitizedPost.seo?.socialImage || sanitizedPost.featuredImage } };
+      posts[index] = { ...trustedPost, seo: normalizeSeo(trustedPost), mediaRoles: { featuredImage: trustedPost.featuredImage, socialImage: trustedPost.seo?.socialImage || trustedPost.featuredImage } };
     } else {
-      posts.push({ ...sanitizedPost, seo: normalizeSeo(sanitizedPost), mediaRoles: { featuredImage: sanitizedPost.featuredImage, socialImage: sanitizedPost.seo?.socialImage || sanitizedPost.featuredImage } });
+      posts.push({ ...trustedPost, seo: normalizeSeo(trustedPost), mediaRoles: { featuredImage: trustedPost.featuredImage, socialImage: trustedPost.seo?.socialImage || trustedPost.featuredImage } });
     }
 
     writeToStorage(BLOG_STORAGE_KEY, posts);

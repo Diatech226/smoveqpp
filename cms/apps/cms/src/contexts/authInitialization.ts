@@ -28,7 +28,7 @@ function mapSession(raw: Record<string, unknown> | null | undefined): AuthSessio
 }
 
 function buildInitNotice(session: AuthResult): string | null {
-  if (session.success || session.errorCode === 'FORBIDDEN') return null;
+  if (session.success) return null;
   if (session.errorCode === 'REQUEST_TIMEOUT') {
     return "L'initialisation du serveur a expiré. Vous pouvez vous connecter et réessayer.";
   }

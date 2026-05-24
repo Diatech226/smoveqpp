@@ -1,4 +1,4 @@
-import { apiRequest } from '../services/apiClient';
+import { RUNTIME_CONFIG } from '../config/runtimeConfig';
 import type { BlogPost, MediaFile, Project, Service } from '../domain/contentSchemas';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
 
@@ -7,8 +7,6 @@ interface ApiEnvelope<T> {
   data?: T;
   error?: { code?: string; message?: string; details?: unknown };
 }
-
-type ContentCollectionEnvelope = Record<string, unknown> | unknown[] | null | undefined;
 
 export class ContentApiError extends Error {
   constructor(
@@ -33,9 +31,8 @@ export interface EditorialAnalytics {
 
 export interface MediaUploadPayload {
   filename: string;
-  file?: File;
   title?: string;
-  dataUrl?: string;
+  dataUrl: string;
   alt?: string;
   caption?: string;
   tags?: string[];
@@ -238,55 +235,33 @@ export interface MediaUsageImpact {
   };
 }
 
+const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content`;
 const DEFAULT_MANAGED_CATEGORIES = ['Communication digitale', 'Branding', 'Web'];
 const DEFAULT_MANAGED_TAGS = ['Conseil', 'Production', 'Growth'];
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
-  try {
-    const data = await apiRequest<T>(`/content${path}`, init);
-    return { success: true, data };
-  } catch (error) {
-    if (error instanceof Error && 'status' in error && 'code' in error) {
-      const enriched = error as Error & { status: number; code: string; details?: unknown };
-      throw new ContentApiError(enriched.message, enriched.code, enriched.status, enriched.details);
-    }
-    throw new ContentApiError('CONTENT_API_ERROR', 'CONTENT_API_ERROR', 500);
+  const headers = new Headers(init.headers);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
-}
 
-function extractCollection<T>(payload: ContentCollectionEnvelope): T[] {
-  if (Array.isArray(payload)) return payload as T[];
-  if (!payload || typeof payload !== 'object') return [];
+  const response = await fetch(`${CONTENT_BASE_URL}${path}`, {
+    ...init,
+    headers,
+    cache: 'no-store',
+    credentials: 'include',
+  });
 
-  const scoped = payload as Record<string, unknown>;
-  const collection =
-    (Array.isArray(scoped.items) && scoped.items) ||
-    (Array.isArray(scoped.data) && scoped.data) ||
-    (Array.isArray(scoped.projects) && scoped.projects) ||
-    (Array.isArray(scoped.media) && scoped.media) ||
-    (Array.isArray(scoped.mediaFiles) && scoped.mediaFiles) ||
-    (Array.isArray(scoped.services) && scoped.services) ||
-    (Array.isArray(scoped.blog) && scoped.blog) ||
-    (Array.isArray(scoped.articles) && scoped.articles) ||
-    (Array.isArray(scoped.posts) && scoped.posts);
-
-  return Array.isArray(collection) ? (collection as T[]) : [];
-}
-
-function extractSingle<T>(payload: Record<string, unknown> | null | undefined, keys: string[]): T | null {
-  if (!payload || typeof payload !== 'object') return null;
-  if (!Array.isArray(payload)) {
-    const looksLikeEntity = typeof payload.id === 'string' && (typeof payload.url === 'string' || typeof payload.filename === 'string');
-    if (looksLikeEntity) return payload as T;
+  const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
+  if (!response.ok || !body?.success) {
+    const code = body?.error?.code || `CONTENT_API_${response.status}`;
+    const message = body?.error?.message || `CONTENT_API_${response.status}`;
+    throw new ContentApiError(message, code, response.status, body?.error?.details);
   }
-  for (const key of keys) {
-    if (payload[key] && typeof payload[key] === 'object') {
-      return payload[key] as T;
-    }
-  }
-  return null;
+
+  return body;
 }
 
 export async function requestWithRetry<T>(
@@ -311,8 +286,8 @@ export async function requestWithRetry<T>(
 }
 
 export async function fetchBackendBlogPosts(): Promise<BlogPost[]> {
-  const body = await request<{ posts?: BlogPost[]; blog?: BlogPost[]; articles?: BlogPost[] } | BlogPost[]>('/blog');
-  return extractCollection<BlogPost>(body.data);
+  const body = await request<{ posts: BlogPost[] }>('/blog');
+  return body.data?.posts || [];
 }
 
 export async function fetchPublicBlogPosts(): Promise<BlogPost[]> {
@@ -375,8 +350,8 @@ export async function fetchEditorialAnalytics(): Promise<EditorialAnalytics> {
 }
 
 export async function fetchBackendProjects(): Promise<Project[]> {
-  const body = await request<{ projects?: Project[]; items?: Project[]; data?: Project[] } | Project[]>('/projects');
-  return extractCollection<Project>(body.data);
+  const body = await request<{ projects: Project[] }>('/projects');
+  return body.data?.projects || [];
 }
 
 export async function saveBackendProject(project: Project): Promise<Project> {
@@ -402,8 +377,8 @@ export async function deleteBackendProject(id: string): Promise<void> {
 
 
 export async function fetchBackendServices(): Promise<Service[]> {
-  const body = await request<{ services?: Service[]; items?: Service[]; data?: Service[] } | Service[]>('/services');
-  return extractCollection<Service>(body.data);
+  const body = await request<{ services: Service[] }>('/services');
+  return body.data?.services || [];
 }
 
 export async function saveBackendService(service: Service): Promise<Service> {
@@ -419,50 +394,17 @@ export async function deleteBackendService(id: string): Promise<void> {
 }
 
 export async function fetchBackendMediaFiles(): Promise<MediaFile[]> {
-  const body = await request<{ mediaFiles?: MediaFile[]; media?: MediaFile[]; items?: MediaFile[]; data?: MediaFile[] } | MediaFile[]>('/media');
-  return extractCollection<MediaFile>(body.data);
+  const body = await request<{ mediaFiles: MediaFile[] }>('/media');
+  return body.data?.mediaFiles || [];
 }
 
 
 export async function uploadBackendMediaFile(payload: MediaUploadPayload): Promise<MediaFile> {
-  const normalizeUploadResponse = (data: unknown): MediaFile => {
-    const mediaFile = extractSingle<MediaFile>((data || undefined) as Record<string, unknown> | undefined, ['media', 'data', 'item', 'file', 'mediaFile']);
-    if (!mediaFile) throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', "Upload terminé mais média invalide retourné par l’API", 500);
-    const hasId = typeof mediaFile.id === 'string' && mediaFile.id.trim().length > 0;
-    const hasUrl = typeof mediaFile.url === 'string' && mediaFile.url.trim().length > 0;
-    const hasPublicPath = typeof mediaFile.publicPath === 'string' && mediaFile.publicPath.trim().length > 0;
-    if (!hasId || (!hasUrl && !hasPublicPath)) {
-      throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', "Upload terminé mais média invalide retourné par l’API", 500);
-    }
-    return mediaFile;
-  };
-
-  if (payload.file) {
-    const formData = new FormData();
-    formData.append('file', payload.file, payload.filename);
-    formData.append('label', payload.title || payload.filename);
-    formData.append('alt', payload.alt || payload.filename);
-    if (payload.caption) formData.append('caption', payload.caption);
-    if (payload.tags?.length) formData.append('tags', payload.tags.join(','));
-    const body = await request<{ mediaFile?: MediaFile; media?: MediaFile; file?: MediaFile; item?: MediaFile; data?: MediaFile } | MediaFile>('/media/upload', {
-      method: 'POST',
-      body: formData,
-      headers: {},
-    });
-    if (import.meta.env.DEV) console.debug('[cms-media-upload] raw upload response', body.data);
-    const mediaFile = normalizeUploadResponse(body.data);
-    if (import.meta.env.DEV) console.debug('[cms-media-upload] normalized media object', mediaFile);
-    return mediaFile;
-  }
-
-  const body = await request<{ mediaFile?: MediaFile; media?: MediaFile; file?: MediaFile; item?: MediaFile; data?: MediaFile } | MediaFile>('/media/upload', {
+  const body = await request<{ mediaFile: MediaFile }>('/media/upload', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
-  if (import.meta.env.DEV) console.debug('[cms-media-upload] raw upload response', body.data);
-  const mediaFile = normalizeUploadResponse(body.data);
-  if (import.meta.env.DEV) console.debug('[cms-media-upload] normalized media object', mediaFile);
-  return mediaFile;
+  return body.data!.mediaFile;
 }
 
 export async function saveBackendMediaFile(mediaFile: MediaFile): Promise<MediaFile> {

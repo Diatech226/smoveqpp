@@ -1,5 +1,4 @@
 import { RUNTIME_CONFIG } from '../config/runtimeConfig';
-import { apiRequest, ApiClientError, setAuthToken } from '../services/apiClient';
 import type { AppUser } from './securityPolicy';
 
 interface SessionMeta {
@@ -45,16 +44,17 @@ export interface AuthResult {
   status: number;
 }
 
+const AUTH_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/auth`;
 
 function fallbackErrorMessage(code: string | null, status: number): string {
   if (code === 'UNAUTHENTICATED') return 'Session invalide. Merci de vous reconnecter.';
-  if (code === 'FORBIDDEN') return 'Compte non autorisé pour le CMS.';
+  if (code === 'FORBIDDEN') return 'Accès refusé.';
   if (code === 'INVALID_CREDENTIALS') return 'Email ou mot de passe invalide.';
   if (code === 'ACCOUNT_SUSPENDED') return 'Ce compte est suspendu. Contactez un administrateur.';
   if (code === 'INVALID_CSRF') return 'Session expirée. Rechargez la page puis réessayez.';
   if (code === 'REQUEST_TIMEOUT') return "L'initialisation du serveur a expiré. Veuillez réessayer.";
   if (status >= 500) return 'Erreur serveur. Réessayez plus tard.';
-  return 'Erreur technique d’authentification.';
+  return 'Erreur d’authentification.';
 }
 
 function normalize(body: AuthApiResponse | null, status: number): AuthResult {
@@ -87,18 +87,32 @@ function timeoutResult(status = 408): AuthResult {
 }
 
 async function request(path: string, init: RequestInit = {}, timeoutMs = RUNTIME_CONFIG.requestTimeoutMs): Promise<AuthResult> {
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const controller = new AbortController();
   const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const data = await apiRequest<AuthApiPayload>(`/auth${path}`, { ...init, signal: controller.signal });
-    return normalizeAuthPayload({ success: true, data }, 200);
+    const response = await fetch(`${AUTH_BASE_URL}${path}`, {
+      ...init,
+      headers,
+      credentials: 'include',
+      signal: controller.signal,
+    });
+
+    const json = (await response.json().catch(() => null)) as AuthApiResponse | null;
+    return normalizeAuthPayload(json, response.status);
   } catch (error: unknown) {
-    if (error instanceof DOMException && error.name === 'AbortError') return timeoutResult();
-    if (error instanceof ApiClientError) {
-      return normalizeAuthPayload({ success: false, error: { code: error.code, message: error.message } }, error.status || 500);
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return timeoutResult();
     }
     return normalizeAuthPayload({ success: false, error: { code: 'NETWORK_ERROR', message: 'Service d’authentification indisponible.' } }, 503);
-  } finally { globalThis.clearTimeout(timeoutId); }
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
 }
 
 export function fetchSession(options?: { timeoutMs?: number }): Promise<AuthResult> {
@@ -125,17 +139,13 @@ async function buildCsrfHeaders(): Promise<AuthResult | Headers> {
 export async function loginWithPassword(email: string, password: string): Promise<AuthResult> {
   const headers = await buildCsrfHeaders();
   if ('success' in headers) return headers;
-  const result = await request('/login', { method: 'POST', headers, body: JSON.stringify({ email, password }) });
-  setAuthToken(result.success ? result.session?.sessionId ?? null : null);
-  return result;
+  return request('/login', { method: 'POST', headers, body: JSON.stringify({ email, password }) });
 }
 
 export async function registerWithPassword(email: string, password: string, name: string): Promise<AuthResult> {
   const headers = await buildCsrfHeaders();
   if ('success' in headers) return headers;
-  const result = await request('/register', { method: 'POST', headers, body: JSON.stringify({ email, password, name }) });
-  setAuthToken(result.success ? result.session?.sessionId ?? null : null);
-  return result;
+  return request('/register', { method: 'POST', headers, body: JSON.stringify({ email, password, name }) });
 }
 
 export async function requestPasswordReset(email: string): Promise<AuthResult> {
@@ -153,9 +163,7 @@ export async function confirmPasswordReset(token: string, password: string): Pro
 export async function logoutWithSession(): Promise<AuthResult> {
   const headers = await buildCsrfHeaders();
   if ('success' in headers) return headers;
-  const result = await request('/logout', { method: 'POST', headers });
-  setAuthToken(null);
-  return result;
+  return request('/logout', { method: 'POST', headers });
 }
 
 export function fetchAdminUsers(): Promise<AuthResult> {

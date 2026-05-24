@@ -75,7 +75,7 @@ export function resolveMediaLibraryThumbnail(file: MediaFile): { src: string | n
     return { src: null, kind: 'non-image' };
   }
 
-  const src = resolveRenderableMediaUrl(file.thumbnailUrl?.trim() || file.url?.trim() || file.publicPath?.trim() || (file.filename ? `/uploads/${file.filename}` : ''));
+  const src = resolveRenderableMediaUrl(file.thumbnailUrl?.trim() || file.url?.trim() || '');
   if (!src) {
     return { src: null, kind: 'missing' };
   }

@@ -78,9 +78,6 @@ import { deriveDashboardReadinessSnapshot } from './dashboard/contentHealthSumma
 import { isValidSlug } from '../../shared/contentContracts';
 import { summarizeReferences, type BackendMediaReference } from './dashboard/mediaGovernance';
 import { resolveCmsPreviewReference } from './dashboard/mediaPreview';
-import { getCmsApiOrigin } from '../../utils/mediaResolver';
-import { resolveRenderableMediaUrl } from '../../features/media/assetReference';
-import { CMSMediaPicker } from './dashboard/CMSMediaPicker';
 import { buildServicePayload, type ServiceFormPayloadState } from './dashboard/servicePayload';
 import { appendHeroBackgroundItemWithMedia, assignHeroBackgroundMedia } from './dashboard/pageContentHeroActions';
 import type { BlogPost, Project, Service } from '../../domain/contentSchemas';
@@ -393,19 +390,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   }, [mediaFiles, mediaQuery]);
   const selectedMedia = useMemo(() => mediaRepository.getById(selectedMediaId), [selectedMediaId, mediaFiles]);
 
-
-  useEffect(() => {
-    if (!import.meta.env.DEV || mediaFiles.length === 0) return;
-    const firstMedia = mediaFiles[0];
-    const apiOrigin = getCmsApiOrigin();
-    console.debug('[media-debug]', {
-      apiOrigin,
-      firstMedia,
-      thumbnailValue: firstMedia.thumbnailUrl || firstMedia.url,
-      resolvedUrl: resolveRenderableMediaUrl(firstMedia.thumbnailUrl || firstMedia.url || ''),
-    });
-  }, [mediaFiles]);
-
   const mediaUsageIndex = useMemo(() => {
     const index = new Map<string, string[]>();
     const register = (reference: string | undefined, label: string) => {
@@ -539,23 +523,20 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   useEffect(() => {
     let active = true;
 
-    const coreEndpointSuccess = { blog: false, projects: false, services: false, media: false };
-
     const load = async () => {
       setPostsLoading(true);
       try {
         const backendPosts = await requestWithRetry(() => fetchBackendBlogPosts(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
-        coreEndpointSuccess.blog = true;
         setPosts(backendPosts);
         backendPosts.forEach((post) => blogRepository.save(post));
         setPostsError('');
-      } catch (error) {
+      } catch {
         try {
           if (!active) return;
           setPosts(blogRepository.getAll());
-          setPostsError(toEndpointErrorMessage('Blog indisponible (cache local)', '/api/v1/content/blog', error));
-          setRuntimeWarnings((prev) => (prev.includes(toEndpointErrorMessage('Blog', '/api/v1/content/blog', error)) ? prev : [...prev, toEndpointErrorMessage('Blog', '/api/v1/content/blog', error)]));
+          setPostsError('Backend indisponible, données locales affichées.');
+          markDegradedMode('Blog: backend indisponible, lecture locale temporaire.');
         } catch {
           if (!active) return;
           setPostsError('Impossible de charger les articles. Réessayez.');
@@ -583,13 +564,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         const backendProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
 
-        coreEndpointSuccess.projects = true;
         syncProjectsFromBackend(backendProjects);
-      } catch (error) {
+      } catch {
         if (active) {
           setProjects(projectRepository.getAll());
-          setProjectsError(toEndpointErrorMessage('Projets indisponibles (cache local)', '/api/v1/content/projects', error));
-          setRuntimeWarnings((prev) => (prev.includes(toEndpointErrorMessage('Projets', '/api/v1/content/projects', error)) ? prev : [...prev, toEndpointErrorMessage('Projets', '/api/v1/content/projects', error)]));
+          setProjectsError('Backend indisponible, données locales affichées temporairement.');
+          markDegradedMode('Projets: backend indisponible, lecture locale temporaire.');
         }
       } finally {
         if (active) setProjectsLoading(false);
@@ -599,13 +579,13 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         setServicesLoading(true);
         const backendServices = await requestWithRetry(() => fetchBackendServices(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
-        coreEndpointSuccess.services = true;
+
         setServices(serviceRepository.replaceAll(backendServices));
-      } catch (error) {
+      } catch {
         if (active) {
           setServices(serviceRepository.getAll());
-          setServicesError(toEndpointErrorMessage('Services indisponibles (cache local)', '/api/v1/content/services', error));
-          setRuntimeWarnings((prev) => (prev.includes(toEndpointErrorMessage('Services', '/api/v1/content/services', error)) ? prev : [...prev, toEndpointErrorMessage('Services', '/api/v1/content/services', error)]));
+          setServicesError('Backend indisponible, données locales affichées temporairement.');
+          markDegradedMode('Services: backend indisponible, lecture locale temporaire.');
         }
       } finally {
         if (active) setServicesLoading(false);
@@ -614,10 +594,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       try {
         const backendMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
         if (!active) return;
-        coreEndpointSuccess.media = true;
         syncMediaFromBackend(backendMedia);
-      } catch (error) {
-        setRuntimeWarnings((prev) => (prev.includes(toEndpointErrorMessage('Médiathèque', '/api/v1/content/media', error)) ? prev : [...prev, toEndpointErrorMessage('Médiathèque', '/api/v1/content/media', error)]));
+      } catch {
+        markDegradedMode('Médiathèque: backend indisponible, cache local affiché.');
       }
 
       try {
@@ -677,8 +656,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     };
 
     void load().then(() => {
-      const hasCoreBackend = Object.values(coreEndpointSuccess).some(Boolean);
-      setRuntimeMode(hasCoreBackend ? 'authoritative_remote' : 'degraded_local');
+      setRuntimeMode((prev) => (prev === 'degraded_local' ? prev : 'authoritative_remote'));
     });
 
     return () => {
@@ -771,19 +749,6 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   const markAuthoritativeMode = () => {
     setRuntimeMode('authoritative_remote');
     setRuntimeWarnings([]);
-  };
-
-
-  const toEndpointErrorMessage = (label: string, endpoint: string, error: unknown): string => {
-    if (error instanceof ContentApiError) {
-      const code = error.code || 'UNKNOWN';
-      const status = Number.isFinite(error.status) ? `HTTP ${error.status}` : 'HTTP ?';
-      return `${label}: ${endpoint} -> ${status} ${code}: ${error.message}`;
-    }
-    if (error instanceof Error) {
-      return `${label}: ${endpoint} -> ${error.message}`;
-    }
-    return `${label}: ${endpoint} -> erreur inconnue`;
   };
 
   const mapBlogError = (error: unknown) => {
@@ -1671,41 +1636,36 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setIsUploadingMedia(true);
 
     try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result !== 'string') {
+            reject(new Error('Invalid media payload'));
+            return;
+          }
+          resolve(reader.result);
+        };
+        reader.onerror = () => reject(new Error('Failed to read media file'));
+        reader.readAsDataURL(file);
+      });
+
       const uploaded = await requestWithRetry(
         () =>
           uploadBackendMediaFile({
             filename: file.name,
-            file,
             title: file.name,
+            dataUrl,
             alt: file.name,
           }),
         { retries: 1, retryDelayMs: 250 },
       );
 
-      let refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
-      let listedMedia = refreshedMedia.find((entry) => entry.id === uploaded.id);
-      const hasDisplayableLocator = (entry?: typeof uploaded) => Boolean(
-        `${entry?.url || ''}`.trim() ||
-        `${entry?.publicPath || ''}`.trim() ||
-        `${entry?.filename || ''}`.trim(),
-      );
-      if (!listedMedia && hasDisplayableLocator(uploaded)) {
-        refreshedMedia = [uploaded, ...refreshedMedia];
-        listedMedia = uploaded;
-      }
-      if (!listedMedia || !hasDisplayableLocator(listedMedia)) {
-        throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'Upload terminé mais média introuvable dans la médiathèque.', 500);
-      }
+      const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
       syncMediaFromBackend(refreshedMedia);
-      if (import.meta.env.DEV) console.debug('[cms-media-upload] media list count after upload', refreshedMedia.length);
       setSelectedMediaId(uploaded.id);
       showSuccess('Média uploadé et persisté sur le serveur.');
     } catch (error) {
-      if (error instanceof ContentApiError && (error.status === 401 || error.status === 403)) {
-        setMediaUploadError("Vous n’avez pas l’autorisation d’uploader des médias");
-      } else {
-        setMediaUploadError('Upload média impossible (format/taille ou backend indisponible).');
-      }
+      setMediaUploadError('Upload média impossible (format/taille ou backend indisponible).');
     } finally {
       setIsUploadingMedia(false);
       event.currentTarget.value = '';
@@ -1724,12 +1684,25 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setHeroMediaUploadTarget(itemId);
 
     try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result !== 'string') {
+            reject(new Error('Invalid media payload'));
+            return;
+          }
+          resolve(reader.result);
+        };
+        reader.onerror = () => reject(new Error('Failed to read media file'));
+        reader.readAsDataURL(file);
+      });
+
       const uploaded = await requestWithRetry(
         () =>
           uploadBackendMediaFile({
             filename: file.name,
-            file,
             title: file.name,
+            dataUrl,
             alt: file.name,
           }),
         { retries: 1, retryDelayMs: 250 },
@@ -1742,22 +1715,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         }
         return assignHeroBackgroundMedia(prev, itemId, field, mediaReference);
       });
-      let refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
-      let listedMedia = refreshedMedia.find((entry) => entry.id === uploaded.id);
-      const hasDisplayableLocator = (entry?: typeof uploaded) => Boolean(
-        `${entry?.url || ''}`.trim() ||
-        `${entry?.publicPath || ''}`.trim() ||
-        `${entry?.filename || ''}`.trim(),
-      );
-      if (!listedMedia && hasDisplayableLocator(uploaded)) {
-        refreshedMedia = [uploaded, ...refreshedMedia];
-        listedMedia = uploaded;
-      }
-      if (!listedMedia || !hasDisplayableLocator(listedMedia)) {
-        throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'Upload terminé mais média introuvable dans la médiathèque.', 500);
-      }
+      const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
       syncMediaFromBackend(refreshedMedia);
-      if (import.meta.env.DEV) console.debug('[cms-media-upload] media list count after upload', refreshedMedia.length);
       showSuccess('Image uploadée dans la médiathèque et liée au background hero.');
     } catch {
       setHeroMediaUploadError("Upload impossible pour cette slide. Vérifiez le format/taille puis réessayez.");
