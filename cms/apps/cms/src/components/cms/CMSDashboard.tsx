@@ -1682,14 +1682,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         { retries: 1, retryDelayMs: 250 },
       );
 
-      const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
-      const listedMedia = refreshedMedia.find((entry) => entry.id === uploaded.id);
-      const hasDisplayableLocator = Boolean(
-        `${listedMedia?.url || ''}`.trim() ||
-        `${listedMedia?.publicPath || ''}`.trim() ||
-        `${listedMedia?.filename || ''}`.trim(),
+      let refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+      let listedMedia = refreshedMedia.find((entry) => entry.id === uploaded.id);
+      const hasDisplayableLocator = (entry?: typeof uploaded) => Boolean(
+        `${entry?.url || ''}`.trim() ||
+        `${entry?.publicPath || ''}`.trim() ||
+        `${entry?.filename || ''}`.trim(),
       );
-      if (!listedMedia || !hasDisplayableLocator) {
+      if (!listedMedia && hasDisplayableLocator(uploaded)) {
+        refreshedMedia = [uploaded, ...refreshedMedia];
+        listedMedia = uploaded;
+      }
+      if (!listedMedia || !hasDisplayableLocator(listedMedia)) {
         throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'Upload terminé mais média introuvable dans la médiathèque.', 500);
       }
       syncMediaFromBackend(refreshedMedia);
@@ -1738,14 +1742,18 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
         }
         return assignHeroBackgroundMedia(prev, itemId, field, mediaReference);
       });
-      const refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
-      const listedMedia = refreshedMedia.find((entry) => entry.id === uploaded.id);
-      const hasDisplayableLocator = Boolean(
-        `${listedMedia?.url || ''}`.trim() ||
-        `${listedMedia?.publicPath || ''}`.trim() ||
-        `${listedMedia?.filename || ''}`.trim(),
+      let refreshedMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+      let listedMedia = refreshedMedia.find((entry) => entry.id === uploaded.id);
+      const hasDisplayableLocator = (entry?: typeof uploaded) => Boolean(
+        `${entry?.url || ''}`.trim() ||
+        `${entry?.publicPath || ''}`.trim() ||
+        `${entry?.filename || ''}`.trim(),
       );
-      if (!listedMedia || !hasDisplayableLocator) {
+      if (!listedMedia && hasDisplayableLocator(uploaded)) {
+        refreshedMedia = [uploaded, ...refreshedMedia];
+        listedMedia = uploaded;
+      }
+      if (!listedMedia || !hasDisplayableLocator(listedMedia)) {
         throw new ContentApiError('MEDIA_UPLOAD_INVALID_RESPONSE', 'Upload terminé mais média introuvable dans la médiathèque.', 500);
       }
       syncMediaFromBackend(refreshedMedia);
