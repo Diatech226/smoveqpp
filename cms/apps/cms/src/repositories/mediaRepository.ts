@@ -25,8 +25,8 @@ const normalizeMedia = (file: MediaFile): MediaFile => {
 
   return {
     ...file,
-    url: resolveRenderableMediaUrl(file.url),
-    thumbnailUrl: resolveRenderableMediaUrl(file.thumbnailUrl || file.url),
+    url: resolveRenderableMediaUrl(file.url || file.publicPath || (file.filename ? `/uploads/${file.filename}` : '')),
+    thumbnailUrl: resolveRenderableMediaUrl(file.thumbnailUrl || file.url || file.publicPath || (file.filename ? `/uploads/${file.filename}` : '')),
     name: normalizedName,
     title: file.title?.trim() || normalizedName,
     label: file.label?.trim() || normalizedName,
