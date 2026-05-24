@@ -142,7 +142,7 @@ function buildFrontendOrigins() {
     process.env.VITE_CMS_APP_URL,
     process.env.VITE_PUBLIC_SITE_URL,
     process.env.VITE_PUBLIC_APP_URL,
-    ...(process.env.FRONTEND_ORIGINS ?? '').split(',').map((entry) => entry.trim()),
+    ...(process.env.CORS_ORIGINS ?? process.env.FRONTEND_ORIGINS ?? '').split(',').map((entry) => entry.trim()),
   ];
 
   if (!isProduction) {

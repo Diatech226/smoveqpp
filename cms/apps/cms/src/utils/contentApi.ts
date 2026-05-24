@@ -1,4 +1,4 @@
-import { RUNTIME_CONFIG } from '../config/runtimeConfig';
+import { apiRequest } from '../services/apiClient';
 import type { BlogPost, MediaFile, Project, Service } from '../domain/contentSchemas';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
 
@@ -238,42 +238,22 @@ export interface MediaUsageImpact {
   };
 }
 
-const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content`;
 const DEFAULT_MANAGED_CATEGORIES = ['Communication digitale', 'Branding', 'Web'];
 const DEFAULT_MANAGED_TAGS = ['Conseil', 'Production', 'Growth'];
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
-  const headers = new Headers(init.headers);
-  if (!(init.body instanceof FormData) && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  const requestUrl = `${CONTENT_BASE_URL}${path}`;
-  const response = await fetch(requestUrl, {
-    ...init,
-    headers,
-    cache: 'no-store',
-    credentials: 'include',
-  });
-
-  const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (path === '/media/upload' && import.meta.env.DEV) {
-    console.debug('[cms-media-upload] upload URL used', requestUrl);
-    console.debug('[cms-media-upload] HTTP status', response.status);
-    console.debug('[cms-media-upload] API response body', body);
-  }
-  if (!response.ok || !body?.success) {
-    const code = body?.error?.code || `CONTENT_API_${response.status}`;
-    const message = body?.error?.message || `CONTENT_API_${response.status}`;
-    if (path === '/media/upload' && import.meta.env.DEV) {
-      console.error('[cms-media-upload] upload error message', message, { code, status: response.status });
+  try {
+    const data = await apiRequest<T>(`/content${path}`, init);
+    return { success: true, data };
+  } catch (error) {
+    if (error instanceof Error && 'status' in error && 'code' in error) {
+      const enriched = error as Error & { status: number; code: string; details?: unknown };
+      throw new ContentApiError(enriched.message, enriched.code, enriched.status, enriched.details);
     }
-    throw new ContentApiError(message, code, response.status, body?.error?.details);
+    throw new ContentApiError('CONTENT_API_ERROR', 'CONTENT_API_ERROR', 500);
   }
-
-  return body;
 }
 
 function extractCollection<T>(payload: ContentCollectionEnvelope): T[] {
