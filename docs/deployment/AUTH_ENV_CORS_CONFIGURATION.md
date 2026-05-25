@@ -56,6 +56,20 @@ Renseigner les variables suivant `cms/.env.example`:
 - `VITE_ENABLE_FACEBOOK_LOGIN=false`
 - `VITE_ENABLE_DEV_ADMIN=false`
 
+
+
+### Vérification Vercel CMS (obligatoire)
+
+Dans le projet **Vercel CMS**, vérifier exactement ces variables:
+- `VITE_API_ORIGIN=https://smoveapi-1.onrender.com`
+- `VITE_API_BASE_URL=/api/v1`
+- `VITE_PUBLIC_SITE_URL=https://www.smovecommunication.com`
+- `VITE_CMS_APP_URL=https://smoovecms.vercel.app/#cms`
+
+Après toute modification de ces variables:
+1. Redéployer le projet CMS.
+2. Cocher l’option de **clear build cache** avant le déploiement.
+
 ## Règles CORS API
 
 L'API doit autoriser uniquement:
