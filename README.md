@@ -24,6 +24,23 @@ build/
 
 ## Commands (single root package)
 
+## Monorepo workspace workflow
+
+This repository uses **npm workspaces** with three apps:
+
+- `site`
+- `cms`
+- `api`
+
+Use a single install at the repo root (`npm install`) and a single unified dev command:
+
+```bash
+npm run dev
+```
+
+This starts API first, waits for `/api/v1/ready`, then starts site + CMS to avoid race conditions and degraded local fallback mode.
+
+
 ```bash
 npm install
 npm run dev        # site + cms + api together

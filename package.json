@@ -1,0 +1,27 @@
+{
+  "name": "smove-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "site",
+    "cms",
+    "api"
+  ],
+  "engines": {
+    "node": ">=20 <=22",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "dev:all": "node scripts/dev.js",
+    "dev:site": "npm run dev -w site",
+    "dev:cms": "npm run dev -w cms",
+    "dev:api": "npm run dev -w api",
+    "build": "npm run build -w site && npm run build -w cms",
+    "build:site": "npm run build -w site",
+    "build:cms": "npm run build -w cms",
+    "build:api": "npm run build -w api",
+    "start:api": "npm run start -w api",
+    "test": "npm run test -w cms && npm run test -w site && npm run test -w api"
+  }
+}
