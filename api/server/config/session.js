@@ -65,8 +65,7 @@ function createSessionMiddleware() {
     if (!origin) return false;
     try {
       const parsed = new URL(origin);
-      const isLocalhost = ['localhost', '127.0.0.1'].includes(parsed.hostname);
-      return parsed.protocol === 'https:' && !isLocalhost;
+      return !['localhost', '127.0.0.1'].includes(parsed.hostname);
     } catch {
       return false;
     }
@@ -82,7 +81,6 @@ function createSessionMiddleware() {
       store: resolvedStore.store ?? undefined,
       resave: false,
       saveUninitialized: false,
-      rolling: true,
       cookie: {
         httpOnly: true,
         secure: useSecureCookie,
