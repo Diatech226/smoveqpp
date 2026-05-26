@@ -47,13 +47,14 @@ function saveSessionWithTimeout(req, timeoutMs = 4000) {
 }
 
 function startSession(req, res, user, eventName, statusCode = 200, extras = {}, logCtx = {}) {
+  const sessionIdBeforeSave = req.sessionID ?? null;
   req.session.regenerate((regenerateError) => {
     if (regenerateError) {
       logAuthEvent(req, eventName, 'failure', { code: 'SESSION_ERROR' });
       return sendError(res, 500, 'SESSION_ERROR', 'Failed to initialize session');
     }
 
-    req.session.userId = user.id;
+    req.session.userId = user.id?.toString?.() ?? String(user.id);
     req.session.user = sanitizeSessionUser(user);
     req.session.role = user.role;
     req.session.organizationId = user.organizationId ?? 'org_default';
@@ -75,14 +76,15 @@ function startSession(req, res, user, eventName, statusCode = 200, extras = {}, 
       }
       logInfo('auth_session_save_result', { requestId: req.requestId, event: eventName, success: true, timedOut: false });
 
-      logInfo('auth_session_cookie_debug', {
+      logInfo('auth_login_session_debug', {
         requestId: req.requestId,
-        origin: resolveRequestOrigin(req) ?? 'none',
         endpoint: eventName,
-        sessionIdBeforeSave: req.sessionID ?? null,
-        sessionIdAfterSave: req.sessionID ?? null,
+        origin: resolveRequestOrigin(req) ?? 'none',
+        sessionIDBeforeSave: sessionIdBeforeSave,
+        sessionIDAfterSave: req.sessionID ?? null,
+        userIdSaved: req.session.userId ?? null,
+        setCookiePresent: Boolean(res.getHeader('set-cookie')),
         cookie: extractCookieDebugConfig(req),
-        hasSetCookieHeader: Boolean(res.getHeader('set-cookie')),
       });
 
       logInfo('auth_login_success', {
@@ -113,7 +115,7 @@ function finishOAuthSession(req, res, user, eventName, redirectTo) {
       return res.redirect(`${FRONTEND_ORIGIN}/#login?oauthError=SESSION_ERROR`);
     }
 
-    req.session.userId = user.id;
+    req.session.userId = user.id?.toString?.() ?? String(user.id);
     req.session.user = sanitizeSessionUser(user);
     req.session.role = user.role;
     req.session.organizationId = user.organizationId ?? 'org_default';
@@ -159,7 +161,8 @@ function parseSafeRedirect(redirectTo, fallback = `${FRONTEND_ORIGIN}/#login`) {
 
 
 function resolveRequestOrigin(req) {
-  return req.get('origin') ?? null;
+  if (typeof req.get === 'function') return req.get('origin') ?? null;
+  return req.headers?.origin ?? null;
 }
 
 
@@ -199,15 +202,14 @@ function buildAuthController({ authService }) {
   return {
     getSession: async (req, res) => {
       const sessionUser = req.session?.user ?? null;
-      const sessionUserId = req.session?.userId ?? sessionUser?.id ?? null;
+      const sessionUserId = req.session?.userId ?? null;
       if (!sessionUserId) {
-        logInfo('auth_session_cookie_debug', {
+        logInfo('auth_session_debug', {
           requestId: req.requestId,
           endpoint: 'session',
-          origin: resolveRequestOrigin(req) ?? 'none',
+          sessionID: req.sessionID ?? null,
+          hasUserId: false,
           authenticated: false,
-          hasCookieHeader: Boolean(req.get('cookie')),
-          sessionId: req.sessionID ?? null,
         });
         logInfo('auth_session_check', { requestId: req.requestId, authenticated: false, sessionId: req.sessionID ?? null });
         return sendSuccess(res, 200, { authenticated: false, user: null, csrfToken: getOrCreateCsrfToken(req), session: buildSessionMeta(req, null) });
@@ -227,13 +229,12 @@ function buildAuthController({ authService }) {
       }
 
       req.session.user = sanitizeSessionUser(user);
-      logInfo('auth_session_cookie_debug', {
+      logInfo('auth_session_debug', {
         requestId: req.requestId,
         endpoint: 'session',
-        origin: resolveRequestOrigin(req) ?? 'none',
+        sessionID: req.sessionID ?? null,
+        hasUserId: true,
         authenticated: true,
-        hasCookieHeader: Boolean(req.get('cookie')),
-        sessionId: req.sessionID ?? null,
       });
       logInfo('auth_session_check', { requestId: req.requestId, authenticated: true, sessionId: req.sessionID ?? null });
       logAuthEvent(req, 'session', 'success', { authenticated: true });

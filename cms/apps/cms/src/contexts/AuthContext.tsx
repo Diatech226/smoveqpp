@@ -3,6 +3,7 @@ import {
   fetchAdminUsers as fetchAdminUsersApi,
   fetchAuthAuditEvents,
   fetchOAuthProviders,
+  fetchSession,
   loginWithPassword as loginWithPasswordApi,
   registerWithPassword as registerWithPasswordApi,
   logoutWithSession,
@@ -149,6 +150,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: message, destination: null };
     }
 
+    const sessionCheck = await fetchSession();
+    if (localResult.success && !sessionCheck.user) {
+      const message = 'Connexion acceptée mais cookie de session non reçu';
+      setAuthError(message);
+      return { success: false, error: message, destination: null };
+    }
+
     const refreshedUser = await refresh();
     return finalizeLogin(refreshedUser);
   };
@@ -166,6 +174,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setAuthError(null);
+    const sessionCheck = await fetchSession();
+    if (localResult.success && !sessionCheck.user) {
+      const message = 'Connexion acceptée mais cookie de session non reçu';
+      setAuthError(message);
+      return { success: false, error: message, destination: null };
+    }
+
     const refreshedUser = await refresh();
     return finalizeLogin(refreshedUser);
   };

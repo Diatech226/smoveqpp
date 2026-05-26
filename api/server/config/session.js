@@ -63,7 +63,7 @@ function createSessionMiddleware() {
 
   return {
     middleware: session({
-      name: 'smove.sid',
+      name: 'connect.sid',
       secret: SESSION_SECRET,
       store: resolvedStore.store ?? undefined,
       resave: false,
@@ -71,7 +71,7 @@ function createSessionMiddleware() {
       rolling: true,
       cookie: {
         httpOnly: true,
-        secure: isProduction,
+        secure: isProduction ? true : false,
         sameSite: isProduction ? 'none' : 'lax',
         path: '/',
         maxAge: SESSION_TTL_SECONDS * 1000,
@@ -112,6 +112,8 @@ function isAllowedCmsPreviewOrigin(origin) {
 function createCorsOptions() {
   const allowedOrigins = new Set([
     ...FRONTEND_ORIGINS,
+    'https://smoovecms.vercel.app',
+    'https://www.smovecommunication.com',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://127.0.0.1:5173',

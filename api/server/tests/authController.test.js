@@ -19,6 +19,9 @@ function createRes() {
     clearCookie() {
       return this;
     },
+    getHeader() {
+      return undefined;
+    },
   };
 }
 
@@ -28,6 +31,9 @@ function createSession() {
       cb();
     },
     destroy(cb) {
+      cb();
+    },
+    save(cb) {
       cb();
     },
   };
