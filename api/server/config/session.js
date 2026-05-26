@@ -61,6 +61,20 @@ function createSessionMiddleware() {
     });
   }
 
+  const requiresCrossSiteCookie = FRONTEND_ORIGINS.some((origin) => {
+    if (!origin) return false;
+    try {
+      const parsed = new URL(origin);
+      const isLocalhost = ['localhost', '127.0.0.1'].includes(parsed.hostname);
+      return parsed.protocol === 'https:' && !isLocalhost;
+    } catch {
+      return false;
+    }
+  });
+
+  const useSecureCookie = isProduction || requiresCrossSiteCookie;
+  const cookieSameSite = useSecureCookie ? 'none' : 'lax';
+
   return {
     middleware: session({
       name: 'smove.sid',
@@ -71,12 +85,12 @@ function createSessionMiddleware() {
       rolling: true,
       cookie: {
         httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? 'none' : 'lax',
+        secure: useSecureCookie,
+        sameSite: cookieSameSite,
         path: '/',
         maxAge: SESSION_TTL_SECONDS * 1000,
       },
-      proxy: isProduction,
+      proxy: true,
     }),
     storeMeta: {
       mode: resolvedStore.mode,
