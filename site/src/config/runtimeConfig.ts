@@ -1,5 +1,7 @@
 import { logWarn } from '../utils/observability';
 
+const DEFAULT_API_ORIGIN = 'https://smoveapi-1.onrender.com';
+
 function normalizeApiBaseUrl(rawValue: string | undefined, apiOrigin: string): string {
   const candidate = (rawValue ?? '/api/v1').trim();
   if (candidate.length === 0) {
@@ -40,11 +42,11 @@ function parseTimeout(rawValue: string | undefined, defaultValue: number): numbe
 }
 
 function normalizeApiOrigin(rawValue: string | undefined): string {
-  const candidate = (rawValue ?? '').trim();
-  if (!candidate) return '';
+  const candidate = (rawValue ?? DEFAULT_API_ORIGIN).trim();
+  if (!candidate) return DEFAULT_API_ORIGIN;
   try { return new URL(candidate).origin; } catch {
     logWarn({ scope: 'config', event: 'invalid_api_origin', details: { configuredValue: candidate } });
-    return '';
+    return DEFAULT_API_ORIGIN;
   }
 }
 
