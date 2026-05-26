@@ -26,6 +26,7 @@ Renseigner les variables suivant `api/.env.example`:
 - `MONGO_DB_NAME=smoveqpp`
 - `SESSION_TTL_SECONDS=86400`
 - `ENABLE_EMAIL_PASSWORD_AUTH=true`
+- `PUBLIC_REGISTRATION_ENABLED=true`
 - `ENABLE_GOOGLE_LOGIN=false`
 - `ENABLE_FACEBOOK_LOGIN=false`
 
