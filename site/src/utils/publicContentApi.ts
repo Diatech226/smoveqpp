@@ -15,6 +15,17 @@ const TRANSIENT_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function normalizeCollection<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.projects)) return record.projects as T[];
+    if (Array.isArray(record.items)) return record.items as T[];
+    if (Array.isArray(record.data)) return record.data as T[];
+  }
+  return [];
+}
+
 function isTransientError(error: unknown): boolean {
   if (error instanceof ContentApiError) {
     return error.status === 0 || TRANSIENT_STATUS_CODES.has(error.status);
@@ -70,8 +81,8 @@ async function request<T>(path: string): Promise<T> {
 }
 
 export async function fetchPublicProjects(): Promise<Project[]> {
-  const data = await request<{ projects: Project[] }>('/projects');
-  return data.projects;
+  const data = await request<unknown>('/projects');
+  return normalizeCollection<Project>(data);
 }
 
 export async function fetchPublicServices(): Promise<Service[]> {
