@@ -26,6 +26,8 @@ const { createAuthRoutes } = require('./routes/authRoutes');
 const { createContentRoutes } = require('./routes/contentRoutes');
 const { createContactRoutes } = require('./routes/contactRoutes');
 const { createNewsletterRoutes } = require('./routes/newsletterRoutes');
+const { createMarketplaceRoutes } = require('./routes/marketplaceRoutes');
+const { errorHandler } = require('./middleware/marketplace');
 const { sendError } = require('./utils/apiResponse');
 const { FileContentRepository } = require('./repositories/contentRepository.file');
 const { ContentService } = require('./services/contentService');
@@ -263,6 +265,7 @@ function createApp(deps = {}) {
   app.use('/api/v1/content', createContentRoutes({ contentService, auditService, mediaStorage }));
   app.use('/api/v1/contact', createContactRoutes({ contactService }));
   app.use('/api/v1/newsletter', createNewsletterRoutes({ newsletterService }));
+  app.use('/api', createMarketplaceRoutes());
 
   app.use((err, req, res, _next) => {
     if (typeof err?.message === 'string' && err.message.startsWith('CORS origin not allowed:')) {
@@ -285,6 +288,8 @@ function createApp(deps = {}) {
     });
     return sendError(res, 500, 'INTERNAL_ERROR', 'Unexpected error');
   });
+
+  app.use(errorHandler);
 
   return app;
 }
