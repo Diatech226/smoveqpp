@@ -106,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = async (): Promise<AppUser | null> => {
     const [result, providersResult] = await Promise.all([fetchSession(), fetchOAuthProviders()]);
+    console.info('[auth] session check status', result.status, 'authenticated', result.success && Boolean(result.user));
     const trusted = resolveTrustedSessionUser(result.user);
     setUser(trusted);
     setSessionState(mapSession((result.session as Record<string, unknown> | null | undefined) ?? null));
@@ -120,11 +121,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => { void refresh().finally(() => setIsAuthReady(true)); }, []);
 
   const login = async (email: string, password: string): Promise<AuthActionResult> => {
-    const result = await loginWithPassword(email, password);
-    if (!result.success) return { success: false, error: result.errorMessage, destination: null };
-    const trusted = resolveTrustedSessionUser(result.user);
+    const loginResult = await loginWithPassword(email, password);
+    console.info('[auth] login status', loginResult.status, 'success', loginResult.success);
+    if (!loginResult.success) return { success: false, error: loginResult.errorMessage, destination: null };
+
+    const sessionResult = await fetchSession();
+    console.info('[auth] post-login session check status', sessionResult.status, 'authenticated', sessionResult.success && Boolean(sessionResult.user));
+
+    if (!sessionResult.success || !sessionResult.user) {
+      return {
+        success: false,
+        error: 'Connexion acceptée mais cookie de session non reçu. Vérifiez SameSite=None, Secure, CORS credentials.',
+        destination: null,
+      };
+    }
+
+    const trusted = resolveTrustedSessionUser(sessionResult.user);
     setUser(trusted);
-    setSessionState(mapSession((result.session as Record<string, unknown> | null | undefined) ?? null));
+    setSessionState(mapSession((sessionResult.session as Record<string, unknown> | null | undefined) ?? null));
+    console.info('[auth] session restored after login', Boolean(trusted), 'role', trusted?.role ?? null);
     return { success: true, error: null, destination: resolvePostLoginRoute(cmsEnabled, trusted) };
   };
 
