@@ -143,6 +143,9 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   };
   const toCanonicalMedia = (mediaFile) => {
     if (!mediaFile || typeof mediaFile !== 'object') return null;
+    const metadata = mediaFile.metadata && typeof mediaFile.metadata === 'object'
+      ? Object.fromEntries(Object.entries(mediaFile.metadata).map(([key, value]) => [key, typeof value === 'string' ? value : String(value ?? '')]))
+      : {};
     const filename = `${mediaFile.filename || mediaFile.name || ''}`.trim();
     const publicPath = `${mediaFile.publicPath || mediaFile.path || ''}`.trim() || (filename ? `/uploads/${filename}` : '');
     return {
@@ -157,6 +160,12 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       publicPath,
       alt: mediaFile.alt || '',
       caption: mediaFile.caption || '',
+      tags: Array.isArray(mediaFile.tags) ? mediaFile.tags : [],
+      thumbnailUrl: absolutizeMediaUrl(mediaFile.thumbnailUrl || mediaFile.url || mediaFile.publicUrl || publicPath),
+      uploadedDate: mediaFile.uploadedDate || mediaFile.createdAt || new Date().toISOString(),
+      uploadedBy: mediaFile.uploadedBy || mediaFile.ownerUserId || 'system',
+      source: mediaFile.source || 'content-store',
+      metadata,
       createdAt: mediaFile.createdAt || mediaFile.uploadedDate || new Date().toISOString(),
       updatedAt: mediaFile.updatedAt || mediaFile.createdAt || new Date().toISOString(),
       archivedAt: mediaFile.archivedAt ?? null,
@@ -380,15 +389,33 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   router.get('/projects', requirePermission(Permissions.CONTENT_READ), (req, res) =>
     sendSuccess(res, 200, { projects: contentService.listProjects({ organizationId: actorFromRequest(req).organizationId }) }));
 
-  router.post('/projects', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
+  router.post('/projects', requirePermission(Permissions.CONTENT_WRITE), async (req, res) => {
     const result = contentService.saveProject(req.body, actorFromRequest(req));
     if (!result.ok) {
       logContentFailure(req, 'cms_project_save_failed', result.error.code);
       auditService?.record(toAuditContext(req, 'cms_project_save', 'failure', { entityType: 'project', metadata: { code: result.error.code } }));
       return sendError(res, 400, result.error.code, result.error.message);
     }
+
+    try {
+      await contentService.flushWrites();
+    } catch (error) {
+      logContentFailure(req, 'cms_project_save_failed', 'PROJECT_PERSIST_FAILED', { message: error?.message });
+      auditService?.record(toAuditContext(req, 'cms_project_save', 'failure', {
+        entityType: 'project',
+        entityId: result.project.id,
+        metadata: { code: 'PROJECT_PERSIST_FAILED' },
+      }));
+      return sendError(res, 500, 'PROJECT_PERSIST_FAILED', 'Project could not be persisted.');
+    }
+
+    if (!result.project || typeof result.project !== 'object' || !result.project.id || !result.project.title) {
+      logContentFailure(req, 'cms_project_save_failed', 'PROJECT_RESPONSE_INVALID');
+      return sendError(res, 500, 'PROJECT_RESPONSE_INVALID', 'Project was saved but the response payload is invalid.');
+    }
+
     auditService?.record(toAuditContext(req, 'cms_project_save', 'success', { entityType: 'project', entityId: result.project.id }));
-    return sendSuccess(res, 200, { project: result.project });
+    return sendSuccess(res, 201, { project: result.project });
   });
 
   router.patch('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
