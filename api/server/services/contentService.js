@@ -1861,6 +1861,8 @@ class ContentService {
       },
       featured: Boolean(project?.featured),
       status,
+      archived: typeof project?.archived === 'boolean' ? project.archived : false,
+      deleted: typeof project?.deleted === 'boolean' ? project.deleted : false,
       reviewedAt: typeof project?.reviewedAt === 'string' ? project.reviewedAt : undefined,
       reviewedBy: typeof project?.reviewedBy === 'string' ? project.reviewedBy.trim() || undefined : undefined,
       createdAt: project?.createdAt || nowIso,

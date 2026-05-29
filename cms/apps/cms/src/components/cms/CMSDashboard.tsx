@@ -1199,6 +1199,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       if (error.code === 'PROJECT_NOT_PUBLISHABLE') return 'Ce projet ne peut pas être publié: complétez les champs requis.';
       if (error.code === 'PROJECT_INVALID_MEDIA_REFERENCE') return 'Le projet référence un média introuvable.';
       if (error.code === 'PROJECT_CREATE_RESPONSE_INVALID') return 'Le backend n’a pas renvoyé le projet créé. Aucun succès affiché sans confirmation.';
+      if (error.code === 'PROJECT_CREATE_REFETCH_FAILED') return 'Projet créé mais impossible de recharger la liste.';
       if (error.code === 'PROJECT_CREATE_NOT_VISIBLE_AFTER_REFRESH') return 'Projet créé mais absent du rechargement backend. Réessayez de rafraîchir la liste avant de recréer.';
       if (error.code === 'PROJECT_LIST_RESPONSE_INVALID') return 'La réponse liste projets du backend est invalide.';
       return `Sauvegarde impossible (${error.message}).`;
@@ -1250,7 +1251,12 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       if (delayMs > 0) {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
-      latestProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
+      try {
+        latestProjects = await requestWithRetry(() => fetchBackendProjects(), { retries: 1, retryDelayMs: 250 });
+      } catch (error) {
+        throw new ContentApiError('Projet créé mais impossible de recharger la liste.', 'PROJECT_CREATE_REFETCH_FAILED', 502, { projectId, cause: error });
+      }
+      console.info('[cms-projects] refetch project count', { count: latestProjects.length, projectId });
       if (latestProjects.some((project) => project.id === projectId)) {
         return latestProjects;
       }
@@ -1651,7 +1657,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
   };
 
   const handleMediaUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input?.files?.[0];
     if (!file) return;
 
     setMediaUploadError('');
@@ -1664,12 +1671,15 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setMediaUploadError('Upload média impossible (format/taille ou backend indisponible).');
     } finally {
       setIsUploadingMedia(false);
-      event.currentTarget.value = '';
+      if (input) {
+        input.value = '';
+      }
     }
   };
 
   const handleProjectMediaUpload = async (field: 'cardImage' | 'heroImage' | 'socialImage' | 'galleryImages', event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input?.files?.[0];
     if (!file) return;
 
     setMediaUploadError('');
@@ -1690,7 +1700,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setMediaUploadError('Upload média projet impossible (format/taille ou backend indisponible).');
     } finally {
       setIsUploadingMedia(false);
-      event.currentTarget.value = '';
+      if (input) {
+        input.value = '';
+      }
     }
   };
 
@@ -1699,7 +1711,8 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     field: 'media' | 'desktopMedia' | 'tabletMedia' | 'mobileMedia' | 'videoMedia',
     event: ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input?.files?.[0];
     if (!file) return;
 
     setHeroMediaUploadError('');
@@ -1744,7 +1757,9 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       setHeroMediaUploadError("Upload impossible pour cette slide. Vérifiez le format/taille puis réessayez.");
     } finally {
       setHeroMediaUploadTarget(null);
-      event.currentTarget.value = '';
+      if (input) {
+        input.value = '';
+      }
     }
   };
 

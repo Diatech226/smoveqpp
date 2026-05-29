@@ -191,11 +191,15 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
   const isPublicBlogEligible = (post) => isPublishedOrLegacy(post.status) && post.title?.trim() && post.slug?.trim();
   const isPublicProjectEligible = (project) =>
     isPublishedOrLegacy(project.status) &&
+    project.archived !== true &&
+    project.deleted !== true &&
     project.title?.trim();
 
   router.get('/public/projects', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, 200, { projects: normalizeMediaPayload(contentService.listProjects().filter(isPublicProjectEligible), contentService.listMediaFiles()) });
+    const projects = normalizeMediaPayload(contentService.listProjects().filter(isPublicProjectEligible), contentService.listMediaFiles());
+    console.info('[api-projects] public projects count', { count: projects.length });
+    return sendSuccess(res, 200, { projects });
   });
   router.get('/public/services', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -386,8 +390,11 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
     return sendSuccess(res, 200, { post: result.post });
   });
 
-  router.get('/projects', requirePermission(Permissions.CONTENT_READ), (req, res) =>
-    sendSuccess(res, 200, { projects: contentService.listProjects({ organizationId: actorFromRequest(req).organizationId }) }));
+  router.get('/projects', requirePermission(Permissions.CONTENT_READ), (req, res) => {
+    const projects = contentService.listProjects({ organizationId: actorFromRequest(req).organizationId });
+    console.info('[api-projects] protected projects count', { count: projects.length });
+    return sendSuccess(res, 200, { projects });
+  });
 
   router.post('/projects', requirePermission(Permissions.CONTENT_WRITE), async (req, res) => {
     const result = contentService.saveProject(req.body, actorFromRequest(req));
@@ -420,6 +427,11 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 500, 'PROJECT_RESPONSE_INVALID', 'Project was saved but is not visible in the persisted project list.');
     }
 
+    console.info('[api-projects] project created', {
+      id: persistedProject.id,
+      title: persistedProject.title,
+      status: persistedProject.status,
+    });
     auditService?.record(toAuditContext(req, 'cms_project_save', 'success', { entityType: 'project', entityId: persistedProject.id }));
     return sendSuccess(res, 201, { project: persistedProject });
   });
