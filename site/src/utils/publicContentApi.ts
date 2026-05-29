@@ -22,6 +22,7 @@ function normalizeCollection<T>(value: unknown): T[] {
     if (Array.isArray(record.projects)) return record.projects as T[];
     if (Array.isArray(record.items)) return record.items as T[];
     if (Array.isArray(record.data)) return record.data as T[];
+    if (record.data && typeof record.data === 'object') return normalizeCollection<T>(record.data);
   }
   return [];
 }
