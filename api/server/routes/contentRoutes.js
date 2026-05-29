@@ -409,13 +409,19 @@ function createContentRoutes({ contentService, auditService, mediaStorage }) {
       return sendError(res, 500, 'PROJECT_PERSIST_FAILED', 'Project could not be persisted.');
     }
 
-    if (!result.project || typeof result.project !== 'object' || !result.project.id || !result.project.title) {
-      logContentFailure(req, 'cms_project_save_failed', 'PROJECT_RESPONSE_INVALID');
-      return sendError(res, 500, 'PROJECT_RESPONSE_INVALID', 'Project was saved but the response payload is invalid.');
+    const persistedProject = contentService.findProjectById(result.project.id, { organizationId: actorFromRequest(req).organizationId });
+    if (!persistedProject || typeof persistedProject !== 'object' || !persistedProject.id || !persistedProject.title || !persistedProject.slug || !persistedProject.status) {
+      logContentFailure(req, 'cms_project_save_failed', 'PROJECT_RESPONSE_INVALID', { projectId: result.project?.id ?? null });
+      auditService?.record(toAuditContext(req, 'cms_project_save', 'failure', {
+        entityType: 'project',
+        entityId: result.project?.id ?? null,
+        metadata: { code: 'PROJECT_RESPONSE_INVALID' },
+      }));
+      return sendError(res, 500, 'PROJECT_RESPONSE_INVALID', 'Project was saved but is not visible in the persisted project list.');
     }
 
-    auditService?.record(toAuditContext(req, 'cms_project_save', 'success', { entityType: 'project', entityId: result.project.id }));
-    return sendSuccess(res, 201, { project: result.project });
+    auditService?.record(toAuditContext(req, 'cms_project_save', 'success', { entityType: 'project', entityId: persistedProject.id }));
+    return sendSuccess(res, 201, { project: persistedProject });
   });
 
   router.patch('/projects/:id', requirePermission(Permissions.CONTENT_WRITE), (req, res) => {
