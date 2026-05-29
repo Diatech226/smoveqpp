@@ -1231,6 +1231,17 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
     setMediaFetchError('');
   };
 
+
+  const loadMediaFromBackend = async () => {
+    setMediaFetchError('');
+    try {
+      const backendMedia = await requestWithRetry(() => fetchBackendMediaFiles(), { retries: 1, retryDelayMs: 250 });
+      syncMediaFromBackend(backendMedia);
+    } catch (error) {
+      setMediaFetchError(getErrorMessage(error));
+    }
+  };
+
   const fetchProjectsUntilPresent = async (projectId: string): Promise<Project[]> => {
     const attempts = [0, 250, 500, 1000];
     let latestProjects: Project[] = [];
@@ -2555,6 +2566,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           canEditContent={canEditContent}
           mediaUploadError={mediaFetchError || mediaUploadError}
           filteredMediaFiles={filteredMediaFiles}
+          loadMediaFromBackend={loadMediaFromBackend}
           selectedMediaId={selectedMediaId}
           selectedMedia={selectedMedia}
           authoritativeReferences={selectedMediaAuthoritativeReferences}
