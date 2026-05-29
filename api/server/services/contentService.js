@@ -446,10 +446,16 @@ class ContentService {
 
   writeState(state) {
     if (this.contentRepository.saveState) {
-      this.contentRepository.saveState(state);
-      return;
+      return this.contentRepository.saveState(state);
     }
     this.contentRepository.saveBlogPosts(state.blogPosts || []);
+    return undefined;
+  }
+
+  async flushWrites() {
+    if (typeof this.contentRepository.flushWrites === 'function') {
+      await this.contentRepository.flushWrites();
+    }
   }
 
   normalizeActorContext(actor = {}) {

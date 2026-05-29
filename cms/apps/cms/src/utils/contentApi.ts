@@ -1,5 +1,5 @@
 import { RUNTIME_CONFIG } from '../config/runtimeConfig';
-import type { BlogPost, MediaFile, Project, Service } from '../domain/contentSchemas';
+import { isMediaFileArray, isProject, isProjectArray, type BlogPost, type MediaFile, type Project, type Service } from '../domain/contentSchemas';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
 
 interface ApiEnvelope<T> {
@@ -351,7 +351,11 @@ export async function fetchEditorialAnalytics(): Promise<EditorialAnalytics> {
 
 export async function fetchBackendProjects(): Promise<Project[]> {
   const body = await request<{ projects: Project[] }>('/projects');
-  return body.data?.projects || [];
+  const projects = body.data?.projects;
+  if (!isProjectArray(projects)) {
+    throw new ContentApiError('Project list response is missing valid projects.', 'PROJECT_LIST_RESPONSE_INVALID', 502, body.data);
+  }
+  return projects;
 }
 
 export async function saveBackendProject(project: Project): Promise<Project> {
@@ -359,7 +363,11 @@ export async function saveBackendProject(project: Project): Promise<Project> {
     method: 'POST',
     body: JSON.stringify(project),
   });
-  return body.data!.project;
+  const savedProject = body.data?.project;
+  if (!isProject(savedProject)) {
+    throw new ContentApiError('Project create response is missing the created project.', 'PROJECT_CREATE_RESPONSE_INVALID', 502, body.data);
+  }
+  return savedProject;
 }
 
 
@@ -395,7 +403,11 @@ export async function deleteBackendService(id: string): Promise<void> {
 
 export async function fetchBackendMediaFiles(): Promise<MediaFile[]> {
   const body = await request<{ mediaFiles: MediaFile[] }>('/media');
-  return body.data?.mediaFiles || [];
+  const mediaFiles = body.data?.mediaFiles;
+  if (!isMediaFileArray(mediaFiles)) {
+    throw new ContentApiError('Media library response is missing valid media files.', 'MEDIA_LIST_RESPONSE_INVALID', 502, body.data);
+  }
+  return mediaFiles;
 }
 
 
