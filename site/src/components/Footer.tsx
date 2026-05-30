@@ -3,6 +3,9 @@ import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'luc
 import { fetchPublicSettings } from '../utils/contentApi';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { submitNewsletterSubscription } from '../utils/newsletterApi';
+import { resolveMediaUrl } from '../utils/mediaResolver';
+import { mediaRepository } from '../repositories/mediaRepository';
+import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -15,12 +18,14 @@ export default function Footer() {
 
   useEffect(() => {
     let active = true;
-    void fetchPublicSettings()
-      .then((settings) => {
+    void Promise.all([fetchPublicSettings(), hydratePublicMediaLibrary().catch(() => [])])
+      .then(([settings]) => {
         if (!active) return;
         if (settings.siteSettings.siteTitle.trim()) setSiteTitle(settings.siteSettings.siteTitle.trim());
         if (settings.siteSettings.supportEmail.trim()) setSupportEmail(settings.siteSettings.supportEmail.trim());
-        if (settings.siteSettings.brandMedia.logo.trim()) setLogoSrc(settings.siteSettings.brandMedia.logo.trim());
+        const logo = settings.siteSettings.brandMedia.logo.trim();
+        const resolvedLogo = resolveMediaUrl(logo, mediaRepository.getAll());
+        if (resolvedLogo) setLogoSrc(resolvedLogo);
       })
       .catch(() => {
         // Keep static fallback copy when backend settings are unavailable.

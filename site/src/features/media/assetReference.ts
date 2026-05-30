@@ -1,6 +1,6 @@
 import type { MediaFile } from '../../domain/contentSchemas';
 import { mediaRepository } from '../../repositories/mediaRepository';
-import { absolutizeMediaPath } from '../../utils/mediaResolver';
+import { resolveMediaRecordUrl, resolveMediaUrl } from '../../utils/mediaResolver';
 import {
   MEDIA_REFERENCE_PREFIX,
   isMediaReference,
@@ -30,25 +30,7 @@ const reportFallback = (reference: string, reason: string) => {
   });
 };
 
-export const resolveRenderableMediaUrl = (url: string, apiBaseUrl = ''): string => {
-  const normalizedUrl = url.trim();
-  if (!normalizedUrl) return normalizedUrl;
-  if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(normalizedUrl) || normalizedUrl.startsWith('//') || normalizedUrl.startsWith('data:') || normalizedUrl.startsWith('blob:')) {
-    return normalizedUrl;
-  }
-
-  if (apiBaseUrl) {
-    try {
-      const origin = new URL(apiBaseUrl).origin;
-      if (normalizedUrl.startsWith('/')) return `${origin}${normalizedUrl}`;
-      if (normalizedUrl.startsWith('uploads/')) return `${origin}/${normalizedUrl}`;
-    } catch {
-      // fallback to runtime resolver
-    }
-  }
-
-  return absolutizeMediaPath(normalizedUrl);
-};
+export const resolveRenderableMediaUrl = (url: string, _apiBaseUrl?: string): string => resolveMediaUrl(url);
 
 
 export interface ResolvedAssetReference {
@@ -102,7 +84,7 @@ export const resolveCanonicalMedia = (
     const mediaId = mediaIdFromReference(normalizedReference);
     const media: MediaFile | undefined = mediaId ? mediaRepository.getById(mediaId) : undefined;
 
-    const mediaUrl = media ? (media.url || media.publicPath || (media.filename ? `/uploads/${media.filename}` : '')) : '';
+    const mediaUrl = media ? resolveMediaRecordUrl(media) : '';
     if (mediaUrl) {
       if (media.archivedAt) {
         reportFallback(normalizedReference, 'archived_media_reference');
