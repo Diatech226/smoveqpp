@@ -60,9 +60,17 @@ describe('assetReference', () => {
     expect(hero.src).toBe('https://cdn.example.com/hero-large.jpg');
   });
 
-  it('rewrites root-relative and relative media URLs to API origin when runtime base is absolute', () => {
-    expect(resolveRenderableMediaUrl('/uploads/2026/04/hero.jpg', 'https://api.smove.example/api/v1')).toBe('https://api.smove.example/uploads/2026/04/hero.jpg');
-    expect(resolveRenderableMediaUrl('uploads/2026/04/hero.jpg', 'https://api.smove.example/api/v1')).toBe('https://api.smove.example/uploads/2026/04/hero.jpg');
+  it('rewrites root-relative and relative upload URLs to the API origin', () => {
+    expect(resolveRenderableMediaUrl('/uploads/2026/04/hero.jpg')).toBe('https://smoveapi-1.onrender.com/uploads/2026/04/hero.jpg');
+    expect(resolveRenderableMediaUrl('uploads/2026/04/hero.jpg')).toBe('https://smoveapi-1.onrender.com/uploads/2026/04/hero.jpg');
+  });
+
+
+
+  it('does not render blob URLs, bare filenames, or local disk paths', () => {
+    expect(resolveRenderableMediaUrl('blob:https://example.com/asset')).toBe('');
+    expect(resolveRenderableMediaUrl('hero.jpg')).toBe('');
+    expect(resolveRenderableMediaUrl('/workspace/smoveqpp/api/server/data/uploads/hero.jpg')).toBe('');
   });
 
   it('never returns raw media references as img src when asset is missing', () => {

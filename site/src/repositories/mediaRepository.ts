@@ -1,20 +1,11 @@
 import { isMediaFile, isMediaFileArray, type MediaFile, type MediaType } from '../domain/contentSchemas';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
-import { RUNTIME_CONFIG } from '../config/runtimeConfig';
+import { resolveMediaRecordUrl, resolveMediaUrl } from '../utils/mediaResolver';
 
 const MEDIA_STORAGE_KEY = 'smove_media_files';
-
-
-const HTTP_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
-
-const resolveRenderableMediaUrl = (url: string): string => {
-  const normalized = `${url || ''}`.trim();
-  if (!normalized) return '';
-  if (HTTP_SCHEME_PATTERN.test(normalized) || normalized.startsWith('data:') || normalized.startsWith('//')) return normalized;
-  const apiOrigin = (() => { try { return new URL(RUNTIME_CONFIG.apiBaseUrl).origin; } catch { return ''; } })();
-  if (normalized.startsWith('/')) return apiOrigin ? `${apiOrigin}${normalized}` : normalized;
-  if (normalized.startsWith('uploads/') || normalized.startsWith('media/')) return apiOrigin ? `${apiOrigin}/${normalized}` : normalized;
-  return normalized;
+const preserveLocalDataUrl = (value: string | undefined): string => {
+  const normalized = `${value || ''}`.trim();
+  return normalized.startsWith('data:') ? normalized : '';
 };
 
 export interface MediaUploadInput {
@@ -34,8 +25,8 @@ const normalizeMedia = (file: MediaFile): MediaFile => {
 
   return {
     ...file,
-    url: resolveRenderableMediaUrl(file.url),
-    thumbnailUrl: resolveRenderableMediaUrl(file.thumbnailUrl || file.url),
+    url: resolveMediaRecordUrl(file) || resolveMediaUrl(file.url) || preserveLocalDataUrl(file.url),
+    thumbnailUrl: resolveMediaRecordUrl(file) || resolveMediaUrl(file.thumbnailUrl || file.url) || preserveLocalDataUrl(file.thumbnailUrl || file.url),
     name: normalizedName,
     title: file.title?.trim() || normalizedName,
     label: file.label?.trim() || normalizedName,
@@ -66,10 +57,17 @@ export interface MediaRepository {
 
 
 class LocalMediaRepository implements MediaRepository {
+  private memoryFiles: MediaFile[] = [];
+
+  private hasStorage(): boolean {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  }
+
   getAll(): MediaFile[] {
-    const files = readFromStorage(MEDIA_STORAGE_KEY, isMediaFileArray, []);
+    const files = this.hasStorage() ? readFromStorage(MEDIA_STORAGE_KEY, isMediaFileArray, []) : this.memoryFiles;
     const normalized = files.map(normalizeMedia);
-    if (JSON.stringify(files) !== JSON.stringify(normalized)) {
+    this.memoryFiles = normalized;
+    if (this.hasStorage() && JSON.stringify(files) !== JSON.stringify(normalized)) {
       writeToStorage(MEDIA_STORAGE_KEY, normalized);
     }
     return normalized;
@@ -94,14 +92,14 @@ class LocalMediaRepository implements MediaRepository {
       files.push(trustedFile);
     }
 
+    this.memoryFiles = files;
     writeToStorage(MEDIA_STORAGE_KEY, files);
   }
 
   delete(id: string): void {
-    writeToStorage(
-      MEDIA_STORAGE_KEY,
-      this.getAll().filter((file) => file.id !== id),
-    );
+    const nextFiles = this.getAll().filter((file) => file.id !== id);
+    this.memoryFiles = nextFiles;
+    writeToStorage(MEDIA_STORAGE_KEY, nextFiles);
   }
 
   upload(data: MediaUploadInput): Promise<MediaFile> {
@@ -169,6 +167,7 @@ class LocalMediaRepository implements MediaRepository {
 
   replaceAll(files: MediaFile[]): MediaFile[] {
     const normalized = files.filter(isMediaFile).map(normalizeMedia);
+    this.memoryFiles = normalized;
     writeToStorage(MEDIA_STORAGE_KEY, normalized);
     return normalized;
   }

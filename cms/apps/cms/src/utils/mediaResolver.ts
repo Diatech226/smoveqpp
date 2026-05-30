@@ -23,7 +23,7 @@ const toApiOrigin = (): string => {
 
 const isDev = () => import.meta.env.DEV;
 const logUnresolved = (reason: string, value: unknown) => {
-  if (isDev()) console.warn(`[site-media-resolver] ${reason}`, value);
+  if (isDev()) console.warn(`[cms-media-resolver] ${reason}`, value);
 };
 
 const isSafeHttpUrl = (value: string): boolean => HTTP_URL_PATTERN.test(value);
