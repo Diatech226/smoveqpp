@@ -102,7 +102,8 @@ export const resolveCanonicalMedia = (
     const mediaId = mediaIdFromReference(normalizedReference);
     const media: MediaFile | undefined = mediaId ? mediaRepository.getById(mediaId) : undefined;
 
-    if (media?.url) {
+    const mediaUrl = media ? (media.url || media.publicPath || (media.filename ? `/uploads/${media.filename}` : '')) : '';
+    if (mediaUrl) {
       if (media.archivedAt) {
         reportFallback(normalizedReference, 'archived_media_reference');
         return {
@@ -118,7 +119,7 @@ export const resolveCanonicalMedia = (
       const variantUrl =
         (preferredVariant && (media as unknown as { variants?: Record<string, { url?: string }> }).variants?.[preferredVariant]?.url) ||
         (media as unknown as { variants?: Record<string, { url?: string }> }).variants?.original?.url ||
-        media.url;
+        mediaUrl;
       return {
         reference: normalizedReference,
         url: resolveRenderableMediaUrl(variantUrl),
