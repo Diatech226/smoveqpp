@@ -36,6 +36,11 @@ export const normalizeMediaReference = (value: unknown): string => {
 const matchById = (id: string, mediaList: MediaFile[]): MediaFile | null => mediaList.find((item) => item.id === id && !item.archivedAt) ?? null;
 
 export const resolveMediaUrl = (value: unknown, mediaList: MediaFile[] = []): string => {
+  if (value && typeof value === 'object') {
+    const candidate = value as Partial<MediaFile> & { publicPath?: string; filename?: string; publicUrl?: string };
+    return absolutizeMediaPath((candidate.url || candidate.publicUrl || candidate.publicPath || (candidate.filename ? `/uploads/${candidate.filename}` : '') || '').trim());
+  }
+
   const normalized = `${value || ''}`.trim();
   if (!normalized) return '';
   if (normalized.startsWith('media:')) {
@@ -46,10 +51,6 @@ export const resolveMediaUrl = (value: unknown, mediaList: MediaFile[] = []): st
   }
   const byId = matchById(normalized, mediaList);
   if (byId) return resolveMediaUrl(byId, mediaList);
-  if (typeof value === 'object') {
-    const candidate = value as Partial<MediaFile> & { publicPath?: string; filename?: string };
-    return absolutizeMediaPath((candidate.url || candidate.publicPath || (candidate.filename ? `/uploads/${candidate.filename}` : '') || '').trim());
-  }
   if (HTTP_SCHEME_PATTERN.test(normalized) || normalized.startsWith('/uploads/') || normalized.startsWith('uploads/')) return absolutizeMediaPath(normalized);
   logUnresolved('unsupported value', normalized);
   return '';
