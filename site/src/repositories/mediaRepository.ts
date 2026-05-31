@@ -1,6 +1,6 @@
 import { isMediaFile, isMediaFileArray, type MediaFile, type MediaType } from '../domain/contentSchemas';
 import { readFromStorage, writeToStorage } from './storage/localStorageStore';
-import { resolveMediaRecordUrl, resolveMediaUrl } from '../utils/mediaResolver';
+import { extractUploadPublicPath, resolveMediaRecordUrl, resolveMediaUrl } from '../utils/mediaResolver';
 
 const MEDIA_STORAGE_KEY = 'smove_media_files';
 const preserveLocalDataUrl = (value: string | undefined): string => {
@@ -19,14 +19,17 @@ export interface MediaUploadInput {
 }
 
 const normalizeMedia = (file: MediaFile): MediaFile => {
-  const normalizedName = (file.name || file.filename || 'media-file').trim();
+  const extractedPublicPath = extractUploadPublicPath(file.publicPath || file.url || file.thumbnailUrl || file.filename || file.name);
+  const normalizedFilename = (file.filename?.trim() || file.originalName?.trim() || file.name.trim()).replace(/^\/?uploads\//, '') || extractedPublicPath.replace(/^\/uploads\//, '');
+  const normalizedName = (file.name || file.originalName || normalizedFilename || 'media-file').trim();
   const normalizedAlt = file.alt?.trim() || normalizedName;
   const nowIso = new Date().toISOString();
+  const resolvedUrl = resolveMediaRecordUrl({ ...file, filename: normalizedFilename, publicPath: file.publicPath || extractedPublicPath }) || resolveMediaUrl(file.url) || preserveLocalDataUrl(file.url);
 
   return {
     ...file,
-    url: resolveMediaRecordUrl(file) || resolveMediaUrl(file.url) || preserveLocalDataUrl(file.url),
-    thumbnailUrl: resolveMediaRecordUrl(file) || resolveMediaUrl(file.thumbnailUrl || file.url) || preserveLocalDataUrl(file.thumbnailUrl || file.url),
+    url: resolvedUrl,
+    thumbnailUrl: resolvedUrl || resolveMediaUrl(file.thumbnailUrl || file.url) || preserveLocalDataUrl(file.thumbnailUrl || file.url),
     name: normalizedName,
     title: file.title?.trim() || normalizedName,
     label: file.label?.trim() || normalizedName,
@@ -34,9 +37,11 @@ const normalizeMedia = (file: MediaFile): MediaFile => {
     caption: file.caption?.trim() || normalizedAlt || normalizedName,
     tags: file.tags.map((tag) => tag.trim()).filter(Boolean),
     source: file.source?.trim() || 'local-storage',
-    filename: file.filename?.trim() || normalizedName,
+    type: file.type === 'document' ? 'file' : file.type,
+    filename: normalizedFilename,
+    originalName: file.originalName?.trim() || normalizedName,
     mimeType: file.mimeType?.trim() || (typeof file.metadata?.mimeType === 'string' ? file.metadata.mimeType.trim() : ''),
-    publicPath: file.publicPath?.trim() || '',
+    publicPath: file.publicPath?.trim() || extractedPublicPath || (normalizedFilename ? `/uploads/${normalizedFilename}` : ''),
     metadata: (file.metadata && typeof file.metadata === 'object' ? file.metadata : {}) as Record<string, unknown>,
     createdAt: file.createdAt || file.uploadedDate || nowIso,
     updatedAt: file.updatedAt || nowIso,
