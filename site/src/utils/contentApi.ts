@@ -37,6 +37,13 @@ export interface MediaUploadPayload {
   tags?: string[];
 }
 
+export interface SocialLink {
+  platform: string;
+  label: string;
+  url: string;
+  enabled: boolean;
+}
+
 export interface CmsSettings {
   siteSettings: {
     siteTitle: string;
@@ -47,6 +54,9 @@ export interface CmsSettings {
       favicon: string;
       defaultSocialImage: string;
     };
+  };
+  footer: {
+    socialLinks: SocialLink[];
   };
   operationalSettings: {
     instantPublishing: boolean;
@@ -59,6 +69,7 @@ export interface CmsSettings {
     };
   };
   // Flat aliases are compatibility-only.
+  brandMedia?: CmsSettings['siteSettings']['brandMedia'];
   siteTitle?: string;
   supportEmail?: string;
   instantPublishing?: boolean;
@@ -81,6 +92,9 @@ export interface PublicSiteSettings {
       favicon: string;
       defaultSocialImage: string;
     };
+  };
+  footer: {
+    socialLinks: SocialLink[];
   };
   // Flat aliases are compatibility-only.
   siteTitle?: string;
@@ -437,6 +451,7 @@ export async function rollbackSettingsVersion(versionId: string): Promise<CmsSet
 
 export function normalizeCmsSettings(settings: Partial<CmsSettings> | null | undefined): CmsSettings {
   const siteSettings = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
+  const footerSettings = settings?.footer && typeof settings.footer === 'object' ? settings.footer : undefined;
   const operationalSettings = settings?.operationalSettings && typeof settings.operationalSettings === 'object' ? settings.operationalSettings : settings;
   const taxonomySettings =
     settings?.taxonomySettings && typeof settings.taxonomySettings === 'object'
@@ -459,6 +474,9 @@ export function normalizeCmsSettings(settings: Partial<CmsSettings> | null | und
         defaultSocialImage:
           typeof siteSettings?.brandMedia?.defaultSocialImage === 'string' ? siteSettings.brandMedia.defaultSocialImage.trim() : '',
       },
+    },
+    footer: {
+      socialLinks: normalizeSocialLinks(footerSettings?.socialLinks),
     },
     operationalSettings: {
       instantPublishing:
@@ -487,6 +505,7 @@ export function normalizeCmsSettings(settings: Partial<CmsSettings> | null | und
 export function normalizePublicSettings(settings: Partial<PublicSiteSettings> | null | undefined): PublicSiteSettings {
   const siteSettings = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
   const brandMedia = siteSettings?.brandMedia || settings?.brandMedia;
+  const footerSettings = settings?.footer && typeof settings.footer === 'object' ? settings.footer : undefined;
 
   const normalized: PublicSiteSettings = {
     siteSettings: {
@@ -502,6 +521,9 @@ export function normalizePublicSettings(settings: Partial<PublicSiteSettings> | 
         defaultSocialImage: typeof brandMedia?.defaultSocialImage === 'string' ? brandMedia.defaultSocialImage.trim() : '',
       },
     },
+    footer: {
+      socialLinks: normalizeSocialLinks(footerSettings?.socialLinks),
+    },
   };
 
   return {
@@ -510,6 +532,18 @@ export function normalizePublicSettings(settings: Partial<PublicSiteSettings> | 
     supportEmail: normalized.siteSettings.supportEmail,
     brandMedia: normalized.siteSettings.brandMedia,
   };
+}
+
+function normalizeSocialLinks(values: SocialLink[] | undefined): SocialLink[] {
+  if (!Array.isArray(values)) return [];
+  return values.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return [];
+    const platform = `${entry.platform || ''}`.trim().toLowerCase();
+    const label = `${entry.label || ''}`.trim();
+    const url = `${entry.url || ''}`.trim();
+    if (!platform || !label || !url) return [];
+    return [{ platform, label, url, enabled: entry.enabled !== false }];
+  });
 }
 
 function dedupeList(values: string[] | undefined, fallback: string[]): string[] {
