@@ -244,7 +244,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
                 <ImageWithFallback
                   src={projectMedia?.src || ''}
                   alt={projectMedia?.alt || project.title}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full bg-[#f5f9fa] object-contain"
                 />
               </motion.div>
             </motion.div>
@@ -325,7 +325,7 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
                 <ImageWithFallback
                   src={image.src}
                   alt={image.alt || `${project.title} - Image ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full bg-[#f5f9fa] object-contain"
                 />
               </motion.div>
             ))}

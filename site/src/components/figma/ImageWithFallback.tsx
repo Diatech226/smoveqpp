@@ -1,32 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
+import { getCloudinaryVariant, type CloudinaryVariant } from '../../utils/cloudinaryVariant';
 
-const ERROR_IMG_SRC =
-  'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODgiIGhlaWdodD0iODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIzLjciPjxyZWN0IHg9IjE2IiB5PSIxNiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iNiIvPjxwYXRoIGQ9Im0xNiA1OCAxNi0xOCAzMiAzMiIvPjxjaXJjbGUgY3g9IjUzIiBjeT0iMzUiIHI9IjciLz48L3N2Zz4KCg=='
+const ERROR_IMG_SRC = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400"%3E%3Cdefs%3E%3ClinearGradient id="g" x1="0" x2="1" y1="0" y2="1"%3E%3Cstop stop-color="%2300b3e8"/%3E%3Cstop offset="1" stop-color="%23273a41"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="640" height="400" fill="url(%23g)"/%3E%3C/svg%3E';
 
-type ImageWithFallbackProps = React.ImgHTMLAttributes<HTMLImageElement> & {
-  /** @deprecated Use `src` with a fully resolved URL/reference result. */
-  query?: string;
-}
+type ImageWithFallbackProps = React.ImgHTMLAttributes<HTMLImageElement> & { variant?: CloudinaryVariant };
 
-export function ImageWithFallback(props: ImageWithFallbackProps) {
-  const [didError, setDidError] = useState(false)
-
-  const handleError = () => {
-    setDidError(true)
-  }
-
-  const { src, alt, style, className, query: _unusedQuery, loading, decoding, ...rest } = props
-
-  return didError ? (
-    <div
-      className={`inline-block bg-gray-100 text-center align-middle ${className ?? ''}`}
-      style={style}
-    >
-      <div className="flex items-center justify-center w-full h-full">
-        <img src={ERROR_IMG_SRC} alt="Error loading image" loading={loading ?? 'lazy'} decoding={decoding ?? 'async'} {...rest} data-original-url={src} />
-      </div>
-    </div>
-  ) : (
-    <img src={src} alt={alt} className={className} style={style} loading={loading ?? 'lazy'} decoding={decoding ?? 'async'} {...rest} onError={handleError} />
-  )
+export function ImageWithFallback({ src, alt = '', className, style, loading, decoding, variant, ...rest }: ImageWithFallbackProps) {
+  const [failed, setFailed] = useState(false);
+  const inferredVariant = variant || (className?.includes('object-contain') ? 'contain' : className?.includes('object-cover') ? 'card' : undefined);
+  const optimizedSrc = inferredVariant ? getCloudinaryVariant(`${src || ''}`, inferredVariant) : src;
+  const handleError = () => setFailed(true);
+  return <img src={failed ? ERROR_IMG_SRC : optimizedSrc} alt={failed ? `${alt} (image indisponible)` : alt} className={className} style={style} loading={loading ?? 'lazy'} decoding={decoding ?? 'async'} {...rest} data-original-url={failed ? src : undefined} onError={handleError} />;
 }

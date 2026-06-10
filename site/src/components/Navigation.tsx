@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getCmsAppUrl } from '../config/cmsRuntime';
 import { fetchPublicSettings } from '../utils/contentApi';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
+import { getCloudinaryVariant } from '../utils/cloudinaryVariant';
 
 interface NavigationProps {
   currentPath?: string;
@@ -83,9 +84,9 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
           {/* Logo */}
           <a href={PUBLIC_ROUTE_HASH.home} className="flex items-center" onClick={(e) => handleNavClick(e, '/')}>
             <img 
-              src={logoSrc}
+              src={getCloudinaryVariant(logoSrc, 'contain')}
               alt="SMOVE Communication" 
-              className="h-12 w-auto rounded-full"
+              className="h-12 max-w-[180px] w-auto object-contain"
             />
           </a>
 

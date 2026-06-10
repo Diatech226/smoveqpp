@@ -164,7 +164,7 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
                         <ImageWithFallback
                           src={post.featuredImage}
                           alt={post.media.alt || post.title}
-                          className="w-full h-full object-cover"
+                          className="h-full w-full bg-[#f5f9fa] object-contain"
                         />
                       </motion.div>
                     </div>

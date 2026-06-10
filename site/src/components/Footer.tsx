@@ -6,6 +6,7 @@ import { submitNewsletterSubscription } from '../utils/newsletterApi';
 import { resolveMediaUrl } from '../utils/mediaResolver';
 import { mediaRepository } from '../repositories/mediaRepository';
 import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
+import { getCloudinaryVariant } from '../utils/cloudinaryVariant';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -70,7 +71,7 @@ export default function Footer() {
             <h3 className="font-['Medula_One:Regular',sans-serif] text-[20px] tracking-[2px] uppercase text-[#00b3e8] mb-6">
               {siteTitle}
             </h3>
-            <img src={logoSrc} alt={siteTitle} className="h-10 w-auto rounded-full mb-4" />
+            <img src={getCloudinaryVariant(logoSrc, 'contain')} alt={siteTitle} className="mb-4 h-10 max-w-[180px] w-auto object-contain" />
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] leading-[1.6] text-white/80 mb-6">
               Agence de communication digitale spécialisée dans la création de contenu, le développement web et la stratégie digitale.
             </p>

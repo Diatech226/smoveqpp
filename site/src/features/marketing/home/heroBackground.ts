@@ -1,5 +1,6 @@
 import type { HomePageContentSettings } from '../../../data/pageContentSeed';
 import { resolveCanonicalMedia } from '../../media/assetReference';
+import { getCloudinaryVariant } from '../../../utils/cloudinaryVariant';
 
 export interface RenderableHeroBackgroundItem {
   id: string;
@@ -62,9 +63,9 @@ export const resolveHeroBackgroundItems = (
         ctaLabel: item.ctaLabel?.trim() || '',
         ctaHref: item.ctaHref?.trim() || '',
         type: requestedType,
-        desktopSrc: desktop.url,
-        tabletSrc: tablet.url,
-        mobileSrc: mobile.url,
+        desktopSrc: getCloudinaryVariant(desktop.url, item.size === 'contain' ? 'contain' : 'hero'),
+        tabletSrc: getCloudinaryVariant(tablet.url, item.size === 'contain' ? 'contain' : 'card'),
+        mobileSrc: getCloudinaryVariant(mobile.url, item.size === 'contain' ? 'contain' : 'thumbnail'),
         videoSrc: video?.url || '',
         alt: item.alt?.trim() || desktop.alt || video?.alt || fallbackAlt,
         overlayColor: item.overlayColor?.trim() || '#04111f',
