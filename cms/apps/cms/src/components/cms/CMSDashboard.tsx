@@ -338,6 +338,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       supportEmail: 'contact@smove.africa',
       brandMedia: { logo: '', logoDark: '', favicon: '', defaultSocialImage: '' },
     },
+    footer: { socialLinks: [] },
     operationalSettings: { instantPublishing: true },
     taxonomySettings: {
       blog: {
@@ -2810,19 +2811,11 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
           hydrateBackendFromLocalSnapshot={hydrateBackendFromLocalSnapshot}
           saveSettings={saveSettings}
           settingsHasUnsavedChanges={settingsHasUnsavedChanges}
-          siteSettingsTitle={siteSettingsTitle}
-          siteSettingsSupportEmail={siteSettingsSupportEmail}
-          siteBrandMedia={siteBrandMedia}
-          managedBlogCategories={managedBlogCategories}
-          managedBlogTags={managedBlogTags}
-          enforceManagedTags={enforceManagedTags}
           settingsSaving={settingsSaving}
           settingsValues={settingsValues}
           setSettingsValues={setSettingsValues}
-          savedSettingsSnapshot={savedSettingsSnapshot}
-          parseManagedTaxonomyInput={parseManagedTaxonomyInput}
-          settingsHistory={settingsHistory}
-          rollbackSettings={rollbackSettings}
+          mediaFiles={mediaFiles}
+          uploadFileToMediaLibrary={uploadFileToMediaLibrary}
         />
       );
     }
