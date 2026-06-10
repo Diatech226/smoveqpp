@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
-import { fetchPublicSettings } from '../utils/contentApi';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Youtube, Globe2, MessageCircle, Send, Music2, Ghost } from 'lucide-react';
+import { fetchPublicSettings, type SocialLink } from '../utils/contentApi';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { submitNewsletterSubscription } from '../utils/newsletterApi';
 import { resolveMediaUrl } from '../utils/mediaResolver';
 import { mediaRepository } from '../repositories/mediaRepository';
 import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
+import { getCloudinaryVariant } from '../utils/cloudinaryVariant';
+
+const SOCIAL_ICONS = { facebook: Facebook, instagram: Instagram, youtube: Youtube, linkedin: Linkedin, x: Twitter, twitter: Twitter, whatsapp: MessageCircle, telegram: Send, website: Globe2, email: Mail, tiktok: Music2, snapchat: Ghost } as const;
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [siteTitle, setSiteTitle] = useState('SMOVE');
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
   const [logoSrc, setLogoSrc] = useState('/favicon.svg');
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
   const [newsletterFeedback, setNewsletterFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -23,6 +27,7 @@ export default function Footer() {
         if (!active) return;
         if (settings.siteSettings.siteTitle.trim()) setSiteTitle(settings.siteSettings.siteTitle.trim());
         if (settings.siteSettings.supportEmail.trim()) setSupportEmail(settings.siteSettings.supportEmail.trim());
+        setSocialLinks(settings.footer.socialLinks.filter((link) => link.enabled));
         const logo = settings.siteSettings.brandMedia.logo.trim();
         const resolvedLogo = resolveMediaUrl(logo, mediaRepository.getAll());
         if (resolvedLogo) setLogoSrc(resolvedLogo);
@@ -70,23 +75,15 @@ export default function Footer() {
             <h3 className="font-['Medula_One:Regular',sans-serif] text-[20px] tracking-[2px] uppercase text-[#00b3e8] mb-6">
               {siteTitle}
             </h3>
-            <img src={logoSrc} alt={siteTitle} className="h-10 w-auto rounded-full mb-4" />
+            <img src={getCloudinaryVariant(logoSrc, 'contain')} alt={siteTitle} className="mb-4 h-10 max-w-[180px] w-auto object-contain" />
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] leading-[1.6] text-white/80 mb-6">
               Agence de communication digitale spécialisée dans la création de contenu, le développement web et la stratégie digitale.
             </p>
-            <div className="flex gap-4">
-              <span className="text-white/70">
-                <Facebook size={20} />
-              </span>
-              <span className="text-white/70">
-                <Twitter size={20} />
-              </span>
-              <span className="text-white/70">
-                <Instagram size={20} />
-              </span>
-              <span className="text-white/70">
-                <Linkedin size={20} />
-              </span>
+            <div className="flex flex-wrap gap-3" aria-label="Réseaux sociaux">
+              {socialLinks.map((link) => {
+                const Icon = SOCIAL_ICONS[link.platform as keyof typeof SOCIAL_ICONS] || Globe2;
+                return <a key={`${link.platform}-${link.url}`} href={link.url} target={link.url.startsWith('mailto:') ? undefined : '_blank'} rel={link.url.startsWith('mailto:') ? undefined : 'noreferrer'} aria-label={link.label} title={link.label} className="rounded-full border border-white/15 p-2 text-white/70 transition hover:border-[#00b3e8] hover:text-[#00b3e8]"><Icon size={18} /></a>;
+              })}
             </div>
           </div>
 

@@ -177,6 +177,7 @@ export default function BlogPage() {
               <article key={post.id} className="bg-white rounded-[16px] overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 group">
                 <div className="aspect-video overflow-hidden">
                   <ImageWithFallback
+                    variant="card"
                     src={post.image}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"

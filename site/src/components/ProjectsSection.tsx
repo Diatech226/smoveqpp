@@ -70,6 +70,7 @@ export default function ProjectsSection() {
                 transition={{ duration: 0.6 }}
               >
                 <ImageWithFallback
+                  variant="card"
                   src={card.mediaSrc}
                   alt={card.mediaAlt}
                   className="w-full h-full object-cover"

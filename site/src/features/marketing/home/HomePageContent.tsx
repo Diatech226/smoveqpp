@@ -89,7 +89,7 @@ function HomePageContent() {
     const payload = {
       name: `${formData.get('name') || ''}`,
       email: `${formData.get('email') || ''}`,
-      phone: '',
+      phone: `${formData.get('phone') || ''}`,
       subject: `${formData.get('subject') || ''}`,
       message: `${formData.get('message') || ''}`,
     };
@@ -292,6 +292,7 @@ function HomePageContent() {
                 style={{ transformStyle: 'preserve-3d' }}
               >
                 <ImageWithFallback
+                  variant="card"
                   src={aboutMedia.src}
                   alt="SMOVE Team"
                   className="w-full h-full object-cover"
@@ -477,6 +478,7 @@ function HomePageContent() {
                 <a href={PUBLIC_ROUTE_HASH.blogDetail(post.slug)} className="block aspect-video overflow-hidden" onClick={() => trackSiteEvent({ name: 'blog_article_opened', route: 'home', entityType: 'blog', entityId: post.slug, targetRoute: PUBLIC_ROUTE_HASH.blogDetail(post.slug) })}>
                   <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.6 }}>
                     <ImageWithFallback
+                      variant="card"
                       src={media.src}
                       alt={post.title}
                       className="w-full h-full object-cover"
@@ -611,7 +613,6 @@ function HomePageContent() {
                   <input
                     type="email"
                     name="email"
-                    required
                     className="w-full px-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px]"
                     placeholder="votre@email.com"
                   />
@@ -625,7 +626,6 @@ function HomePageContent() {
                 <input
                   type="text"
                   name="subject"
-                  required
                   className="w-full px-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px]"
                   placeholder="Comment pouvons-nous vous aider ?"
                 />
