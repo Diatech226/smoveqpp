@@ -371,6 +371,7 @@ export default function BlogPageEnhanced() {
                     transition={{ duration: 0.6 }}
                   >
                     <ImageWithFallback
+                      variant="card"
                       src={post.image}
                       alt={post.title}
                       className="w-full h-full object-cover"

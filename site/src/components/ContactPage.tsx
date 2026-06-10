@@ -20,7 +20,7 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitFeedback, setSubmitFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'email' | 'subject' | 'message', string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'email' | 'phone' | 'subject' | 'message', string>>>({});
 
   useEffect(() => {
     let active = true;
@@ -66,10 +66,10 @@ export default function ContactPage() {
   }, []);
 
   const validateForm = () => {
-    const nextErrors: Partial<Record<'name' | 'email' | 'subject' | 'message', string>> = {};
+    const nextErrors: Partial<Record<'name' | 'email' | 'phone' | 'subject' | 'message', string>> = {};
     if (formData.name.trim().length < 2) nextErrors.name = 'Veuillez saisir votre nom complet.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim().toLowerCase())) nextErrors.email = 'Veuillez saisir un email valide.';
-    if (formData.subject.trim().length < 3) nextErrors.subject = 'Veuillez préciser le sujet.';
+    if (!formData.email.trim() && !formData.phone.trim()) nextErrors.email = 'Veuillez saisir un email ou un téléphone.';
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim().toLowerCase())) nextErrors.email = 'Veuillez saisir un email valide.';
     if (formData.message.trim().length < 10) nextErrors.message = 'Votre message doit contenir au moins 10 caractères.';
     setFieldErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -107,7 +107,7 @@ export default function ContactPage() {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    if (fieldErrors[e.target.name as 'name' | 'email' | 'subject' | 'message']) {
+    if (fieldErrors[e.target.name as 'name' | 'email' | 'phone' | 'subject' | 'message']) {
       setFieldErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
     }
   };
@@ -166,7 +166,7 @@ export default function ContactPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="email" className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
-                      Email *
+                      Email (email ou téléphone requis)
                     </label>
                     <input
                       type="email"
@@ -174,7 +174,6 @@ export default function ContactPage() {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      required
                       className="w-full px-4 py-3 border border-[#eef3f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00b3e8]"
                       placeholder="votre@email.com"
                     />
@@ -199,14 +198,13 @@ export default function ContactPage() {
 
                 <div>
                   <label htmlFor="subject" className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
-                    Sujet *
+                    Sujet (facultatif)
                   </label>
                   <select
                     id="subject"
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
-                    required
                     className="w-full px-4 py-3 border border-[#eef3f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00b3e8]"
                   >
                     <option value="">Sélectionnez un sujet</option>

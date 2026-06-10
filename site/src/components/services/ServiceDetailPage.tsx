@@ -96,7 +96,7 @@ export default function ServiceDetailPage({ slug }: ServiceDetailPageProps) {
               <ImageWithFallback
                 src={detail.heroMedia.src}
                 alt={detail.heroMedia.alt}
-                className="w-full h-full object-cover"
+                className="h-full w-full bg-[#f5f9fa] object-contain"
               />
             ) : (
               <div className={`w-full h-full bg-gradient-to-br ${renderable.color} flex items-center justify-center`}>
