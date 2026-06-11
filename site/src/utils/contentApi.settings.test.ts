@@ -43,4 +43,15 @@ describe('settings normalization contract', () => {
     expect(normalized.siteSettings.brandMedia.logo).toBe('media:brand-logo');
     expect(normalized.siteSettings.brandMedia.favicon).toBe('https://cdn.example.com/favicon.ico');
   });
+
+  it('normalizes responsive logo sizes and custom social icons', () => {
+    const normalized = normalizePublicSettings({
+      branding: { logoSize: { desktop: 500, tablet: 101.7, mobile: 12 } },
+      footer: { socialLinks: [{ platform: 'custom', label: 'Community', url: 'https://example.com', enabled: true, icon: ' media:community-icon ' }] },
+    });
+
+    expect(normalized.branding.logoSize).toEqual({ desktop: 320, tablet: 102, mobile: 40 });
+    expect(normalized.footer.socialLinks[0]).toEqual({ platform: 'custom', label: 'Community', url: 'https://example.com', enabled: true, icon: 'media:community-icon' });
+  });
+
 });

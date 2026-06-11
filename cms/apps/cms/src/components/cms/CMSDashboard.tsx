@@ -338,6 +338,7 @@ export default function CMSDashboard({ currentSection, onSectionChange }: CMSDas
       supportEmail: 'contact@smove.africa',
       brandMedia: { logo: '', logoDark: '', favicon: '', defaultSocialImage: '' },
     },
+    branding: { logoSize: { desktop: 120, tablet: 100, mobile: 80 } },
     footer: { socialLinks: [] },
     operationalSettings: { instantPublishing: true },
     taxonomySettings: {

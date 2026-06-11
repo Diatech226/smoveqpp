@@ -3581,3 +3581,23 @@ html {
   syntax: "*";
   inherits: false
 }
+
+
+.cms-brand-logo {
+  width: var(--logo-mobile, 80px);
+  max-width: min(var(--logo-mobile, 80px), 100%);
+}
+
+@media (min-width: 768px) {
+  .cms-brand-logo {
+    width: var(--logo-tablet, 100px);
+    max-width: min(var(--logo-tablet, 100px), 100%);
+  }
+}
+
+@media (min-width: 1024px) {
+  .cms-brand-logo {
+    width: var(--logo-desktop, 120px);
+    max-width: min(var(--logo-desktop, 120px), 100%);
+  }
+}

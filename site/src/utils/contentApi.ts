@@ -42,6 +42,7 @@ export interface SocialLink {
   label: string;
   url: string;
   enabled: boolean;
+  icon: string;
 }
 
 export interface CmsSettings {
@@ -54,6 +55,9 @@ export interface CmsSettings {
       favicon: string;
       defaultSocialImage: string;
     };
+  };
+  branding: {
+    logoSize: { desktop: number; tablet: number; mobile: number };
   };
   footer: {
     socialLinks: SocialLink[];
@@ -92,6 +96,9 @@ export interface PublicSiteSettings {
       favicon: string;
       defaultSocialImage: string;
     };
+  };
+  branding: {
+    logoSize: { desktop: number; tablet: number; mobile: number };
   };
   footer: {
     socialLinks: SocialLink[];
@@ -452,6 +459,7 @@ export async function rollbackSettingsVersion(versionId: string): Promise<CmsSet
 export function normalizeCmsSettings(settings: Partial<CmsSettings> | null | undefined): CmsSettings {
   const siteSettings = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
   const footerSettings = settings?.footer && typeof settings.footer === 'object' ? settings.footer : undefined;
+  const brandingSettings = settings?.branding && typeof settings.branding === 'object' ? settings.branding : undefined;
   const operationalSettings = settings?.operationalSettings && typeof settings.operationalSettings === 'object' ? settings.operationalSettings : settings;
   const taxonomySettings =
     settings?.taxonomySettings && typeof settings.taxonomySettings === 'object'
@@ -474,6 +482,9 @@ export function normalizeCmsSettings(settings: Partial<CmsSettings> | null | und
         defaultSocialImage:
           typeof siteSettings?.brandMedia?.defaultSocialImage === 'string' ? siteSettings.brandMedia.defaultSocialImage.trim() : '',
       },
+    },
+    branding: {
+      logoSize: normalizeLogoSize(brandingSettings?.logoSize),
     },
     footer: {
       socialLinks: normalizeSocialLinks(footerSettings?.socialLinks),
@@ -506,6 +517,7 @@ export function normalizePublicSettings(settings: Partial<PublicSiteSettings> | 
   const siteSettings = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
   const brandMedia = siteSettings?.brandMedia || settings?.brandMedia;
   const footerSettings = settings?.footer && typeof settings.footer === 'object' ? settings.footer : undefined;
+  const brandingSettings = settings?.branding && typeof settings.branding === 'object' ? settings.branding : undefined;
 
   const normalized: PublicSiteSettings = {
     siteSettings: {
@@ -521,6 +533,9 @@ export function normalizePublicSettings(settings: Partial<PublicSiteSettings> | 
         defaultSocialImage: typeof brandMedia?.defaultSocialImage === 'string' ? brandMedia.defaultSocialImage.trim() : '',
       },
     },
+    branding: {
+      logoSize: normalizeLogoSize(brandingSettings?.logoSize),
+    },
     footer: {
       socialLinks: normalizeSocialLinks(footerSettings?.socialLinks),
     },
@@ -534,6 +549,13 @@ export function normalizePublicSettings(settings: Partial<PublicSiteSettings> | 
   };
 }
 
+const DEFAULT_LOGO_SIZE = { desktop: 120, tablet: 100, mobile: 80 };
+
+function normalizeLogoSize(value: Partial<CmsSettings['branding']['logoSize']> | undefined): CmsSettings['branding']['logoSize'] {
+  const clamp = (candidate: unknown, fallback: number) => typeof candidate === 'number' && Number.isFinite(candidate) ? Math.min(320, Math.max(40, Math.round(candidate))) : fallback;
+  return { desktop: clamp(value?.desktop, DEFAULT_LOGO_SIZE.desktop), tablet: clamp(value?.tablet, DEFAULT_LOGO_SIZE.tablet), mobile: clamp(value?.mobile, DEFAULT_LOGO_SIZE.mobile) };
+}
+
 function normalizeSocialLinks(values: SocialLink[] | undefined): SocialLink[] {
   if (!Array.isArray(values)) return [];
   return values.flatMap((entry) => {
@@ -542,7 +564,8 @@ function normalizeSocialLinks(values: SocialLink[] | undefined): SocialLink[] {
     const label = `${entry.label || ''}`.trim();
     const url = `${entry.url || ''}`.trim();
     if (!platform || !label || !url) return [];
-    return [{ platform, label, url, enabled: entry.enabled !== false }];
+    const icon = `${entry.icon || ''}`.trim();
+    return [{ platform, label, url, enabled: entry.enabled !== false, icon }];
   });
 }
 

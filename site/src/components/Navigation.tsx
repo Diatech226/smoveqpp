@@ -1,5 +1,5 @@
 import { Home, Info, Briefcase, FolderOpen, BookOpen, Mail, LayoutDashboard, LogIn, UserCircle2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,9 @@ import { getCmsAppUrl } from '../config/cmsRuntime';
 import { fetchPublicSettings } from '../utils/contentApi';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { getCloudinaryVariant } from '../utils/cloudinaryVariant';
+import { resolveMediaUrl } from '../utils/mediaResolver';
+import { mediaRepository } from '../repositories/mediaRepository';
+import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
 
 interface NavigationProps {
   currentPath?: string;
@@ -21,14 +24,17 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
   const showAccountAction = isAuthenticated && !canAccessCMS;
   const cmsAppUrl = getCmsAppUrl();
   const [logoSrc, setLogoSrc] = useState(imgTelegramCloudDocument);
+  const [logoSize, setLogoSize] = useState({ desktop: 120, tablet: 100, mobile: 80 });
 
   useEffect(() => {
     let active = true;
-    void fetchPublicSettings()
-      .then((settings) => {
+    void Promise.all([fetchPublicSettings(), hydratePublicMediaLibrary().catch(() => [])])
+      .then(([settings]) => {
         if (!active) return;
         const brandLogo = settings.siteSettings.brandMedia.logo.trim();
-        if (brandLogo) setLogoSrc(brandLogo);
+        const resolvedLogo = resolveMediaUrl(brandLogo, mediaRepository.getAll());
+        if (resolvedLogo) setLogoSrc(resolvedLogo);
+        setLogoSize(settings.branding.logoSize);
       })
       .catch(() => undefined);
 
@@ -86,7 +92,8 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
             <img 
               src={getCloudinaryVariant(logoSrc, 'contain')}
               alt="SMOVE Communication" 
-              className="h-12 max-w-[180px] w-auto object-contain"
+              className="cms-brand-logo h-auto object-contain"
+              style={{ '--logo-desktop': `${logoSize.desktop}px`, '--logo-tablet': `${logoSize.tablet}px`, '--logo-mobile': `${logoSize.mobile}px` } as CSSProperties}
             />
           </a>
 

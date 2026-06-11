@@ -1521,6 +1521,17 @@ describe('ContentService production hardening', () => {
     expect(saved.settings.taxonomy.blog.managedCategories).toEqual(['Branding', 'Web']);
   });
 
+  it('normalizes responsive logo sizing and custom social link icons', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository() });
+    const settings = service.normalizeSettings({
+      branding: { logoSize: { desktop: 500, tablet: 101.7, mobile: 12 } },
+      footer: { socialLinks: [{ platform: 'custom', label: 'Community', url: 'https://example.com', enabled: false, icon: ' media:community-icon ' }] },
+    });
+
+    expect(settings.branding.logoSize).toEqual({ desktop: 320, tablet: 102, mobile: 40 });
+    expect(settings.footer.socialLinks[0]).toEqual({ platform: 'custom', label: 'Community', url: 'https://example.com', enabled: false, icon: 'media:community-icon' });
+  });
+
   it('reports invalid media references in synchronization diagnostics', () => {
     const service = new ContentService({
       contentRepository: new MemoryContentRepository({
