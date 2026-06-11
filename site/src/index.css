@@ -3583,21 +3583,46 @@ html {
 }
 
 
+.cms-brand-logo-frame {
+  width: 120px;
+  height: 64px;
+  display: flex;
+  flex: 0 0 120px;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.cms-brand-logo-frame--footer {
+  height: 80px;
+}
+
 .cms-brand-logo {
-  width: var(--logo-mobile, 80px);
-  max-width: min(var(--logo-mobile, 80px), 100%);
+  display: block;
+  width: min(var(--logo-mobile, 80px), 100%);
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
 }
 
 @media (min-width: 768px) {
+  .cms-brand-logo-frame {
+    width: 140px;
+    flex-basis: 140px;
+  }
+
   .cms-brand-logo {
-    width: var(--logo-tablet, 100px);
-    max-width: min(var(--logo-tablet, 100px), 100%);
+    width: min(var(--logo-tablet, 100px), 100%);
   }
 }
 
 @media (min-width: 1024px) {
+  .cms-brand-logo-frame {
+    width: 180px;
+    flex-basis: 180px;
+  }
+
   .cms-brand-logo {
-    width: var(--logo-desktop, 120px);
-    max-width: min(var(--logo-desktop, 120px), 100%);
+    width: min(var(--logo-desktop, 120px), 100%);
   }
 }
