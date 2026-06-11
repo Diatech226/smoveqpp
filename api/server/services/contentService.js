@@ -412,6 +412,9 @@ const defaultSettings = {
       defaultSocialImage: '',
     },
   },
+  branding: {
+    logoSize: { desktop: 120, tablet: 100, mobile: 80 },
+  },
   footer: {
     socialLinks: [],
   },
@@ -1158,7 +1161,10 @@ class ContentService {
         favicon: resolve(settings.siteSettings.brandMedia.favicon),
         defaultSocialImage: resolve(settings.siteSettings.brandMedia.defaultSocialImage),
       },
-      footer: settings.footer,
+      branding: settings.branding,
+      footer: {
+        socialLinks: settings.footer.socialLinks.map((link) => ({ ...link, icon: resolve(link.icon) })),
+      },
     };
   }
 
@@ -2437,6 +2443,10 @@ class ContentService {
           defaultSocialImage: register(settings.siteSettings.brandMedia.defaultSocialImage, 'defaultSocialImage'),
         },
       },
+      footer: {
+        ...settings.footer,
+        socialLinks: settings.footer.socialLinks.map((link) => ({ ...link, icon: register(link.icon, 'socialIcon') })),
+      },
     };
   }
 
@@ -2697,6 +2707,7 @@ class ContentService {
     register(settings.siteSettings.brandMedia.logoDark, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.logoDark', label: 'Site settings' });
     register(settings.siteSettings.brandMedia.favicon, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.favicon', label: 'Site settings' });
     register(settings.siteSettings.brandMedia.defaultSocialImage, { domain: 'settings', id: 'global', status: 'system', field: 'siteSettings.brandMedia.defaultSocialImage', label: 'Site settings' });
+    settings.footer.socialLinks.forEach((link, index) => register(link.icon, { domain: 'settings', id: 'global', status: 'system', field: `footer.socialLinks[${index}].icon`, label: link.label }));
 
     return references;
   }
@@ -2704,6 +2715,7 @@ class ContentService {
   normalizeSettings(settings) {
     const siteSettingsCandidate = settings?.siteSettings && typeof settings.siteSettings === 'object' ? settings.siteSettings : settings;
     const footerCandidate = settings?.footer && typeof settings.footer === 'object' ? settings.footer : {};
+    const brandingCandidate = settings?.branding && typeof settings.branding === 'object' ? settings.branding : {};
     const operationalSettingsCandidate = settings?.operationalSettings && typeof settings.operationalSettings === 'object' ? settings.operationalSettings : settings;
     const taxonomySettingsCandidate = settings?.taxonomySettings && typeof settings.taxonomySettings === 'object'
       ? settings.taxonomySettings
@@ -2735,6 +2747,9 @@ class ContentService {
           defaultSocialImage:
             typeof siteSettingsCandidate?.brandMedia?.defaultSocialImage === 'string' ? siteSettingsCandidate.brandMedia.defaultSocialImage.trim() : '',
         },
+      },
+      branding: {
+        logoSize: this.normalizeLogoSize(brandingCandidate.logoSize),
       },
       footer: {
         socialLinks: this.normalizeSocialLinks(footerCandidate.socialLinks),
@@ -2770,8 +2785,15 @@ class ContentService {
       const label = `${entry.label || ''}`.trim();
       const url = `${entry.url || ''}`.trim();
       if (!platform || !label || !url || !this.isValidSocialUrl(url)) return [];
-      return [{ platform, label, url, enabled: entry.enabled !== false }];
+      const icon = `${entry.icon || ''}`.trim();
+      return [{ platform, label, url, enabled: entry.enabled !== false, icon }];
     });
+  }
+
+  normalizeLogoSize(candidate) {
+    const defaults = defaultSettings.branding.logoSize;
+    const clamp = (value, fallback) => typeof value === 'number' && Number.isFinite(value) ? Math.min(320, Math.max(40, Math.round(value))) : fallback;
+    return { desktop: clamp(candidate?.desktop, defaults.desktop), tablet: clamp(candidate?.tablet, defaults.tablet), mobile: clamp(candidate?.mobile, defaults.mobile) };
   }
 
   isValidSocialUrl(value) {
@@ -2845,6 +2867,7 @@ class ContentService {
     register('siteSettings.brandMedia.logoDark', previous.siteSettings.brandMedia.logoDark, next.siteSettings.brandMedia.logoDark);
     register('siteSettings.brandMedia.favicon', previous.siteSettings.brandMedia.favicon, next.siteSettings.brandMedia.favicon);
     register('siteSettings.brandMedia.defaultSocialImage', previous.siteSettings.brandMedia.defaultSocialImage, next.siteSettings.brandMedia.defaultSocialImage);
+    register('branding.logoSize', JSON.stringify(previous.branding.logoSize), JSON.stringify(next.branding.logoSize));
     register('footer.socialLinks', JSON.stringify(previous.footer.socialLinks), JSON.stringify(next.footer.socialLinks));
     if (previous.operationalSettings.instantPublishing !== next.operationalSettings.instantPublishing) {
       changedFields.push('operationalSettings.instantPublishing');
