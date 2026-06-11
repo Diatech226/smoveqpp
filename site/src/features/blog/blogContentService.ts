@@ -146,9 +146,9 @@ const findBySlug = (entries: CanonicalEntry[], slug: string): CanonicalEntry | u
   // 2) normalized primary slug
   // 3) id fallback (legacy compatibility)
   return (
-    entries.find((entry) => entry.seo.canonicalSlug === normalized) ||
-    entries.find((entry) => entry.slug === normalized) ||
-    entries.find((entry) => entry.id === normalized)
+    entries.find((entry) => normalizedSlug(entry.slug) === normalized) ||
+    entries.find((entry) => normalizedSlug(entry.seo.canonicalSlug) === normalized) ||
+    entries.find((entry) => normalizedSlug(entry.id) === normalized)
   );
 };
 
@@ -183,8 +183,15 @@ export async function getBlogPostBySlugContract(slug: string): Promise<BlogDetai
       if (isRenderablePublishedEntry(canonical)) return toDetailContract(canonical);
     }
   } catch (error) {
-    console.warn('[public-content] blog detail API unavailable; returning undefined to avoid stale local fallback.', error);
+    console.warn('[public-content] blog detail API unavailable; falling back to the public blog list.', error);
   }
 
-  return undefined;
+  try {
+    const remotePosts = await fetchPublicBlogPosts();
+    const fallbackEntry = findBySlug(toRenderableCanonicalEntries(remotePosts), slug);
+    return fallbackEntry ? toDetailContract(fallbackEntry) : undefined;
+  } catch (error) {
+    console.warn('[public-content] blog list fallback unavailable.', error);
+    return undefined;
+  }
 }

@@ -174,8 +174,9 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     return { page: `service-${slug}`, sectionToScroll: null, normalizedHash: `/services/${slug}` };
   }
 
-  if (route.startsWith('blog/')) {
-    const slug = normalizeSlug(route.slice('blog/'.length));
+  if (route.startsWith('blog/') || route.startsWith('blog-')) {
+    const prefix = route.startsWith('blog/') ? 'blog/' : 'blog-';
+    const slug = normalizeSlug(route.slice(prefix.length));
     if (slug) {
       return {
         page: `blog-${slug}`,
