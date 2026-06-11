@@ -34,6 +34,7 @@ export interface BlogDetailContract {
   title: string;
   excerpt: string;
   content: string;
+  contentBlocks: NonNullable<BlogPost['contentBlocks']>;
   author: string;
   publishedDate: string;
   readTime: string;
@@ -94,6 +95,7 @@ const toDetailContract = (entry: CanonicalEntry): BlogDetailContract => ({
   title: entry.title,
   excerpt: entry.excerpt,
   content: entry.content || '',
+  contentBlocks: entry.contentBlocks,
   author: entry.author,
   publishedDate: entry.publishedDate,
   readTime: entry.readTime,
