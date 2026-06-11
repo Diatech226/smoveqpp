@@ -38,6 +38,13 @@ describe('routeResolver', () => {
     expect(resolution.normalizedHash).toBe('/blog/mon-super-article');
   });
 
+  it('keeps canonical blog detail links on the article page after path alias normalization', () => {
+    const resolution = resolveRoute('#/blog/mon-super-article', baseAuth);
+
+    expect(resolution.page).toBe('blog-mon-super-article');
+    expect(resolution.normalizedHash).toBe('/blog/mon-super-article');
+  });
+
   it('resolves canonical hash paths for public list routes', () => {
     expect(resolveRoute('#/home', baseAuth).page).toBe('home');
     expect(resolveRoute('#/home', baseAuth).normalizedHash).toBe('/');
