@@ -1,12 +1,11 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Youtube, Globe2, MessageCircle, Send, Music2, Ghost } from 'lucide-react';
 import { fetchPublicSettings, type SocialLink } from '../utils/contentApi';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
+import BrandLogo from './brand/BrandLogo';
 import { submitNewsletterSubscription } from '../utils/newsletterApi';
 import { resolveMediaUrl } from '../utils/mediaResolver';
 import { mediaRepository } from '../repositories/mediaRepository';
-import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
-import { getCloudinaryVariant } from '../utils/cloudinaryVariant';
 
 const SOCIAL_ICONS = { facebook: Facebook, instagram: Instagram, youtube: Youtube, linkedin: Linkedin, x: Twitter, twitter: Twitter, whatsapp: MessageCircle, telegram: Send, website: Globe2, email: Mail, tiktok: Music2, snapchat: Ghost } as const;
 
@@ -14,25 +13,19 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [siteTitle, setSiteTitle] = useState('SMOVE');
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
-  const [logoSrc, setLogoSrc] = useState('/favicon.svg');
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
-  const [logoSize, setLogoSize] = useState({ desktop: 120, tablet: 100, mobile: 80 });
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
   const [newsletterFeedback, setNewsletterFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     let active = true;
-    void Promise.all([fetchPublicSettings(), hydratePublicMediaLibrary().catch(() => [])])
-      .then(([settings]) => {
+    void fetchPublicSettings()
+      .then((settings) => {
         if (!active) return;
         if (settings.siteSettings.siteTitle.trim()) setSiteTitle(settings.siteSettings.siteTitle.trim());
         if (settings.siteSettings.supportEmail.trim()) setSupportEmail(settings.siteSettings.supportEmail.trim());
         setSocialLinks(settings.footer.socialLinks.filter((link) => link.enabled));
-        setLogoSize(settings.branding.logoSize);
-        const logo = settings.siteSettings.brandMedia.logo.trim();
-        const resolvedLogo = resolveMediaUrl(logo, mediaRepository.getAll());
-        if (resolvedLogo) setLogoSrc(resolvedLogo);
       })
       .catch(() => {
         // Keep static fallback copy when backend settings are unavailable.
@@ -77,7 +70,7 @@ export default function Footer() {
             <h3 className="font-['Medula_One:Regular',sans-serif] text-[20px] tracking-[2px] uppercase text-[#00b3e8] mb-6">
               {siteTitle}
             </h3>
-            <img src={getCloudinaryVariant(logoSrc, 'contain')} alt={siteTitle} className="cms-brand-logo mb-4 h-auto object-contain" style={{ '--logo-desktop': `${logoSize.desktop}px`, '--logo-tablet': `${logoSize.tablet}px`, '--logo-mobile': `${logoSize.mobile}px` } as CSSProperties} />
+            <BrandLogo alt={siteTitle} context="footer" className="mb-4" />
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] leading-[1.6] text-white/80 mb-6">
               Agence de communication digitale spécialisée dans la création de contenu, le développement web et la stratégie digitale.
             </p>

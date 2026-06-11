@@ -1,15 +1,10 @@
 import { Home, Info, Briefcase, FolderOpen, BookOpen, Mail, LayoutDashboard, LogIn, UserCircle2 } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
-import imgTelegramCloudDocument from "figma:asset/9152e642280f0d22dbf10b789d9b260fdd8949da.png";
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getCmsAppUrl } from '../config/cmsRuntime';
-import { fetchPublicSettings } from '../utils/contentApi';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
-import { getCloudinaryVariant } from '../utils/cloudinaryVariant';
-import { resolveMediaUrl } from '../utils/mediaResolver';
-import { mediaRepository } from '../repositories/mediaRepository';
-import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
+import BrandLogo from './brand/BrandLogo';
 
 interface NavigationProps {
   currentPath?: string;
@@ -23,25 +18,6 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
   const showCMSAction = cmsEnabled && canAccessCMS;
   const showAccountAction = isAuthenticated && !canAccessCMS;
   const cmsAppUrl = getCmsAppUrl();
-  const [logoSrc, setLogoSrc] = useState(imgTelegramCloudDocument);
-  const [logoSize, setLogoSize] = useState({ desktop: 120, tablet: 100, mobile: 80 });
-
-  useEffect(() => {
-    let active = true;
-    void Promise.all([fetchPublicSettings(), hydratePublicMediaLibrary().catch(() => [])])
-      .then(([settings]) => {
-        if (!active) return;
-        const brandLogo = settings.siteSettings.brandMedia.logo.trim();
-        const resolvedLogo = resolveMediaUrl(brandLogo, mediaRepository.getAll());
-        if (resolvedLogo) setLogoSrc(resolvedLogo);
-        setLogoSize(settings.branding.logoSize);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string, sectionId?: string) => {
     e.preventDefault();
@@ -89,12 +65,7 @@ export default function Navigation({ currentPath = '/' }: NavigationProps) {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <a href={PUBLIC_ROUTE_HASH.home} className="flex items-center" onClick={(e) => handleNavClick(e, '/')}>
-            <img 
-              src={getCloudinaryVariant(logoSrc, 'contain')}
-              alt="SMOVE Communication" 
-              className="cms-brand-logo h-auto object-contain"
-              style={{ '--logo-desktop': `${logoSize.desktop}px`, '--logo-tablet': `${logoSize.tablet}px`, '--logo-mobile': `${logoSize.mobile}px` } as CSSProperties}
-            />
+            <BrandLogo alt="SMOVE Communication" context="header" />
           </a>
 
           {/* Desktop Navigation */}
