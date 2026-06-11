@@ -195,3 +195,20 @@ export async function getBlogPostBySlugContract(slug: string): Promise<BlogDetai
     return undefined;
   }
 }
+
+
+export async function getRelatedBlogPostsContract(slug: string, category: string, limit = 3): Promise<BlogListItem[]> {
+  try {
+    await hydratePublicMediaLibrary();
+    const entries = toRenderableCanonicalEntries(await fetchPublicBlogPosts());
+    const currentSlug = normalizedSlug(slug);
+    return entries
+      .filter((entry) => normalizedSlug(entry.slug) !== currentSlug && normalizedSlug(entry.seo.canonicalSlug) !== currentSlug)
+      .sort((left, right) => Number(right.category === category) - Number(left.category === category))
+      .slice(0, limit)
+      .map((entry) => toListItem(entry));
+  } catch (error) {
+    console.warn('[public-content] related blog articles unavailable.', error);
+    return [];
+  }
+}
