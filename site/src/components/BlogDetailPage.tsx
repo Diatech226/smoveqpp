@@ -1,242 +1,96 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Calendar, Clock3, User, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock3, Copy, Linkedin, Share2, Tag, User } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { getBlogPostBySlugContract, type BlogDetailContract } from '../features/blog/blogContentService';
+import { getBlogPostBySlugContract, getRelatedBlogPostsContract, type BlogDetailContract, type BlogListItem } from '../features/blog/blogContentService';
 import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { trackSiteEvent } from '../utils/analytics';
 import { buildContactCtaHref } from '../features/marketing/navigationCta';
+import { getCloudinaryVariant } from '../utils/cloudinaryVariant';
 
-interface BlogDetailPageProps {
-  slug: string;
-}
-
-const heroTransition = { duration: 0.7, ease: 'easeOut' as const };
+interface BlogDetailPageProps { slug: string; }
+const heroTransition = { duration: 0.65, ease: 'easeOut' as const };
 
 export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
   const [post, setPost] = useState<BlogDetailContract | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<BlogListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [shareNotice, setShareNotice] = useState('');
 
   useEffect(() => {
     let active = true;
     setIsLoading(true);
-    void getBlogPostBySlugContract(slug)
-      .then((result) => {
-        if (active) setPost(result || null);
-      })
-      .catch(() => {
-        if (active) setPost(null);
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+    void getBlogPostBySlugContract(slug).then(async (result) => {
+      if (!active) return;
+      setPost(result || null);
+      setRelatedPosts(result ? await getRelatedBlogPostsContract(result.slug, result.category) : []);
+    }).catch(() => active && setPost(null)).finally(() => active && setIsLoading(false));
+    return () => { active = false; };
   }, [slug]);
 
   useEffect(() => {
     if (!post) return;
     trackSiteEvent({ name: 'blog_article_opened', route: 'blog-detail', entityType: 'blog', entityId: post.slug, targetRoute: `/blog/${post.slug}` });
-    applyPageMetadata({
-      title: post.seo.title || post.title,
-      description: post.seo.description || post.excerpt || 'Article du blog SMOVE.',
-      routePath: `/blog/${post.seo.canonicalSlug || post.slug}` ,
-      image: post.seo.socialImage || post.featuredImage || '',
-      type: 'article',
-    });
+    applyPageMetadata({ title: post.seo.title || post.title, description: post.seo.description || post.excerpt || 'Article du blog SMOVE.', routePath: `/blog/${post.seo.canonicalSlug || post.slug}`, image: post.seo.socialImage || post.featuredImage || '', type: 'article' });
   }, [post]);
 
   const publishedDate = useMemo(() => {
-    if (!post?.publishedDate) return 'Date indisponible';
-    const parsedDate = Date.parse(post.publishedDate);
-    if (Number.isNaN(parsedDate)) return 'Date indisponible';
-    return new Date(parsedDate).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    const parsed = Date.parse(post?.publishedDate || '');
+    return Number.isNaN(parsed) ? '' : new Date(parsed).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
   }, [post?.publishedDate]);
-  const contactHref = useMemo(
-    () => buildContactCtaHref({ source: 'blog', slug: post?.slug || slug, label: post?.title || 'Article de blog' }),
-    [post?.slug, post?.title, slug],
-  );
+  const contactHref = useMemo(() => buildContactCtaHref({ source: 'blog', slug: post?.slug || slug, label: post?.title || 'Article de blog' }), [post?.slug, post?.title, slug]);
+  const articleUrl = typeof window === 'undefined' ? '' : window.location.href;
+  const share = async () => {
+    if (!post) return;
+    if (navigator.share) await navigator.share({ title: post.title, text: post.excerpt, url: articleUrl });
+    else await copyLink();
+  };
+  const copyLink = async () => {
+    await navigator.clipboard?.writeText(articleUrl);
+    setShareNotice('Lien copié');
+    window.setTimeout(() => setShareNotice(''), 1800);
+  };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navigation currentPath="/blog" />
-        <div className="pt-32 pb-20 text-center px-4 text-[#38484e]">Chargement de l’article…</div>
-        <Footer />
-      </div>
-    );
-  }
+  if (isLoading) return <div className="min-h-screen bg-white"><Navigation currentPath="/blog" /><main className="mx-auto max-w-4xl px-5 pb-24 pt-36"><div className="h-9 w-2/3 animate-pulse rounded-xl bg-[#eaf2f5]" /><div className="mt-5 h-72 animate-pulse rounded-[28px] bg-[#f1f6f8]" /></main><Footer /></div>;
+  if (!post) return <div className="min-h-screen bg-white"><Navigation currentPath="/blog" /><main className="mx-auto max-w-3xl px-5 pb-24 pt-36 text-center"><span className="text-sm font-semibold uppercase tracking-[.2em] text-[#00a5d5]">Erreur 404</span><h1 className="mt-4 text-[42px] leading-tight text-[#273a41]">Cet article est introuvable</h1><p className="mx-auto mt-4 max-w-xl text-lg text-[#64777e]">Il a peut-être été déplacé, dépublié ou son adresse a changé.</p><a href={PUBLIC_ROUTE_HASH.blog} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#273a41] px-6 py-3 text-white"><ArrowLeft size={18} /> Retour au blog</a></main><Footer /></div>;
 
-  if (!post) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navigation currentPath="/blog" />
-        <div className="pt-32 pb-20 text-center px-4">
-          <h1 className="text-[42px] text-[#273a41]">Article non trouvé</h1>
-          <a href={PUBLIC_ROUTE_HASH.blog} className="text-[#00b3e8] underline">
-            Retour au blog
-          </a>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-white">
-      <Navigation currentPath="/blog" />
-
-      <motion.article
-        className="bg-gradient-to-b from-[#f5f9fa] via-white to-white"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <section className="pt-28 sm:pt-32 pb-10 sm:pb-14 relative overflow-hidden">
-          <motion.div
-            className="absolute top-0 right-0 w-[420px] h-[420px] sm:w-[560px] sm:h-[560px] bg-[#00b3e8]/10 rounded-full blur-3xl pointer-events-none"
-            animate={{ y: [0, 30, 0], scale: [1, 1.08, 1] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          <motion.div
-            className="absolute -bottom-20 -left-20 w-[360px] h-[360px] sm:w-[460px] sm:h-[460px] bg-[#ffc247]/10 rounded-full blur-3xl pointer-events-none"
-            animate={{ y: [0, -25, 0], scale: [1, 1.12, 1] }}
-            transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <motion.a
-              href={PUBLIC_ROUTE_HASH.blog}
-              className="inline-flex items-center gap-2 text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif] text-[15px] sm:text-[16px]"
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={heroTransition}
-              whileHover={{ x: -4 }}
-            >
-              <ArrowLeft size={18} />
-              Retour au blog
-            </motion.a>
-
-            <div className="mt-7 sm:mt-10 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-8 lg:gap-10 items-start">
-              <motion.header
-                initial={{ y: 24, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ ...heroTransition, delay: 0.1 }}
-              >
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#00b3e8]/10 text-[#00b3e8] px-4 py-2 text-[12px] sm:text-[13px] font-['Abhaya_Libre:Bold',sans-serif] tracking-[0.4px] uppercase">
-                  <Tag size={14} />
-                  {post.category || 'Non classé'}
-                </div>
-
-                <h1 className="mt-5 text-[34px] leading-[1.12] sm:text-[46px] lg:text-[56px] text-[#273a41] font-['ABeeZee:Regular',sans-serif] break-words">
-                  {post.title}
-                </h1>
-
-                {post.excerpt ? (
-                  <p className="mt-5 text-[18px] sm:text-[21px] leading-relaxed text-[#38484e] max-w-3xl font-['Abhaya_Libre:Regular',sans-serif]">
-                    {post.excerpt}
-                  </p>
-                ) : null}
-
-                <motion.div
-                  className="mt-7 flex flex-wrap gap-2.5 sm:gap-3"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...heroTransition, delay: 0.25 }}
-                >
-                  {[
-                    { icon: Calendar, label: publishedDate },
-                    { icon: Clock3, label: post.readTime || 'Temps de lecture indisponible' },
-                    { icon: User, label: post.author || 'Équipe SMOVE' },
-                  ].map(({ icon: Icon, label }) => (
-                    <div
-                      key={label}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#dce7ec] bg-white/90 backdrop-blur px-3.5 py-2 text-[13px] sm:text-[14px] text-[#5f7077]"
-                    >
-                      <Icon size={14} className="text-[#00b3e8]" />
-                      <span className="font-['Abhaya_Libre:Regular',sans-serif]">{label}</span>
-                    </div>
-                  ))}
-                </motion.div>
-              </motion.header>
-
-              <motion.div
-                className="lg:pt-2"
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ ...heroTransition, delay: 0.2 }}
-              >
-                {post.featuredImage ? (
-                  <motion.figure
-                    className="rounded-[24px] overflow-hidden bg-white shadow-[0_20px_50px_rgba(39,58,65,0.16)] border border-[#e9f0f3]"
-                    whileHover={{ y: -4 }}
-                  >
-                    <div className="aspect-[16/10] sm:aspect-[4/3] lg:aspect-[5/4] overflow-hidden">
-                      <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.6 }}>
-                        <ImageWithFallback
-                          src={post.featuredImage}
-                          alt={post.media.alt || post.title}
-                          className="h-full w-full bg-[#f5f9fa] object-contain"
-                        />
-                      </motion.div>
-                    </div>
-                    {post.media.caption ? (
-                      <figcaption className="px-4 py-3 text-[13px] text-[#6f7f85] bg-white/90 border-t border-[#eef3f5]">
-                        {post.media.caption}
-                      </figcaption>
-                    ) : null}
-                  </motion.figure>
-                ) : (
-                  <div className="rounded-[24px] border border-dashed border-[#dce7ec] bg-white/80 p-8 sm:p-10 text-[#6f7f85] text-center font-['Abhaya_Libre:Regular',sans-serif]">
-                    Image de couverture indisponible
-                  </div>
-                )}
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        <section className="pb-16 sm:pb-20">
-          <motion.div
-            className="max-w-3xl mx-auto px-4 sm:px-6"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-120px' }}
-            transition={{ duration: 0.55, ease: 'easeOut' }}
-          >
-            <div className="rounded-[22px] sm:rounded-[26px] border border-[#eaf1f4] bg-white shadow-[0_8px_30px_rgba(39,58,65,0.08)] px-5 py-7 sm:px-9 sm:py-10 lg:px-11 lg:py-12">
-              <div className="whitespace-pre-line text-[#273a41] font-['Abhaya_Libre:Regular',sans-serif] text-[17px] sm:text-[18px] leading-[1.95] [&>h2]:text-[30px] [&>h2]:leading-tight [&>h2]:text-[#273a41] [&>h2]:mt-12 [&>h2]:mb-4 [&>h2]:font-['ABeeZee:Regular',sans-serif] [&>h3]:text-[24px] [&>h3]:leading-tight [&>h3]:text-[#273a41] [&>h3]:mt-10 [&>h3]:mb-3 [&>h3]:font-['ABeeZee:Regular',sans-serif] [&>p]:mb-7 [&>ul]:mb-8 [&>ol]:mb-8 [&>blockquote]:my-8 [&>blockquote]:rounded-r-[12px] [&>blockquote]:border-l-4 [&>blockquote]:border-[#00b3e8]/70 [&>blockquote]:bg-[#f5f9fa] [&>blockquote]:px-5 [&>blockquote]:py-4">
-                {post.content || 'Contenu indisponible.'}
-              </div>
+  const heroImage = getCloudinaryVariant(post.featuredImage, 'hero');
+  return <div className="min-h-screen overflow-x-hidden bg-white"><Navigation currentPath="/blog" />
+    <motion.article initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <header className="relative overflow-hidden bg-[#f4f9fa] pb-12 pt-28 sm:pb-16 sm:pt-32">
+        <div className="absolute -right-40 -top-48 h-[520px] w-[520px] rounded-full bg-[#00b3e8]/10 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <a href={PUBLIC_ROUTE_HASH.blog} className="inline-flex items-center gap-2 text-sm font-semibold text-[#007fa3]"><ArrowLeft size={17} /> Retour au blog</a>
+          <motion.div className="mx-auto mt-8 max-w-4xl text-center" initial={{ y: 22, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={heroTransition}>
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#bde7f2] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[.14em] text-[#008ab3]"><Tag size={13} /> {post.category || 'Non classé'}</span>
+            <h1 className="mt-6 break-words text-[38px] leading-[1.08] text-[#20343b] sm:text-[54px] lg:text-[68px]">{post.title}</h1>
+            {post.excerpt ? <p className="mx-auto mt-6 max-w-3xl text-[18px] leading-relaxed text-[#536970] sm:text-[21px]">{post.excerpt}</p> : null}
+            <div className="mt-7 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-[#60757c]">
+              {publishedDate ? <span className="inline-flex items-center gap-2"><Calendar size={15} className="text-[#00a5d5]" />{publishedDate}</span> : null}
+              {post.author ? <span className="inline-flex items-center gap-2"><User size={15} className="text-[#00a5d5]" />{post.author}</span> : null}
+              {post.readTime ? <span className="inline-flex items-center gap-2"><Clock3 size={15} className="text-[#00a5d5]" />{post.readTime}</span> : null}
             </div>
           </motion.div>
-        </section>
-        <section className="pb-16 sm:pb-20">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6">
-            <div className="rounded-[22px] border border-[#eaf1f4] bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] p-8 sm:p-10 text-white">
-              <h2 className="font-['ABeeZee:Regular',sans-serif] text-[32px] mb-3">Besoin d'un accompagnement sur ce sujet&nbsp;?</h2>
-              <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[18px] text-white/90 mb-6">
-                Expliquez votre contexte via notre formulaire de contact. Notre équipe vous répond rapidement.
-              </p>
-              <a
-                href={contactHref}
-                className="inline-flex items-center rounded-[12px] bg-white px-6 py-3 text-[#00b3e8] font-['Abhaya_Libre:Bold',sans-serif]"
-              >
-                Nous contacter
-              </a>
-            </div>
-          </div>
-        </section>
-      </motion.article>
+          <motion.div className="mt-10 overflow-hidden rounded-[24px] border border-white/80 bg-[#dfecef] shadow-[0_26px_70px_rgba(30,65,77,.18)] sm:rounded-[32px]" initial={{ y: 28, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ ...heroTransition, delay: .15 }}>
+            {heroImage ? <ImageWithFallback src={heroImage} alt={post.media.alt || post.title} className="aspect-[16/10] h-auto w-full object-cover sm:aspect-[16/8] lg:aspect-[16/7]" /> : <div className="flex aspect-[16/8] items-center justify-center bg-gradient-to-br from-[#dff5fa] to-[#f8e9c7] text-[#597178]"><Share2 size={34} /><span className="ml-3 font-semibold">SMOVE — Perspectives</span></div>}
+          </motion.div>
+        </div>
+      </header>
 
-      <Footer />
-    </div>
-  );
+      <section className="pb-16 pt-12 sm:pb-20 sm:pt-16"><div className="mx-auto grid max-w-5xl gap-8 px-4 sm:px-6 lg:grid-cols-[150px_minmax(0,820px)] lg:px-8">
+        <aside className="lg:sticky lg:top-28 lg:self-start"><p className="mb-3 text-xs font-semibold uppercase tracking-[.16em] text-[#71848a]">Partager</p><div className="flex flex-wrap gap-2 lg:flex-col">
+          <button onClick={() => void share()} className="inline-flex items-center gap-2 rounded-full border border-[#dbe8ec] px-4 py-2 text-sm text-[#38515a]"><Share2 size={15} /> Partager</button>
+          <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(articleUrl)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[#dbe8ec] px-4 py-2 text-sm text-[#38515a]"><Linkedin size={15} /> LinkedIn</a>
+          <button onClick={() => void copyLink()} className="inline-flex items-center gap-2 rounded-full border border-[#dbe8ec] px-4 py-2 text-sm text-[#38515a]"><Copy size={15} /> {shareNotice || 'Copier'}</button>
+        </div></aside>
+        <div className="min-w-0"><div className="whitespace-pre-line break-words text-[18px] leading-[1.9] text-[#334b54] sm:text-[19px] [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl">{post.content || 'Contenu à venir.'}</div>
+          <div className="mt-14 rounded-[24px] bg-gradient-to-r from-[#007fa3] to-[#00b3e8] p-7 text-white sm:p-9"><h2 className="text-[28px] sm:text-[32px]">Besoin d’un accompagnement sur ce sujet&nbsp;?</h2><p className="mt-3 text-lg text-white/85">Partagez votre contexte avec notre équipe et transformons ces idées en résultats.</p><a href={contactHref} className="mt-6 inline-flex rounded-full bg-white px-6 py-3 font-semibold text-[#007fa3]">Nous contacter</a></div>
+        </div>
+      </div></section>
+
+      {relatedPosts.length ? <section className="border-t border-[#e9f0f2] bg-[#f7fafb] py-16 sm:py-20"><div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-[#00a5d5]">Continuer la lecture</p><h2 className="mt-2 text-[32px] text-[#273a41] sm:text-[40px]">Articles liés</h2></div><a href={PUBLIC_ROUTE_HASH.blog} className="inline-flex items-center gap-2 font-semibold text-[#007fa3]">Tous les articles <ArrowLeft className="rotate-180" size={17} /></a></div><div className="mt-8 grid gap-5 md:grid-cols-3">{relatedPosts.map((related) => <a key={related.id} href={`#/blog/${related.slug}`} className="group overflow-hidden rounded-[20px] border border-[#e2ecef] bg-white shadow-[0_8px_24px_rgba(39,58,65,.06)]"><ImageWithFallback src={getCloudinaryVariant(related.image, 'card')} alt={related.media.alt || related.title} className="aspect-[16/9] h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" /><div className="p-5"><span className="text-xs font-semibold uppercase tracking-[.12em] text-[#00a5d5]">{related.category}</span><h3 className="mt-2 text-[20px] leading-snug text-[#273a41]">{related.title}</h3><p className="mt-3 text-sm text-[#6a7d84]">{related.date} · {related.readTime}</p></div></a>)}</div></div></section> : null}
+    </motion.article><Footer /></div>;
 }
