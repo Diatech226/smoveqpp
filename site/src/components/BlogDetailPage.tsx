@@ -18,12 +18,21 @@ const heroTransition = { duration: 0.7, ease: 'easeOut' as const };
 
 export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
   const [post, setPost] = useState<BlogDetailContract | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    void getBlogPostBySlugContract(slug).then((result) => {
-      if (active) setPost(result || null);
-    });
+    setIsLoading(true);
+    void getBlogPostBySlugContract(slug)
+      .then((result) => {
+        if (active) setPost(result || null);
+      })
+      .catch(() => {
+        if (active) setPost(null);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
     return () => {
       active = false;
     };
@@ -55,6 +64,16 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
     () => buildContactCtaHref({ source: 'blog', slug: post?.slug || slug, label: post?.title || 'Article de blog' }),
     [post?.slug, post?.title, slug],
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation currentPath="/blog" />
+        <div className="pt-32 pb-20 text-center px-4 text-[#38484e]">Chargement de l’article…</div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!post) {
     return (

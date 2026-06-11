@@ -44,6 +44,29 @@ describe('ContentService blog persistence', () => {
     expect(new Set(second.map((post) => post.slug)).size).toBe(second.length);
   });
 
+
+  it('creates a published article from only title and image', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository({ blogPosts: [], mediaFiles: [] }) });
+
+    const result = service.saveBlogPost({ title: 'Article minimal été', imageUrl: 'https://res.cloudinary.com/demo/image/upload/article.jpg' });
+
+    expect(result.ok).toBe(true);
+    expect(result.post.slug).toBe('article-minimal-ete');
+    expect(result.post.status).toBe('published');
+    expect(result.post.excerpt).toBe('');
+    expect(result.post.content).toBe('');
+    expect(result.post.featuredImage).toMatch(/^media:/);
+    expect(result.post.mediaRoles.featuredImage).toBe(result.post.featuredImage);
+    expect(service.listBlogPosts().some((post) => post.id === result.post.id)).toBe(true);
+  });
+
+  it('rejects a new article when title or image is missing', () => {
+    const service = new ContentService({ contentRepository: new MemoryContentRepository({ blogPosts: [], mediaFiles: [] }) });
+
+    expect(service.saveBlogPost({ imageUrl: 'https://res.cloudinary.com/demo/image/upload/article.jpg' }).ok).toBe(false);
+    expect(service.saveBlogPost({ title: 'Sans image' }).ok).toBe(false);
+  });
+
   it('supports status lifecycle and prevents publishing invalid posts', () => {
     const repo = new MemoryContentRepository({
       blogPosts: [

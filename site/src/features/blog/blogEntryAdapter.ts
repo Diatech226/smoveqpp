@@ -66,15 +66,24 @@ function safeDateString(value: string): string {
 }
 
 export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
-  const excerpt = post.excerpt || post.content.slice(0, 160) || 'Contenu indisponible.';
+  const rawPost = post as BlogPost & { summary?: string; body?: string; coverImage?: string; image?: string; imageUrl?: string; socialImage?: string };
+  const content = post.content || rawPost.body || '';
+  const excerpt = post.excerpt || rawPost.summary || content.slice(0, 160) || '';
   const title = post.title || 'Article sans titre';
   const slug = normalizeSlug(post.slug, title);
-  const featuredImageRef =
-    post.mediaRoles?.featuredImage?.trim() ||
-    post.mediaRoles?.coverImage?.trim() ||
-    post.mediaRoles?.cardImage?.trim() ||
-    post.featuredImage;
-  const media = resolveBlogMediaReference(featuredImageRef, title, 'card');
+  const featuredImageCandidates = [
+    post.mediaRoles?.featuredImage,
+    post.featuredImage,
+    rawPost.coverImage,
+    rawPost.image,
+    rawPost.imageUrl,
+    rawPost.socialImage,
+    post.mediaRoles?.coverImage,
+    post.mediaRoles?.cardImage,
+  ].map((value) => value?.trim()).filter((value): value is string => Boolean(value));
+  const resolvedCandidates = featuredImageCandidates.map((reference) => resolveBlogMediaReference(reference, title, 'card'));
+  const media = resolvedCandidates.find((candidate) => !candidate.isFallback) || resolvedCandidates[0] || resolveBlogMediaReference('', title, 'card');
+  const featuredImageRef = media.reference;
   const seoTitle = post.seo?.title?.trim() || title;
   const seoDescription = post.seo?.description?.trim() || excerpt;
   const canonicalSlug = normalizeSlug(post.seo?.canonicalSlug || slug, title);
@@ -86,7 +95,7 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
     slug,
     title,
     excerpt,
-    content: post.content || '',
+    content,
     author: post.author || 'Équipe SMOVE',
     category: (post.category || 'Non classé').trim() || 'Non classé',
     featuredImage: media.src,
