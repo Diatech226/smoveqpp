@@ -22,6 +22,7 @@ export interface CanonicalBlogEntry {
   title: string;
   excerpt: string;
   content: string;
+  contentBlocks: NonNullable<BlogPost['contentBlocks']>;
   author: string;
   category: string;
   featuredImage: string;
@@ -44,6 +45,7 @@ export interface CmsBlogInput {
   slug: string;
   excerpt: string;
   content: string;
+  contentBlocks?: NonNullable<BlogPost['contentBlocks']>;
   author: string;
   category: string;
   tags?: string;
@@ -96,6 +98,7 @@ export function toCanonicalBlogEntry(post: BlogPost): CanonicalBlogEntry {
     title,
     excerpt,
     content,
+    contentBlocks: Array.isArray(post.contentBlocks) ? post.contentBlocks.map((block) => block.type === 'image' ? { ...block, media: resolveBlogMediaReference(block.media || '', block.title || title, 'hero').src } : block) : [],
     author: post.author || 'Équipe SMOVE',
     category: (post.category || 'Non classé').trim() || 'Non classé',
     featuredImage: media.src,
@@ -174,6 +177,7 @@ export function fromCmsBlogInputWithExisting(input: CmsBlogInput, existingPost?:
     slug,
     excerpt,
     content: fallbackContent,
+    contentBlocks: input.contentBlocks || existingPost?.contentBlocks || [],
     author: input.author.trim() || 'Équipe SMOVE',
     authorRole: 'CMS Editor',
     category,
