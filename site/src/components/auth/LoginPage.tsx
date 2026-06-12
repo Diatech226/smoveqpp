@@ -67,12 +67,6 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    if (!cmsEnabled) {
-      setError('Le CMS est actuellement désactivé dans cet environnement.');
-      setLoading(false);
-      return;
-    }
-
     if (!email || !password) {
       setError('Veuillez remplir tous les champs');
       setLoading(false);
@@ -280,7 +274,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px]"
                   placeholder="votre@email.com"
-                  disabled={loading || !cmsEnabled}
+                  disabled={loading}
                 />
               </div>
             </motion.div>
@@ -302,7 +296,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px]"
                   placeholder="••••••••"
-                  disabled={loading || !cmsEnabled}
+                  disabled={loading}
                 />
               </div>
             </motion.div>
@@ -318,7 +312,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 className="w-full bg-gradient-to-r from-[#00b3e8] to-[#00c0e8] text-white px-8 py-4 rounded-[12px] font-['Abhaya_Libre:Bold',sans-serif] text-[18px] flex items-center justify-center gap-2 relative overflow-hidden"
-                disabled={loading || !cmsEnabled}
+                disabled={loading}
                 translate="no"
               >
                 {loading && (
