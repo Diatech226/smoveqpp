@@ -150,6 +150,14 @@ describe('guards', () => {
     expect(forgotDecision).toBe('account');
     expect(resetDecision).toBe('account');
   });
+  it('keeps public login and registration available when the CMS is disabled', () => {
+    const loginDecision = resolveAuthPageGuard('login', { ...baseAuth, cmsEnabled: false });
+    const registerDecision = resolveAuthPageGuard('register', { ...baseAuth, cmsEnabled: false, registrationEnabled: true });
+
+    expect(loginDecision).toBe('login');
+    expect(registerDecision).toBe('register');
+  });
+
   it('allows register when registration is enabled', () => {
     const decision = resolveAuthPageGuard('register', {
       ...baseAuth,
