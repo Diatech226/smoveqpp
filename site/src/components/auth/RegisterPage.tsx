@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -41,6 +41,15 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { register, registrationEnabled, authError, authNotice } = useAuth();
   const isFormDisabled = loading || !registrationEnabled;
+  const particles = useMemo(
+    () => Array.from({ length: 20 }, () => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      duration: 3 + Math.random() * 2,
+      delay: Math.random() * 2,
+    })),
+    [],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,15 +80,19 @@ export default function RegisterPage() {
       return;
     }
 
-    const result = await register(email, password, name);
+    try {
+      const result = await register(email.trim(), password, name.trim());
 
-    if (result.success) {
-      window.location.hash = result.destination ?? 'home';
-    } else {
+      if (result.success) {
+        window.location.hash = result.destination ?? 'account';
+        return;
+      }
       setError(result.error ?? authError ?? 'Cet email est déjà utilisé');
+    } catch (_error) {
+      setError(authError ?? 'Inscription impossible. Réessayez.');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -134,13 +147,13 @@ export default function RegisterPage() {
         />
 
         {/* Particles */}
-        {[...Array(20)].map((_, i) => (
+        {particles.map((particle, i) => (
           <motion.div
             key={`particle-${i}`}
             className="absolute w-1 h-1 bg-[#34c759] rounded-full"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: particle.left,
+              top: particle.top,
             }}
             animate={{
               y: [0, -100, 0],
@@ -148,9 +161,9 @@ export default function RegisterPage() {
               scale: [0, 1, 0],
             }}
             transition={{
-              duration: 3 + Math.random() * 2,
+              duration: particle.duration,
               repeat: Infinity,
-              delay: Math.random() * 2,
+              delay: particle.delay,
             }}
           />
         ))}
@@ -230,6 +243,8 @@ export default function RegisterPage() {
           {error && (
             <motion.div
               className="bg-red-50 border border-red-200 rounded-[12px] p-4 mb-6 flex items-center gap-3"
+              role="alert"
+              aria-live="polite"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
             >
@@ -248,12 +263,15 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <label className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
+              <label htmlFor="register-name" className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
                 Nom complet
               </label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ba1a4]" size={20} />
                 <input
+                  id="register-name"
+                  name="name"
+                  autoComplete="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -270,12 +288,15 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <label className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
+              <label htmlFor="register-email" className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
                 Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ba1a4]" size={20} />
                 <input
+                  id="register-email"
+                  name="email"
+                  autoComplete="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -292,12 +313,15 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <label className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
+              <label htmlFor="register-password" className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
                 Mot de passe
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ba1a4]" size={20} />
                 <input
+                  id="register-password"
+                  name="password"
+                  autoComplete="new-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -317,12 +341,15 @@ export default function RegisterPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.7 }}
             >
-              <label className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
+              <label htmlFor="register-confirm-password" className="block font-['Abhaya_Libre:Bold',sans-serif] text-[16px] text-[#273a41] mb-2">
                 Confirmer le mot de passe
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ba1a4]" size={20} />
                 <input
+                  id="register-confirm-password"
+                  name="confirmPassword"
+                  autoComplete="new-password"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}

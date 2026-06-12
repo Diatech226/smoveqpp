@@ -2,8 +2,9 @@ import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary'
 import { mediaRepository } from '../repositories/mediaRepository';
 import { readFromStorage, writeToStorage } from '../repositories/storage/localStorageStore';
 import { getCloudinaryVariant } from './cloudinaryVariant';
-import { fetchPublicSettings } from './contentApi';
+import { fetchPublicSettings, type PublicSiteSettings } from './contentApi';
 import { resolveMediaUrl } from './mediaResolver';
+import { logDebug } from './observability';
 
 export const DEFAULT_BRAND_LOGO = '/favicon.svg';
 export const DEFAULT_LOGO_SIZE = { desktop: 120, tablet: 100, mobile: 80 } as const;
@@ -14,6 +15,11 @@ type LogoSize = { desktop: number; tablet: number; mobile: number };
 export interface PublicBrandingSnapshot {
   logoSrc: string;
   logoSize: LogoSize;
+}
+
+export interface PublicBrandingBootstrap {
+  branding: PublicBrandingSnapshot;
+  settings: PublicSiteSettings;
 }
 
 const isPositiveNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0;
@@ -37,7 +43,7 @@ const fallbackSnapshot: PublicBrandingSnapshot = {
 };
 
 let snapshot = readFromStorage(PUBLIC_BRANDING_STORAGE_KEY, isPublicBrandingSnapshot, fallbackSnapshot);
-let refreshPromise: Promise<PublicBrandingSnapshot> | null = null;
+let bootstrapPromise: Promise<PublicBrandingBootstrap> | null = null;
 const listeners = new Set<() => void>();
 
 export const getPublicBrandingSnapshot = (): PublicBrandingSnapshot => snapshot;
@@ -61,37 +67,44 @@ const preloadLogo = async (logoSrc: string): Promise<void> => {
   });
 };
 
-const resolvePublishedLogo = async (logoReference: string): Promise<string> => {
-  if (!logoReference) return '';
-  const immediatelyResolved = resolveMediaUrl(logoReference, mediaRepository.getAll());
-  if (immediatelyResolved) return immediatelyResolved;
-  const mediaFiles = await hydratePublicMediaLibrary().catch(() => []);
-  return resolveMediaUrl(logoReference, mediaFiles);
-};
+/** Loads settings and media together so media:<id> branding is resolvable on the first render cycle. */
+export function bootstrapPublicBranding(): Promise<PublicBrandingBootstrap> {
+  if (bootstrapPromise) return bootstrapPromise;
 
-export function refreshPublicBranding(): Promise<PublicBrandingSnapshot> {
-  if (refreshPromise) return refreshPromise;
-
-  refreshPromise = fetchPublicSettings()
-    .then(async (settings) => {
-      const publishedLogo = await resolvePublishedLogo(settings.siteSettings.brandMedia.logo.trim());
+  bootstrapPromise = Promise.all([fetchPublicSettings(), hydratePublicMediaLibrary().catch((error) => {
+    logDebug({ scope: 'branding', event: 'public_media_load_failed', error });
+    return mediaRepository.getAll();
+  })])
+    .then(async ([settings, mediaFiles]) => {
+      const logoReference = settings.siteSettings.brandMedia.logo.trim();
+      const publishedLogo = resolveMediaUrl(logoReference, mediaFiles.length ? mediaFiles : mediaRepository.getAll());
       const nextSnapshot: PublicBrandingSnapshot = {
+        // Preserve the cached, already-rendered logo if the newest reference cannot resolve.
         logoSrc: publishedLogo || snapshot.logoSrc || DEFAULT_BRAND_LOGO,
         logoSize: settings.branding.logoSize,
       };
 
       if (nextSnapshot.logoSrc !== snapshot.logoSrc) {
-        await preloadLogo(nextSnapshot.logoSrc);
+        try {
+          await preloadLogo(nextSnapshot.logoSrc);
+        } catch (error) {
+          logDebug({ scope: 'branding', event: 'logo_preload_failed', details: { logoReference }, error });
+          return { branding: snapshot, settings };
+        }
       }
 
       snapshot = nextSnapshot;
       writeToStorage(PUBLIC_BRANDING_STORAGE_KEY, snapshot);
       listeners.forEach((listener) => listener());
-      return snapshot;
+      return { branding: snapshot, settings };
     })
     .finally(() => {
-      refreshPromise = null;
+      bootstrapPromise = null;
     });
 
-  return refreshPromise;
+  return bootstrapPromise;
+}
+
+export async function refreshPublicBranding(): Promise<PublicBrandingSnapshot> {
+  return (await bootstrapPublicBranding()).branding;
 }

@@ -21,14 +21,18 @@ vi.mock('./features/app-shell/AppPageRenderer', () => ({
   default: () => <div data-app-page-renderer="ready">site ready</div>,
 }));
 
-vi.mock('./utils/contentApi', () => ({
-  fetchPublicSettings: async () => ({
+vi.mock('./utils/publicBranding', () => ({
+  bootstrapPublicBranding: async () => ({ settings: {
     siteSettings: {
       siteTitle: 'Site',
       brandMedia: { defaultSocialImage: '', favicon: '' },
     },
-  }),
+  } }),
 }));
+
+vi.mock('./utils/mediaResolver', () => ({ resolveMediaUrl: () => '' }));
+vi.mock('./repositories/mediaRepository', () => ({ mediaRepository: { getAll: () => [] } }));
+vi.mock('./utils/observability', () => ({ logDebug: () => undefined }));
 
 vi.mock('./features/marketing/pageMetadata', () => ({
   applyResolvedPageMetadata: () => undefined,

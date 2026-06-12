@@ -5,13 +5,19 @@ type MotionProps<T extends ElementType> = ComponentPropsWithoutRef<T> & {
   children?: ReactNode;
 };
 
+const componentCache = new Map<string, (props: MotionProps<ElementType>) => JSX.Element>();
+
 const motionProxy = new Proxy(
   {},
   {
     get: (_target, tag: string) => {
+      const cached = componentCache.get(tag);
+      if (cached) return cached;
+
       const Component = (props: MotionProps<ElementType>) =>
         createElement(tag, props, props.children);
       Component.displayName = `MotionShim(${tag})`;
+      componentCache.set(tag, Component);
       return Component;
     },
   },
