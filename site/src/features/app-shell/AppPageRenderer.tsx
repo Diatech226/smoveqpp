@@ -54,30 +54,10 @@ export default function AppPageRenderer({
   }
 
   if (currentPage === 'login') {
-    if (!cmsEnabled) {
-      return (
-        <SecurityStatePage
-          title="CMS désactivé"
-          description="Le CMS est désactivé dans cet environnement tant qu'un backend d'authentification sécurisé n'est pas configuré."
-          actionHref="#home"
-          actionLabel="Retour à l'accueil"
-        />
-      );
-    }
     return <LoginPage />;
   }
 
   if (currentPage === 'register') {
-    if (!cmsEnabled) {
-      return (
-        <SecurityStatePage
-          title="CMS désactivé"
-          description="Le CMS est désactivé dans cet environnement tant qu'un backend d'authentification sécurisé n'est pas configuré."
-          actionHref="#home"
-          actionLabel="Retour à l'accueil"
-        />
-      );
-    }
     return <RegisterPage />;
   }
 

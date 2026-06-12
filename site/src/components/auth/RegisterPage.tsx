@@ -39,19 +39,13 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register, registrationEnabled, cmsEnabled, authError, authNotice } = useAuth();
-  const isFormDisabled = loading || !registrationEnabled || !cmsEnabled;
+  const { register, registrationEnabled, authError, authNotice } = useAuth();
+  const isFormDisabled = loading || !registrationEnabled;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    if (!cmsEnabled) {
-      setError('Le CMS est actuellement désactivé dans cet environnement.');
-      setLoading(false);
-      return;
-    }
 
     if (!registrationEnabled) {
       setError('L’inscription publique est désactivée. Contactez un administrateur.');
@@ -205,7 +199,7 @@ export default function RegisterPage() {
             </p>
           </motion.div>
 
-          {(!registrationEnabled || !cmsEnabled) && (
+          {!registrationEnabled && (
             <motion.div
               className="bg-amber-50 border border-amber-200 rounded-[12px] p-4 mb-6"
               initial={{ opacity: 0, y: 20 }}
