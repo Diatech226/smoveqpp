@@ -1,10 +1,20 @@
 import { useEffect, useSyncExternalStore, type CSSProperties } from 'react';
 import { getCloudinaryVariant } from '../../utils/cloudinaryVariant';
+import { logDebug } from '../../utils/observability';
 import {
+  DEFAULT_BRAND_LOGO,
   getPublicBrandingSnapshot,
   refreshPublicBranding,
   subscribeToPublicBranding,
 } from '../../utils/publicBranding';
+
+const handleLogoError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+  const image = event.currentTarget;
+  if (image.dataset.fallbackApplied === 'true') return;
+  logDebug({ scope: 'branding', event: 'logo_render_failed', details: { src: image.currentSrc || image.src } });
+  image.dataset.fallbackApplied = 'true';
+  image.src = DEFAULT_BRAND_LOGO;
+};
 
 interface BrandLogoProps {
   alt: string;
@@ -20,7 +30,9 @@ export default function BrandLogo({ alt, context, className = '' }: BrandLogoPro
   );
 
   useEffect(() => {
-    void refreshPublicBranding().catch(() => undefined);
+    void refreshPublicBranding().catch((error) => {
+      logDebug({ scope: 'branding', event: 'component_refresh_failed', error });
+    });
   }, []);
 
   const logoVariables = {
@@ -40,6 +52,7 @@ export default function BrandLogo({ alt, context, className = '' }: BrandLogoPro
         decoding="async"
         fetchPriority={context === 'header' ? 'high' : 'auto'}
         loading={context === 'header' ? 'eager' : 'lazy'}
+        onError={handleLogoError}
       />
     </span>
   );
