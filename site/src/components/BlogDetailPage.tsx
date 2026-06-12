@@ -61,7 +61,7 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
   const heroImage = getCloudinaryVariant(post.featuredImage, 'hero');
   return <div className="min-h-screen overflow-x-hidden bg-white"><Navigation currentPath="/blog" />
     <motion.article initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <header className="relative overflow-hidden bg-[#f4f9fa] pb-12 pt-28 sm:pb-16 sm:pt-32">
+      <header className="blog-detail-hero relative overflow-hidden bg-[#f4f9fa] pb-12 pt-28 sm:pb-16 sm:pt-32">
         <div className="absolute -right-40 -top-48 h-[520px] w-[520px] rounded-full bg-[#00b3e8]/10 blur-3xl" />
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <a href={PUBLIC_ROUTE_HASH.blog} className="inline-flex items-center gap-2 text-sm font-semibold text-[#007fa3]"><ArrowLeft size={17} /> Retour au blog</a>
@@ -69,7 +69,7 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
             <span className="inline-flex items-center gap-2 rounded-full border border-[#bde7f2] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[.14em] text-[#008ab3]"><Tag size={13} /> {post.category || 'Non classé'}</span>
             <h1 className="mt-6 break-words text-[38px] leading-[1.08] text-[#20343b] sm:text-[54px] lg:text-[68px]">{post.title}</h1>
             {post.excerpt ? <p className="mx-auto mt-6 max-w-3xl text-[18px] leading-relaxed text-[#536970] sm:text-[21px]">{post.excerpt}</p> : null}
-            <div className="mt-7 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-[#60757c]">
+            <div className="blog-detail-meta mt-7 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-[#60757c]">
               {publishedDate ? <span className="inline-flex items-center gap-2"><Calendar size={15} className="text-[#00a5d5]" />{publishedDate}</span> : null}
               {post.author ? <span className="inline-flex items-center gap-2"><User size={15} className="text-[#00a5d5]" />{post.author}</span> : null}
               {post.readTime ? <span className="inline-flex items-center gap-2"><Clock3 size={15} className="text-[#00a5d5]" />{post.readTime}</span> : null}
@@ -81,18 +81,30 @@ export default function BlogDetailPage({ slug }: BlogDetailPageProps) {
         </div>
       </header>
 
-      <section className="pb-16 pt-12 sm:pb-20 sm:pt-16"><div className="mx-auto grid max-w-5xl gap-8 px-4 sm:px-6 lg:grid-cols-[150px_minmax(0,820px)] lg:px-8">
+      <section className="blog-detail-body pb-16 pt-12 sm:pb-20 sm:pt-16"><div className="mx-auto grid max-w-5xl gap-8 px-4 sm:px-6 lg:grid-cols-[150px_minmax(0,820px)] lg:px-8">
         <aside className="lg:sticky lg:top-28 lg:self-start"><p className="mb-3 text-xs font-semibold uppercase tracking-[.16em] text-[#71848a]">Partager</p><div className="flex flex-wrap gap-2 lg:flex-col">
           <button onClick={() => void share()} className="inline-flex items-center gap-2 rounded-full border border-[#dbe8ec] px-4 py-2 text-sm text-[#38515a] transition hover:border-[#9fd4e0] hover:bg-[#f1fafc] hover:text-[#007fa3]"><Share2 size={15} /> Partager</button>
           <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(articleUrl)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[#dbe8ec] px-4 py-2 text-sm text-[#38515a] transition hover:border-[#9fd4e0] hover:bg-[#f1fafc] hover:text-[#007fa3]"><Linkedin size={15} /> LinkedIn</a>
           <button onClick={() => void copyLink()} className="inline-flex items-center gap-2 rounded-full border border-[#dbe8ec] px-4 py-2 text-sm text-[#38515a] transition hover:border-[#9fd4e0] hover:bg-[#f1fafc] hover:text-[#007fa3]"><Copy size={15} /> {shareNotice || 'Copier'}</button>
         </div></aside>
-        <div className="min-w-0 max-w-[760px]"><ArticleText content={post.content || ''} />
+        <div className="blog-detail-content min-w-0 max-w-[760px]"><ArticleText content={post.content || ''} />
           <ArticleContentBlocks blocks={post.contentBlocks} />
-          <div className="mt-12 overflow-hidden rounded-[20px] border border-[#b9e5ef] bg-[#eaf8fb] px-5 py-6 shadow-[0_14px_36px_rgba(0,127,163,.10)] sm:mt-16 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-7 sm:py-7"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#007fa3]">Un projet en tête&nbsp;?</p><h2 className="mt-2 text-[24px] leading-tight text-[#193841] sm:text-[28px]">Besoin d’un accompagnement sur ce sujet&nbsp;?</h2><p className="mt-2 max-w-xl text-[16px] leading-relaxed text-[#47636c]">Partagez votre contexte avec notre équipe et transformons ces idées en résultats.</p></div><a href={contactHref} className="mt-5 inline-flex shrink-0 items-center justify-center rounded-full bg-[#007fa3] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:bg-[#006c8b] hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007fa3] sm:mt-0">Nous contacter</a></div>
+          <div className="blog-detail-cta mt-12 overflow-hidden rounded-[20px] border border-[#b9e5ef] bg-[#eaf8fb] px-5 py-6 shadow-[0_14px_36px_rgba(0,127,163,.10)] sm:mt-16 sm:flex sm:items-center sm:justify-between sm:gap-8 sm:px-7 sm:py-7"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#007fa3]">Un projet en tête&nbsp;?</p><h2 className="mt-2 text-[24px] leading-tight text-[#193841] sm:text-[28px]">Besoin d’un accompagnement sur ce sujet&nbsp;?</h2><p className="mt-2 max-w-xl text-[16px] leading-relaxed text-[#47636c]">Partagez votre contexte avec notre équipe et transformons ces idées en résultats.</p></div><a href={contactHref} className="mt-5 inline-flex shrink-0 items-center justify-center rounded-full bg-[#007fa3] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:bg-[#006c8b] hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007fa3] sm:mt-0">Nous contacter</a></div>
         </div>
       </div></section>
 
-      <section className="border-t border-[#e9f0f2] bg-[#f7fafb] py-14 sm:py-20"><div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8"><div className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-[#008ab3]">Continuer la lecture</p><h2 className="mt-2 text-[32px] text-[#273a41] sm:text-[40px]">Articles liés</h2></div><a href={PUBLIC_ROUTE_HASH.blog} className="inline-flex items-center gap-2 rounded-full px-3 py-2 font-semibold text-[#007fa3] transition hover:bg-[#e5f5f9] hover:text-[#006b89]">Tous les articles <ArrowLeft className="rotate-180" size={17} /></a></div>{relatedPosts.length ? <div className="mt-8 grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">{relatedPosts.map((related) => <a key={related.id} href={`#/blog/${related.slug}`} className="group overflow-hidden rounded-[20px] border border-[#e2ecef] bg-white shadow-[0_8px_24px_rgba(39,58,65,.06)] transition duration-300 hover:-translate-y-1 hover:border-[#b7dfe8] hover:shadow-[0_18px_42px_rgba(39,58,65,.12)]"><div className="overflow-hidden"><ImageWithFallback src={getCloudinaryVariant(related.image, 'card')} alt={related.media.alt || related.title} className="aspect-[16/9] h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" /></div><div className="p-5"><span className="text-xs font-semibold uppercase tracking-[.12em] text-[#008ab3]">{related.category}</span><h3 className="mt-2 text-[20px] leading-snug text-[#273a41]">{related.title}</h3><p className="mt-3 text-sm text-[#6a7d84]">{related.date} · {related.readTime}</p></div></a>)}</div> : <div className="mt-8 rounded-[20px] border border-dashed border-[#cbdde2] bg-white px-6 py-8 text-center text-[#60757c]">Aucun article lié pour le moment. Découvrez bientôt de nouvelles publications.</div>}</div></section>
+      <section className="blog-detail-related" aria-labelledby="related-articles-title">
+        <div className="blog-detail-related-inner">
+          <div className="blog-detail-related-header">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#008ab3]">Continuer la lecture</p>
+              <h2 id="related-articles-title" className="mt-2 text-[32px] text-[#273a41] sm:text-[40px]">Articles liés</h2>
+              <p className="blog-detail-related-subtitle">D’autres perspectives sélectionnées pour prolonger votre lecture.</p>
+            </div>
+            <a href={PUBLIC_ROUTE_HASH.blog} className="inline-flex items-center gap-2 rounded-full px-3 py-2 font-semibold text-[#007fa3] transition hover:bg-[#e5f5f9] hover:text-[#006b89]">Tous les articles <ArrowLeft className="rotate-180" size={17} /></a>
+          </div>
+          {relatedPosts.length ? <div className="blog-detail-related-grid">{relatedPosts.map((related) => <a key={related.id} href={`#/blog/${related.slug}`} className="blog-detail-related-card group"><div className="blog-detail-related-media"><ImageWithFallback src={getCloudinaryVariant(related.image, 'card')} alt={related.media.alt || related.title} className="blog-detail-related-image" /></div><div className="blog-detail-related-card-body"><span className="text-xs font-semibold uppercase tracking-[.12em] text-[#008ab3]">{related.category}</span><h3 className="mt-2 text-[20px] leading-snug text-[#273a41]">{related.title}</h3><p className="mt-3 text-sm text-[#6a7d84]">{related.date} · {related.readTime}</p></div></a>)}</div> : <div className="blog-detail-related-empty">Aucun article lié pour le moment. Découvrez bientôt de nouvelles publications.</div>}
+        </div>
+      </section>
     </motion.article><Footer /></div>;
 }
