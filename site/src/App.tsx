@@ -4,7 +4,10 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useHashNavigation } from './app-routing/useHashNavigation';
 import AppErrorBoundary from './features/app-shell/AppErrorBoundary';
 import AppPageRenderer from './features/app-shell/AppPageRenderer';
-import { fetchPublicSettings } from './utils/contentApi';
+import { bootstrapPublicBranding } from './utils/publicBranding';
+import { resolveMediaUrl } from './utils/mediaResolver';
+import { mediaRepository } from './repositories/mediaRepository';
+import { logDebug } from './utils/observability';
 import { applyResolvedPageMetadata, configurePublicMetadata } from './features/marketing/pageMetadata';
 import { trackSiteEvent } from './utils/analytics';
 
@@ -32,14 +35,14 @@ function AppContent() {
 
   useEffect(() => {
     let active = true;
-    void fetchPublicSettings()
-      .then((settings) => {
+    void bootstrapPublicBranding()
+      .then(({ settings }) => {
         if (!active) return;
         configurePublicMetadata({
           siteTitle: settings.siteSettings.siteTitle.trim(),
-          defaultSocialImage: settings.siteSettings.brandMedia.defaultSocialImage.trim(),
+          defaultSocialImage: resolveMediaUrl(settings.siteSettings.brandMedia.defaultSocialImage, mediaRepository.getAll()),
         });
-        const faviconHref = settings.siteSettings.brandMedia.favicon.trim();
+        const faviconHref = resolveMediaUrl(settings.siteSettings.brandMedia.favicon, mediaRepository.getAll());
         if (faviconHref) {
           const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
           if (link) {
@@ -49,7 +52,9 @@ function AppContent() {
 
 
       })
-      .catch(() => undefined);
+      .catch((error) => {
+        logDebug({ scope: 'branding', event: 'startup_failed', error });
+      });
 
     return () => {
       active = false;
