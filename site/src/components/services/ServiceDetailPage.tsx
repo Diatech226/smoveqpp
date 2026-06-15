@@ -155,6 +155,22 @@ export default function ServiceDetailPage({ slug }: ServiceDetailPageProps) {
         </div>
       </section>
 
+      {detail.illustrationCards.length > 0 ? (
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {detail.illustrationCards.map((card) => (
+              <article key={card.id} className="overflow-hidden rounded-[18px] bg-[#f5f9fa]">
+                <ImageWithFallback src={card.image.src} alt={card.image.alt} className="h-56 w-full object-cover" />
+                <div className="p-6">
+                  <h3 className="font-['ABeeZee:Regular',sans-serif] text-[22px] text-[#273a41]">{card.title}</h3>
+                  {card.caption ? <p className="mt-2 font-['Abhaya_Libre:Regular',sans-serif] text-[17px] text-[#38484e]">{card.caption}</p> : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <Footer />
     </div>
   );
