@@ -1,4 +1,3 @@
-import { resolveAssetReference } from '../media/assetReference';
 import type { Service } from '../../domain/contentSchemas';
 import { resolveServiceRouteSlug } from './serviceRouting';
 
@@ -74,11 +73,6 @@ export const buildServiceDetailContract = (service: Service): ServiceDetailContr
     : FALLBACK_CTA_HREF;
   const ctaTitle = normalizeText(service.ctaTitle) || `Lancer votre projet ${title}`;
   const ctaDescription = normalizeText(service.ctaDescription) || `${ctaPrimaryLabel} pour discuter de vos objectifs et du planning de mise en œuvre.`;
-  const heroMedia = resolveAssetReference(service.representativeImage || service.visualMedia || service.iconLikeAsset, title, `${title.toLowerCase()} service`);
-  const illustrationCards = (service.illustrationCards || []).map((card) => {
-    const image = resolveAssetReference(card.image, card.title, card.title);
-    return { id: card.id, title: card.title, caption: normalizeText(card.caption), image: { src: image.src, alt: image.alt } };
-  });
 
   return {
     id: service.id,
@@ -96,10 +90,10 @@ export const buildServiceDetailContract = (service: Service): ServiceDetailContr
       primaryHref: ctaPrimaryHref,
     },
     heroMedia: {
-      src: heroMedia.src,
-      alt: heroMedia.alt,
-      isMediaAsset: heroMedia.isMediaAsset,
+      src: '',
+      alt: `${title.toLowerCase()} service`,
+      isMediaAsset: false,
     },
-    illustrationCards,
+    illustrationCards: [],
   };
 };

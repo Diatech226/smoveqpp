@@ -51,13 +51,17 @@ describe('serviceDetailContract', () => {
     expect(found).toBeUndefined();
   });
 
-  it('uses icon-like media as detail hero media when provided by CMS', () => {
+  it('ignores legacy service media when building the public detail contract', () => {
     const detail = buildServiceDetailContract({
       ...publishedService,
       iconLikeAsset: 'https://cdn.example.com/service-hero.png',
+      representativeImage: 'media:legacy-hero',
+      visualMedia: 'https://cdn.example.com/visual.png',
+      illustrationCards: [{ id: 'card-1', title: 'Legacy card', image: 'https://cdn.example.com/card.png' }],
     });
 
-    expect(detail.heroMedia.src).toBe('https://cdn.example.com/service-hero.png');
+    expect(detail.heroMedia.src).toBe('');
     expect(detail.heroMedia.isMediaAsset).toBe(false);
+    expect(detail.illustrationCards).toEqual([]);
   });
 });
