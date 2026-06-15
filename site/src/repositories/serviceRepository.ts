@@ -23,7 +23,7 @@ const normalizeService = (service: Partial<Service> & { id: string }): Service =
     description: requiredTrimmed(service.description),
     shortDescription: requiredTrimmed(service.shortDescription) || undefined,
     icon: requiredTrimmed(service.icon) || 'palette',
-    iconLikeAsset: requiredTrimmed(service.iconLikeAsset) || undefined,
+    iconLikeAsset: requiredTrimmed(service.iconLikeAsset) || requiredTrimmed(service.visualMedia) || requiredTrimmed(service.image) || requiredTrimmed(service.media) || undefined,
     routeSlug: normalizeSlug(requiredTrimmed(service.routeSlug) || requiredTrimmed(service.slug), title, service.id),
     overviewTitle: requiredTrimmed((service as Service).overviewTitle) || undefined,
     overviewDescription: requiredTrimmed((service as Service).overviewDescription) || undefined,
