@@ -82,24 +82,29 @@ export default function ContactPage() {
     setIsSubmitting(true);
     setSubmitFeedback(null);
 
-    const result = await submitContactForm(formData);
-    if (result.success) {
-      setSubmitFeedback({ type: 'success', message: result.message });
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: '',
-        source: formData.source,
-        contextSlug: formData.contextSlug,
-        contextLabel: formData.contextLabel,
-      });
-    } else {
-      setSubmitFeedback({ type: 'error', message: result.message });
+    try {
+      const result = await submitContactForm(formData);
+      if (result.success) {
+        setFieldErrors({});
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+          source: formData.source,
+          contextSlug: formData.contextSlug,
+          contextLabel: formData.contextLabel,
+        });
+        setSubmitFeedback({ type: 'success', message: result.message });
+      } else {
+        setSubmitFeedback({ type: 'error', message: result.message });
+      }
+    } catch {
+      setSubmitFeedback({ type: 'error', message: 'Le message n’a pas pu être envoyé. Veuillez réessayer.' });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
