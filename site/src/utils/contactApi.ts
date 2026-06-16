@@ -18,6 +18,8 @@ export interface ContactSubmissionResult {
 }
 
 interface ApiEnvelope {
+  ok?: boolean;
+  message?: string;
   success?: boolean;
   data?: {
     submissionId?: string;
@@ -70,7 +72,6 @@ export async function submitContactForm(payload: ContactFormPayload): Promise<Co
   const response = await fetch(CONTACT_BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify(normalizedPayload),
   }).catch(() => null);
 
@@ -84,7 +85,9 @@ export async function submitContactForm(payload: ContactFormPayload): Promise<Co
 
   const body = (await response.json().catch(() => null)) as ApiEnvelope | null;
 
-  if (!response.ok || body?.success !== true) {
+  const accepted = body?.ok === true || body?.success === true;
+
+  if (!response.ok || !accepted) {
     return {
       success: false,
       code: body?.error?.code || `CONTACT_${response.status}`,
@@ -92,7 +95,7 @@ export async function submitContactForm(payload: ContactFormPayload): Promise<Co
     };
   }
 
-  if (!body?.data?.submissionId) {
+  if (body?.success === true && body?.ok !== true && !body?.data?.submissionId) {
     return {
       success: false,
       code: 'CONTACT_PERSISTENCE_MISSING',
@@ -102,6 +105,6 @@ export async function submitContactForm(payload: ContactFormPayload): Promise<Co
 
   return {
     success: true,
-    message: body.data?.message || 'Message envoyé avec succès. Nous vous répondrons rapidement.',
+    message: body.message || body.data?.message || 'Message reçu avec succès.',
   };
 }
