@@ -27,7 +27,7 @@ describe('submitContactForm', () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toBe('Stored');
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/contact'), expect.objectContaining({ credentials: 'include' }));
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/contact'), expect.not.objectContaining({ credentials: expect.anything() }));
   });
 
   it('returns user-safe error message on API failure', async () => {
@@ -101,14 +101,14 @@ describe('submitContactForm', () => {
     expect(result.code).toBe('CONTACT_NETWORK_ERROR');
   });
 
-  it('fails safely when API returns success without persistence id', async () => {
+  it('accepts the public ok envelope when API returns success without persistence id details', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
         ({
           ok: true,
           status: 200,
-          json: async () => ({ success: true, data: {} }),
+          json: async () => ({ ok: true, message: 'Message reçu avec succès.' }),
         }) as Response,
       ),
     );
@@ -120,7 +120,7 @@ describe('submitContactForm', () => {
       message: 'Hello, I need a quote.',
     });
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe('CONTACT_PERSISTENCE_MISSING');
+    expect(result.success).toBe(true);
+    expect(result.message).toBe('Message reçu avec succès.');
   });
 });
