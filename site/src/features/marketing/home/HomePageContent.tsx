@@ -94,21 +94,31 @@ function HomePageContent() {
       message: `${formData.get('message') || ''}`,
     };
 
-    const result = await submitContactForm(payload);
-    trackSiteEvent({
-      name: 'contact_form_submitted',
-      route: 'home',
-      entityType: 'contact',
-      success: result.success,
-    });
-    if (result.success) {
-      setContactFeedback({ type: 'success', message: result.message });
-      event.currentTarget.reset();
-    } else {
-      setContactFeedback({ type: 'error', message: result.message });
+    try {
+      const result = await submitContactForm(payload);
+      trackSiteEvent({
+        name: 'contact_form_submitted',
+        route: 'home',
+        entityType: 'contact',
+        success: result.success,
+      });
+      if (result.success) {
+        event.currentTarget.reset();
+        setContactFeedback({ type: 'success', message: result.message });
+      } else {
+        setContactFeedback({ type: 'error', message: result.message });
+      }
+    } catch {
+      trackSiteEvent({
+        name: 'contact_form_submitted',
+        route: 'home',
+        entityType: 'contact',
+        success: false,
+      });
+      setContactFeedback({ type: 'error', message: 'Le message n’a pas pu être envoyé. Veuillez réessayer.' });
+    } finally {
+      setIsSubmittingContact(false);
     }
-
-    setIsSubmittingContact(false);
   };
 
   return (
