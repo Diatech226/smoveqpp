@@ -92,6 +92,7 @@ function HomePageContent() {
       phone: `${formData.get('phone') || ''}`,
       subject: `${formData.get('subject') || ''}`,
       message: `${formData.get('message') || ''}`,
+      source: 'home',
     };
 
     try {
@@ -623,6 +624,7 @@ function HomePageContent() {
                   <input
                     type="email"
                     name="email"
+                    required
                     className="w-full px-4 py-3 rounded-[12px] border-2 border-[#eef3f5] focus:border-[#00b3e8] outline-none transition-colors font-['Abhaya_Libre:Regular',sans-serif] text-[16px]"
                     placeholder="votre@email.com"
                   />
@@ -655,7 +657,7 @@ function HomePageContent() {
               </div>
 
               {contactFeedback ? (
-                <p className={`text-[14px] ${contactFeedback.type === 'success' ? 'text-green-700' : 'text-red-600'}`}>{contactFeedback.message}</p>
+                <p role="status" aria-live="polite" className={`text-[14px] ${contactFeedback.type === 'success' ? 'text-green-700' : 'text-red-600'}`}>{contactFeedback.message}</p>
               ) : null}
 
               <motion.button

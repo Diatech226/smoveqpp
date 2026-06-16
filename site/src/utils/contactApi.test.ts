@@ -27,6 +27,7 @@ describe('submitContactForm', () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toBe('Stored');
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/contact'), expect.objectContaining({ credentials: 'include' }));
   });
 
   it('returns user-safe error message on API failure', async () => {
@@ -50,6 +51,38 @@ describe('submitContactForm', () => {
 
     expect(result.success).toBe(false);
     expect(result.code).toBe('CONTACT_EMAIL_FAILED');
+  });
+
+  it('returns validation error without a request when reply channel is missing', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await submitContactForm({
+      name: 'John Doe',
+      email: '   ',
+      subject: 'Need a quote',
+      message: 'Hello, I need a quote.',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('CONTACT_MISSING_REPLY_CHANNEL');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns validation error without a request when message is too short', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await submitContactForm({
+      name: 'John Doe',
+      email: 'john@example.com',
+      subject: 'Need a quote',
+      message: 'Too short',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('CONTACT_INVALID_MESSAGE');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns network-safe error when API is unreachable', async () => {
