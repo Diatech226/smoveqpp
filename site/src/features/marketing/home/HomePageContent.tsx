@@ -92,7 +92,7 @@ function HomePageContent() {
       phone: `${formData.get('phone') || ''}`,
       subject: `${formData.get('subject') || ''}`,
       message: `${formData.get('message') || ''}`,
-      source: 'home',
+      source: 'homepage-footer',
     };
 
     try {
@@ -109,14 +109,17 @@ function HomePageContent() {
       } else {
         setContactFeedback({ type: 'error', message: result.message });
       }
-    } catch {
+    } catch (error) {
       trackSiteEvent({
         name: 'contact_form_submitted',
         route: 'home',
         entityType: 'contact',
         success: false,
       });
-      setContactFeedback({ type: 'error', message: 'Le message n’a pas pu être envoyé. Veuillez réessayer.' });
+      const message = error instanceof Error && error.message.trim()
+        ? error.message
+        : 'Le message n’a pas pu être envoyé. Veuillez réessayer.';
+      setContactFeedback({ type: 'error', message });
     } finally {
       setIsSubmittingContact(false);
     }
