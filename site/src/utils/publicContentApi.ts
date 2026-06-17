@@ -9,7 +9,20 @@ interface ApiEnvelope<T> {
   error?: { code?: string; message?: string };
 }
 
-const CONTENT_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/content/public`;
+const CONTENT_BASE_URL = safeJoinUrl(RUNTIME_CONFIG.apiBaseUrl, 'content', 'public');
+const CONTENT_PUBLIC_PATH_PREFIX = /^\/?content\/public(?:\/|$)/;
+
+function safeJoinUrl(...parts: Array<string | undefined>): string {
+  const [first = '', ...rest] = parts;
+  const base = first.replace(/\/+$/, '');
+  const suffix = rest
+    .map((part) => `${part || ''}`.trim())
+    .filter(Boolean)
+    .map((part) => part.replace(/^\/+|\/+$/g, ''))
+    .filter(Boolean)
+    .join('/');
+  return suffix ? `${base}/${suffix}` : base;
+}
 const inFlightRequests = new Map<string, Promise<unknown>>();
 const TRANSIENT_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
@@ -19,6 +32,8 @@ function normalizeCollection<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[];
   if (value && typeof value === 'object') {
     const record = value as Record<string, unknown>;
+    if (Array.isArray(record.team)) return record.team as T[];
+    if (Array.isArray(record.members)) return record.members as T[];
     if (Array.isArray(record.projects)) return record.projects as T[];
     if (Array.isArray(record.items)) return record.items as T[];
     if (Array.isArray(record.data)) return record.data as T[];
@@ -40,7 +55,8 @@ async function requestWithRetry<T>(path: string, retries = 3): Promise<T> {
 
   while (true) {
     try {
-      const response = await fetch(`${CONTENT_BASE_URL}${path}`, {
+      const normalizedPath = path.replace(CONTENT_PUBLIC_PATH_PREFIX, '').replace(/^\/+/, '');
+      const response = await fetch(safeJoinUrl(CONTENT_BASE_URL, normalizedPath), {
         cache: 'no-store',
         credentials: 'omit',
         headers: {
@@ -97,8 +113,8 @@ export async function fetchPublicPageContent(): Promise<HomePageContentSettings>
 }
 
 export async function fetchPublicTeam(): Promise<TeamMember[]> {
-  const data = await request<{ team: TeamMember[] }>('/team');
-  return data.team;
+  const data = await request<unknown>('/team');
+  return normalizeCollection<TeamMember>(data);
 }
 
 export async function fetchPublicMediaFiles(): Promise<MediaFile[]> {
