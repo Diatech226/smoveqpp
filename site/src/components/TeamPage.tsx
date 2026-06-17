@@ -10,8 +10,9 @@ import type { TeamMember } from '../domain/contentSchemas';
 
 function TeamPhoto({ member }: { member: TeamMember }) {
   const media = resolveBlogMediaReference(member.photo, member.name);
-  if (member.photo && media.src) {
-    return <img src={media.src} alt={member.name} className="h-72 w-full object-cover transition duration-500 group-hover:scale-105" />;
+  const isLegacyUploadOnly = Boolean(member.photo && /(?:^|\/)uploads\//i.test(member.photo) && !/res\.cloudinary\.com/i.test(member.photo));
+  if (member.photo && media.src && !isLegacyUploadOnly) {
+    return <img src={media.src} alt={member.name} className="h-72 w-full object-cover transition duration-500 group-hover:scale-105" onError={(event) => { event.currentTarget.style.display = 'none'; }} />;
   }
 
   return (
