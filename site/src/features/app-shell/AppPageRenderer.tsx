@@ -8,6 +8,7 @@ import ServiceDetailPage from '../../components/services/ServiceDetailPage';
 import ProjectsPage from '../../components/ProjectsPage';
 import ProjectDetailPage from '../../components/ProjectDetailPage';
 import ContactPage from '../../components/ContactPage';
+import TeamPage from '../../components/TeamPage';
 import LoginPage from '../../components/auth/LoginPage';
 import RegisterPage from '../../components/auth/RegisterPage';
 import ForgotPasswordPage from '../../components/auth/ForgotPasswordPage';
@@ -198,6 +199,14 @@ export default function AppPageRenderer({
         <PublicSiteShell>
           <SectionErrorBoundary scope="blog">
             <BlogPageEnhanced />
+          </SectionErrorBoundary>
+        </PublicSiteShell>
+      );
+    case 'team':
+      return (
+        <PublicSiteShell>
+          <SectionErrorBoundary scope="team">
+            <TeamPage />
           </SectionErrorBoundary>
         </PublicSiteShell>
       );

@@ -25,6 +25,7 @@ export const PUBLIC_ROUTE_PATHS = {
   services: '/services',
   portfolio: '/portfolio',
   about: '/about',
+  team: '/equipe',
   contact: '/contact',
 } as const;
 
@@ -50,6 +51,7 @@ export const PUBLIC_ROUTE_HASH = {
   services: toHashHref(PUBLIC_ROUTE_PATHS.services),
   portfolio: toHashHref(PUBLIC_ROUTE_PATHS.portfolio),
   about: toHashHref(PUBLIC_ROUTE_PATHS.about),
+  team: toHashHref(PUBLIC_ROUTE_PATHS.team),
   contact: toHashHref(PUBLIC_ROUTE_PATHS.contact),
   blogDetail: (slug: string) => toHashHref(buildBlogDetailPath(slug)),
   projectDetail: (slug: string) => toHashHref(buildProjectDetailPath(slug)),

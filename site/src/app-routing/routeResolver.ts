@@ -49,6 +49,8 @@ const routeFromPathAlias = (route: string): string => {
     '/services': 'services-all',
     '/portfolio': 'portfolio',
     '/about': 'apropos',
+    '/equipe': 'team',
+    '/team': 'team',
     '/apropos': 'apropos',
     '/contact': 'contact',
     '/login': 'login',
@@ -197,7 +199,7 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
     }
   }
 
-  const knownPages = new Set(['home', 'projects', 'services-all', 'portfolio', 'blog', 'apropos', 'contact', 'forgot-password', 'reset-password', 'cms-unavailable', 'cms-forbidden', 'auth-loading']);
+  const knownPages = new Set(['home', 'projects', 'services-all', 'portfolio', 'blog', 'apropos', 'team', 'contact', 'forgot-password', 'reset-password', 'cms-unavailable', 'cms-forbidden', 'auth-loading']);
 
   if (knownPages.has(route)) {
     const normalizedHashByPage: Partial<Record<typeof route, string>> = {
@@ -207,6 +209,7 @@ export function resolveRoute(hash: string, auth: AuthRoutingState): RouteResolut
       portfolio: '/portfolio',
       blog: '/blog',
       apropos: '/about',
+      team: '/equipe',
       contact: '/contact',
       'forgot-password': '/forgot-password',
       'reset-password': '/reset-password',
