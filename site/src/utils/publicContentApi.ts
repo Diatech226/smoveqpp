@@ -1,5 +1,5 @@
 import { RUNTIME_CONFIG } from '../config/runtimeConfig';
-import type { MediaFile, Project, Service } from '../domain/contentSchemas';
+import type { MediaFile, Project, Service, TeamMember } from '../domain/contentSchemas';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
 import { ContentApiError } from './contentApi';
 
@@ -94,6 +94,11 @@ export async function fetchPublicServices(): Promise<Service[]> {
 export async function fetchPublicPageContent(): Promise<HomePageContentSettings> {
   const data = await request<{ pageContent: { home: HomePageContentSettings } }>('/page-content');
   return data.pageContent.home;
+}
+
+export async function fetchPublicTeam(): Promise<TeamMember[]> {
+  const data = await request<{ team: TeamMember[] }>('/team');
+  return data.team;
 }
 
 export async function fetchPublicMediaFiles(): Promise<MediaFile[]> {
