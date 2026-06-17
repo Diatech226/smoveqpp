@@ -3,7 +3,7 @@ import { PUBLIC_ROUTE_HASH } from './publicRoutes';
 const normalize = (value: string | undefined): string => (value || '').trim().toLowerCase();
 
 export const CONTACT_CTA_HREF = PUBLIC_ROUTE_HASH.contact;
-export const TEAM_CTA_HREF = PUBLIC_ROUTE_HASH.portfolio;
+export const TEAM_CTA_HREF = PUBLIC_ROUTE_HASH.team;
 export const START_PROJECT_CTA_HREF = PUBLIC_ROUTE_HASH.contact;
 
 export const resolveServiceContactHref = (_href: string | undefined): string => CONTACT_CTA_HREF;
