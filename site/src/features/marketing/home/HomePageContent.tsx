@@ -85,7 +85,8 @@ function HomePageContent() {
     setIsSubmittingContact(true);
     setContactFeedback(null);
 
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const payload = {
       name: `${formData.get('name') || ''}`,
       email: `${formData.get('email') || ''}`,
@@ -104,7 +105,7 @@ function HomePageContent() {
         success: result.success,
       });
       if (result.success) {
-        event.currentTarget.reset();
+        form.reset();
         setContactFeedback({ type: 'success', message: result.message });
       } else {
         setContactFeedback({ type: 'error', message: result.message });
