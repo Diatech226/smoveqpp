@@ -8,18 +8,29 @@ import { resolveBlogMediaReference } from '../features/blog/mediaReference';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import type { TeamMember } from '../domain/contentSchemas';
 
-function TeamPhoto({ member }: { member: TeamMember }) {
-  const media = resolveBlogMediaReference(member.photo, member.name);
-  const isLegacyUploadOnly = Boolean(member.photo && /(?:^|\/)uploads\//i.test(member.photo) && !/res\.cloudinary\.com/i.test(member.photo));
-  if (member.photo && media.src && !isLegacyUploadOnly) {
-    return <img src={media.src} alt={member.name} className="h-72 w-full object-cover transition duration-500 group-hover:scale-105" onError={(event) => { event.currentTarget.style.display = 'none'; }} />;
-  }
-
+function TeamPhotoFallback() {
   return (
     <div className="flex h-72 w-full items-center justify-center bg-gradient-to-br from-[#e8f8fd] via-white to-[#e9fbf0] text-[#00b3e8]">
       <Users size={64} strokeWidth={1.5} />
     </div>
   );
+}
+
+function TeamPhoto({ member }: { member: TeamMember }) {
+  const [failed, setFailed] = useState(false);
+  const media = resolveBlogMediaReference(member.photo, member.name);
+  const isLegacyUploadOnly = Boolean(member.photo && /(?:^|\/)uploads\//i.test(member.photo) && !/res\.cloudinary\.com/i.test(member.photo));
+  const hasRenderablePhoto = Boolean(member.photo && media.src && !media.src.startsWith('media:') && !isLegacyUploadOnly);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [member.photo, media.src]);
+
+  if (hasRenderablePhoto && !failed) {
+    return <img src={media.src} alt={member.name} className="h-72 w-full object-cover transition duration-500 group-hover:scale-105" onError={() => setFailed(true)} />;
+  }
+
+  return <TeamPhotoFallback />;
 }
 
 export default function TeamPage() {
@@ -86,7 +97,7 @@ export default function TeamPage() {
                   <div className="mt-6 flex flex-wrap gap-2">
                     {member.email ? <a className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={`mailto:${member.email}`}><Mail className="mr-1 inline" size={14} />Email</a> : null}
                     {member.phone ? <a className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={`tel:${member.phone}`}><Phone className="mr-1 inline" size={14} />Téléphone</a> : null}
-                    {member.socialLinks.map((link) => <a key={`${member.id}-${link.platform}-${link.url}`} className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}
+                    {(member.socialLinks || []).map((link) => <a key={`${member.id}-${link.platform}-${link.url}`} className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}
                   </div>
                 </div>
               </article>
