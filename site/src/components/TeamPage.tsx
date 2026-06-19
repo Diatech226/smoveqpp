@@ -16,6 +16,22 @@ function TeamPhotoFallback() {
   );
 }
 
+function normalizeTeamContact(member: TeamMember) {
+  const record = member as TeamMember & { emailAddress?: string; contact?: string; contactPhone?: string; telephone?: string; whatsapp?: string };
+  return {
+    email: record.email || record.emailAddress || '',
+    phone: record.phone || record.contact || record.contactPhone || record.telephone || '',
+    whatsapp: record.whatsapp || '',
+  };
+}
+
+function whatsappHref(value: string) {
+  const trimmed = value.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const digits = trimmed.replace(/[^\d]/g, '');
+  return digits ? `https://wa.me/${digits}` : '';
+}
+
 function TeamPhoto({ member }: { member: TeamMember }) {
   const [failed, setFailed] = useState(false);
   const media = resolveBlogMediaReference(member.photo, member.name);
@@ -82,7 +98,10 @@ export default function TeamPage() {
           {!loading && !error && members.length === 0 ? <div className="rounded-2xl border border-[#d8eef5] p-8 text-center text-[#52666d]">Les profils de l'équipe seront bientôt publiés.</div> : null}
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {members.map((member) => (
+            {members.map((member) => {
+              const contact = normalizeTeamContact(member);
+              const whatsappUrl = whatsappHref(contact.whatsapp);
+              return (
               <article key={member.id} className="group overflow-hidden rounded-[28px] border border-[#e1edf1] bg-white shadow-[0_20px_60px_rgba(20,51,63,0.08)]">
                 <div className="overflow-hidden"><TeamPhoto member={member} /></div>
                 <div className="p-7">
@@ -95,13 +114,15 @@ export default function TeamPage() {
                   </div>
                   <p className="mt-5 text-[16px] leading-relaxed text-[#52666d]">{member.bio}</p>
                   <div className="mt-6 flex flex-wrap gap-2">
-                    {member.email ? <a className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={`mailto:${member.email}`}><Mail className="mr-1 inline" size={14} />Email</a> : null}
-                    {member.phone ? <a className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={`tel:${member.phone}`}><Phone className="mr-1 inline" size={14} />Téléphone</a> : null}
+                    {contact.email ? <a className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={`mailto:${contact.email}`}><Mail className="mr-1 inline" size={14} />{contact.email}</a> : null}
+                    {contact.phone ? <a className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={`tel:${contact.phone}`}><Phone className="mr-1 inline" size={14} />{contact.phone}</a> : null}
+                    {whatsappUrl ? <a className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={whatsappUrl} target="_blank" rel="noreferrer">WhatsApp</a> : null}
                     {(member.socialLinks || []).map((link) => <a key={`${member.id}-${link.platform}-${link.url}`} className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}
                   </div>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         </section>
 
