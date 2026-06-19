@@ -14,11 +14,11 @@ export interface NewsletterSubscribeResult {
 
 const NEWSLETTER_BASE_URL = `${RUNTIME_CONFIG.apiBaseUrl}/newsletter`;
 
-export async function submitNewsletterSubscription(email: string, source = 'footer'): Promise<NewsletterSubscribeResult> {
+export async function submitNewsletterSubscription(email: string, source = 'footer', name = ''): Promise<NewsletterSubscribeResult> {
   const response = await fetch(NEWSLETTER_BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, source }),
+    body: JSON.stringify({ email, name, source }),
     cache: 'no-store',
   }).catch(() => null);
 
