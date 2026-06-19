@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Youtube, Globe2, MessageCircle, Send, Music2, Ghost } from 'lucide-react';
-import { fetchPublicSettings, type SocialLink } from '../utils/contentApi';
+import { fetchPublicSettings, isValidSocialLinkUrl, type SocialLink } from '../utils/contentApi';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import BrandLogo from './brand/BrandLogo';
 import { submitNewsletterSubscription } from '../utils/newsletterApi';
@@ -25,7 +25,7 @@ export default function Footer() {
         if (!active) return;
         if (settings.siteSettings.siteTitle.trim()) setSiteTitle(settings.siteSettings.siteTitle.trim());
         if (settings.siteSettings.supportEmail.trim()) setSupportEmail(settings.siteSettings.supportEmail.trim());
-        setSocialLinks(settings.footer.socialLinks.filter((link) => link.enabled));
+        setSocialLinks(settings.footer.socialLinks.filter((link) => link.enabled && isValidSocialLinkUrl(link.url, link.platform)).sort((a, b) => a.order - b.order));
       })
       .catch(() => {
         // Keep static fallback copy when backend settings are unavailable.
