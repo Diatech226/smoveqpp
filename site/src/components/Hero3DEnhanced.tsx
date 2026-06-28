@@ -416,44 +416,7 @@ export default function Hero3DEnhanced({
           </motion.div>
         </div>
 
-        <motion.div
-          ref={stageRef}
-          className="relative h-[500px] w-full flex items-center justify-center cursor-pointer"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.4 }}
-        >
-          <div className="relative w-full h-[500px] flex items-center justify-center" style={{ perspective: 1200 }}>
-            <motion.div className="relative h-[324px] w-[600px]" style={{ rotateX: enable3DEffects ? smoothTiltX : 0, rotateY: enable3DEffects ? smoothTiltY : 0, transformStyle: 'preserve-3d' }}>
-              <motion.div
-                className="absolute inset-0 rounded-[24px] bg-white/10 border border-white/20 backdrop-blur-md shadow-2xl p-8"
-                style={{ transform: 'translateZ(40px)' }}
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <span className="size-[12px] rounded-full bg-[#ff5f56]" />
-                    <span className="size-[12px] rounded-full bg-[#ffbd2e]" />
-                    <span className="size-[12px] rounded-full bg-[#27c93f]" />
-                  </div>
-                  <span className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-white/70">Campagne 360°</span>
-                </div>
-                <div className="grid grid-cols-3 gap-4 mb-8">{[42, 78, 62].map((value, index) => (
-                  <div key={index} className="bg-white/5 border border-white/10 rounded-[12px] p-4">
-                    <div className="font-['ABeeZee:Regular',sans-serif] text-[28px] text-white mb-1">{value}%</div>
-                    <div className="font-['Abhaya_Libre:Regular',sans-serif] text-[12px] text-white/65">Performance</div>
-                    <div className="mt-4 h-2 bg-white/10 rounded-full overflow-hidden">
-                      <motion.div className="h-full bg-gradient-to-r from-[#00b3e8] to-[#34c759]" initial={{ width: '0%' }} animate={{ width: `${value}%` }} transition={{ duration: 1.2, delay: 0.5 + index * 0.2 }} />
-                    </div>
-                  </div>
-                ))}</div>
-                <div className="space-y-3">{[90, 72, 58].map((line, index) => (
-                  <div key={index} className="h-3 bg-white/10 rounded-full overflow-hidden">
-                    <motion.div className="h-full bg-gradient-to-r from-[#00b3e8]/5 to-[#2da84a]/10 rounded-full" initial={{ width: '0%' }} animate={{ width: `${line}%` }} transition={{ duration: 1, delay: 0.9 + index * 0.15 }} />
-                  </div>
-                ))}</div>
-              </motion.div>
+        
               <motion.div className="hidden md:block absolute top-4 -right-20 w-[280px] bg-white/10 border border-white/20 rounded-[16px] backdrop-blur-sm p-4" style={{ transform: 'translateZ(120px)' }} animate={{ y: [0, -12, 0], rotate: [-4, -2, -4] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
                 <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-[#00b3e8] mb-2">Brand Content</p>
                 <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">Storytelling, visuels et activation social media.</p>
