@@ -73,7 +73,7 @@ Update `/components/ServicesHubPage.tsx`:
 ### Step 4: Add Page Transitions
 Wrap pages in AnimatePresence:
 ```tsx
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'framer-motion';
 
 <AnimatePresence mode="wait">
   <motion.div key={currentPage}>
@@ -105,7 +105,7 @@ import { AnimatePresence } from 'motion/react';
 ## 📝 Template for New Service Pages
 
 ```tsx
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Icon1, Icon2 } from 'lucide-react';
 import Navigation from '../Navigation';
 import Footer from '../Footer';

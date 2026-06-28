@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Filter, Search, ArrowRight, ExternalLink } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';

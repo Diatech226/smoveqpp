@@ -4,7 +4,7 @@
 
 ### Register focus loss
 
-The public site aliases `motion/react` to a lightweight local shim. The shim's proxy created a new React component function every time code accessed `motion.div`, `motion.form`, or another motion element. A controlled field update re-rendered the register page, React saw a different wrapper component type, remounted that wrapper subtree, and the browser lost input focus after every character.
+Historical note: the public site previously aliased `motion/react` to a lightweight local shim. The shim's proxy created a new React component function every time code accessed `motion.div`, `motion.form`, or another motion element. A controlled field update re-rendered the register page, React saw a different wrapper component type, remounted that wrapper subtree, and the browser lost input focus after every character.
 
 ### Logo autoload delay
 
@@ -12,7 +12,7 @@ Brand settings and the public media library were loaded on separate paths. App s
 
 ## Changed files
 
-- `site/src/shims/motion-react.ts`
+- Removed historical `site/src/shims/motion-react.ts` in favor of real `framer-motion` imports
   - Caches each generated motion element component by tag, preserving React component identity and input DOM nodes across controlled state updates.
 - `site/src/components/auth/RegisterPage.tsx`
   - Keeps particle configuration stable, retains controlled field state, supplies stable form metadata/autocomplete attributes, and handles registration errors without disrupting the form.
@@ -22,7 +22,7 @@ Brand settings and the public media library were loaded on separate paths. App s
   - Starts branding bootstrap during app startup and resolves media-backed favicon/social metadata from the hydrated public media library.
 - `site/src/components/brand/BrandLogo.tsx`
   - Keeps the cached logo visible and falls back safely if the rendered image fails, with development-only debug output.
-- `site/src/shims/motion-react.test.ts`, `site/src/App.test.tsx`
+- Removed historical `site/src/shims/motion-react.test.ts`; `site/src/App.test.tsx` now mocks `framer-motion`
   - Cover stable motion component identity and the updated app bootstrap contract.
 
 ## Auth flow contract

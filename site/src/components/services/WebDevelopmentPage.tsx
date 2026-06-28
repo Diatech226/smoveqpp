@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useCallback, useMemo, useState } from 'react';
 import { Code, Smartphone, ShoppingCart, Zap, CheckCircle, ArrowRight, Layers } from 'lucide-react';
 import Navigation from '../Navigation';

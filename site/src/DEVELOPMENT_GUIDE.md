@@ -255,7 +255,7 @@ const fadeIn = {
 #### Scroll Animations
 
 ```typescript
-import { useScroll, useTransform } from 'motion/react';
+import { useScroll, useTransform } from 'framer-motion';
 
 const { scrollYProgress } = useScroll();
 const opacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
@@ -282,7 +282,7 @@ const opacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
 ### Structure d'un composant
 
 ```typescript
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { APP_CONFIG } from '../config/app.config';
 

@@ -215,7 +215,7 @@ Add:
 
 ## 🔥 Animation Library
 
-Using **Motion (Framer Motion)**: `motion/react`
+Using **Framer Motion**: `framer-motion`
 
 ### Common Animation Patterns:
 

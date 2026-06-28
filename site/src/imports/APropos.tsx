@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { ArrowRight, Award, BriefcaseBusiness, Sparkles, Users } from 'lucide-react';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 

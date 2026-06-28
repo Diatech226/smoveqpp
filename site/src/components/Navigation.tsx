@@ -1,6 +1,6 @@
 import { Home, Info, Briefcase, FolderOpen, BookOpen, Mail, LayoutDashboard, LogIn, UserCircle2 } from 'lucide-react';
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { getCmsAppUrl } from '../config/cmsRuntime';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';

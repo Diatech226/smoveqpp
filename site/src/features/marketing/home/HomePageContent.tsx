@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Calendar, User } from 'lucide-react';
 import Hero3DEnhanced from '../../../components/Hero3DEnhanced';

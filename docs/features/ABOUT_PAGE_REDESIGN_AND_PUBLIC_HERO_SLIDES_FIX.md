@@ -21,7 +21,7 @@ This update addresses two production issues:
 - Reused existing visual identity conventions:
   - Cyan gradients, soft bordered cards, premium shadows, subtle blur/glow background accents.
   - Existing typography families already used across the marketing pages.
-- Added motion polish via `motion/react` entrance transitions while keeping interactions lightweight.
+- Added motion polish via `framer-motion` entrance transitions while keeping interactions lightweight.
 
 ### Why
 

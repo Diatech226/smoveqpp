@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useScroll, useSpring, useTransform } from 'motion/react';
+import { motion, useMotionValue, useScroll, useSpring, useTransform } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import type { HomePageContentSettings } from '../data/pageContentSeed';
