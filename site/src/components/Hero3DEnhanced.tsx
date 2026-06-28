@@ -417,17 +417,7 @@ export default function Hero3DEnhanced({
         </div>
 
         
-              <motion.div className="hidden md:block absolute top-4 -right-20 w-[280px] bg-white/10 border border-white/20 rounded-[16px] backdrop-blur-sm p-4" style={{ transform: 'translateZ(120px)' }} animate={{ y: [0, -12, 0], rotate: [-4, -2, -4] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}>
-                <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-[#00b3e8] mb-2">Brand Content</p>
-                <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">Storytelling, visuels et activation social media.</p>
-              </motion.div>
-              <motion.div className="hidden md:block absolute -left-8 bottom-8 w-[280px] bg-white/10 border border-white/20 rounded-[16px] backdrop-blur-sm p-4" style={{ transform: 'translateZ(100px)' }} animate={{ y: [0, 10, 0], rotate: [3, 1, 3] }} transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}>
-                <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[14px] text-[#34c759] mb-2">Web & Performance</p>
-                <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] text-white/80">Site vitrine, tunnel de conversion et suivi KPI.</p>
-              </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
+        
 
         <motion.div className="flex flex-col items-center gap-2 text-white/50" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.8 }} onClick={() => scrollToSection('services')}>
           <span className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px]">Scroll pour découvrir</span>
