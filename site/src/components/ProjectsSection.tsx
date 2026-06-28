@@ -10,6 +10,7 @@ import { selectHomepageProjects } from '../features/marketing/home/homePreview';
 import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepositorySync';
 import { selectPublishedProjects } from '../features/projects/projectSelectors';
 import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
+import Reveal from './Reveal';
 
 export default function ProjectsSection() {
   const [featuredProjects, setFeaturedProjects] = useState(() => selectHomepageProjects(projectRepository.getPublished()));
@@ -43,19 +44,18 @@ export default function ProjectsSection() {
       {featuredProjects.map((project, index) => {
         const card = toProjectCardContract(project);
         return (
-        <motion.article
+        <Reveal
+          as="article"
           key={card.id}
           className="group cursor-pointer"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: index * 0.1, duration: 0.6 }}
+          delay={index * 110}
+          variant="wipe"
           onClick={() => {
             window.location.hash = PUBLIC_ROUTE_HASH.projectDetail(project.slug || project.id).slice(1);
           }}
         >
           <motion.div
-            className="bg-white rounded-[24px] overflow-hidden shadow-lg h-full flex flex-col"
+            className="motion-card bg-white rounded-[24px] overflow-hidden shadow-lg h-full flex flex-col"
             whileHover={{
               y: -15,
               boxShadow: '0 30px 60px rgba(0, 0, 0, 0.15)',
@@ -65,7 +65,7 @@ export default function ProjectsSection() {
             {/* Image with 3D effect */}
             <div className="relative aspect-video overflow-hidden">
               <motion.div
-                className="absolute inset-0"
+                className="absolute inset-0 motion-image"
                 whileHover={{ scale: 1.1 }}
                 transition={{ duration: 0.6 }}
               >
@@ -167,7 +167,7 @@ export default function ProjectsSection() {
               </motion.div>
             </div>
           </motion.div>
-        </motion.article>
+        </Reveal>
         );
       })}
     </div>
