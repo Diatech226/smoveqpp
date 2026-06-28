@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Navigation from './Navigation';

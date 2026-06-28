@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { useCallback, useState } from 'react';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { projectRepository } from '../repositories/projectRepository';

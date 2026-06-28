@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock3, Copy, Linkedin, Share2, Tag, User } from 'lucide-react';
 import Navigation from './Navigation';
 import Footer from './Footer';

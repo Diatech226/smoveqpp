@@ -238,7 +238,7 @@ HomePage (Single Scroll)
 ## 🔧 Technical Details
 
 ### Dependencies:
-- `motion/react` - All animations
+- `framer-motion` - All animations
 - `lucide-react` - Icons
 - `tailwindcss` - Styling
 

@@ -43,7 +43,7 @@ vi.mock('./utils/analytics', () => ({
   trackSiteEvent: () => undefined,
 }));
 
-vi.mock('motion/react', () => ({
+vi.mock('framer-motion', () => ({
   motion: {
     button: ({ children, ...props }: Record<string, unknown>) => <button {...props}>{children}</button>,
   },

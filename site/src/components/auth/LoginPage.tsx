@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolveOAuthFailureMessage } from './loginPageState';
