@@ -58,8 +58,9 @@ export const findPublishedServiceBySlug = (services: Service[], slug: string): S
 
 export const buildServiceDetailContract = (service: Service): ServiceDetailContract => {
   const title = normalizeText(service.title) || 'Service';
-  const shortDescription = normalizeText(service.shortDescription) || normalizeText(service.description) || `Découvrir ${title}.`;
-  const overview = normalizeText(service.overviewDescription) || normalizeText(service.description) || shortDescription;
+  const shortDescription = normalizeText(service.shortDescription) || normalizeText(service.summary) || normalizeText(service.description) || `Découvrir ${title}.`;
+  const overview = normalizeText(service.description) || normalizeText(service.overviewDescription) || shortDescription;
+  const detailImage = normalizeText(service.detailImage) || normalizeText(service.representativeImage) || normalizeText(service.visualMedia) || normalizeText(service.image) || normalizeText(service.media);
   const features = Array.isArray(service.features) && service.features.length > 0
     ? service.features.map((feature) => normalizeText(feature)).filter(Boolean)
     : ['Accompagnement stratégique', 'Exécution opérationnelle', 'Suivi des performances'];
@@ -67,12 +68,13 @@ export const buildServiceDetailContract = (service: Service): ServiceDetailContr
     ? service.processSteps.map((step) => normalizeText(step)).filter(Boolean)
     : ['Cadrage', 'Production', 'Livraison'];
   const processTitle = normalizeText(service.processTitle) || 'Notre approche';
-  const ctaPrimaryLabel = normalizeText(service.ctaPrimaryLabel) || FALLBACK_CTA_LABEL;
-  const ctaPrimaryHref = isSafeHref(service.ctaPrimaryHref)
-    ? resolveServiceContactHref(service.ctaPrimaryHref || '')
+  const requestedCtaHref = normalizeText(service.detailCta?.buttonUrl) || normalizeText(service.ctaPrimaryHref);
+  const ctaPrimaryLabel = normalizeText(service.detailCta?.buttonLabel) || normalizeText(service.ctaPrimaryLabel) || FALLBACK_CTA_LABEL;
+  const ctaPrimaryHref = isSafeHref(requestedCtaHref)
+    ? resolveServiceContactHref(requestedCtaHref)
     : FALLBACK_CTA_HREF;
-  const ctaTitle = normalizeText(service.ctaTitle) || `Lancer votre projet ${title}`;
-  const ctaDescription = normalizeText(service.ctaDescription) || `${ctaPrimaryLabel} pour discuter de vos objectifs et du planning de mise en œuvre.`;
+  const ctaTitle = normalizeText(service.detailCta?.title) || normalizeText(service.ctaTitle) || `Lancer votre projet ${title}`;
+  const ctaDescription = normalizeText(service.detailCta?.text) || normalizeText(service.ctaDescription) || `${ctaPrimaryLabel} pour discuter de vos objectifs et du planning de mise en œuvre.`;
 
   return {
     id: service.id,
@@ -90,9 +92,9 @@ export const buildServiceDetailContract = (service: Service): ServiceDetailContr
       primaryHref: ctaPrimaryHref,
     },
     heroMedia: {
-      src: '',
+      src: detailImage,
       alt: `${title.toLowerCase()} service`,
-      isMediaAsset: false,
+      isMediaAsset: Boolean(detailImage),
     },
     illustrationCards: [],
   };
