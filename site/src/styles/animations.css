@@ -1,0 +1,13 @@
+.reveal { opacity: 0; will-change: opacity, transform, clip-path; }
+.reveal--fade-up { transform: translate3d(0, 28px, 0); transition: opacity 650ms ease, transform 650ms cubic-bezier(.2, .7, .2, 1); }
+.reveal--scale { transform: scale(.96); transition: opacity 650ms ease, transform 700ms cubic-bezier(.2, .7, .2, 1); }
+.reveal--wipe { clip-path: inset(0 100% 0 0 round 18px); transform: translate3d(0, 12px, 0); transition: clip-path 750ms cubic-bezier(.2, .7, .2, 1), opacity 500ms ease, transform 650ms ease; }
+.reveal.is-visible { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+.reveal--wipe.is-visible { clip-path: inset(0 0 0 0 round 18px); }
+.motion-card { transition: transform 300ms ease, box-shadow 300ms ease, border-color 300ms ease, background-color 300ms ease; }
+.motion-card:hover { transform: translateY(-8px); }
+.motion-image { transition: transform 600ms cubic-bezier(.2, .7, .2, 1); }
+.group:hover .motion-image { transform: scale(1.06); }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal--fade-up, .reveal--scale, .reveal--wipe, .reveal.is-visible, .reveal--wipe.is-visible, .motion-card, .motion-image { opacity: 1; clip-path: none; transform: none; transition: none; }
+}

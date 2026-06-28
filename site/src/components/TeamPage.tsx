@@ -7,6 +7,7 @@ import { mediaRepository } from '../repositories/mediaRepository';
 import { resolveBlogMediaReference } from '../features/blog/mediaReference';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import type { TeamMember } from '../domain/contentSchemas';
+import Reveal from './Reveal';
 
 function TeamPhotoFallback() {
   return (
@@ -98,12 +99,12 @@ export default function TeamPage() {
           {!loading && !error && members.length === 0 ? <div className="rounded-2xl border border-[#d8eef5] p-8 text-center text-[#52666d]">Les profils de l'équipe seront bientôt publiés.</div> : null}
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {members.map((member) => {
+            {members.map((member, index) => {
               const contact = normalizeTeamContact(member);
               const whatsappUrl = whatsappHref(contact.whatsapp);
               return (
-              <article key={member.id} className="group overflow-hidden rounded-[28px] border border-[#e1edf1] bg-white shadow-[0_20px_60px_rgba(20,51,63,0.08)]">
-                <div className="overflow-hidden"><TeamPhoto member={member} /></div>
+              <Reveal as="article" key={member.id} delay={index * 110} variant="fade-up" className="motion-card group overflow-hidden rounded-[28px] border border-[#e1edf1] bg-white shadow-[0_20px_60px_rgba(20,51,63,0.08)]">
+                <div className="overflow-hidden motion-image"><TeamPhoto member={member} /></div>
                 <div className="p-7">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -120,17 +121,17 @@ export default function TeamPage() {
                     {(member.socialLinks || []).map((link) => <a key={`${member.id}-${link.platform}-${link.url}`} className="rounded-full border border-[#d6e8ee] px-3 py-1.5 text-sm text-[#49636c] hover:border-[#00b3e8]" href={link.url} target="_blank" rel="noreferrer">{link.label}</a>)}
                   </div>
                 </div>
-              </article>
+              </Reveal>
               );
             })}
           </div>
         </section>
 
         <section className="mx-auto mb-20 max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-[28px] bg-[#273a41] p-8 text-white shadow-2xl md:flex md:items-center md:justify-between md:p-10">
+          <Reveal variant="wipe" className="rounded-[28px] bg-[#273a41] p-8 text-white shadow-2xl md:flex md:items-center md:justify-between md:p-10">
             <div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#7ee2ff]">Un projet en tête ?</p><h2 className="mt-2 text-3xl">Parlons de votre prochaine étape.</h2></div>
             <a href={PUBLIC_ROUTE_HASH.contact} className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#00b3e8] px-6 py-3 font-semibold text-white transition hover:bg-[#0098c5] md:mt-0">Nous contacter <ArrowRight size={18} /></a>
-          </div>
+          </Reveal>
         </section>
       </main>
       <Footer />
