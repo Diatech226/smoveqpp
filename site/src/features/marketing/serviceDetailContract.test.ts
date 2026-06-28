@@ -51,17 +51,18 @@ describe('serviceDetailContract', () => {
     expect(found).toBeUndefined();
   });
 
-  it('ignores legacy service media when building the public detail contract', () => {
+  it('uses service detail image media when building the public detail contract', () => {
     const detail = buildServiceDetailContract({
       ...publishedService,
+      detailImage: 'media:detail-hero',
       iconLikeAsset: 'https://cdn.example.com/service-hero.png',
       representativeImage: 'media:legacy-hero',
       visualMedia: 'https://cdn.example.com/visual.png',
       illustrationCards: [{ id: 'card-1', title: 'Legacy card', image: 'https://cdn.example.com/card.png' }],
     });
 
-    expect(detail.heroMedia.src).toBe('');
-    expect(detail.heroMedia.isMediaAsset).toBe(false);
+    expect(detail.heroMedia.src).toBe('media:detail-hero');
+    expect(detail.heroMedia.isMediaAsset).toBe(true);
     expect(detail.illustrationCards).toEqual([]);
   });
 });
