@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Youtube, Globe2, MessageCircle, Send, Music2, Ghost } from 'lucide-react';
 import { fetchPublicSettings, isValidSocialLinkUrl, type SocialLink } from '../utils/contentApi';
-import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
+import { fetchPublicPageContent } from '../utils/publicContentApi';
+import { defaultHomePageContent, type FooterContentSettings } from '../data/pageContentSeed';
 import BrandLogo from './brand/BrandLogo';
 import { submitNewsletterSubscription } from '../utils/newsletterApi';
 import { resolveMediaUrl } from '../utils/mediaResolver';
@@ -13,6 +14,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   const [siteTitle, setSiteTitle] = useState('SMOVE');
   const [supportEmail, setSupportEmail] = useState('contact@smove-communication.com');
+  const [footerContent, setFooterContent] = useState<FooterContentSettings>(defaultHomePageContent.footer);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
@@ -29,6 +31,15 @@ export default function Footer() {
       })
       .catch(() => {
         // Keep static fallback copy when backend settings are unavailable.
+      });
+
+    void fetchPublicPageContent()
+      .then((content) => {
+        if (!active) return;
+        setFooterContent(content.footer || defaultHomePageContent.footer);
+      })
+      .catch(() => {
+        // Keep static fallback footer copy when backend page content is unavailable.
       });
 
     return () => {
@@ -61,6 +72,8 @@ export default function Footer() {
     }
   };
 
+  const renderedCopyright = footerContent.copyright.replace('{year}', String(currentYear));
+
   return (
     <footer className="bg-[#02033b] text-white pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -68,11 +81,11 @@ export default function Footer() {
           {/* About Column */}
           <div>
             <h3 className="font-['Medula_One:Regular',sans-serif] text-[20px] tracking-[2px] uppercase text-[#00b3e8] mb-6">
-              {siteTitle}
+              {footerContent.title || siteTitle}
             </h3>
-            <BrandLogo alt={siteTitle} context="footer" className="mb-4" />
+            <BrandLogo alt={footerContent.title || siteTitle} context="footer" className="mb-4" />
             <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[14px] leading-[1.6] text-white/80 mb-6">
-              Agence de communication digitale spécialisée dans la création de contenu, le développement web et la stratégie digitale.
+              {footerContent.description}
             </p>
             <div className="flex flex-wrap gap-3" aria-label="Réseaux sociaux">
               {socialLinks.map((link) => {
@@ -103,11 +116,9 @@ export default function Footer() {
               Liens Rapides
             </h3>
             <ul className="space-y-3 font-['Abhaya_Libre:Regular',sans-serif] text-[14px]">
-              <li><a href={PUBLIC_ROUTE_HASH.home} className="hover:text-[#00b3e8] transition-colors">Accueil</a></li>
-              <li><a href="#about" className="hover:text-[#00b3e8] transition-colors">À Propos</a></li>
-              <li><a href="#portfolio" className="hover:text-[#00b3e8] transition-colors">Portfolio</a></li>
-              <li><a href={PUBLIC_ROUTE_HASH.blog} className="hover:text-[#00b3e8] transition-colors">Blog</a></li>
-              <li><a href={PUBLIC_ROUTE_HASH.contact} className="hover:text-[#00b3e8] transition-colors">Contact</a></li>
+              {footerContent.quickLinks.map((link) => (
+                <li key={`${link.label}-${link.url}`}><a href={link.url} className="hover:text-[#00b3e8] transition-colors">{link.label}</a></li>
+              ))}
             </ul>
           </div>
 
@@ -119,28 +130,38 @@ export default function Footer() {
             <ul className="space-y-4 font-['Abhaya_Libre:Regular',sans-serif] text-[14px]">
               <li className="flex items-start gap-3">
                 <MapPin size={20} className="text-[#00b3e8] mt-1 flex-shrink-0" />
-                <span>Abidjan, Côte d'Ivoire</span>
+                <span>{footerContent.address}</span>
               </li>
               <li className="flex items-start gap-3">
                 <Phone size={20} className="text-[#00b3e8] flex-shrink-0" />
-                <span>+225 XX XX XX XX XX</span>
+                <span>{footerContent.phone}</span>
               </li>
               <li className="flex items-start gap-3">
                 <Mail size={20} className="text-[#00b3e8] flex-shrink-0" />
-                <span>{supportEmail}</span>
+                <span>{footerContent.email || supportEmail}</span>
               </li>
             </ul>
           </div>
         </div>
 
+        {footerContent.cta.title || footerContent.cta.text ? (
+          <div className="mb-8 rounded-[28px] border border-white/10 bg-white/5 p-6 text-center">
+            <h3 className="font-['Inter:Extra_Bold',sans-serif] text-[22px] text-white mb-3">{footerContent.cta.title}</h3>
+            <p className="mx-auto mb-5 max-w-2xl font-['Inter:Regular',sans-serif] text-[15px] text-white/75">{footerContent.cta.text}</p>
+            {footerContent.cta.buttonLabel && footerContent.cta.buttonUrl ? (
+              <a href={footerContent.cta.buttonUrl} className="inline-flex rounded-full bg-[#00b3e8] px-6 py-3 font-['Inter:Extra_Bold',sans-serif] text-[#02033b] transition-colors hover:bg-[#ffc247]">{footerContent.cta.buttonLabel}</a>
+            ) : null}
+          </div>
+        ) : null}
+
         {/* Newsletter Section */}
         <div className="bg-[#ffc247] rounded-[42px] p-8 mb-12">
           <div className="max-w-2xl mx-auto text-center">
             <h3 className="font-['Inter:Extra_Bold',sans-serif] text-[23px] text-[#02033b] mb-4">
-              Abonnez-vous à la Newsletter
+              {footerContent.newsletter.title}
             </h3>
             <p className="font-['Inter:Regular',sans-serif] text-[15px] text-[#02033b] mb-6">
-              Ne manquez rien de nos offres et informations
+              {footerContent.newsletter.text}
             </p>
             <div className="flex gap-2 max-w-md mx-auto">
               <input
@@ -171,7 +192,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-white/65">
-            © {currentYear} {siteTitle} Communication. Tous droits réservés.
+            {renderedCopyright}
           </p>
           <div className="flex gap-6 font-['Abhaya_Libre:Regular',sans-serif] text-[13px] text-white/65">
             <span>Politique de Confidentialité</span>

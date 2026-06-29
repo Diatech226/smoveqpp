@@ -74,6 +74,31 @@ const defaultHomePageContent = {
   contactSubtitle:
     'Vous avez un projet en tête ? Contactez-nous et discutons de la manière dont nous pouvons vous aider à le réaliser.',
   contactSubmitLabel: 'Envoyer le message',
+  footer: {
+    title: 'SMOVE',
+    description: 'Agence de communication digitale spécialisée dans la création de contenu, le développement web et la stratégie digitale.',
+    copyright: '© {year} SMOVE Communication. Tous droits réservés.',
+    address: "Abidjan, Côte d'Ivoire",
+    phone: '+225 XX XX XX XX XX',
+    email: 'contact@smove-communication.com',
+    quickLinks: [
+      { label: 'Accueil', url: '#/' },
+      { label: 'À Propos', url: '#about' },
+      { label: 'Portfolio', url: '#portfolio' },
+      { label: 'Blog', url: '#/blog' },
+      { label: 'Contact', url: '#/contact' },
+    ],
+    cta: {
+      title: 'Prêt à lancer votre projet ?',
+      text: 'Parlons de vos besoins et construisons une communication qui convertit.',
+      buttonLabel: 'Nous contacter',
+      buttonUrl: '#/contact',
+    },
+    newsletter: {
+      title: 'Abonnez-vous à la Newsletter',
+      text: 'Ne manquez rien de nos offres et informations',
+    },
+  },
 };
 
 
@@ -2613,6 +2638,10 @@ class ContentService {
     const home = value && typeof value === 'object' ? value : {};
     const normalized = {};
     for (const [key, fallback] of Object.entries(defaultHomePageContent)) {
+      if (key === 'footer') {
+        normalized.footer = this.normalizeFooterContent(home.footer);
+        continue;
+      }
       if (key === 'heroBackgroundItems') {
         const items = Array.isArray(home.heroBackgroundItems) ? home.heroBackgroundItems : [];
         normalized.heroBackgroundItems = items
@@ -2680,6 +2709,51 @@ class ContentService {
     return normalized;
   }
 
+  normalizeFooterContent(value) {
+    const footer = value && typeof value === 'object' ? value : {};
+    const cta = footer.cta && typeof footer.cta === 'object' ? footer.cta : {};
+    const newsletter = footer.newsletter && typeof footer.newsletter === 'object' ? footer.newsletter : {};
+    const text = (source, fallback) => (typeof source === 'string' ? source.trim() || fallback : fallback);
+    const links = (Array.isArray(footer.quickLinks) ? footer.quickLinks : defaultHomePageContent.footer.quickLinks)
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') return null;
+        const label = text(entry.label, '');
+        const url = text(entry.url, '');
+        return label && url ? { label, url } : null;
+      })
+      .filter(Boolean);
+    return {
+      title: text(footer.title, defaultHomePageContent.footer.title),
+      description: text(footer.description, defaultHomePageContent.footer.description),
+      copyright: text(footer.copyright, defaultHomePageContent.footer.copyright),
+      address: text(footer.address, defaultHomePageContent.footer.address),
+      phone: text(footer.phone, defaultHomePageContent.footer.phone),
+      email: text(footer.email, defaultHomePageContent.footer.email),
+      quickLinks: links.length ? links : defaultHomePageContent.footer.quickLinks,
+      cta: {
+        title: text(cta.title, defaultHomePageContent.footer.cta.title),
+        text: text(cta.text, defaultHomePageContent.footer.cta.text),
+        buttonLabel: text(cta.buttonLabel, defaultHomePageContent.footer.cta.buttonLabel),
+        buttonUrl: text(cta.buttonUrl, defaultHomePageContent.footer.cta.buttonUrl),
+      },
+      newsletter: {
+        title: text(newsletter.title, defaultHomePageContent.footer.newsletter.title),
+        text: text(newsletter.text, defaultHomePageContent.footer.newsletter.text),
+      },
+    };
+  }
+
+  validateFooterContent(footer) {
+    return footer && typeof footer === 'object' &&
+      ['title', 'description', 'copyright', 'address', 'phone', 'email'].every((key) => typeof footer[key] === 'string') &&
+      Array.isArray(footer.quickLinks) && footer.quickLinks.every((link) => link && typeof link.label === 'string' && typeof link.url === 'string' && this.isValidContentHref(link.url)) &&
+      footer.cta && typeof footer.cta === 'object' &&
+      ['title', 'text', 'buttonLabel', 'buttonUrl'].every((key) => typeof footer.cta[key] === 'string') &&
+      (!footer.cta.buttonUrl || this.isValidContentHref(footer.cta.buttonUrl)) &&
+      footer.newsletter && typeof footer.newsletter === 'object' &&
+      ['title', 'text'].every((key) => typeof footer.newsletter[key] === 'string');
+  }
+
   validateHomePageContent(home) {
     const hasValidHeroBackgroundItems = Array.isArray(home.heroBackgroundItems) &&
       home.heroBackgroundItems.every((item) =>
@@ -2738,6 +2812,7 @@ class ContentService {
       'heroBackgroundOverlayOpacity',
       'heroBackgroundEnable3DEffects',
       'heroBackgroundEnableParallax',
+      'footer',
     ].includes(key)).every((key) => typeof home[key] === 'string') &&
       typeof home.heroTitleLine1 === 'string' &&
       home.heroTitleLine1.trim().length > 0 &&
@@ -2749,6 +2824,7 @@ class ContentService {
       this.isValidContentHref(home.portfolioCtaHref) &&
       this.isValidContentHref(home.blogCtaHref) &&
       (!home.aboutImage || this.isValidMediaLink(home.aboutImage)) &&
+      this.validateFooterContent(home.footer) &&
       hasValidHeroBackgroundItems &&
       hasValidScalarBackgroundConfig;
   }
