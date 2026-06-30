@@ -5,6 +5,7 @@ import Navigation from './Navigation';
 import Footer from './Footer';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { getBlogContentContractFromSource, type BlogContentContract } from '../features/blog/blogContentService';
+import { getCloudinaryVariant } from '../utils/cloudinaryVariant';
 import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 
@@ -313,7 +314,7 @@ export default function BlogPageEnhanced() {
                       style={{ transformStyle: 'preserve-3d' }}
                     >
                       <ImageWithFallback
-                        src={featuredPost?.image || ''}
+                        src={getCloudinaryVariant(featuredPost?.image || '', 'hero') || ''}
                         alt={featuredPost?.media.alt || featuredPost?.title || ''}
                         className="w-full h-full object-cover"
                       />
@@ -370,12 +371,12 @@ export default function BlogPageEnhanced() {
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.6 }}
                   >
-                    <ImageWithFallback
+                    {post.image ? <ImageWithFallback
                       variant="card"
-                      src={post.image}
+                      src={getCloudinaryVariant(post.image, 'card') || post.image}
                       alt={post.title}
                       className="w-full h-full object-cover"
-                    />
+                    /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#e5f8fc] to-[#fff1d1] text-[#597178]"><Tag size={28} /><span className="ml-2 font-semibold">SMOVE</span></div>}
                   </motion.div>
                   <motion.div
                     className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1"
