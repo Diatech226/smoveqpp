@@ -28,6 +28,16 @@ const TRANSIENT_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export function normalizeProjectsResponse<T = Project>(data: any): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.projects)) return data.projects as T[];
+    if (Array.isArray(data.items)) return data.items as T[];
+    if (Array.isArray(data.data)) return data.data as T[];
+  }
+  return [];
+}
+
 function normalizeCollection<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[];
   if (value && typeof value === 'object') {
@@ -67,13 +77,22 @@ async function requestWithRetry<T>(path: string, retries = 3): Promise<T> {
 
       const body = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
 
-      if (!response.ok || !body?.success || !body.data) {
+      if (!response.ok) {
         const code = body?.error?.code || `CONTENT_API_${response.status || 0}`;
         const message = body?.error?.message || 'Public content source unavailable.';
         throw new ContentApiError(message, code, response.status || 0);
       }
 
-      return body.data;
+      if (body && typeof body === 'object' && 'success' in body) {
+        if (!body.success) {
+          const code = body.error?.code || `CONTENT_API_${response.status || 0}`;
+          const message = body.error?.message || 'Public content source unavailable.';
+          throw new ContentApiError(message, code, response.status || 0);
+        }
+        return body.data as T;
+      }
+
+      return body as T;
     } catch (error) {
       if (attempt >= retries || !isTransientError(error)) {
         throw error;
@@ -99,7 +118,7 @@ async function request<T>(path: string): Promise<T> {
 
 export async function fetchPublicProjects(): Promise<Project[]> {
   const data = await request<unknown>('/projects');
-  return normalizeCollection<Project>(data);
+  return normalizeProjectsResponse<Project>(data);
 }
 
 export async function fetchPublicServices(): Promise<Service[]> {

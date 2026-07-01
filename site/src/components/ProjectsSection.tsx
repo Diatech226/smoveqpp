@@ -11,6 +11,7 @@ import { useRemoteRepositorySync } from '../features/content-sync/useRemoteRepos
 import { selectPublishedProjects } from '../features/projects/projectSelectors';
 import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
 import Reveal from './Reveal';
+import LoadingState from './LoadingState';
 
 export default function ProjectsSection() {
   const [featuredProjects, setFeaturedProjects] = useState(() => selectHomepageProjects(projectRepository.getPublished()));
@@ -32,15 +33,21 @@ export default function ProjectsSection() {
     console.warn('[public-content] projects API unavailable, keeping repository snapshot.', error);
   }, []);
 
-  useRemoteRepositorySync({
+  const { isLoading } = useRemoteRepositorySync({
     fetchRemote: fetchProjectsWithMedia,
     applyRemote: applyRemoteProjects,
     onSynced: handleProjectsSynced,
     onError: handleProjectsSyncError,
   });
 
+  if (isLoading && featuredProjects.length === 0) {
+    return <LoadingState label="Chargement des projets depuis le CMS…" />;
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <>
+      {isLoading && <LoadingState label="Actualisation des projets…" compact className="mb-6" />}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {featuredProjects.map((project, index) => {
         const card = toProjectCardContract(project);
         return (
@@ -170,6 +177,7 @@ export default function ProjectsSection() {
         </Reveal>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
