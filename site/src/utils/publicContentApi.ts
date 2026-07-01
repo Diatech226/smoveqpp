@@ -34,6 +34,7 @@ export function normalizeProjectsResponse<T = Project>(data: any): T[] {
     if (Array.isArray(data.projects)) return data.projects as T[];
     if (Array.isArray(data.items)) return data.items as T[];
     if (Array.isArray(data.data)) return data.data as T[];
+    if (data.data && typeof data.data === 'object') return normalizeProjectsResponse<T>(data.data);
   }
   return [];
 }

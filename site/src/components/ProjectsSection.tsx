@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useCallback, useState } from 'react';
+import type { Project } from '../domain/contentSchemas';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { projectRepository } from '../repositories/projectRepository';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
@@ -13,15 +14,43 @@ import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary'
 import Reveal from './Reveal';
 import LoadingState from './LoadingState';
 
+function HomepageProjectSkeletonGrid() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" role="status" aria-live="polite">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="overflow-hidden rounded-[24px] bg-white shadow-lg">
+          <div className="aspect-video animate-pulse bg-[#d9edf4]" />
+          <div className="space-y-4 p-6">
+            <div className="h-4 w-1/3 animate-pulse rounded-full bg-[#eef3f5]" />
+            <div className="h-7 w-3/4 animate-pulse rounded-full bg-[#eef3f5]" />
+            <div className="space-y-2">
+              <div className="h-3 w-full animate-pulse rounded-full bg-[#eef3f5]" />
+              <div className="h-3 w-5/6 animate-pulse rounded-full bg-[#eef3f5]" />
+              <div className="h-3 w-2/3 animate-pulse rounded-full bg-[#eef3f5]" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ProjectsSection() {
   const [featuredProjects, setFeaturedProjects] = useState(() => selectHomepageProjects(projectRepository.getPublished()));
 
   const fetchProjectsWithMedia = useCallback(async () => {
     await hydratePublicMediaLibrary();
-    return fetchPublicProjects();
+    const projects = await fetchPublicProjects();
+    if (import.meta.env.DEV) {
+      console.debug('[homepage-projects] count', projects.length);
+    }
+    if (projects.length === 0) {
+      throw new Error('Homepage projects API returned an empty collection.');
+    }
+    return projects;
   }, []);
 
-  const applyRemoteProjects = useCallback((remote: Awaited<ReturnType<typeof fetchPublicProjects>>) => {
+  const applyRemoteProjects = useCallback((remote: Project[]) => {
     return projectRepository.replaceAll(remote);
   }, []);
 
@@ -33,7 +62,7 @@ export default function ProjectsSection() {
     console.warn('[public-content] projects API unavailable, keeping repository snapshot.', error);
   }, []);
 
-  const { isLoading } = useRemoteRepositorySync({
+  const { isLoading, error } = useRemoteRepositorySync({
     fetchRemote: fetchProjectsWithMedia,
     applyRemote: applyRemoteProjects,
     onSynced: handleProjectsSynced,
@@ -41,12 +70,28 @@ export default function ProjectsSection() {
   });
 
   if (isLoading && featuredProjects.length === 0) {
-    return <LoadingState label="Chargement des projets depuis le CMS…" />;
+    return <HomepageProjectSkeletonGrid />;
+  }
+
+  if (!isLoading && error && featuredProjects.length === 0) {
+    return (
+      <div className="rounded-[24px] border border-[#fde2a8] bg-[#fff9eb] p-8 text-center" role="alert">
+        <p className="font-['Abhaya_Libre:Bold',sans-serif] text-[20px] text-[#273a41]">Projets temporairement indisponibles</p>
+        <p className="mt-2 font-['Abhaya_Libre:Regular',sans-serif] text-[16px] text-[#38484e]">
+          Nous n’arrivons pas à charger les projets depuis le CMS pour le moment. Retrouvez-les bientôt sur cette page.
+        </p>
+      </div>
+    );
   }
 
   return (
     <>
       {isLoading && <LoadingState label="Actualisation des projets…" compact className="mb-6" />}
+      {error && featuredProjects.length > 0 ? (
+        <div className="mb-6 rounded-[18px] border border-[#fde2a8] bg-[#fff9eb] px-5 py-4 font-['Abhaya_Libre:Regular',sans-serif] text-[15px] text-[#7a5411]" role="status">
+          Affichage des projets disponibles pendant la récupération des dernières données CMS.
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {featuredProjects.map((project, index) => {
         const card = toProjectCardContract(project);

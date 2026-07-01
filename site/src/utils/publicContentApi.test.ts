@@ -11,7 +11,7 @@ describe('publicContentApi', () => {
     expect(normalizeProjectsResponse({ projects: [project] })).toEqual([project]);
     expect(normalizeProjectsResponse({ items: [project] })).toEqual([project]);
     expect(normalizeProjectsResponse({ data: [project] })).toEqual([project]);
-    expect(normalizeProjectsResponse({ data: { projects: [project] } })).toEqual([]);
+    expect(normalizeProjectsResponse({ data: { projects: [project] } })).toEqual([project]);
   });
 
   it('returns public projects when backend responds with a raw array', async () => {
