@@ -11,6 +11,7 @@ import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { trackSiteEvent } from '../utils/analytics';
 import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary';
+import LoadingState from './LoadingState';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -18,18 +19,22 @@ interface ProjectDetailPageProps {
 
 export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
   const [projectVersion, setProjectVersion] = useState(0);
+  const [isLoadingProject, setIsLoadingProject] = useState(true);
 
   useEffect(() => {
     let active = true;
+    setIsLoadingProject(true);
     import('../utils/publicContentApi').then(({ fetchPublicProjects }) => {
       void Promise.all([hydratePublicMediaLibrary(), fetchPublicProjects()])
         .then(([, remote]) => {
           if (!active) return;
           projectRepository.replaceAll(remote);
           setProjectVersion((version) => version + 1);
+          setIsLoadingProject(false);
         })
         .catch((error) => {
           console.warn('[public-content] project detail API unavailable, keeping repository snapshot.', error);
+          if (active) setIsLoadingProject(false);
         });
     });
 
@@ -66,6 +71,17 @@ export default function ProjectDetailPage({ projectId }: ProjectDetailPageProps)
       type: 'article',
     });
   }, [project, projectMedia]);
+
+  if (!project && isLoadingProject) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navigation currentPath="/projects" />
+        <div className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4 pt-32">
+          <LoadingState label="Chargement du projet depuis le CMS…" />
+        </div>
+      </div>
+    );
+  }
 
   if (!project) {
     return (

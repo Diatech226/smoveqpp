@@ -1,8 +1,31 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ContentApiError } from './contentApi';
-import { fetchPublicMediaFiles, fetchPublicPageContent, fetchPublicProjects, fetchPublicServices } from './publicContentApi';
+import { fetchPublicMediaFiles, fetchPublicPageContent, fetchPublicProjects, fetchPublicServices, normalizeProjectsResponse } from './publicContentApi';
 
 describe('publicContentApi', () => {
+
+  it('normalizes public project response shapes used by the CMS API', () => {
+    const project = { id: 'p-1', title: 'P1' };
+
+    expect(normalizeProjectsResponse([project])).toEqual([project]);
+    expect(normalizeProjectsResponse({ projects: [project] })).toEqual([project]);
+    expect(normalizeProjectsResponse({ items: [project] })).toEqual([project]);
+    expect(normalizeProjectsResponse({ data: [project] })).toEqual([project]);
+    expect(normalizeProjectsResponse({ data: { projects: [project] } })).toEqual([]);
+  });
+
+  it('returns public projects when backend responds with a raw array', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [{ id: 'p-raw', title: 'Raw' }],
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projects = await fetchPublicProjects();
+    expect(projects).toEqual([{ id: 'p-raw', title: 'Raw' }]);
+  });
+
   it('returns public projects from backend envelope', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
         ok: true,

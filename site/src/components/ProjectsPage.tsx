@@ -13,6 +13,7 @@ import { hydratePublicMediaLibrary } from '../features/media/publicMediaLibrary'
 import { applyPageMetadata } from '../features/marketing/pageMetadata';
 import { PUBLIC_ROUTE_HASH } from '../features/marketing/publicRoutes';
 import { buildContactCtaHref } from '../features/marketing/navigationCta';
+import LoadingState from './LoadingState';
 
 export default function ProjectsPage() {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
@@ -36,7 +37,7 @@ export default function ProjectsPage() {
     console.warn('[public-content] projects API unavailable, keeping repository snapshot.', error);
   }, []);
 
-  useRemoteRepositorySync({
+  const { isLoading } = useRemoteRepositorySync({
     fetchRemote: fetchProjectsWithMedia,
     applyRemote: applyRemoteProjects,
     onSynced: handleProjectsSynced,
@@ -222,7 +223,10 @@ export default function ProjectsPage() {
       {/* Projects Grid */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {filteredProjects.length > 0 ? (
+          {isLoading && projects.length > 0 && <LoadingState label="Actualisation des projets…" compact className="mb-8" />}
+          {isLoading && projects.length === 0 ? (
+            <LoadingState label="Chargement des projets depuis le CMS…" />
+          ) : filteredProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredProjects.map((project, index) => {
                 const card = toProjectCardContract(project);
